@@ -1,0 +1,375 @@
+{
+  "schema_version": 1,
+  "presets": [
+    {
+      "schema_version": 1,
+      "id": "eden-010036b0034e4000-base",
+      "name": "Super Mario Party — base 1×",
+      "game": {
+        "id": "010036B0034E4000",
+        "name": "Super Mario Party",
+        "platform": "Switch"
+      },
+      "adapter": {
+        "id": "eden",
+        "versions": [
+          "0.2.1"
+        ]
+      },
+      "hardware": [
+        "steam-deck-oled",
+        "steam-deck-lcd"
+      ],
+      "objective": "Nitidez y estabilidad",
+      "author": "Deck Library",
+      "license": "MIT",
+      "tested": {
+        "status": "proposal",
+        "date": "2026-10-01",
+        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+      },
+      "settings": {
+        "Core": {
+          "use_multi_core": true,
+          "use_speed_limit": true,
+          "speed_limit": 100
+        },
+        "Cpu": {
+          "cpu_accuracy": 0
+        },
+        "System": {
+          "use_docked_mode": true
+        },
+        "Renderer": {
+          "backend": 1,
+          "resolution_setup": 3,
+          "anti_aliasing": 0,
+          "scaling_filter": 1,
+          "gpu_accuracy": 1,
+          "use_disk_shader_cache": true,
+          "use_asynchronous_gpu_emulation": true,
+          "use_asynchronous_shaders": false,
+          "async_presentation": false
+        }
+      },
+      "notes": "Perfil inicial para recibir feedback; no validado en una partida completa.",
+      "sources": []
+    },
+    {
+      "schema_version": 1,
+      "id": "eden-01006fe013472000-base",
+      "name": "Mario Party Superstars — base 1×",
+      "game": {
+        "id": "01006FE013472000",
+        "name": "Mario Party Superstars",
+        "platform": "Switch"
+      },
+      "adapter": {
+        "id": "eden",
+        "versions": [
+          "0.2.1"
+        ]
+      },
+      "hardware": [
+        "steam-deck-oled",
+        "steam-deck-lcd"
+      ],
+      "objective": "Nitidez y estabilidad",
+      "author": "Deck Library",
+      "license": "MIT",
+      "tested": {
+        "status": "proposal",
+        "date": "2026-10-01",
+        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+      },
+      "settings": {
+        "Core": {
+          "use_multi_core": true,
+          "use_speed_limit": true,
+          "speed_limit": 100
+        },
+        "Cpu": {
+          "cpu_accuracy": 0
+        },
+        "System": {
+          "use_docked_mode": false
+        },
+        "Renderer": {
+          "backend": 1,
+          "resolution_setup": 3,
+          "anti_aliasing": 0,
+          "scaling_filter": 1,
+          "gpu_accuracy": 0,
+          "use_disk_shader_cache": true,
+          "use_asynchronous_gpu_emulation": true,
+          "use_asynchronous_shaders": true,
+          "async_presentation": true
+        }
+      },
+      "notes": "Perfil inicial para recibir feedback; no validado en una partida completa.",
+      "sources": []
+    },
+    {
+      "schema_version": 1,
+      "id": "eden-0100965017338000-base",
+      "name": "Super Mario Party Jamboree — base 1×",
+      "game": {
+        "id": "0100965017338000",
+        "name": "Super Mario Party Jamboree",
+        "platform": "Switch"
+      },
+      "adapter": {
+        "id": "eden",
+        "versions": [
+          "0.2.1"
+        ]
+      },
+      "hardware": [
+        "steam-deck-oled",
+        "steam-deck-lcd"
+      ],
+      "objective": "Nitidez y estabilidad",
+      "author": "Deck Library",
+      "license": "MIT",
+      "tested": {
+        "status": "proposal",
+        "date": "2026-10-01",
+        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+      },
+      "settings": {
+        "Core": {
+          "use_multi_core": true,
+          "use_speed_limit": true,
+          "speed_limit": 100
+        },
+        "Cpu": {
+          "cpu_accuracy": 0
+        },
+        "System": {
+          "use_docked_mode": false
+        },
+        "Renderer": {
+          "backend": 1,
+          "resolution_setup": 3,
+          "anti_aliasing": 0,
+          "scaling_filter": 1,
+          "gpu_accuracy": 2,
+          "use_disk_shader_cache": true,
+          "use_asynchronous_gpu_emulation": true,
+          "use_asynchronous_shaders": false,
+          "async_presentation": false
+        }
+      },
+      "notes": "Perfil inicial para recibir feedback; no validado en una partida completa.",
+      "sources": []
+    },
+    {
+      "schema_version": 1,
+      "id": "eden-mk8-ctgp",
+      "name": "Mario Kart 8 Deluxe — 1× y CTGP",
+      "game": {
+        "id": "0100152000022000",
+        "name": "Mario Kart 8 Deluxe",
+        "platform": "Switch"
+      },
+      "adapter": {
+        "id": "eden",
+        "versions": [
+          "0.2.1"
+        ]
+      },
+      "hardware": [
+        "steam-deck-oled",
+        "steam-deck-lcd"
+      ],
+      "objective": "Nitidez y estabilidad",
+      "author": "Deck Library",
+      "license": "MIT",
+      "tested": {
+        "status": "boot-tested",
+        "date": "2026-10-01",
+        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+      },
+      "settings": {
+        "Core": {
+          "use_multi_core": true,
+          "use_speed_limit": true,
+          "speed_limit": 100
+        },
+        "Cpu": {
+          "cpu_accuracy": 0
+        },
+        "System": {
+          "use_docked_mode": false
+        },
+        "Renderer": {
+          "backend": 1,
+          "resolution_setup": 3,
+          "anti_aliasing": 0,
+          "scaling_filter": 1,
+          "gpu_accuracy": 0,
+          "use_disk_shader_cache": true,
+          "use_asynchronous_gpu_emulation": true,
+          "use_asynchronous_shaders": true,
+          "async_presentation": true
+        }
+      },
+      "notes": "Probado hasta el título CTGP desde Steam en Escritorio. CTGP Deluxe 1.1.1 requiere la actualización 3.0.3 instalada en NAND. El preset no instala ni incluye el mod; activar Usar mods de Eden. Gaming Mode pendiente de verificar.",
+      "sources": []
+    },
+    {
+      "schema_version": 1,
+      "id": "eden-smash-sharp",
+      "name": "Super Smash Bros. Ultimate — 1×",
+      "game": {
+        "id": "01006A800016E000",
+        "name": "Super Smash Bros. Ultimate",
+        "platform": "Switch"
+      },
+      "adapter": {
+        "id": "eden",
+        "versions": [
+          "0.2.1"
+        ]
+      },
+      "hardware": [
+        "steam-deck-oled",
+        "steam-deck-lcd"
+      ],
+      "objective": "Nitidez y estabilidad",
+      "author": "Deck Library",
+      "license": "MIT",
+      "tested": {
+        "status": "proposal",
+        "date": "2026-10-01",
+        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+      },
+      "settings": {
+        "Core": {
+          "use_multi_core": true,
+          "use_speed_limit": true,
+          "speed_limit": 100
+        },
+        "Cpu": {
+          "cpu_accuracy": 0
+        },
+        "System": {
+          "use_docked_mode": false
+        },
+        "Renderer": {
+          "backend": 1,
+          "resolution_setup": 3,
+          "anti_aliasing": 0,
+          "scaling_filter": 1,
+          "gpu_accuracy": 0,
+          "use_disk_shader_cache": true,
+          "use_asynchronous_gpu_emulation": true,
+          "use_asynchronous_shaders": true,
+          "async_presentation": true
+        }
+      },
+      "notes": "Mantiene 1× y velocidad normal. El usuario confirmó mejoría previa; esta revisión portable requiere probarse por separado.",
+      "sources": []
+    },
+    {
+      "schema_version": 1,
+      "id": "prism-minecraft-deck",
+      "name": "Minecraft Java — memoria y pantalla Deck",
+      "game": {
+        "id": "minecraft-java",
+        "name": "Minecraft Java",
+        "platform": "Minecraft"
+      },
+      "adapter": {
+        "id": "prism",
+        "versions": [
+          "11.1.1"
+        ]
+      },
+      "hardware": [
+        "steam-deck-oled",
+        "steam-deck-lcd"
+      ],
+      "objective": "Nitidez y estabilidad",
+      "author": "Deck Library",
+      "license": "MIT",
+      "tested": {
+        "status": "proposal",
+        "date": "2026-10-01",
+        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+      },
+      "settings": {
+        "General": {
+          "OverrideMemory": true,
+          "MinMemAlloc": 1024,
+          "MaxMemAlloc": 6144,
+          "OverrideWindow": true,
+          "MinecraftWinWidth": 1280,
+          "MinecraftWinHeight": 800
+        }
+      },
+      "notes": "Base para probar: los modpacks pesados pueden necesitar otro límite. No cambia Java, mods, cuentas ni opciones del mundo. Para controles usar la plantilla Teclado (WASD) y ratón de Steam y adaptar según las teclas reales de la instancia.",
+      "sources": [],
+      "layout": {
+        "template": "keyboard-mouse",
+        "bindings": {
+          "Stick izquierdo": "WASD: movimiento",
+          "Trackpad derecho": "Ratón: cámara",
+          "RT": "Clic izquierdo: golpear/minar",
+          "LT": "Clic derecho: usar/colocar",
+          "A": "Espacio: saltar",
+          "B": "Shift: agacharse",
+          "X": "E: inventario",
+          "Y": "Q: soltar",
+          "Start": "Escape: menú",
+          "LB/RB": "Rueda del ratón: barra rápida"
+        },
+        "notes": "Es una recomendación visible; el usuario selecciona y ajusta el layout en Steam. Mods de controles pueden requerir gamepad en vez de teclado."
+      }
+    },
+    {
+      "schema_version": 1,
+      "id": "wiicompiled-rmcp01-sharp",
+      "name": "Mario Kart Wii — nitidez 1.5×",
+      "game": {
+        "id": "RMCP01",
+        "name": "Mario Kart Wii",
+        "platform": "WiiCompiled"
+      },
+      "adapter": {
+        "id": "wiicompiled",
+        "versions": [
+          "0.2.33"
+        ]
+      },
+      "hardware": [
+        "steam-deck-oled",
+        "steam-deck-lcd"
+      ],
+      "objective": "Nitidez y estabilidad",
+      "author": "Deck Library",
+      "license": "MIT",
+      "tested": {
+        "status": "user-confirmed",
+        "date": "2026-10-01",
+        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+      },
+      "settings": {
+        "video": {
+          "resolution_multiplier": 1.5,
+          "disable_copy_filter": true,
+          "frame_interpolation_fps": 0,
+          "graphics_api": "vulkan",
+          "display_mode": "borderless",
+          "skip_unready_pipelines": true,
+          "show_fps": true
+        },
+        "audio": {
+          "mix_worker": true
+        }
+      },
+      "notes": "El usuario confirmó buena imagen y rendimiento en Gaming Mode. El preset no cambia rutas ni controles; el ajuste de salida F12 pertenece al parche del ejecutable, aplicado por el asistente de recompilación compatible.",
+      "sources": []
+    }
+  ]
+}

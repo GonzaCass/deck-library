@@ -1,0 +1,26 @@
+__pycache__/
+*.pyc
+.venv/
+dist/
+*.log
+*.status.json
+library.json
+pending.json
+logs/
+profiles/
+launchers/
+*.nsp
+*.xci
+*.iso
+*.rvz
+*.keys
+*.backup*
+# Private machine-specific integration harness, excluded from public release.
+/tools/integrate_local.py
+
+# Private preferences, artwork cache and feedback (never publish API keys).
+settings.json
+artwork/
+feedback/
+wiicompiled-runtime/
+wii-setup/
