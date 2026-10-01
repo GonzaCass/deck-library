@@ -1,0 +1,513 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:deck-library:preset:v1",
+  "title": "Deck Library portable preset v1",
+  "type": "object",
+  "properties": {
+    "schema_version": {
+      "const": 1
+    },
+    "id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{0,79}$"
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "game": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "platform": {
+          "type": "string"
+        },
+        "update": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "additionalProperties": false
+    },
+    "adapter": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "enum": [
+            "eden",
+            "wiicompiled",
+            "dolphin",
+            "prism"
+          ]
+        },
+        "versions": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "id",
+        "versions"
+      ],
+      "additionalProperties": false
+    },
+    "hardware": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "enum": [
+          "steam-deck-lcd",
+          "steam-deck-oled",
+          "linux-pc"
+        ]
+      }
+    },
+    "objective": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "author": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "tested": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "enum": [
+            "proposal",
+            "boot-tested",
+            "user-confirmed"
+          ]
+        },
+        "date": {
+          "type": "string"
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "settings": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "notes": {
+      "type": "string",
+      "maxLength": 4000
+    },
+    "sources": {
+      "type": "array",
+      "maxItems": 20,
+      "items": {
+        "type": "string",
+        "pattern": "^https://"
+      }
+    },
+    "layout": {
+      "type": "object",
+      "properties": {
+        "template": {
+          "enum": [
+            "keyboard-mouse",
+            "gamepad"
+          ]
+        },
+        "bindings": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "template"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "schema_version",
+    "id",
+    "name",
+    "game",
+    "adapter",
+    "hardware",
+    "objective",
+    "author",
+    "license",
+    "tested",
+    "settings"
+  ],
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "eden"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "properties": {
+              "Core": {
+                "type": "object",
+                "properties": {
+                  "use_multi_core": {
+                    "type": "boolean"
+                  },
+                  "use_speed_limit": {
+                    "type": "boolean"
+                  },
+                  "speed_limit": {
+                    "type": "integer",
+                    "minimum": 100,
+                    "maximum": 100
+                  },
+                  "sync_core_speed": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              },
+              "Cpu": {
+                "type": "object",
+                "properties": {
+                  "cpu_accuracy": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2
+                  },
+                  "use_custom_cpu_ticks": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              },
+              "System": {
+                "type": "object",
+                "properties": {
+                  "use_docked_mode": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              },
+              "Renderer": {
+                "type": "object",
+                "properties": {
+                  "backend": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 1
+                  },
+                  "resolution_setup": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 6
+                  },
+                  "aspect_ratio": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4
+                  },
+                  "anti_aliasing": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2
+                  },
+                  "scaling_filter": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 5
+                  },
+                  "gpu_accuracy": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2
+                  },
+                  "dma_accuracy": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2
+                  },
+                  "vram_usage_mode": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2
+                  },
+                  "use_disk_shader_cache": {
+                    "type": "boolean"
+                  },
+                  "use_vulkan_driver_pipeline_cache": {
+                    "type": "boolean"
+                  },
+                  "use_asynchronous_gpu_emulation": {
+                    "type": "boolean"
+                  },
+                  "use_asynchronous_shaders": {
+                    "type": "boolean"
+                  },
+                  "async_presentation": {
+                    "type": "boolean"
+                  },
+                  "use_vsync": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 3
+                  },
+                  "force_max_clock": {
+                    "type": "boolean"
+                  },
+                  "max_anisotropy": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 5
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "wiicompiled"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "properties": {
+              "video": {
+                "type": "object",
+                "properties": {
+                  "resolution_multiplier": {
+                    "type": "number",
+                    "minimum": 1.0,
+                    "maximum": 3.0
+                  },
+                  "disable_copy_filter": {
+                    "type": "boolean"
+                  },
+                  "frame_interpolation_fps": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 0
+                  },
+                  "graphics_api": {
+                    "enum": [
+                      "vulkan",
+                      "opengl"
+                    ]
+                  },
+                  "display_mode": {
+                    "enum": [
+                      "borderless",
+                      "windowed",
+                      "fullscreen"
+                    ]
+                  },
+                  "skip_unready_pipelines": {
+                    "type": "boolean"
+                  },
+                  "show_fps": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              },
+              "audio": {
+                "type": "object",
+                "properties": {
+                  "mix_worker": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "dolphin"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "properties": {
+              "Video_Settings": {
+                "type": "object",
+                "properties": {
+                  "InternalResolution": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4
+                  },
+                  "MSAA": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 8
+                  },
+                  "SSAA": {
+                    "type": "boolean"
+                  },
+                  "MaxAnisotropy": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              },
+              "Video_Hacks": {
+                "type": "object",
+                "properties": {
+                  "EFBScaledCopy": {
+                    "type": "boolean"
+                  },
+                  "EFBAccessEnable": {
+                    "type": "boolean"
+                  },
+                  "EFBToTextureEnable": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "prism"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "properties": {
+              "General": {
+                "type": "object",
+                "properties": {
+                  "OverrideMemory": {
+                    "type": "boolean"
+                  },
+                  "MinMemAlloc": {
+                    "type": "integer",
+                    "minimum": 512,
+                    "maximum": 8192
+                  },
+                  "MaxMemAlloc": {
+                    "type": "integer",
+                    "minimum": 1024,
+                    "maximum": 8192
+                  },
+                  "OverrideWindow": {
+                    "type": "boolean"
+                  },
+                  "MinecraftWinWidth": {
+                    "type": "integer",
+                    "minimum": 640,
+                    "maximum": 2560
+                  },
+                  "MinecraftWinHeight": {
+                    "type": "integer",
+                    "minimum": 360,
+                    "maximum": 1600
+                  },
+                  "LaunchMaximized": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "additionalProperties": false,
+            "minProperties": 1
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "id": "eden-mk8-ctgp",
+  "name": "Mario Kart 8 Deluxe — 1× y CTGP",
+  "game": {
+    "id": "0100152000022000",
+    "name": "Mario Kart 8 Deluxe",
+    "platform": "Switch"
+  },
+  "adapter": {
+    "id": "eden",
+    "versions": [
+      "0.2.1"
+    ]
+  },
+  "hardware": [
+    "steam-deck-oled",
+    "steam-deck-lcd"
+  ],
+  "objective": "Nitidez y estabilidad",
+  "author": "Deck Library",
+  "license": "MIT",
+  "tested": {
+    "status": "boot-tested",
+    "date": "2026-10-01",
+    "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+  },
+  "settings": {
+    "Core": {
+      "use_multi_core": true,
+      "use_speed_limit": true,
+      "speed_limit": 100
+    },
+    "Cpu": {
+      "cpu_accuracy": 0
+    },
+    "System": {
+      "use_docked_mode": false
+    },
+    "Renderer": {
+      "backend": 1,
+      "resolution_setup": 3,
+      "anti_aliasing": 0,
+      "scaling_filter": 1,
+      "gpu_accuracy": 0,
+      "use_disk_shader_cache": true,
+      "use_asynchronous_gpu_emulation": true,
+      "use_asynchronous_shaders": true,
+      "async_presentation": true
+    }
+  },
+  "notes": "Probado hasta el título CTGP desde Steam en Escritorio. CTGP Deluxe 1.1.1 requiere la actualización 3.0.3 instalada en NAND. El preset no instala ni incluye el mod; activar Usar mods de Eden. Gaming Mode pendiente de verificar.",
+  "sources": []
+}

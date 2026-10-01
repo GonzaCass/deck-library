@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "id": "prism-minecraft-deck",
+  "name": "Minecraft Java — memoria y pantalla Deck",
+  "game": {
+    "id": "minecraft-java",
+    "name": "Minecraft Java",
+    "platform": "Minecraft"
+  },
+  "adapter": {
+    "id": "prism",
+    "versions": [
+      "11.1.1"
+    ]
+  },
+  "hardware": [
+    "steam-deck-oled",
+    "steam-deck-lcd"
+  ],
+  "objective": "Nitidez y estabilidad",
+  "author": "Deck Library",
+  "license": "MIT",
+  "tested": {
+    "status": "proposal",
+    "date": "2026-10-01",
+    "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+  },
+  "settings": {
+    "General": {
+      "OverrideMemory": true,
+      "MinMemAlloc": 1024,
+      "MaxMemAlloc": 6144,
+      "OverrideWindow": true,
+      "MinecraftWinWidth": 1280,
+      "MinecraftWinHeight": 800
+    }
+  },
+  "notes": "Base para probar: los modpacks pesados pueden necesitar otro límite. No cambia Java, mods, cuentas ni opciones del mundo. Para controles usar la plantilla Teclado (WASD) y ratón de Steam y adaptar según las teclas reales de la instancia.",
+  "sources": [],
+  "layout": {
+    "template": "keyboard-mouse",
+    "bindings": {
+      "Stick izquierdo": "WASD: movimiento",
+      "Trackpad derecho": "Ratón: cámara",
+      "RT": "Clic izquierdo: golpear/minar",
+      "LT": "Clic derecho: usar/colocar",
+      "A": "Espacio: saltar",
+      "B": "Shift: agacharse",
+      "X": "E: inventario",
+      "Y": "Q: soltar",
+      "Start": "Escape: menú",
+      "LB/RB": "Rueda del ratón: barra rápida"
+    },
+    "notes": "Es una recomendación visible; el usuario selecciona y ajusta el layout en Steam. Mods de controles pueden requerir gamepad en vez de teclado."
+  }
+}

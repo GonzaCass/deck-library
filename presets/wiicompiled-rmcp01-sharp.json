@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "id": "wiicompiled-rmcp01-sharp",
+  "name": "Mario Kart Wii — nitidez 1.5×",
+  "game": {
+    "id": "RMCP01",
+    "name": "Mario Kart Wii",
+    "platform": "WiiCompiled"
+  },
+  "adapter": {
+    "id": "wiicompiled",
+    "versions": [
+      "0.2.33"
+    ]
+  },
+  "hardware": [
+    "steam-deck-oled",
+    "steam-deck-lcd"
+  ],
+  "objective": "Nitidez y estabilidad",
+  "author": "Deck Library",
+  "license": "MIT",
+  "tested": {
+    "status": "user-confirmed",
+    "date": "2026-10-01",
+    "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+  },
+  "settings": {
+    "video": {
+      "resolution_multiplier": 1.5,
+      "disable_copy_filter": true,
+      "frame_interpolation_fps": 0,
+      "graphics_api": "vulkan",
+      "display_mode": "borderless",
+      "skip_unready_pipelines": true,
+      "show_fps": true
+    },
+    "audio": {
+      "mix_worker": true
+    }
+  },
+  "notes": "El usuario confirmó buena imagen y rendimiento en Gaming Mode. El preset no cambia rutas ni controles; el ajuste de salida F12 pertenece al parche del ejecutable, aplicado por el asistente de recompilación compatible.",
+  "sources": []
+}
