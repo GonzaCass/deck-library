@@ -10,30 +10,30 @@ class ExperienceMixin:
     def provider_fields(self,box):
         from .gui import label
         box.pack_start(label('Proveedor de carátulas','title'),False,False,0)
-        box.pack_start(label('Automático usa SteamGridDB si agregás una clave; si no, busca en Libretro y Wikipedia. Podés elegir otra imagen después.','muted'),False,False,0)
+        box.pack_start(label('Automático usa SteamGridDB si hay una clave configurada; si no, busca en Libretro y Wikipedia. La imagen se puede cambiar por juego.','muted'),False,False,0)
         combo=Gtk.ComboBoxText()
-        for key,name in [('automatic','Automático · recomendado'),('libretro','Libretro · consolas clásicas'),('wikipedia','Wikipedia · sin cuenta'),('steamgriddb','SteamGridDB · carátulas 600 × 900'),('off','Solo imágenes locales')]:combo.append(key,name)
+        for key,name in [('automatic','Automático (recomendado)'),('libretro','Libretro · consolas clásicas'),('wikipedia','Wikipedia · sin cuenta'),('steamgriddb','SteamGridDB · carátulas 600 × 900'),('off','Solo imágenes locales')]:combo.append(key,name)
         combo.set_active_id(self.preferences.get('artwork_provider','automatic'));box.pack_start(combo,False,False,0)
         key=Gtk.Entry();key.set_visibility(False);key.set_placeholder_text('Clave API de SteamGridDB (opcional)');key.set_text(self.preferences.get('steamgriddb_key',''));box.pack_start(key,False,False,0)
-        link=Gtk.LinkButton.new_with_label('https://www.steamgriddb.com/profile/preferences/api','Obtener mi clave en SteamGridDB');box.pack_start(link,False,False,0)
-        box.pack_start(label('La clave queda en esta Deck. Al buscar se envía el nombre del juego al proveedor; las imágenes se guardan localmente.','muted'),False,False,0)
+        link=Gtk.LinkButton.new_with_label('https://www.steamgriddb.com/profile/preferences/api','Obtener una clave en SteamGridDB');box.pack_start(link,False,False,0)
+        box.pack_start(label('La clave se guarda solo en esta Deck. Al buscar se envía el nombre del juego al proveedor y las imágenes se guardan localmente.','muted'),False,False,0)
         return combo,key
 
     def settings_page(self):
         from .gui import label,button
         self.reset_page(self.settings_box)
         self.settings_box.pack_start(label('Ajustes','hero'),False,False,0)
-        self.settings_box.pack_start(label('Instalaciones, carátulas y apariencia.','subtitle'),False,False,0)
+        self.settings_box.pack_start(label('Carátulas, rutas y apariencia.','subtitle'),False,False,0)
         panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14);panel.get_style_context().add_class('card');self.settings_box.pack_start(panel,False,False,0)
         combo,key=self.provider_fields(panel)
         animations=Gtk.Switch();animations.set_active(self.preferences.get('animations',True));row=Gtk.Box(spacing=12);row.pack_start(label('Animaciones y transiciones'),True,True,0);row.pack_end(animations,False,False,0);panel.pack_start(row,False,False,0)
         def save(_):
-            if combo.get_active_id()=='steamgriddb' and not key.get_text().strip():self.message('Falta la clave','Agregá tu clave o elegí Automático / Wikipedia.');return
-            self.preferences.update(artwork_provider=combo.get_active_id(),steamgriddb_key=key.get_text().strip(),animations=animations.get_active());save_settings(self.preferences,self.store);self.apply_motion();self.artwork_attempted.clear();self.set_status('Preferencias guardadas.');self.fetch_covers()
-        panel.pack_start(button('Guardar y completar carátulas',save,True),False,False,0)
+            if combo.get_active_id()=='steamgriddb' and not key.get_text().strip():self.message('Falta la clave','Ingresar la clave o elegir Automático o Wikipedia.');return
+            self.preferences.update(artwork_provider=combo.get_active_id(),steamgriddb_key=key.get_text().strip(),animations=animations.get_active());save_settings(self.preferences,self.store);self.apply_motion();self.artwork_attempted.clear();self.set_status('Ajustes guardados.');self.fetch_covers()
+        panel.pack_start(button('Guardar y buscar carátulas',save,True),False,False,0)
         row=Gtk.Box(spacing=12)
         row.pack_start(button('Instalaciones y carpetas',lambda _:self.installation_dialog()),False,False,0)
-        row.pack_start(button('Repetir asistente inicial',lambda _:self.start_wizard()),False,False,0)
+        row.pack_start(button('Repetir configuración inicial',lambda _:self.start_wizard()),False,False,0)
         self.settings_box.pack_start(row,False,False,0);self.settings_box.show_all();self.pages.set_visible_child_name('settings')
 
     def start_wizard(self):
@@ -41,7 +41,7 @@ class ExperienceMixin:
     def draw_wizard(self):
         from .gui import label,button
         stack=self.wizard_box;box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);stack.add(box)
-        steps=['Bienvenida','Detectar','Carátulas','Listo para Steam'];progress=Gtk.Box(spacing=12)
+        steps=['Inicio','Detección','Carátulas','Final'];progress=Gtk.Box(spacing=12)
         for index,title in enumerate(steps):
             item=label(f'{index+1}  {title}','pill' if index==self.wizard_step else 'muted');progress.pack_start(item,True,True,0)
         box.pack_start(progress,False,False,0)
@@ -50,31 +50,31 @@ class ExperienceMixin:
         if self.wizard_step==0:
             body.pack_start(label('Configuración inicial','welcome-title'),False,False,12)
             body.pack_start(label('Detectar instalaciones, configurar carátulas y preparar accesos a Steam.','subtitle'),False,False,0)
-            for title,text in [('01  Detectar juegos','EmuDeck, emuladores, ports de Quiver y instancias de Prism.'),('02  Configurar carátulas','Carátulas automáticas y ajustes recomendados por juego.'),('03  Agregar a Steam','Seleccionar juegos y preparar sus accesos.')]:
+            for title,text in [('1  Detección','EmuDeck, emuladores, ports de Quiver e instancias de Prism.'),('2  Carátulas','Descarga automática y ajustes recomendados por juego.'),('3  Steam','Selección de juegos y creación de accesos.')]:
                 card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);card.get_style_context().add_class('card');card.pack_start(label(title,'title'),False,False,0);card.pack_start(label(text,'muted'),False,False,0);body.pack_start(card,False,False,0)
-            footer.pack_end(button('Empezar →',lambda _:self.wizard_next(),True),False,False,0)
-            footer.pack_start(button('Ahora no',lambda _:self.leave_wizard(False)),False,False,0)
+            footer.pack_end(button('Empezar',lambda _:self.wizard_next(),True),False,False,0)
+            footer.pack_start(button('Omitir',lambda _:self.leave_wizard(False)),False,False,0)
         elif self.wizard_step==1:
             body.pack_start(label('Juegos detectados','hero'),False,False,0)
-            body.pack_start(label('Marcá los juegos que querés llevar a Steam. Si falta algo, agregá su carpeta.','subtitle'),False,False,0)
+            body.pack_start(label('Marcar los juegos que se agregarán a Steam. Si falta alguno, añadir su carpeta.','subtitle'),False,False,0)
             self.wizard_report_label=label('Buscando EmuDeck, emuladores, ports y Prism…','pill');body.pack_start(self.wizard_report_label,False,False,0)
             scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.wizard_results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);scroll.add(self.wizard_results);body.pack_start(scroll,True,True,0)
-            controls=Gtk.Box(spacing=10);controls.pack_start(button('Falta una carpeta',lambda _:self.wizard_folder()),False,False,0);controls.pack_start(button('Rutas y emuladores',lambda _:self.installation_dialog()),False,False,0);body.pack_start(controls,False,False,0)
-            footer.pack_start(button('← Atrás',lambda _:self.wizard_back()),False,False,0)
-            self.wizard_continue=button('Continuar →',lambda _:self.wizard_next(),True);footer.pack_end(self.wizard_continue,False,False,0);self.wizard_continue.set_sensitive(self.wizard_found is not None)
+            controls=Gtk.Box(spacing=10);controls.pack_start(button('Añadir carpeta',lambda _:self.wizard_folder()),False,False,0);controls.pack_start(button('Rutas y emuladores',lambda _:self.installation_dialog()),False,False,0);body.pack_start(controls,False,False,0)
+            footer.pack_start(button('Atrás',lambda _:self.wizard_back()),False,False,0)
+            self.wizard_continue=button('Continuar',lambda _:self.wizard_next(),True);footer.pack_end(self.wizard_continue,False,False,0);self.wizard_continue.set_sensitive(self.wizard_found is not None)
             if self.wizard_found is not None:self.wizard_detection_ready(self.wizard_found)
             else:self.discover()
         elif self.wizard_step==2:
             body.pack_start(label('Carátulas','hero'),False,False,0)
             self.wizard_provider,self.wizard_key=self.provider_fields(body)
-            body.pack_start(label('Buscaremos las carátulas al terminar. Los juegos siguen disponibles mientras se descargan.','muted'),False,False,0)
-            footer.pack_start(button('← Atrás',lambda _:self.wizard_back()),False,False,0);footer.pack_end(button('Continuar →',lambda _:self.wizard_next(),True),False,False,0)
+            body.pack_start(label('Las carátulas se descargan al terminar. La biblioteca se puede usar mientras tanto.','muted'),False,False,0)
+            footer.pack_start(button('Atrás',lambda _:self.wizard_back()),False,False,0);footer.pack_end(button('Continuar',lambda _:self.wizard_next(),True),False,False,0)
         else:
             body.pack_start(label('Configuración completada','welcome-title'),False,False,12)
             body.pack_start(label(f'{len(self.entries)} juegos encontrados · {len(self.checked)} seleccionados para Steam','subtitle'),False,False,0)
-            body.pack_start(label('En la biblioteca, tocá una carátula para jugar, aplicar un preset o agregar ese juego a Steam.','title'),False,False,16)
-            body.pack_start(label('Para agregar varios, activá “Seleccionar” y usá el botón de Steam que aparece abajo. Steam pedirá reiniciarse si está abierto.','muted'),False,False,0)
-            footer.pack_start(button('← Atrás',lambda _:self.wizard_back()),False,False,0);footer.pack_end(button('Abrir biblioteca →',lambda _:self.leave_wizard(True),True),False,False,0)
+            body.pack_start(label('Cada carátula abre la ficha del juego: jugar, aplicar ajustes o agregarlo a Steam.','title'),False,False,16)
+            body.pack_start(label('Para agregar varios a la vez, activar «Seleccionar». Si Steam está abierto, debe reiniciarse para guardar los accesos.','muted'),False,False,0)
+            footer.pack_start(button('Atrás',lambda _:self.wizard_back()),False,False,0);footer.pack_end(button('Abrir biblioteca',lambda _:self.leave_wizard(True),True),False,False,0)
         box.show_all();stack.set_visible_child(box)
         def remove_previous():
             for child in stack.get_children():
@@ -85,7 +85,7 @@ class ExperienceMixin:
         if self.wizard_step==1:self.checked={id_ for id_,widget in self.wizard_checks.items() if widget.get_active()}
         if self.wizard_step==2:
             provider=self.wizard_provider.get_active_id();key=self.wizard_key.get_text().strip()
-            if provider=='steamgriddb' and not key:self.message('Falta la clave','Pegá tu clave de SteamGridDB o usá el proveedor Automático sin clave.');return
+            if provider=='steamgriddb' and not key:self.message('Falta la clave','Ingresar la clave de SteamGridDB o usar el proveedor Automático, que no la necesita.');return
             self.preferences.update(artwork_provider=provider,steamgriddb_key=key);save_settings(self.preferences,self.store)
         self.wizard_step+=1;self.draw_wizard()
     def wizard_back(self):
@@ -97,17 +97,17 @@ class ExperienceMixin:
     def wizard_detection_ready(self,found):
         if self.pages.get_visible_child_name()!='welcome' or self.wizard_step!=1:return
         self.wizard_found=found;self.wizard_continue.set_sensitive(True)
-        deck='EmuDeck ✓' if found['emudeck']['installed'] else 'EmuDeck no detectado'
+        deck='EmuDeck detectado' if found['emudeck']['installed'] else 'EmuDeck no detectado'
         self.wizard_report_label.set_text(f'{deck}  ·  {len(found["emulators"])} emuladores  ·  {len(found["prism"])} instalaciones de Prism  ·  {len(self.entries)} juegos')
         self.reset_page(self.wizard_results);self.wizard_checks={}
         for entry in sorted(self.entries,key=lambda e:(e.platform,e.name.casefold())):
             row=Gtk.CheckButton(label=entry.name+'  ·  '+entry.platform);row.set_active(entry.id in self.checked);self.wizard_checks[entry.id]=row;self.wizard_results.pack_start(row,False,False,0)
         if not self.entries:
             from .gui import label
-            self.wizard_results.pack_start(label('No encontramos juegos todavía. Elegí una carpeta o configurá el emulador.','muted'),False,False,0)
+            self.wizard_results.pack_start(label('No se encontraron juegos. Añadir una carpeta o configurar el emulador.','muted'),False,False,0)
         self.wizard_results.show_all()
     def wizard_folder(self):
-        dialog=Gtk.FileChooserDialog(title='¿Dónde están tus juegos?',transient_for=self,action=Gtk.FileChooserAction.SELECT_FOLDER);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Buscar aquí',Gtk.ResponseType.OK)
+        dialog=Gtk.FileChooserDialog(title='Carpeta de juegos',transient_for=self,action=Gtk.FileChooserAction.SELECT_FOLDER);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Buscar en esta carpeta',Gtk.ResponseType.OK)
         if dialog.run()==Gtk.ResponseType.OK:
             path=dialog.get_filename()
             for key in ('rom_roots','port_roots'):
@@ -123,7 +123,7 @@ class ExperienceMixin:
         def work():
             successes=0
             for index,entry in enumerate(candidates,1):
-                GLib.idle_add(self.artwork_label.set_text,f'Carátulas · {index} de {len(candidates)} · {entry.name}')
+                GLib.idle_add(self.artwork_label.set_text,f'Carátulas {index} de {len(candidates)}: {entry.name}')
                 self.artwork_attempted.add(entry.id)
                 try:
                     row=cover_provider.best_match(entry,cover_provider.search(cover_provider.title_for(entry),{**preferences,'_artwork_platform':entry.platform}))
@@ -139,40 +139,46 @@ class ExperienceMixin:
             if self.selected and self.selected.id==id_ and self.pages.get_visible_child_name()=='detail':self.show_detail(entry)
         return False
     def covers_finished(self,count,total):
-        self.artwork_busy=False;self.artwork_spinner.stop();self.artwork_bar.hide();self.set_status(f'{count} carátulas encontradas.'+(f' Podés buscar otra imagen en la ficha de cada juego.' if count<total else ''));return False
+        self.artwork_busy=False;self.artwork_spinner.stop();self.artwork_bar.hide();self.set_status(f'{count} carátulas encontradas.'+(' Las faltantes se pueden buscar desde la ficha de cada juego.' if count<total else ''));return False
     def artwork_dialog(self,e):
         from .gui import label,button
         dialog=Gtk.Dialog(title='Carátula · '+e.name,transient_for=self,modal=True);dialog.set_default_size(820,600);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(12)
         query=Gtk.Entry();query.set_text(cover_provider.title_for(e));row=Gtk.Box(spacing=10);row.pack_start(query,True,True,0);box.pack_start(row,False,False,0)
-        status=label('Buscá una carátula online o elegí una imagen de tu Deck.','muted');box.pack_start(status,False,False,0)
+        status=label('Buscar una carátula en línea o elegir una imagen local.','muted');box.pack_start(status,False,False,0)
         scroll=Gtk.ScrolledWindow();results=Gtk.FlowBox();results.set_selection_mode(Gtk.SelectionMode.NONE);results.set_max_children_per_line(4);scroll.add(results);box.pack_start(scroll,True,True,0)
         alive={'value':True}
-        def loaded(items,error):
+        def begin():
+            search_button.set_sensitive(False);self.reset_page(results);status.set_text('Buscando…');return False
+        def add_tile(data,path):
             if not alive['value']:return False
-            search_button.set_sensitive(True);self.reset_page(results);status.set_text(error or f'{len(items)} imágenes. Tocá la que quieras usar.')
-            for data,path in items:
-                tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);pick=Gtk.Button()
-                try:pick.add(Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path,140,210,True)))
-                except GLib.Error:continue
-                def selected(_,data=data,path=path):
-                    e.cover=path;e.metadata['artwork']={'provider':data['provider'],'page':data.get('page','')};self.store.save(self.entries);self.render();self.show_detail(e);dialog.response(Gtk.ResponseType.CLOSE)
-                pick.connect('clicked',selected);tile.pack_start(pick,False,False,0);name=label(data['title'],'muted');name.set_max_width_chars(16);tile.pack_start(name,False,False,0);tile.pack_start(Gtk.LinkButton.new_with_label(data['page'],data['provider']),False,False,0);results.add(tile)
-            results.show_all();return False
+            tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);pick=Gtk.Button()
+            try:pick.add(Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path,140,210,True)))
+            except GLib.Error:return False
+            def selected(_,data=data,path=path):
+                e.cover=path;e.metadata['artwork']={'provider':data['provider'],'page':data.get('page','')};self.store.save(self.entries);self.render();self.show_detail(e);dialog.response(Gtk.ResponseType.CLOSE)
+            pick.connect('clicked',selected);tile.pack_start(pick,False,False,0);name=label(data['title'],'muted');name.set_max_width_chars(16);tile.pack_start(name,False,False,0);tile.pack_start(Gtk.LinkButton.new_with_label(data['page'],data['provider']),False,False,0);results.add(tile);results.show_all();return False
+        def finished(count,error):
+            if not alive['value']:return False
+            search_button.set_sensitive(True);status.set_text(error or ((f'{count} imágenes. Elegir una para usarla.' if count!=1 else '1 imagen. Elegir para usarla.') if count else 'Sin resultados. Probar otro nombre o cambiar el proveedor en Ajustes.'));return False
         def lookup(_):
             text=query.get_text().strip();prefs={**self.preferences,'_artwork_platform':e.platform}
             if not text:return
-            search_button.set_sensitive(False);status.set_text('Buscando y descargando vistas previas…')
+            begin()
             def work():
-                try:
-                    rows=cover_provider.search(text,prefs);items=[]
-                    for item in rows[:12]:
-                        try:items.append((item,cover_provider.download(item,self.store)))
+                from concurrent.futures import ThreadPoolExecutor,as_completed
+                try:rows=cover_provider.search(text,prefs,merge=True)[:18]
+                except Exception as error:GLib.idle_add(finished,0,'No se pudo consultar el proveedor: '+str(error));return
+                GLib.idle_add(status.set_text,f'{len(rows)} resultados. Descargando vistas previas…');count=0
+                with ThreadPoolExecutor(6) as pool:
+                    jobs={pool.submit(cover_provider.download,row,self.store):row for row in rows}
+                    for job in as_completed(jobs):
+                        try:path=job.result()
                         except Exception:continue
-                    GLib.idle_add(loaded,items,'No encontramos imágenes. Probá otro nombre o cambiá el proveedor en Ajustes.' if not items else '')
-                except Exception:GLib.idle_add(loaded,[],'No pudimos consultar el proveedor. Revisá la conexión y la clave en Ajustes.')
+                        count+=1;GLib.idle_add(add_tile,jobs[job],path)
+                GLib.idle_add(finished,count,'')
             threading.Thread(target=work,daemon=True).start()
-        search_button=button('Buscar online',lookup,True);row.pack_start(search_button,False,False,0);query.connect('activate',lookup)
+        search_button=button('Buscar en línea',lookup,True);row.pack_start(search_button,False,False,0);query.connect('activate',lookup)
         def local(_):self.choose_cover(e);self.show_detail(e);dialog.response(Gtk.ResponseType.CLOSE)
         box.pack_start(button('Elegir imagen local',local),False,False,0)
         if e.metadata.get('artwork',{}).get('page'):box.pack_start(Gtk.LinkButton.new_with_label(e.metadata['artwork']['page'],'Ver origen de la carátula actual'),False,False,0)
@@ -183,15 +189,15 @@ class ExperienceMixin:
         from .models import atomic_json
         account=e.metadata.get('steam_account')
         try:item=next(s for s in shortcuts(account) if s['appid']==e.metadata.get('steam_appid'))
-        except (OSError,ValueError,StopIteration,TypeError):self.message('Acceso no disponible','Actualizar la biblioteca para volver a detectar los accesos de Steam.');return
-        dialog=Gtk.Dialog(title='Editar acceso de Steam',transient_for=self,modal=True);dialog.set_default_size(700,460);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar y actualizar Steam',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(10)
+        except (OSError,ValueError,StopIteration,TypeError):self.message('Acceso no disponible','Buscar juegos de nuevo para detectar los accesos de Steam.');return
+        dialog=Gtk.Dialog(title='Editar acceso de Steam',transient_for=self,modal=True);dialog.set_default_size(700,460);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(10)
         fields={}
         for key,title in [('name','Nombre'),('exe','Ejecutable'),('startdir','Carpeta de inicio'),('options','Opciones de lanzamiento')]:
             box.pack_start(label(title,'muted'),False,False,0);field=Gtk.Entry();field.set_text(item[key]);fields[key]=field;box.pack_start(field,False,False,0)
-        box.pack_start(label('Se conserva el identificador del acceso y su configuración de Steam Input y Proton. La carátula seleccionada también se guarda en Steam.','muted'),False,False,0);dialog.show_all()
+        box.pack_start(label('Se conservan el identificador del acceso, Steam Input y Proton. La carátula elegida también se guarda en Steam.','muted'),False,False,0);dialog.show_all()
         if dialog.run()==Gtk.ResponseType.OK:
             updated={**item,**{key:field.get_text().strip() for key,field in fields.items()}}
-            if not updated['name'] or not updated['exe']:self.message('Datos incompletos','El nombre y el ejecutable son obligatorios.')
+            if not updated['name'] or not updated['exe']:self.message('Datos incompletos','Nombre y ejecutable son obligatorios.')
             else:
                 e.name=updated['name']
                 if e.kind=='steam':e.command=launch_command(updated);e.source=e.command[0] if e.command[0].startswith('/') else '';e.metadata['steam_original']=updated

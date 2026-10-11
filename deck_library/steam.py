@@ -96,11 +96,11 @@ def update_shortcuts(config,entries,launcher_for,is_running=None):
         for entry in entries:
             steam_name=entry.name+(' · '+entry.platform if entry.name in duplicate_names else '')
             original=entry.metadata.get('steam_original') if entry.kind=='steam' else entry.metadata.get('steam_override')
-            if original and pathlib.Path(original['account']).resolve()!=config.resolve():raise ValueError('Seleccioná la cuenta de Steam a la que pertenece el acceso.')
+            if original and pathlib.Path(original['account']).resolve()!=config.resolve():raise ValueError('Se requiere la cuenta de Steam a la que pertenece el acceso.')
             launcher=pathlib.Path(launcher_for(entry)); exe='"'+str(launcher)+'"'
             target_id=entry.metadata.get('steam_appid') if entry.metadata.get('steam_account')==str(config) else None
             match=next((v[1] for v in shortcuts.values() if v[0]==0 and ((target_id is not None and get(v[1],'appid')==target_id) or (target_id is None and (get(v[1],'exe')==exe or get(v[1],'appname')==steam_name)))),None)
-            if original and match is None:raise ValueError('El acceso de Steam ya no existe. Actualizá la biblioteca antes de editarlo.')
+            if original and match is None:raise ValueError('El acceso de Steam ya no existe. Buscar juegos de nuevo antes de editarlo.')
             if match is None:
                 match={}; index=str(max([int(k) for k in shortcuts if k.isdigit()]+[-1])+1); shortcuts[index]=(0,match)
                 for k,v in {'appid':shortcut_id(exe,steam_name),'ShortcutPath':'','IsHidden':0,'AllowDesktopConfig':0,'AllowOverlay':1,'OpenVR':0,'Devkit':0,'DevkitGameID':'','DevkitOverrideAppID':0,'LastPlayTime':0,'FlatpakAppID':''}.items():set_value(match,k,v)
@@ -123,3 +123,45 @@ def update_shortcuts(config,entries,launcher_for,is_running=None):
         finally:
             if os.path.exists(temp):os.unlink(temp)
         return result,str(backup) if backup else None
+
+def remove_shortcuts(config,appids,is_running=None):
+    """Delete shortcuts by app ID, renumber the rest and keep a backup. Returns the removed names."""
+    if is_running is None:is_running=steam_running
+    config=pathlib.Path(config);wanted={int(a)&0xffffffff for a in appids}
+    if is_running():raise SteamRunningError('Steam debe estar cerrado para quitar los accesos.')
+    path=config/'shortcuts.vdf'
+    if not path.exists():return [],None
+    with (config/'shortcuts.vdf.deck-library.lock').open('a') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX)
+        old=path.read_bytes();root=read_kv(old)
+        if 'shortcuts' not in root or root['shortcuts'][0]!=0:raise KVError('VDF sin biblioteca válida.')
+        kept=[];removed=[]
+        for key in sorted(root['shortcuts'][1],key=lambda k:(0,int(k)) if k.isdigit() else (1,0)):
+            pair=root['shortcuts'][1][key]
+            if pair[0]==0 and get(pair[1],'appid') is not None and (get(pair[1],'appid')&0xffffffff) in wanted:removed.append(get(pair[1],'appname',''))
+            else:kept.append(pair)
+        if not removed:return [],None
+        root['shortcuts']=(0,{str(i):pair for i,pair in enumerate(kept)})
+        new=write_kv(root);read_kv(new)
+        if is_running() or path.read_bytes()!=old:raise SteamRunningError('Steam o la biblioteca cambió durante el guardado; intentar nuevamente.')
+        stamp=datetime.datetime.now().strftime('%Y%m%dT%H%M%S%f')
+        backup=path.with_name('shortcuts.vdf.deck-library-backup-'+stamp);backup.write_bytes(old);backup.chmod(0o600)
+        fd,temp=tempfile.mkstemp(prefix='.shortcuts-',dir=config)
+        try:
+            with os.fdopen(fd,'wb') as f:f.write(new);f.flush();os.fsync(f.fileno())
+            os.replace(temp,path)
+        finally:
+            if os.path.exists(temp):os.unlink(temp)
+    return removed,str(backup)
+
+def move_artwork_aside(config,appids):
+    """Grid images of removed shortcuts go to a backup folder instead of being deleted."""
+    grid=pathlib.Path(config)/'grid'
+    if not grid.is_dir():return 0
+    stamp=datetime.datetime.now().strftime('%Y%m%dT%H%M%S%f');moved=0
+    for appid in appids:
+        number=str(int(appid)&0xffffffff)
+        for path in grid.iterdir():
+            if path.is_file() and re.fullmatch(re.escape(number)+r'(_hero|_logo|_icon|p)?\.(png|jpg|jpeg|webp|ico)',path.name):
+                target=grid/'.deck-library-backups'/(path.name+'.removed.'+stamp);target.parent.mkdir(exist_ok=True);path.replace(target);moved+=1
+    return moved

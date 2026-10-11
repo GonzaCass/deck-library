@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "id": "project2099-deck-1080p-performance",
+  "name": "Project 2099 — salida 1080p / FSR espacial",
+  "game": {
+    "id": "415608B2",
+    "name": "Spider-Man: Edge of Time",
+    "platform": "Windows"
+  },
+  "adapter": {
+    "id": "project2099",
+    "versions": [
+      "2.0.0-beta.4.1"
+    ]
+  },
+  "hardware": [
+    "steam-deck-lcd",
+    "steam-deck-oled"
+  ],
+  "objective": "Comparar rendimiento y texto original con salida 1080p",
+  "author": "Deck Library",
+  "license": "MIT",
+  "tested": {
+    "status": "proposal",
+    "date": "2026-10-02",
+    "notes": "El usuario reportó unos 30 FPS y letras acentuadas desplazadas con Native AA. Esta alternativa requiere una nueva prueba."
+  },
+  "settings": {
+    "runtime": {
+      "window_width": 1920,
+      "window_height": 1080,
+      "fullscreen": true,
+      "gpu_backend": "d3d12",
+      "resolution_scale": 1,
+      "eot_internal_scale": 1,
+      "genry_eot_target_fps": 60,
+      "d3d12_present_frame_limiter": true,
+      "d3d12_present_frame_limiter_fps": 60.0,
+      "vsync": false,
+      "anisotropic_override": 4,
+      "async_shader_compilation": true,
+      "store_shaders": true,
+      "input_backend": "xinput",
+      "mnk_mode": false,
+      "present_effect": "fsr",
+      "eot_pc_raster_glyphs": false,
+      "eot_pc_prompt_labels": false
+    }
+  },
+  "notes": "Salida 1080p, renderizado interno nativo 720p (1×) y objetivo de 60 FPS. FSR espacial sustituye la ruta temporal experimental Native AA: puede reducir coste y artefactos temporales, pero no equivale a antialiasing temporal y puede mostrar más serruchos. Desactiva la sustitución de glifos y textos de PC para probar las letras acentuadas y conservar los símbolos Xbox originales. No incorpora iconos PlayStation. No hay garantía de 60 FPS. Conserva idioma, partidas, mods y shaders.",
+  "sources": [
+    "https://github.com/GenryTheFox0/Project-2099/blob/main/README.md",
+    "https://github.com/rexglue/rexglue-sdk/blob/main/src/ui/presenter.cpp"
+  ]
+}

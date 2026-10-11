@@ -10,11 +10,11 @@ def title_for(entry):
     if entry.platform=='Minecraft':return 'Minecraft'
     return ALIASES.get(entry.game_id.upper(),re.sub(r'\([^)]*\)|\[[^]]*\]|(?:\s+v?\d+\.\d+.*)$','',entry.name).strip())
 
-def request(url,key='',limit=1024*1024):
+def request(url,key='',limit=1024*1024,timeout=15):
     if urllib.parse.urlparse(url).scheme!='https':raise ValueError('El proveedor debe usar HTTPS.')
     headers={'User-Agent':'DeckLibrary/0.3 (local game library; artwork lookup)'}
     if key:headers['Authorization']='Bearer '+key
-    with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=12) as response:
+    with urllib.request.urlopen(urllib.request.Request(url,headers=headers),timeout=timeout) as response:
         data=response.read(limit+1)
         if len(data)>limit:raise ValueError('Respuesta del proveedor demasiado grande.')
         return data
@@ -36,7 +36,7 @@ def wiki_search(query):
     return fetch({'generator':'search','gsrsearch':query+' video game','gsrlimit':6,'gsrnamespace':0})
 
 def sgdb_search(query,key):
-    if not key:raise ValueError('SteamGridDB necesita tu clave API. Podés usar Wikipedia sin clave.')
+    if not key:raise ValueError('SteamGridDB necesita una clave API. Wikipedia funciona sin clave.')
     base='https://www.steamgriddb.com/api/v2/'
     games=json.loads(request(base+'search/autocomplete/'+urllib.parse.quote(query,safe=''),key)).get('data',[])
     rows=[]
@@ -51,7 +51,7 @@ SYSTEMS={'Wii':'Nintendo - Wii','WiiCompiled':'Nintendo - Wii','GameCube':'Ninte
 @functools.lru_cache(maxsize=12)
 def libretro_index(system):
     url='https://thumbnails.libretro.com/'+urllib.parse.quote(system,safe='')+'/Named_Boxarts/'
-    data=request(url,limit=8*1024*1024).decode('utf-8')
+    data=request(url,limit=16*1024*1024,timeout=40).decode('utf-8')
     rows=[]
     for href in re.findall(r'href="([^"]+)"',data):
         filename=urllib.parse.unquote(html.unescape(href))
@@ -59,17 +59,27 @@ def libretro_index(system):
         rows.append({'title':filename[:-4],'url':url+urllib.parse.quote(filename,safe=''),'provider':'Libretro','page':url})
     return rows
 
-def libretro_search(query,platform):
+def libretro_search(query,platform,fuzzy=False):
     system=SYSTEMS.get(platform)
     if not system:return []
-    rows=[row for row in libretro_index(system) if normalized(row['title'])==normalized(query)]
+    wanted=normalized(query)
+    # Fuzzy lookups (manual search) accept titles that contain the query; automatic ones stay exact.
+    rows=[row for row in libretro_index(system) if normalized(row['title'])==wanted or (fuzzy and len(wanted)>=4 and wanted in normalized(row['title']))]
     rows.sort(key=lambda row:('Europe' not in row['title'],len(row['title'])))
     return rows[:12]
 
-def search(query,preferences):
+def search(query,preferences,merge=False):
+    """One provider chain for automatic use; `merge` collects every source for the manual dialog."""
     provider=preferences.get('artwork_provider','automatic')
     if provider=='off':return []
     key=preferences.get('steamgriddb_key','')
+    if merge and provider=='automatic':
+        rows=[];errors=[]
+        for name,run in (('SteamGridDB',lambda:sgdb_search(query,key) if key else []),('Libretro',lambda:libretro_search(query,preferences.get('_artwork_platform',''),True)),('Wikipedia',lambda:wiki_search(query))):
+            try:rows+=run()
+            except (OSError,ValueError,KeyError) as error:errors.append(name+': '+str(error))
+        if not rows and errors:raise OSError('; '.join(errors))
+        return list({row['url']:row for row in rows}.values())
     if provider=='steamgriddb':return sgdb_search(query,key)
     if provider=='libretro':return libretro_search(query,preferences.get('_artwork_platform',''))
     if provider=='automatic' and key:

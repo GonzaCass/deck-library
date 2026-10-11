@@ -45,7 +45,8 @@
             "eden",
             "wiicompiled",
             "dolphin",
-            "prism"
+            "prism",
+            "project2099"
           ]
         },
         "versions": {
@@ -505,6 +506,120 @@
             },
             "additionalProperties": false,
             "minProperties": 1
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "project2099"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "properties": {
+              "runtime": {
+                "type": "object",
+                "properties": {
+                  "window_width": {
+                    "type": "integer",
+                    "minimum": 640,
+                    "maximum": 1920
+                  },
+                  "window_height": {
+                    "type": "integer",
+                    "minimum": 360,
+                    "maximum": 1200
+                  },
+                  "fullscreen": {
+                    "type": "boolean"
+                  },
+                  "gpu_backend": {
+                    "enum": [
+                      "d3d12"
+                    ]
+                  },
+                  "resolution_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1
+                  },
+                  "eot_internal_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1
+                  },
+                  "genry_eot_target_fps": {
+                    "type": "integer",
+                    "minimum": 30,
+                    "maximum": 120
+                  },
+                  "d3d12_present_frame_limiter": {
+                    "type": "boolean"
+                  },
+                  "d3d12_present_frame_limiter_fps": {
+                    "type": "number",
+                    "minimum": 30.0,
+                    "maximum": 120.0
+                  },
+                  "vsync": {
+                    "type": "boolean"
+                  },
+                  "anisotropic_override": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 5
+                  },
+                  "async_shader_compilation": {
+                    "type": "boolean"
+                  },
+                  "store_shaders": {
+                    "type": "boolean"
+                  },
+                  "input_backend": {
+                    "enum": [
+                      "xinput"
+                    ]
+                  },
+                  "mnk_mode": {
+                    "type": "boolean"
+                  },
+                  "present_effect": {
+                    "enum": [
+                      "bilinear",
+                      "cas",
+                      "fsr",
+                      "fsr2",
+                      "fsr3"
+                    ]
+                  },
+                  "eot_pc_raster_glyphs": {
+                    "type": "boolean"
+                  },
+                  "eot_pc_prompt_labels": {
+                    "type": "boolean"
+                  },
+                  "show_fps_counter": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "additionalProperties": false,
+            "required": [
+              "runtime"
+            ]
           }
         }
       }

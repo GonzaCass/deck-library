@@ -100,7 +100,7 @@ def switch_inventory(entry,home=None,config_dir=None):
 
 def install_nsp(path,config_dir=None,progress=lambda text:None):
     """Register encrypted NCAs from a supplied NSP so CLI boot doesn't race library scanning."""
-    if emulator_busy():raise RuntimeError('Cerrá Eden antes de instalar contenido.')
+    if emulator_busy():raise RuntimeError('Eden debe estar cerrado para instalar contenido.')
     path=pathlib.Path(path);items=[i for i in pfs_entries(path) if re.fullmatch(r'[0-9a-fA-F]{32}(?:\.cnmt)?\.nca',i['name'])]
     if not items or not any('.cnmt.nca' in i['name'] for i in items):raise ValueError('El NSP no contiene un conjunto NCA con metadata CNMT.')
     target=eden_paths(config_dir=config_dir)['nand']/'user/Contents/registered';target.mkdir(parents=True,exist_ok=True)
@@ -141,9 +141,9 @@ def install_mod_zip(path,entry,store=None,config_dir=None):
     """Install only a supplied LayeredFS tree for this game's title ID."""
     import datetime,zipfile
     from .models import Store
-    if emulator_busy():raise RuntimeError('Cerrá Eden antes de instalar un mod.')
+    if emulator_busy():raise RuntimeError('Eden debe estar cerrado para instalar un mod.')
     tid=switch_id(entry)
-    if not re.fullmatch(r'010[0-9A-F]{13}',tid):raise ValueError('Completá el Title ID del juego primero.')
+    if not re.fullmatch(r'010[0-9A-F]{13}',tid):raise ValueError('Falta el Title ID del juego.')
     path=pathlib.Path(path);name=re.sub(r'[^A-Za-z0-9 ._-]','_',path.stem).strip('. ')[:100]
     if not name:raise ValueError('Nombre de mod inválido.')
     target=eden_paths(config_dir=config_dir)['load']/tid/name;target.parent.mkdir(parents=True,exist_ok=True)

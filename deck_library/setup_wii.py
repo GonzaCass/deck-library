@@ -12,7 +12,7 @@ class Cancelled(RuntimeError):pass
 
 def check_image(path):
     path=pathlib.Path(path)
-    if not path.is_file():raise ValueError('Elegí tu imagen de Mario Kart Wii.')
+    if not path.is_file():raise ValueError('Elegir la imagen de Mario Kart Wii.')
     if path.suffix.lower() not in ('.iso','.gcm','.gcz','.ciso','.wbfs','.wia','.rvz'):raise ValueError('Formato no compatible con el setup oficial.')
     if path.suffix.lower() in ('.iso','.gcm'):
         with path.open('rb') as source:header=source.read(6)
@@ -32,10 +32,10 @@ def run_logged(command,cwd,env,log,progress,cancel):
             except ProcessLookupError:pass
             try:process.wait(timeout=8)
             except subprocess.TimeoutExpired:os.killpg(process.pid,signal.SIGKILL);process.wait()
-            reader.join(timeout=2);process.stdout.close();raise Cancelled('Instalación cancelada; tu imagen original se conserva.')
+            reader.join(timeout=2);process.stdout.close();raise Cancelled('Instalación cancelada; la imagen original se conserva.')
     reader.join(timeout=5)
     process.stdout.close()
-    if process.returncode:raise RuntimeError('El proceso terminó con error '+str(process.returncode)+'. Revisá el registro de instalación.')
+    if process.returncode:raise RuntimeError('El proceso terminó con error '+str(process.returncode)+'. Ver el registro de instalación.')
 
 def install(image,store=None,setup=None,progress=lambda text:None,cancel=None):
     image=check_image(image);store=store or Store();cancel=cancel or threading.Event()
@@ -75,7 +75,7 @@ def install(image,store=None,setup=None,progress=lambda text:None,cancel=None):
         command=['flatpak','run','--share=network','--filesystem=home','--env=APPIMAGE_EXTRACT_AND_RUN=1','--env=DISABLE_AUTO_UPDATES=1','--env=XDG_DATA_HOME='+str(data_home),'--command='+str(setup),SDK]
         root.mkdir(parents=True,exist_ok=True)
         product=root/'Install/Base/WiiCompiled'
-        if (root/'deck-library-install.json').exists():raise RuntimeError('Esta instalación ya está preparada. Buscá el juego en tu biblioteca; no se sobrescribió.')
+        if (root/'deck-library-install.json').exists():raise RuntimeError('Esta instalación ya está preparada. El juego ya está en la biblioteca y no se sobrescribió.')
         if not product.exists():run_logged(command+['install','--game',str(image)],workspace,env,log,progress,cancel)
         else:progress('Retomando la optimización de la instalación incompleta…')
         state=json.loads((root/'install-state.json').read_text());base=next((p for p in state.get('Products',[]) if p.get('Profile')=='base'),None)

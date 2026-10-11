@@ -21,7 +21,7 @@ def diagnostics(entry,store=None):
     if not (pathlib.Path(executable).is_file() or shutil.which(executable)):issues.append('No se encuentra el programa seleccionado.')
     elif pathlib.Path(executable).is_file() and not os.access(executable,os.X_OK):issues.append('El programa no tiene permiso de ejecución.')
     if entry.source and not pathlib.Path(entry.source).exists():issues.append('No se encuentra el juego. Puede haberse movido o faltar la microSD.')
-    if entry.command[0].endswith('.exe'):issues.append('Un ejecutable Windows necesita Wine/Proton. Elegí un launcher de Lutris/Heroic o un comando personalizado.')
+    if entry.command[0].endswith('.exe'):issues.append('Un ejecutable Windows necesita Wine/Proton. Usar un launcher de Lutris o Heroic, o un comando personalizado.')
     if entry.kind=='wiicompiled':
         try:
             check=subprocess.run(['flatpak','info','io.github.TeamWheelWizard.WheelWizard'],env=clean_environment(),capture_output=True,timeout=8)
@@ -57,7 +57,7 @@ def prepare_eden_profile(entry,store,env):
     from .content import eden_paths
     paths=eden_paths(config_dir=settings(store).get('eden_config') or None)
     source=paths['config']; original=source/'qt-config.ini'
-    if not original.exists():raise RuntimeError('Abrí Eden una vez antes de usar el perfil sin mods.')
+    if not original.exists():raise RuntimeError('Eden debe abrirse una vez antes de usar el perfil sin mods.')
     profile=store.root/'profiles'/entry.id; dest=profile/'eden'
     # Rebuild configuration from the current real config on each launch. Saves/NAND/keys stay canonical.
     dest.mkdir(parents=True,exist_ok=True)
