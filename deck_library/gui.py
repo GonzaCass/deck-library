@@ -244,6 +244,8 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         def work():
             try:
                 found=report(preferences=preferences);from .steam_inventory import merge_steam
+                from . import ports
+                ports.maintain(self.store)
                 merged=self.store.merge(scan(preferences=preferences),overwrite=False);entries=merge_steam(merged);self.store.save(entries);GLib.idle_add(self.discovered,entries,found)
             except Exception as error:GLib.idle_add(self.discovery_failed,str(error))
         threading.Thread(target=work,daemon=True).start();return False

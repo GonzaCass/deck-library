@@ -409,6 +409,32 @@ def entry_for(folder):
 
 DATA_CTR=pathlib.Path('.local/share/ctr-turbocharged')
 
+def ensure_controller_default(folder):
+    """Make Player 1 use the first game controller in a recompilation kit, unless game.toml already says otherwise.
+
+    The runtime starts Player 1 on the keyboard and only its own launcher switches it, so a kit started
+    directly (as Steam does) ignores the controller. `[controller] p1_device = "auto"` is the kit's own setting.
+    Returns the files changed.
+    """
+    import tomllib
+    from .presets import patch_toml
+    changed=[]
+    for path in (pathlib.Path(folder)/'game.toml',pathlib.Path(folder)/'build'/'game.toml'):
+        if not path.is_file():continue
+        text=path.read_text()
+        try:current=tomllib.loads(text).get('controller',{})
+        except tomllib.TOMLDecodeError:continue
+        if current.get('p1_device'):continue
+        path.write_text(patch_toml(text,{'controller':{'p1_device':'auto'}}));changed.append(str(path))
+    return changed
+
+def maintain(store=None,home=None):
+    """Idempotent fixes for ports installed by earlier versions. Returns what was changed."""
+    store=store or Store();root=ports_root(home);changed=[]
+    for record in records(store).values():
+        if record.get('setup')=='kit' and (root/record['folder']).is_dir():changed+=ensure_controller_default(root/record['folder'])
+    return changed
+
 def configure(repository,store=None,games=(),progress=print,home=None,run=None):
     """Prepare an installed port with what the Deck already has: the disc from the library and, for kits, the BIOS found by hash.
 
@@ -431,9 +457,11 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
     if kind=='kit':
         if not disc['cue']:raise ValueError('El kit necesita el archivo .cue del disco.')
         bios=find_bios(record['bios']['sha256'],home);cli='psxrecomp/psxrecomp_cli.py';base=['python3',cli]
+        ensure_controller_default(folder)
         progress('Verificando el disco');run([*base,'verify-disc','--config','game.toml','--project-root','.','--disc',disc['cue']],cwd=str(folder),progress=progress)
         progress('Generando el juego a partir del disco');run([*base,'generate','--config','game.toml','--project-root','.','--disc',disc['cue'],'--bios',bios],cwd=str(folder),progress=progress)
         progress('Compilando (varios minutos)');run([*base,'rebuild','--config','game.toml','--project-root','.','--build-dir','build','--target','psx-runtime','--exe-basename',executable.name,'--no-pgo'],cwd=str(folder),progress=progress)
+        ensure_controller_default(folder)
         config=folder/'build/bios.cfg'
         if not config.is_file():
             staged=sorted((folder/'psxrecomp/bios').glob('*.[Bb][Ii][Nn]'))
