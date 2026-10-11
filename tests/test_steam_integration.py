@@ -37,7 +37,7 @@ class SteamIntegrationTests(unittest.TestCase):
   self.assertTrue(any(e.source==str(game) for e in scan(self.root)))
 
 class OwnPortraitTests(unittest.TestCase):
-    def test_a_cover_pointing_at_another_shortcuts_art_is_replaced_by_the_entrys_own(self):
+    def test_the_steam_portrait_of_a_shortcut_is_used_as_its_cover_and_a_cover_stays_when_steam_has_none(self):
         from unittest.mock import patch
         from deck_library import steam_inventory
         with tempfile.TemporaryDirectory() as tmp:
@@ -48,4 +48,5 @@ class OwnPortraitTests(unittest.TestCase):
             for p in patches:p.start()
             self.addCleanup(lambda:[p.stop() for p in patches])
             steam_inventory.merge_steam([entry],home=pathlib.Path(tmp),account=account);self.assertEqual(entry.cover,str(grid/'111p.png'))
-            chosen=account/'chosen.png';chosen.write_bytes(b'c');entry.cover=str(chosen);steam_inventory.merge_steam([entry],home=pathlib.Path(tmp),account=account);self.assertTrue(entry.cover.endswith('chosen.png'))
+            chosen=account/'chosen.png';chosen.write_bytes(b'c');entry.cover=str(chosen);steam_inventory.merge_steam([entry],home=pathlib.Path(tmp),account=account);self.assertEqual(entry.cover,str(grid/'111p.png'))
+            (grid/'111p.png').unlink();entry.cover=str(chosen);steam_inventory.merge_steam([entry],home=pathlib.Path(tmp),account=account);self.assertEqual(entry.cover,str(chosen))
