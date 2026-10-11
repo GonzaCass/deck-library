@@ -409,6 +409,66 @@ def entry_for(folder):
 
 DATA_CTR=pathlib.Path('.local/share/ctr-turbocharged')
 
+PATCH_LEVEL=1
+SPU_MARKER='spu_get_ctrl'
+SPU_PATCHES=[
+ ('psxrecomp/runtime/src/spu.c',[("void spu_get_global_state(SpuGlobalState* out) {","/* Cheap read of SPUCNT for the per-sample event scheduler (spu_get_global_state builds the whole state). */\nuint16_t spu_get_ctrl(void) {\n    return (uint16_t)spu_regs[reg_index(0x1F801DAAu)];\n}\n\nvoid spu_get_global_state(SpuGlobalState* out) {")]),
+ ('psxrecomp/runtime/include/spu.h',[("void spu_get_global_state(SpuGlobalState* out);","void spu_get_global_state(SpuGlobalState* out);\nuint16_t spu_get_ctrl(void);")]),
+ ('psxrecomp/runtime/src/interrupts.c',[
+  ("    SpuGlobalState state;\n    g_spu_sample_deadline_queries++;","    g_spu_sample_deadline_queries++;"),
+  ("    spu_get_global_state(&state);\n    if ((state.ctrl & 0x0040u) == 0) {","    const uint16_t spu_ctrl = spu_get_ctrl();\n    if ((spu_ctrl & 0x0040u) == 0) {"),
+  ("    SpuGlobalState state;\n    spu_get_global_state(&state);\n    if ((state.ctrl & 0x0040u) != 0) {","    const uint16_t spu_ctrl = spu_get_ctrl();\n    if ((spu_ctrl & 0x0040u) != 0) {"),
+  ("    if ((state.ctrl & 0x0040u) != 0 &&\n        (psx_get_cycle_count() % 768u) == 0) {","    if ((spu_ctrl & 0x0040u) != 0 &&\n        (psx_get_cycle_count() % 768u) == 0) {")]),
+]
+
+def apply_runtime_patches(folder):
+    """Local performance patch for recompilation kits: the SPU sample scheduler asked for the complete SPU state (about a fifth of the
+    CPU time during video) when it only needs the control register. The behaviour is identical.
+
+    Edits are applied only when the original text is found exactly, so a different kit version is left alone.
+    Returns 'applied', 'present' or 'incompatible'.
+    """
+    folder=pathlib.Path(folder);texts={}
+    for rel,edits in SPU_PATCHES:
+        path=folder/rel
+        if not path.is_file():return 'incompatible'
+        texts[path]=path.read_text()
+    if all(SPU_MARKER in text for text in texts.values()):return 'present'
+    if any(SPU_MARKER in text for text in texts.values()):return 'incompatible'
+    updated={}
+    for rel,edits in SPU_PATCHES:
+        path=folder/rel;text=texts[path]
+        for old,new in edits:
+            if text.count(old)!=1:return 'incompatible'
+            text=text.replace(old,new,1)
+        updated[path]=text
+    for path,text in updated.items():
+        backup=path.with_name(path.name+'.orig')
+        if not backup.exists():backup.write_text(texts[path])
+        path.write_text(text)
+    return 'applied'
+
+def overlay_command(folder):
+    """Command the runtime runs to compile newly seen code overlays to native code with gcc (available inside the SDK)."""
+    import shlex
+    root=str(folder);q=shlex.quote
+    return ' '.join(['python3',q(root+'/psxrecomp/tools/compile_overlays.py'),'--game-toml',q(root+'/build/game.toml'),'--recompiler',q(root+'/psxrecomp/recompiler/build/psxrecomp-game'),'--runtime-include',q(root+'/psxrecomp/runtime/include'),'--project-root',q(root),'--out-dir',q(root+'/build/cache'),'--compiler gcc'])
+
+def ensure_overlay_compiler(folder):
+    """Without `overlay_autocompile_cmd` the runtime never compiles the code a game loads on demand and interprets it forever."""
+    import tomllib
+    from .presets import patch_toml
+    folder=pathlib.Path(folder);wanted=overlay_command(folder);changed=[]
+    for path in (folder/'game.toml',folder/'build'/'game.toml'):
+        if not path.is_file():continue
+        text=path.read_text()
+        try:data=tomllib.loads(text)
+        except tomllib.TOMLDecodeError:continue
+        runtime=data.get('runtime',{})
+        if runtime.get('overlay_cache') is not True or runtime.get('overlay_autocompile_cmd')==wanted:continue
+        path.write_text(patch_toml(text,{'runtime':{'overlay_autocompile_cmd':wanted}}));changed.append(str(path))
+    return changed
+
 def ensure_controller_default(folder):
     """Make Player 1 use the first game controller in a recompilation kit, unless game.toml already says otherwise.
 
@@ -432,7 +492,7 @@ def maintain(store=None,home=None):
     """Idempotent fixes for ports installed by earlier versions. Returns what was changed."""
     store=store or Store();root=ports_root(home);changed=[]
     for record in records(store).values():
-        if record.get('setup')=='kit' and (root/record['folder']).is_dir():changed+=ensure_controller_default(root/record['folder'])
+        if record.get('setup')=='kit' and (root/record['folder']).is_dir():changed+=ensure_controller_default(root/record['folder'])+ensure_overlay_compiler(root/record['folder'])
     return changed
 
 def configure(repository,store=None,games=(),progress=print,home=None,run=None):
@@ -457,11 +517,14 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
     if kind=='kit':
         if not disc['cue']:raise ValueError('El kit necesita el archivo .cue del disco.')
         bios=find_bios(record['bios']['sha256'],home);cli='psxrecomp/psxrecomp_cli.py';base=['python3',cli]
-        ensure_controller_default(folder)
+        ensure_controller_default(folder);ensure_overlay_compiler(folder)
+        outcome=apply_runtime_patches(folder)
+        if outcome=='incompatible':progress('Esta versión del kit no admite la mejora de rendimiento; se compila sin ella')
+        record['patch_level']=PATCH_LEVEL if outcome in ('applied','present') else 0
         progress('Verificando el disco');run([*base,'verify-disc','--config','game.toml','--project-root','.','--disc',disc['cue']],cwd=str(folder),progress=progress)
         progress('Generando el juego a partir del disco');run([*base,'generate','--config','game.toml','--project-root','.','--disc',disc['cue'],'--bios',bios],cwd=str(folder),progress=progress)
         progress('Compilando (varios minutos)');run([*base,'rebuild','--config','game.toml','--project-root','.','--build-dir','build','--target','psx-runtime','--exe-basename',executable.name,'--no-pgo'],cwd=str(folder),progress=progress)
-        ensure_controller_default(folder)
+        ensure_controller_default(folder);ensure_overlay_compiler(folder)
         config=folder/'build/bios.cfg'
         if not config.is_file():
             staged=sorted((folder/'psxrecomp/bios').glob('*.[Bb][Ii][Nn]'))

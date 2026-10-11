@@ -611,3 +611,53 @@ class KitControllerTests(PortCatalogTests):
         home=self.root/'home';kit=home/'ports/Kit';kit.mkdir(parents=True);(kit/'game.toml').write_text('[game]\nname = "X"\n');plain=home/'ports/Plain';plain.mkdir();(plain/'game.toml').write_text('[game]\nname = "Y"\n')
         self.ports.atomic_json(self.store.root/'ports.json',{'a/kit':{'folder':'Kit','setup':'kit'},'a/plain':{'folder':'Plain','setup':'ctr'}})
         changed=self.ports.maintain(self.store,home);self.assertEqual(changed,[str(kit/'game.toml')]);self.assertNotIn('p1_device',(plain/'game.toml').read_text())
+
+class KitPerformanceTests(PortCatalogTests):
+    SPU="static uint16_t spu_regs[8];\n\nvoid spu_get_global_state(SpuGlobalState* out) {\n    if (!out) return;\n}\n"
+    HDR="typedef struct SpuGlobalState { int x; } SpuGlobalState;\nvoid spu_get_global_state(SpuGlobalState* out);\n"
+    INT=("uint32_t psx_spu_sample_event_cycles_to_next(void) {\n    SpuGlobalState state;\n    g_spu_sample_deadline_queries++;\n    if (!spu_sample_event_mode()) {\n        return 1;\n    }\n"
+         "    spu_get_global_state(&state);\n    if ((state.ctrl & 0x0040u) == 0) {\n        return 2;\n    }\n    return 3;\n}\n\n"
+         "void psx_spu_sample_event_service(void) {\n    SpuGlobalState state;\n    spu_get_global_state(&state);\n    if ((state.ctrl & 0x0040u) != 0) {\n        g_a++;\n    }\n"
+         "    if ((state.ctrl & 0x0040u) != 0 &&\n        (psx_get_cycle_count() % 768u) == 0) {\n        s_midframe_audio_pump();\n    }\n}\n")
+    def kit(self,spu=None,header=None,interrupts=None):
+        folder=self.root/'Kit';(folder/'psxrecomp/runtime/src').mkdir(parents=True);(folder/'psxrecomp/runtime/include').mkdir(parents=True)
+        (folder/'psxrecomp/runtime/src/spu.c').write_text(spu or self.SPU);(folder/'psxrecomp/runtime/include/spu.h').write_text(header or self.HDR);(folder/'psxrecomp/runtime/src/interrupts.c').write_text(interrupts or self.INT);return folder
+    def test_the_spu_patch_applies_once_keeps_backups_and_changes_only_the_register_read(self):
+        folder=self.kit();self.assertEqual(self.ports.apply_runtime_patches(folder),'applied')
+        interrupts=(folder/'psxrecomp/runtime/src/interrupts.c').read_text()
+        self.assertNotIn('state.ctrl',interrupts);self.assertNotIn('spu_get_global_state',interrupts);self.assertEqual(interrupts.count('spu_get_ctrl()'),2);self.assertEqual(interrupts.count('spu_ctrl & 0x0040u'),3)
+        self.assertIn('uint16_t spu_get_ctrl(void)',(folder/'psxrecomp/runtime/src/spu.c').read_text());self.assertIn('uint16_t spu_get_ctrl(void);',(folder/'psxrecomp/runtime/include/spu.h').read_text())
+        self.assertEqual((folder/'psxrecomp/runtime/src/interrupts.c.orig').read_text(),self.INT)
+        self.assertEqual(self.ports.apply_runtime_patches(folder),'present');self.assertEqual((folder/'psxrecomp/runtime/src/interrupts.c').read_text(),interrupts);self.assertEqual((folder/'psxrecomp/runtime/src/interrupts.c.orig').read_text(),self.INT)
+    def test_a_different_kit_version_is_left_untouched(self):
+        other=self.INT.replace('if ((state.ctrl & 0x0040u) == 0) {','if ((state.ctrl & 0x0080u) == 0) {');folder=self.kit(interrupts=other)
+        self.assertEqual(self.ports.apply_runtime_patches(folder),'incompatible')
+        self.assertEqual((folder/'psxrecomp/runtime/src/interrupts.c').read_text(),other);self.assertEqual((folder/'psxrecomp/runtime/src/spu.c').read_text(),self.SPU);self.assertFalse((folder/'psxrecomp/runtime/src/spu.c.orig').exists())
+        self.assertEqual(self.ports.apply_runtime_patches(self.root/'no-existe'),'incompatible')
+    def test_half_applied_sources_are_not_patched_again(self):
+        folder=self.kit(spu=self.SPU+'/* spu_get_ctrl */\n');self.assertEqual(self.ports.apply_runtime_patches(folder),'incompatible')
+    def test_overlay_compiler_command_quotes_paths_and_is_set_only_for_games_with_overlays(self):
+        import tomllib
+        folder=self.root/'con espacio';(folder/'build').mkdir(parents=True)
+        for name in ('game.toml','build/game.toml'):(folder/name).write_text('[runtime]\noverlay_cache = true\nname = "x"\n')
+        changed=self.ports.ensure_overlay_compiler(folder);self.assertEqual(len(changed),2)
+        command=tomllib.loads((folder/'game.toml').read_text())['runtime']['overlay_autocompile_cmd']
+        import shlex;parts=shlex.split(command);self.assertEqual(parts[0],'python3');self.assertIn(str(folder/'psxrecomp/tools/compile_overlays.py'),parts);self.assertEqual(parts[parts.index('--compiler')+1],'gcc');self.assertEqual(parts[parts.index('--out-dir')+1],str(folder/'build/cache'))
+        self.assertEqual(self.ports.ensure_overlay_compiler(folder),[])
+        plain=self.root/'plain';plain.mkdir();(plain/'game.toml').write_text('[runtime]\nname = "x"\n');self.assertEqual(self.ports.ensure_overlay_compiler(plain),[]);self.assertNotIn('autocompile',(plain/'game.toml').read_text())
+    def test_a_moved_folder_gets_its_command_refreshed(self):
+        import tomllib
+        folder=self.root/'a';(folder/'build').mkdir(parents=True);(folder/'game.toml').write_text('[runtime]\noverlay_cache = true\noverlay_autocompile_cmd = "python3 /otro/lugar/compile_overlays.py"\n')
+        self.assertEqual(len(self.ports.ensure_overlay_compiler(folder)),1);self.assertIn(str(folder),tomllib.loads((folder/'game.toml').read_text())['runtime']['overlay_autocompile_cmd'])
+
+class ConfigureKitPerformanceTests(ConfigureTests,KitPerformanceTests):
+    def test_configure_patches_before_the_build_and_records_the_level(self):
+        home=self.root/'home';cue,_=self.make_disc(home,'Spider-Man (USA)',serial='SLUS_008.75');bios=home/'Emulation/bios';bios.mkdir(parents=True);data=b'B'*524288;(bios/'x.bin').write_bytes(data)
+        self.installed(home,'kit',exe='K',sandbox=True,folder='Kit',extra={'bios':{'name':'b','sha256':[hashlib.sha256(data).hexdigest()]}})
+        kit=home/'ports/Kit';(kit/'psxrecomp/runtime/src').mkdir(parents=True);(kit/'psxrecomp/runtime/include').mkdir(parents=True)
+        (kit/'psxrecomp/runtime/src/spu.c').write_text(self.SPU);(kit/'psxrecomp/runtime/include/spu.h').write_text(self.HDR);(kit/'psxrecomp/runtime/src/interrupts.c').write_text(self.INT);(kit/'psxrecomp/bios').mkdir();(kit/'psxrecomp/bios/B.BIN').write_bytes(data)
+        (kit/'game.toml').write_text('[runtime]\noverlay_cache = true\n');seen=[]
+        def run(command,cwd=None,progress=None,until=None):
+            seen.append((command[2],'spu_get_ctrl' in (kit/'psxrecomp/runtime/src/interrupts.c').read_text(),'overlay_autocompile_cmd' in (kit/'game.toml').read_text()));return 0
+        record=self.ports.configure('web/x',self.store,[('Spider-Man (USA)',str(cue))],lambda _:None,home,run=run)
+        self.assertEqual(seen[0],('verify-disc',True,True));self.assertEqual(record['patch_level'],self.ports.PATCH_LEVEL);self.assertEqual(self.ports.records(self.store)['web/x']['patch_level'],self.ports.PATCH_LEVEL)

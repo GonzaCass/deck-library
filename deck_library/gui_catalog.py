@@ -69,7 +69,9 @@ class CatalogMixin:
             if record and item['repository'] in updates:side.pack_start(button('Actualizar',lambda _,i=item:self.install_port(i,True),True),False,False,0)
             elif record and record.get('setup') and not record.get('configured'):side.pack_start(button('Configurar',lambda _,i=item:self.configure_port(i),True),False,False,0)
             elif record and record.get('setup'):
-                side.pack_start(label('Configurado','good'),False,False,0);side.pack_start(button('Volver a configurar',lambda _,i=item:self.configure_port(i)),False,False,0)
+                side.pack_start(label('Configurado','good'),False,False,0)
+                if record.get('setup')=='kit' and record.get('patch_level',0)<ports.PATCH_LEVEL:side.pack_start(button('Mejorar rendimiento',lambda _,i=item:self.configure_port(i),True),False,False,0)
+                else:side.pack_start(button('Volver a configurar',lambda _,i=item:self.configure_port(i)),False,False,0)
             elif record:side.pack_start(label('Instalado','good'),False,False,0)
             else:side.pack_start(button('Instalar',lambda _,i=item:self.install_port(i,False)),False,False,0)
             if 'Agregado' in item['source']:side.pack_start(button('Quitar de la lista',lambda _,i=item:self.remove_repository(i),tone='danger'),False,False,0)
