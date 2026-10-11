@@ -748,10 +748,74 @@ class DeckMaxTests(unittest.TestCase):
         result=dict(deckmax.apply(self.home,busy=lambda a:False))
         self.assertEqual((result['DuckStation'],result['Azahar'],result['Dolphin'],result['Eden']),('applied','applied','missing','missing'))
         text=ds.read_text();self.assertIn('ResolutionScale = 5',text);self.assertIn('PGXPEnable = true',text);self.assertIn('Renderer = Vulkan',text);self.assertIn('Type = DigitalController',text)
-        text=az.read_text();self.assertIn('resolution_factor=4',text);self.assertIn('resolution_factor\\default=false',text);self.assertIn('x=1',text)
+        text=az.read_text();self.assertIn('resolution_factor=3',text);self.assertIn('resolution_factor\\default=false',text);self.assertIn('x=1',text)
         self.assertEqual(len(list(ds.parent.glob('settings.ini.deck-library-*.bak'))),1)
         self.assertEqual(dict(deckmax.apply(self.home,busy=lambda a:False))['DuckStation'],'present');self.assertEqual(len(list(ds.parent.glob('*.bak'))),1)
     def test_a_running_emulator_is_left_alone(self):
         from deck_library import deckmax
         ds=self.write('.local/share/duckstation/settings.ini','[GPU]\nResolutionScale = 2\n')
         self.assertEqual(dict(deckmax.apply(self.home,busy=lambda a:True))['DuckStation'],'busy');self.assertIn('ResolutionScale = 2',ds.read_text())
+
+class DualScreenTests(unittest.TestCase):
+    def setUp(self):
+        import tempfile;self.root=pathlib.Path(tempfile.mkdtemp());self.addCleanup(shutil.rmtree,self.root,True)
+        self.account=self.root/'userdata/1/config';self.account.mkdir(parents=True);folder=self.root/'controller_base/templates';folder.mkdir(parents=True)
+        from deck_library import controllers;self.controllers=controllers
+        free='\t"group"\n\t{\n\t\t"id"\t\t"7"\n\t\t"inputs"\n\t\t{\n'+''.join(f'\t\t\t"{b}"\n\t\t\t{{\n\t\t\t\t"activators"\n\t\t\t\t{{\n\t\t\t\t\t"Full_Press"\n\t\t\t\t\t{{\n\t\t\t\t\t\t"bindings"\n\t\t\t\t\t\t{{\n\t\t\t\t\t\t}}\n\t\t\t\t\t}}\n\t\t\t\t}}\n\t\t\t}}\n' for b in ('button_back_left','button_back_right'))+'\t\t}\n\t}\n'
+        (folder/'controller_neptune_gamepad_joystick.vdf').write_text('"controller_mappings"\n{\n'+free+'}\n',encoding='utf-8');self.folder=folder
+    def test_the_screens_template_binds_the_back_buttons_and_leaves_the_stock_template_alone(self):
+        name=self.controllers.screens_template(self.account);text=(self.folder/name).read_text()
+        self.assertIn('"key_press F9"',text);self.assertIn('"key_press F10"',text);self.assertNotIn('key_press',(self.folder/'controller_neptune_gamepad_joystick.vdf').read_text())
+        self.assertEqual(self.controllers.screens_template(self.account),name)
+    def test_only_the_deck_family_of_a_dual_screen_shortcut_gets_it(self):
+        result=self.controllers.apply(self.account,[4159837018,2781706728],special=[4159837018],is_running=lambda:False)
+        config=self.controllers.config_dir(self.account)/'configset_controller_neptune.vdf';pairs=dict(self.controllers.read_configset(config))
+        self.assertEqual(dict(pairs['4159837018'])['template'],self.controllers.SCREENS_TEMPLATE);self.assertEqual(dict(pairs['2781706728'])['template'],'controller_neptune_gamepad_joystick.vdf')
+    def test_a_template_without_free_back_buttons_is_refused(self):
+        (self.folder/'controller_neptune_gamepad_joystick.vdf').write_text('"controller_mappings"\n{\n}\n')
+        with self.assertRaises(ValueError):self.controllers.screens_template(self.account)
+
+class ThreeDsSettingsTests(DeckMaxTests):
+    def test_language_block_is_found_by_its_id_and_changed_with_a_backup(self):
+        import struct
+        from deck_library import deckmax
+        folder=self.home/'Emulation/storage/azahar/nand/data/00000000000000000000000000000000/sysdata/00010017/00000000';folder.mkdir(parents=True)
+        data=bytearray(64);struct.pack_into('<HH',data,0,3,0)
+        for index,(block,value,size) in enumerate(((0x50005,0x5058,32),(0xA0002,1,1),(0xB0000,2,4))):struct.pack_into('<IIHH',data,4+index*12,block,value,size,14)
+        (folder/'config').write_bytes(bytes(data))
+        self.assertEqual(deckmax.set_3ds_language(self.home,5,busy=lambda a:False),'applied');after=(folder/'config').read_bytes()
+        self.assertEqual(struct.unpack_from('<I',after,4+12+4)[0],5);self.assertEqual(after[:4+12]+after[4+24:],bytes(data)[:4+12]+bytes(data)[4+24:])
+        self.assertEqual(deckmax.set_3ds_language(self.home,5,busy=lambda a:False),'present');self.assertEqual(len(list(folder.glob('config.deck-library-*.bak'))),1)
+        self.assertEqual(deckmax.set_3ds_language(self.home,5,busy=lambda a:True),'busy')
+    def test_dual_screen_layout_and_swap_keys_are_written_and_game_files_use_the_global_flag(self):
+        from deck_library import deckmax
+        az=self.write('.config/azahar-emu/qt-config.ini','[Renderer]\nlayout_option=5\n[UI]\nShortcuts\\Main%20Window\\Swap%20Screens\\KeySeq=Ctrl+Tab\n')
+        botw=self.write('.config/eden/custom/01007EF00011E000.ini','[System]\nlanguage_index\\use_global=true\n[Renderer]\nresolution_setup\\use_global=true\n')
+        deckmax.apply(self.home,busy=lambda a:False)
+        text=az.read_text();self.assertIn('layout_option=1',text);self.assertIn('Swap%20Screens\\KeySeq=F9',text);self.assertIn('Toggle%20Screen%20Layout\\KeySeq=F10',text)
+        text=botw.read_text();self.assertIn('language_index=14',text);self.assertIn('language_index\\use_global=false',text);self.assertIn('resolution_setup=2',text);self.assertIn('resolution_setup\\use_global=false',text)
+
+class PortDefaultsTests(ConfigureTests):
+    def test_enhance_kit_adds_video_keys_and_mods_without_overriding_the_player(self):
+        folder=self.root/'kit';(folder/'build/mods/packages/psx.enhancement.pgxp/1.0.0').mkdir(parents=True)
+        for pid in ('psx.enhancement.fast-loading','psx.enhancement.cd-speed'):(folder/'build/mods/packages'/pid/'1.0.0').mkdir(parents=True)
+        for pid in ('psx.enhancement.pgxp','psx.enhancement.fast-loading','psx.enhancement.cd-speed'):(folder/'build/mods/packages'/pid/'1.0.0/manifest.toml').write_text('id="x"\n')
+        (folder/'game.toml').write_text('[video]\nrenderer = "opengl"\nsupersampling = 2\n');(folder/'build/mods/state.toml').write_text('format_version = 2\n')
+        import tomllib
+        changed=self.ports.enhance_kit(folder);video=tomllib.loads((folder/'game.toml').read_text())['video']
+        self.assertEqual((video['supersampling'],video['geometry_correction'],video['perspective_texturing']),(2,True,True));self.assertNotIn('frame_interpolation',video)
+        state=tomllib.loads((folder/'build/mods/state.toml').read_text());self.assertEqual({f['id'] for f in state['feature'] if f['enabled']},{'pgxp','fast-loading','cd-speed'})
+        self.assertEqual(self.ports.enhance_kit(folder),[]);self.assertTrue(changed)
+    def test_a_state_the_player_already_edited_is_kept(self):
+        folder=self.root/'kit';(folder/'build/mods/packages/psx.enhancement.pgxp/1.0.0').mkdir(parents=True);(folder/'build/mods/packages/psx.enhancement.pgxp/1.0.0/manifest.toml').write_text('x')
+        text='format_version = 2\n\n[[feature]]\npackage_id = "a"\nid = "b"\nenabled = false\n';(folder/'build/mods/state.toml').write_text(text);self.ports.enhance_kit(folder);self.assertEqual((folder/'build/mods/state.toml').read_text(),text)
+    def test_picori_gets_spanish_and_exact_height_scaling_only_with_the_european_rom(self):
+        folder=self.root/'p';folder.mkdir();(folder/'config.json').write_text('{"fullscreen": false, "bindings": {"a": 1}}')
+        record={'setup':'rom','configured':True};self.assertEqual(self.ports.tune_port(record,folder),[])
+        (folder/'baserom_eu.gba').write_bytes(b'x');self.assertEqual(self.ports.tune_port(record,folder),[str(folder/'config.json')])
+        config=json.loads((folder/'config.json').read_text());self.assertEqual((config['preferred_language'],config['internal_scale'],config['fullscreen']),(4,5,True));self.assertEqual(config['bindings'],{'a':1});self.assertEqual(self.ports.tune_port(record,folder),[])
+    def test_wwhd_env_reaches_the_launch_command_of_a_native_port(self):
+        record={'setup':'wwhd'};self.assertEqual(self.ports.tune_port(record,self.root),['env']);self.assertEqual(record['env']['WWHD_LANGUAGE'],'5')
+        home=self.root/'home';folder=home/'ports/W';folder.mkdir(parents=True);(folder/'game').write_bytes(b'x');(folder/'game').chmod(0o755)
+        (folder/'.deck-library-port.json').write_text(json.dumps({'repository':'a/w','name':'W','executable':'game',**record}));entry=self.ports.entry_for(folder)
+        self.assertEqual(entry.command[0],'env');self.assertIn('WWHD_LANGUAGE=5',entry.command);self.assertEqual(entry.command[-1],str(folder/'game'))

@@ -22,13 +22,27 @@ def qt(**values):
     for key,value in values.items():out[key]=value;out[key+'\\default']=False
     return out
 
+def qt_game(**values):
+    """Per-game Qt INI (Eden `custom/<title id>.ini`): a value only counts once its `\\use_global` flag is false."""
+    out={}
+    for key,value in values.items():out[key]=value;out[key+'\\use_global']=False
+    return out
+
+BOTW='01007EF00011E000'
+SWAP_KEY,LAYOUT_KEY='F9','F10'
+
+def shortcut(name,key):
+    base='Shortcuts\\Main%20Window\\'+name.replace(' ','%20')+'\\KeySeq'
+    return {base:key,base+'\\default':False}
+
 def targets(home):
     flatpak=home/'.var/app/org.DolphinEmu.dolphin-emu/config/dolphin-emu'
     return [
      ('duckstation','DuckStation',home/'.local/share/duckstation/settings.ini',{'GPU':{'ResolutionScale':5,'PGXPEnable':True,'PGXPTextureCorrection':True,'PGXPCulling':True,'DisableInterlacing':True,'Multisamples':1},'Display':{'VSync':True}},True),
      ('dolphin','Dolphin',flatpak/'GFX.ini',{'Settings':{'InternalResolution':3,'ShaderCompilationMode':2,'WaitForShadersBeforeStarting':True},'Enhancements':{'MaxAnisotropy':4}},True),
-     ('azahar','Azahar',home/'.config/azahar-emu/qt-config.ini',{'Renderer':qt(resolution_factor=4,async_shader_compilation=True,use_disk_shader_cache=True,use_vsync_new=True,use_hw_shader=True)},False),
+     ('azahar','Azahar',home/'.config/azahar-emu/qt-config.ini',{'Renderer':qt(resolution_factor=3,async_shader_compilation=True,use_disk_shader_cache=True,use_vsync_new=True,use_hw_shader=True,layout_option=1),'UI':{**shortcut('Swap Screens',SWAP_KEY),**shortcut('Toggle Screen Layout',LAYOUT_KEY)}},False),
      ('eden','Eden',home/'.config/eden/qt-config.ini',{'Renderer':qt(use_asynchronous_shaders=True,max_anisotropy=4,use_vsync=1)},False),
+     ('eden','Eden (Breath of the Wild)',home/'.config/eden/custom'/(BOTW+'.ini'),{'System':qt_game(language_index=14,region_index=1),'Renderer':qt_game(resolution_setup=2,scaling_filter=5,fsr_sharpening_slider=40,anti_aliasing=0,gpu_accuracy=0)},False),
     ]
 
 def apply(home=None,busy=running):
@@ -41,4 +55,31 @@ def apply(home=None,busy=running):
         if new==old:results.append((name,'present'));continue
         shutil.copy2(path,path.with_name(path.name+'.deck-library-'+time.strftime('%Y%m%d-%H%M%S')+'.bak'))
         path.write_text(new,encoding='utf-8');results.append((name,'applied'))
+    results.append(('Azahar (idioma de la consola)',set_3ds_language(home,busy=busy)))
     return results
+
+LANGUAGE_BLOCK=0xA0002
+
+def set_3ds_language(home=None,language=5,busy=None):
+    """Console language of Azahar's emulated 3DS (0 JP, 1 EN, 2 FR, 3 DE, 4 IT, 5 ES), stored in the config savegame.
+
+    The block table sits at offset 4 with 12-byte entries (id, value or offset, size, flags); a one-byte block keeps its
+    value inline. Returns applied / present / busy / missing / unknown.
+    """
+    import struct
+    home=home or pathlib.Path.home();busy=busy or running
+    path=home/'Emulation/storage/azahar/nand/data/00000000000000000000000000000000/sysdata/00010017/00000000/config'
+    if not path.is_file():return 'missing'
+    if busy('azahar'):return 'busy'
+    data=bytearray(path.read_bytes())
+    if len(data)<8:return 'unknown'
+    count=struct.unpack_from('<H',data,0)[0]
+    for index in range(min(count,256)):
+        offset=4+index*12
+        if offset+12>len(data):break
+        block,value,size,_=struct.unpack_from('<IIHH',data,offset)
+        if block==LANGUAGE_BLOCK and size==1:
+            if value==language:return 'present'
+            shutil.copy2(path,path.with_name(path.name+'.deck-library-'+time.strftime('%Y%m%d-%H%M%S')+'.bak'))
+            struct.pack_into('<I',data,offset+4,language);path.write_bytes(bytes(data));return 'applied'
+    return 'unknown'

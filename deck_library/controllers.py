@@ -5,7 +5,7 @@ per controller family. A shortcut with no entry in the family's file falls back 
 desktop/browser layout, which exposes no XInput device to the game. That is what happens
 when a DualSense is connected to a shortcut that only has an entry for the Deck itself.
 """
-import datetime,os,pathlib,tempfile
+import datetime,os,pathlib,re,tempfile
 from .steam import steam_running,SteamRunningError
 from .steam_input import parse_text
 
@@ -26,6 +26,24 @@ def config_dir(account):
 
 def templates_dir(account):
     return pathlib.Path(account).parent.parent.parent/'controller_base/templates'
+
+SCREENS_TEMPLATE='controller_neptune_deck_library_screens.vdf'
+SCREEN_BUTTONS=(('button_back_left','F9'),('button_back_right','F10'))
+
+def screens_template(account):
+    """Steam Deck layout for dual-screen games: the stock gamepad layout plus L4 = F9 (swap screens) and R4 = F10 (change layout).
+
+    The file is a copy of the stock template next to it, so Steam keeps its own templates untouched. Returns its name.
+    """
+    folder=templates_dir(account);base=folder/TEMPLATE.format('neptune')
+    text=base.read_text(encoding='utf-8')
+    for name,key in SCREEN_BUTTONS:
+        pattern=re.compile(r'("'+name+r'"\s*\{\s*"activators"\s*\{\s*"Full_Press"\s*\{\s*"bindings"\s*\{)(\s*)\}')
+        text,count=pattern.subn(lambda m:m[1]+'\n\t\t\t\t\t\t\t"binding"\t\t"key_press '+key+'"\n\t\t\t\t\t\t}',text,count=1)
+        if not count:raise ValueError('La plantilla de Steam no tiene el botón '+name+' libre.')
+    target=folder/SCREENS_TEMPLATE
+    if not target.is_file() or target.read_text(encoding='utf-8')!=text:target.write_text(text,encoding='utf-8')
+    return SCREENS_TEMPLATE
 
 def families_available(account):
     """Families whose joystick template exists in this Steam installation."""
@@ -63,19 +81,19 @@ def write_configset(path,pairs,old_text=None):
         if os.path.exists(temp):os.unlink(temp)
     return backup
 
-def apply(account,appids,force=False,families=None,is_running=None):
+def apply(account,appids,force=False,families=None,is_running=None,special=()):
     """Assign the gamepad template to each shortcut. Existing choices are kept unless `force`."""
     is_running=is_running or steam_running
     if is_running():raise SteamRunningError('Steam debe estar cerrado para guardar los controles.')
     folder=config_dir(account);available=families_available(account)
     families=[f for f in (families or FAMILIES) if f in available]
-    changed=[];backups=[]
+    special={int(a)&0xffffffff for a in special};changed=[];backups=[]
     for family in families:
         path=folder/f'configset_controller_{family}.vdf'
         pairs=read_configset(path);present={key:index for index,(key,_) in enumerate(pairs)};dirty=False
         for appid in appids:
             for key in keys_for(appid):
-                entry=[('template',TEMPLATE.format(family))]
+                entry=[('template',screens_template(account) if family=='neptune' and int(appid)&0xffffffff in special else TEMPLATE.format(family))]
                 if key in present:
                     index=present[key]
                     if not force or dict(pairs[index][1]).get('template')==entry[0][1]:continue
