@@ -334,7 +334,7 @@ class CatalogExtrasTests(PortCatalogTests):
     def test_custom_entry_overrides_remote_metadata_but_keeps_its_icon(self):
         remote=[self.ports.clean({'name':'Viejo','repository':'a/uno','appIconUrl':'https://cdn.example/i.png'},'N64 Ports','Quiver')]
         merged=self.ports.merged(remote,{'custom_ports':[{'repository':'a/uno','name':'Nuevo'}]})
-        self.assertEqual((merged[0]['name'],merged[0]['icon']),('Nuevo','https://cdn.example/i.png'))
+        mine=next(m for m in merged if m['repository']=='a/uno');self.assertEqual((mine['name'],mine['icon']),('Nuevo','https://cdn.example/i.png'))
     def test_folder_and_category_survive_a_second_cleaning(self):
         once=self.ports.clean({'repository':'a/uno','folderName':'Carpeta','category':'PlayStation'},'','Agregado');twice=self.ports.clean(once)
         self.assertEqual((twice['folder'],twice['list']),('Carpeta','PlayStation'))
@@ -387,8 +387,8 @@ class BuildEnvironmentTests(PortCatalogTests):
         self.assertTrue(any(i.startswith('Falta el entorno') for i in issues))
         with patch.object(buildenv,'installed',return_value=True):self.assertFalse(any(i.startswith('Falta el entorno') for i in diagnostics(entry,self.store)[0]))
     def test_builtin_spider_man_kits_are_flagged_for_the_sdk(self):
-        kits={b['repository'] for b in self.ports.BUILTIN if b.get('kit')};self.assertEqual(len(kits),2)
-        self.assertTrue(all(a['kit'] for a in self.ports.merged([],{}) if a['repository'] in kits))
+        kits={b['repository'] for b in self.ports.BUILTIN if b.get('setup')=='kit'};self.assertEqual(len(kits),2)
+        flagged={a['repository'] for a in self.ports.merged([],{}) if a['kit']};self.assertEqual(flagged,kits|{'web/openpete'})
 
 class KitRequirementTests(PortCatalogTests):
     def kit(self,fragment):return next(b for b in self.ports.merged([],{}) if fragment in b['repository'])
@@ -429,3 +429,137 @@ class BuiltKitTests(PortCatalogTests):
     def test_manual_commands_are_not_overwritten_by_a_rescan(self):
         self.install({'Tool':b'\x7fELF'});folder=self.install_root/'Uno';entry=self.ports.entry_for(folder);entry.command=['/mi/comando'];entry.metadata['manual_command']=True;self.store.save([entry])
         self.store.merge([self.ports.entry_for(folder)],overwrite=False);self.assertEqual(self.store.load()[0].command,['/mi/comando'])
+
+class LibraryDuplicateTests(unittest.TestCase):
+    def setUp(self):self.tmp=tempfile.TemporaryDirectory();self.root=pathlib.Path(self.tmp.name);self.store=Store(self.root/'data')
+    def tearDown(self):self.tmp.cleanup()
+    def test_entry_types(self):
+        from deck_library.library_view import entry_type
+        kinds={'port':Entry('a',['/a'],kind='port'),'port2':Entry('b',['/b'],kind='wiicompiled',platform='WiiCompiled'),'emulator':Entry('c',['/c'],kind='emulated',platform='Switch'),'minecraft':Entry('d',['/d'],kind='minecraft',platform='Minecraft'),'steam':Entry('e',['/e'],kind='steam',platform='Steam'),'steam_mc':Entry('f',['/f'],kind='steam',platform='Minecraft'),'custom':Entry('g',['/g'],kind='custom')}
+        self.assertEqual({k:entry_type(v) for k,v in kinds.items()},{'port':'port','port2':'port','emulator':'emulator','minecraft':'minecraft','steam':'steam','steam_mc':'steam','custom':'custom'})
+    def test_emulator_versions_of_a_game_with_a_port_are_hidden_but_other_games_stay(self):
+        from deck_library.library_view import visible_entries
+        es=[Entry('Spider-Man (PS1 recompilado)',['/p1'],kind='port'),Entry('Spider-Man (USA)',['/e1'],kind='emulated',platform='PlayStation'),Entry('Spider-Man 2 - Enter - Electro (USA)',['/e2'],kind='emulated',platform='PlayStation'),Entry('Mario Kart Wii',['/w'],kind='wiicompiled',platform='WiiCompiled'),Entry('Mario Kart Wii (PAL)',['/e3'],kind='emulated',platform='Wii'),Entry('Castlevania',['/e4'],kind='emulated',platform='PlayStation')]
+        shown,hidden=visible_entries(es);self.assertEqual(hidden,2);self.assertEqual(sorted(e.name for e in shown),['Castlevania','Mario Kart Wii','Spider-Man (PS1 recompilado)','Spider-Man 2 - Enter - Electro (USA)'])
+        everything,none=visible_entries(es,prefer_ports=False);self.assertEqual((len(everything),none),(6,0))
+    def test_rescan_drops_the_old_entry_of_the_same_catalog_port(self):
+        old=Entry('Kit',['/viejo'],kind='port',metadata={'port_repository':'a/kit'});new=Entry('Kit',['/nuevo'],kind='port',id='a'*20,metadata={'port_repository':'a/kit'});other=Entry('Otro',['/otro'],kind='port')
+        self.store.save([old,other]);self.store.merge([new],overwrite=False);ids={e.id for e in self.store.load()}
+        self.assertEqual(ids,{'a'*20,other.id})
+    def test_imported_shortcut_owned_by_a_managed_entry_is_dropped_and_minecraft_names_match_loosely(self):
+        from deck_library.steam_inventory import merge_steam,prune
+        account='/steam/userdata/1/config'
+        mc=Entry('[Alone on a Raft] Ocean Survival',['/mc'],kind='minecraft',platform='Minecraft')
+        ghost=Entry('Alone on a Raft - Ocean Survival',['/g'],kind='steam',platform='Minecraft',metadata={'steam_appid':7,'steam_account':account})
+        mc.metadata.update(steam_appid=7,steam_account=account)
+        self.assertEqual([e.name for e in prune([mc,ghost],account,{7})],['[Alone on a Raft] Ocean Survival'])
+        item={'name':'Alone on a Raft - Ocean Survival','appid':7,'exe':'"/x/launch.sh"','options':'','startdir':'','icon':'','account':account}
+        with patch('deck_library.steam_inventory.shortcuts',return_value=[item]),patch('deck_library.steam_inventory.discover' if False else 'deck_library.gtaiv.discover',return_value=[]):
+            fresh=Entry('[Alone on a Raft] Ocean Survival',['/mc'],kind='minecraft',platform='Minecraft')
+            result=merge_steam([fresh],account=account)
+        self.assertEqual(len(result),1);self.assertEqual(result[0].metadata['steam_appid'],7)
+
+class WebPortTests(PortCatalogTests):
+    OPENPETE='<a href="https://dl.openpete.com/OpenPete-v0.4.2-x86_64.AppImage">Linux</a><p>The Linux AppImage has the SHA-256 hash <code>3b67fcc311193b70a15b12d84fd590886305fb282830dd7cc92b7d8e993c4bea</code>.</p>'
+    CTR='<script>window.__BUILDS__={"builds":[{"key":"zip","platform":"windows","name":"x.zip","downloadUrl":"/api/download/1"},{"key":"appimage","platform":"linux","name":"ctr-t-07d0c49-linux-x86.AppImage","size":11652472,"commit":"07d0c49","downloadUrl":"/api/download/11440191688"}],"stale":false};</script>'
+    def test_openpete_page_gives_version_url_and_published_hash(self):
+        r=self.ports.resolve_web({'kind':'openpete'},self.OPENPETE);self.assertEqual((r['tag'],r['name']),('v0.4.2','OpenPete-v0.4.2-x86_64.AppImage'));self.assertEqual(r['sha256'][:8],'3b67fcc3');self.assertTrue(r['url'].startswith('https://dl.openpete.com/'))
+        with self.assertRaises(ValueError):self.ports.resolve_web({'kind':'openpete'},'<html>sin enlace</html>')
+    def test_ctr_page_gives_the_linux_appimage_and_its_size(self):
+        r=self.ports.resolve_web({'kind':'ctr'},self.CTR);self.assertEqual((r['tag'],r['size'],r['sha256']),('07d0c49',11652472,''));self.assertEqual(r['url'],'https://ctr.cmzi.uk/api/download/11440191688')
+        with self.assertRaises(ValueError):self.ports.resolve_web({'kind':'ctr'},'<html></html>')
+        with self.assertRaises(ValueError):self.ports.resolve_web({'kind':'otro'})
+    def web_install(self,kind,payload,resolved,runner=None,replace=False):
+        item=next(b for b in self.ports.BUILTIN if b.get('web',{}).get('kind')==kind)
+        def fake_download(url,target,limit=0,progress=None):pathlib.Path(target).write_bytes(payload)
+        with patch.object(self.ports,'download',fake_download):
+            return self.ports.install(item,self.store,self.install_root,lambda _:None,web=lambda w:resolved,replace=replace,runner=runner)
+    def test_openpete_is_verified_unpacked_once_and_flagged_for_the_sdk(self):
+        payload=b'APPIMAGE'+b'x'*50;resolved={'tag':'v0.4.2','name':'OpenPete-v0.4.2-x86_64.AppImage','url':'https://dl.openpete.com/a','sha256':hashlib.sha256(payload).hexdigest(),'size':0,'page':'p'}
+        def runner(cmd,cwd=None,**k):
+            root=pathlib.Path(cwd)/'squashfs-root';(root/'usr').mkdir(parents=True);(root/'AppRun').write_bytes(b'#!/bin/sh');return type('R',(),{'returncode':0})()
+        record=self.web_install('openpete',payload,resolved,runner)
+        folder=self.install_root/'OpenPete';self.assertEqual((record['executable'],record['sandbox'],record['verified'],record['web'],record['setup']),('squashfs-root/AppRun',True,True,'openpete','openpete'))
+        self.assertTrue((folder/'squashfs-root/AppRun').is_file());self.assertFalse(any(p.suffix=='.AppImage' for p in folder.iterdir()));self.assertFalse(record['configured'])
+        entry=self.ports.entry_for(folder);self.assertIn('--command='+str(folder/'squashfs-root/AppRun'),entry.command)
+    def test_web_downloads_must_match_hash_size_and_host(self):
+        payload=b'datos'
+        base={'tag':'t','name':'a.AppImage','url':'https://dl.openpete.com/a','sha256':'','size':0,'page':'p'}
+        with self.assertRaisesRegex(ValueError,'SHA-256'):self.web_install('ctr',payload,{**base,'url':'https://ctr.cmzi.uk/a','sha256':'0'*64})
+        with self.assertRaisesRegex(ValueError,'tamaño'):self.web_install('ctr',payload,{**base,'url':'https://ctr.cmzi.uk/a','size':999})
+        with self.assertRaisesRegex(ValueError,'no permitido'):self.web_install('ctr',payload,{**base,'url':'https://evil.example/a'})
+        self.assertFalse((self.install_root/'CTRTurbocharged').exists())
+    def test_ctr_installs_as_a_plain_appimage_with_size_check_only(self):
+        payload=b'\x7fELF'+b'c'*20;record=self.web_install('ctr',payload,{'tag':'07d0c49','name':'ctr-t-linux-x86.AppImage','url':'https://ctr.cmzi.uk/api/download/1','sha256':'','size':len(payload),'page':'p'})
+        self.assertEqual((record['executable'],record['sandbox'],record['verified'],record['setup']),('ctr-t-linux-x86.AppImage',False,False,'ctr'))
+    def test_web_updates_compare_the_published_tag(self):
+        self.web_install('ctr',b'\x7fELF',{'tag':'old','name':'a.AppImage','url':'https://ctr.cmzi.uk/a','sha256':'','size':0,'page':'p'})
+        with patch.object(self.ports,'resolve_web',return_value={'tag':'new','page':'https://ctr.cmzi.uk/'}):found=self.ports.installed_updates(self.store)
+        self.assertEqual([(u['installed'],u['latest']) for u in found],[('old','new')])
+        with patch.object(self.ports,'resolve_web',return_value={'tag':'old','page':'p'}):self.assertEqual(self.ports.installed_updates(self.store),[])
+
+class ConfigureTests(PortCatalogTests):
+    def make_disc(self,home,name='Juego',serial='SCUS_942.28',size=2352*4):
+        roms=home/'Emulation/roms/psx';roms.mkdir(parents=True,exist_ok=True)
+        data=(b'\0'*1000+('BOOT = cdrom:\\'+serial+';1').encode()).ljust(size,b'\0')
+        (roms/(name+'.bin')).write_bytes(data);(roms/(name+'.cue')).write_text('FILE "'+name+'.bin" BINARY\n  TRACK 01 MODE2/2352\n    INDEX 01 00:00:00\n');return roms/(name+'.cue'),roms/(name+'.bin')
+    def installed(self,home,kind,exe='Bin',sandbox=False,folder='Port',extra=None):
+        spec={'openpete':{'serial':'SCUS-94228','match':'spyro','exclude':''},'ctr':{'serial':'SCUS-94426','match':'crash','exclude':''},'kit':{'serial':'SLUS-00875','match':'spiderman','exclude':''}}[kind]
+        record={'repository':'web/x','name':'Port','folder':folder,'tag':'1','executable':exe,'sandbox':sandbox,'setup':kind,'web':'','disc':spec,'bios':None,'args':[],'configured':False,**(extra or {})}
+        (home/'ports'/folder).mkdir(parents=True,exist_ok=True);(home/'ports'/folder/exe.split('/')[0]).parent.mkdir(exist_ok=True);target=home/'ports'/folder/exe;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(b'x');self.ports.atomic_json(self.store.root/'ports.json',{'web/x':record});return record
+    def games(self,cue):return [('Juego',str(cue))]
+    def test_find_disc_matches_by_serial_not_by_name_and_resolves_cue_and_bin(self):
+        home=self.root/'home';cue,binary=self.make_disc(home,'Nombre raro');spec={'serial':'SCUS-94228'}
+        found=self.ports.find_disc(spec,[('otro',str(home/'nada.bin')),('Nombre raro',str(binary))]);self.assertEqual((found['cue'],found['bin']),(str(cue),str(binary)))
+        self.assertEqual(self.ports.find_disc(spec,[('x',str(cue))])['bin'],str(binary));self.assertIsNone(self.ports.find_disc({'serial':'SLUS-00001'},[('x',str(cue))]));self.assertIsNone(self.ports.find_disc(spec,[('x','/a/b.chd')]))
+    def test_requirements_report_an_exact_serial_match(self):
+        home=self.root/'home';cue,_=self.make_disc(home);lines=self.ports.requirements({'disc':{'serial':'SCUS-94228','match':'spyro'}},self.games(cue),home)
+        self.assertEqual(lines[0][0],True);self.assertIn('serial verificado',lines[0][1])
+    def test_ctr_copies_the_raw_bin_as_ctr_u_and_refuses_a_cooked_iso(self):
+        home=self.root/'home';cue,binary=self.make_disc(home,'CTR',serial='SCUS_944.26');self.installed(home,'ctr')
+        record=self.ports.configure('web/x',self.store,self.games(cue),lambda _:None,home)
+        target=home/self.ports.DATA_CTR/'assets/ctr-u.bin';self.assertEqual(target.read_bytes(),binary.read_bytes());self.assertTrue(record['configured']);self.assertEqual(record['configured_with'],'Juego')
+        cue2,_=self.make_disc(home,'Mala',serial='SCUS_944.26',size=2048*3);target.unlink()
+        with self.assertRaisesRegex(ValueError,'MODE2/2352'):self.ports.configure('web/x',self.store,[('Mala',str(cue2))],lambda _:None,home)
+    def test_missing_requirements_stop_before_anything_runs(self):
+        home=self.root/'home';self.installed(home,'ctr');ran=[]
+        with self.assertRaisesRegex(ValueError,'Faltan requisitos'):self.ports.configure('web/x',self.store,[('Otro','/no/existe.cue')],lambda _:None,home,run=lambda *a,**k:ran.append(a))
+        self.assertEqual(ran,[])
+    def test_openpete_prebuilds_the_module_in_the_sdk_and_remembers_the_disc(self):
+        home=self.root/'home';cue,_=self.make_disc(home);self.installed(home,'openpete',exe='squashfs-root/AppRun',sandbox=True,folder='OpenPete');calls=[]
+        def run(command,cwd=None,progress=None,until=None):
+            calls.append(command);(pathlib.Path(cwd)/'usr').mkdir(exist_ok=True);(pathlib.Path(cwd)/'usr/spyro1-recomp.so').write_bytes(b'so');self.assertTrue(until());return 0
+        record=self.ports.configure('web/x',self.store,self.games(cue),lambda _:None,home,run=run)
+        self.assertIn('--headless',calls[0]);self.assertEqual(record['args'],['--disc',str(cue),'--fullscreen','1']);calls.clear()
+        self.ports.configure('web/x',self.store,self.games(cue),lambda _:None,home,run=run);self.assertEqual(calls,[])
+    def test_kit_runs_verify_generate_rebuild_in_order_and_stores_the_bios(self):
+        home=self.root/'home';cue,_=self.make_disc(home,'Spider-Man (USA)',serial='SLUS_008.75');bios=home/'Emulation/bios';bios.mkdir(parents=True);data=b'B'*524288;(bios/'x.bin').write_bytes(data)
+        extra={'bios':{'name':'b','sha256':[hashlib.sha256(data).hexdigest()]}};self.installed(home,'kit',exe='Spider_Man_Recompiled',sandbox=True,folder='Kit',extra=extra);calls=[]
+        (home/'ports/Kit/psxrecomp/bios').mkdir(parents=True);(home/'ports/Kit/psxrecomp/bios/SCPH5552.BIN').write_bytes(data)
+        record=self.ports.configure('web/x',self.store,[('Spider-Man (USA)',str(cue))],lambda _:None,home,run=lambda command,cwd=None,progress=None,until=None:calls.append(command) or 0)
+        self.assertEqual([c[2] for c in calls],['verify-disc','generate','rebuild']);self.assertIn(str(cue),calls[0]);self.assertIn(str(bios/'x.bin'),calls[1]);self.assertIn('Spider_Man_Recompiled',calls[2])
+        self.assertEqual((home/'ports/Kit/build/bios.cfg').read_text().strip(),str(home/'ports/Kit/psxrecomp/bios/SCPH5552.BIN'));self.assertTrue(record['configured'])
+    def test_a_failing_step_leaves_the_port_unconfigured(self):
+        home=self.root/'home';cue,_=self.make_disc(home,'Spider-Man (USA)',serial='SLUS_008.75');bios=home/'Emulation/bios';bios.mkdir(parents=True);data=b'B'*524288;(bios/'x.bin').write_bytes(data)
+        self.installed(home,'kit',exe='K',sandbox=True,folder='Kit',extra={'bios':{'name':'b','sha256':[hashlib.sha256(data).hexdigest()]}})
+        def run(command,cwd=None,progress=None,until=None):
+            if command[2]=='generate':raise RuntimeError('falló')
+            return 0
+        with self.assertRaises(RuntimeError):self.ports.configure('web/x',self.store,[('Spider-Man (USA)',str(cue))],lambda _:None,home,run=run)
+        self.assertFalse(self.ports.records(self.store)['web/x']['configured'])
+
+class StopTests(unittest.TestCase):
+    def test_stopping_a_run_ends_the_whole_process_group(self):
+        import subprocess,time,os
+        from deck_library import buildenv
+        marker=tempfile.NamedTemporaryFile(delete=False);marker.close()
+        script='sleep 300 & echo $! > %s; echo listo; wait'%marker.name
+        process=subprocess.Popen(['sh','-c',script],stdout=subprocess.PIPE,text=True,start_new_session=True);self.assertEqual(process.stdout.readline().strip(),'listo')
+        child=int(pathlib.Path(marker.name).read_text());os.kill(child,0)
+        buildenv.stop(process);time.sleep(0.3)
+        with self.assertRaises(ProcessLookupError):os.kill(child,0)
+        os.unlink(marker.name)
+    def test_run_stops_when_the_condition_becomes_true_and_reports_failures(self):
+        from deck_library import buildenv
+        seen=[];self.assertEqual(buildenv.run(['sh','-c','echo uno; echo dos; sleep 30'],progress=seen.append,until=lambda:len(seen)>=2,sandbox=False),0);self.assertEqual(seen,['uno','dos'])
+        with self.assertRaisesRegex(RuntimeError,'fallo'):buildenv.run(['sh','-c','echo fallo; exit 3'],progress=lambda _:None,sandbox=False)

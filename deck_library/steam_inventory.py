@@ -1,5 +1,5 @@
 """Read existing non-Steam shortcuts without changing launch or Proton settings."""
-import pathlib,shlex
+import pathlib,re,shlex
 from .models import Entry
 from .steam import read_kv,get,find_accounts,active_account
 
@@ -41,7 +41,7 @@ def merge_steam(entries,home=None,account=None):
             try:instance=command[command.index('--launch')+1]
             except IndexError:pass
         managed_id=pathlib.Path(launch).stem if pathlib.Path(launch).parent.name=='launchers' else ''
-        match=next((e for e in result if not e.metadata.get("steam_store") and ((managed_id and e.id==managed_id) or (instance and e.metadata.get('instance_id')==instance) or (e.kind=='steam' and e.metadata.get('steam_appid')==item['appid']) or (e.kind!='steam' and e.source==launch) or e.name==item['name'])),None)
+        match=next((e for e in result if not e.metadata.get("steam_store") and ((managed_id and e.id==managed_id) or (instance and e.metadata.get('instance_id')==instance) or (e.platform=='Minecraft' and e.kind=='minecraft' and re.sub(r'[^a-z0-9]','',e.name.lower())==re.sub(r'[^a-z0-9]','',item['name'].lower())) or (e.kind=='steam' and e.metadata.get('steam_appid')==item['appid']) or (e.kind!='steam' and e.source==launch) or e.name==item['name'])),None)
         if match:
             match.metadata.update(steam_appid=item['appid'],steam_account=str(account),steam_name=item['name'])
             if match.kind=='steam':match.metadata['steam_original']=item
@@ -53,9 +53,11 @@ def merge_steam(entries,home=None,account=None):
 
 def prune(entries,account,present):
     """Forget shortcuts that no longer exist in Steam: imported entries disappear, managed ones lose their Steam link."""
-    kept=[]
+    kept=[];linked={(e.metadata.get('steam_account'),e.metadata.get('steam_appid')) for e in entries if e.kind!='steam' and e.metadata.get('steam_appid') is not None}
     for entry in entries:
         meta=entry.metadata
+        # An imported shortcut that a managed entry now owns is the same game; keep only the managed one.
+        if entry.kind=='steam' and not meta.get('steam_store') and (meta.get('steam_account'),meta.get('steam_appid')) in linked:continue
         if meta.get('steam_store') or meta.get('steam_appid') is None or meta.get('steam_account')!=str(account) or meta['steam_appid'] in present:kept.append(entry);continue
         if entry.kind=='steam':continue
         for key in ('steam_appid','steam_account','steam_name','steam_original','steam_override'):meta.pop(key,None)

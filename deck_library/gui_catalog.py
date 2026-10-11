@@ -67,6 +67,9 @@ class CatalogMixin:
                 checks=label('Comprobando requisitos…','status');texts.pack_start(checks,False,False,0);kits.append((item,checks))
             row.pack_start(texts,True,True,0);side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
             if record and item['repository'] in updates:side.pack_start(button('Actualizar',lambda _,i=item:self.install_port(i,True),True),False,False,0)
+            elif record and record.get('setup') and not record.get('configured'):side.pack_start(button('Configurar',lambda _,i=item:self.configure_port(i),True),False,False,0)
+            elif record and record.get('setup'):
+                side.pack_start(label('Configurado','good'),False,False,0);side.pack_start(button('Volver a configurar',lambda _,i=item:self.configure_port(i)),False,False,0)
             elif record:side.pack_start(label('Instalado','good'),False,False,0)
             else:side.pack_start(button('Instalar',lambda _,i=item:self.install_port(i,False)),False,False,0)
             if 'Agregado' in item['source']:side.pack_start(button('Quitar de la lista',lambda _,i=item:self.remove_repository(i),tone='danger'),False,False,0)
@@ -75,10 +78,10 @@ class CatalogMixin:
 
     def check_kits(self,kits,generation):
         """Compare each kit's BIOS and disc requirements with what is already on the Deck."""
-        names=[e.name for e in self.entries if e.platform=='PlayStation']
+        games=[(e.name,e.source) for e in self.entries if e.source]
         def work():
             for item,widget in kits:
-                try:lines=ports.requirements(item,names)
+                try:lines=ports.requirements(item,games)
                 except Exception:lines=[]
                 GLib.idle_add(self.show_requirements,widget,lines,generation)
         if kits:threading.Thread(target=work,daemon=True).start()
@@ -156,11 +159,44 @@ class CatalogMixin:
 
     def port_installed(self,item,record):
         self.port_busy=False
-        if record.get('sandbox'):self.message(item['name']+' instalado','Abrirlo desde la biblioteca inicia el asistente: pide el disco y la BIOS propios y compila el juego dentro del SDK de KDE (la primera vez tarda varios minutos). Después se agrega a Steam como cualquier otro juego.')
+        if record.get('setup'):
+            self.set_status(item['name']+' instalado. Preparando la configuración…');self.configure_port(item,automatic=True)
+        elif record.get('sandbox'):self.message(item['name']+' instalado','Abrirlo desde la biblioteca inicia el asistente: pide el disco y la BIOS propios y compila el juego dentro del SDK de KDE (la primera vez tarda varios minutos). Después se agrega a Steam como cualquier otro juego.')
         elif record['executable']:self.set_status(f'{item["name"]} {record["tag"]} instalado.')
         else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en ~/ports/{record["folder"]}, pero hay varios ejecutables posibles. Elegir el correcto con «Agregar juegos → Elegir un juego o una app».')
         if getattr(self,'update_state',None):self.update_state['catalog']=[u for u in self.update_state.get('catalog') or [] if u['repository']!=item['repository']];self.refresh_update_badges()
         self.discover()
+        if self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
+        return False
+
+    def configure_port(self,item,automatic=False):
+        """Configure an installed port with the library's disc and the BIOS found by hash, then add it to the library."""
+        from . import buildenv
+        record=ports.records(self.store).get(item['repository'])
+        if not record or not record.get('setup'):return
+        if getattr(self,'port_busy',False):self.set_status('Ya hay una tarea en curso.');return
+        games=[(e.name,e.source) for e in self.entries if e.source]
+        lines=ports.requirements(record,games)
+        missing=[text for ok,text in lines if ok is False]
+        if missing:
+            self.message('Falta algo para configurar '+item['name'],'\n\n'.join(missing)+'\n\nCuando esté disponible, usar «Configurar» en el catálogo.');self.set_status(item['name']+': faltan requisitos.');return
+        needs_sdk=record['setup'] in ('kit','openpete') and not buildenv.installed()
+        used=next((text for ok,text in lines if ok and text.startswith('Disco')),'')
+        question='Se va a configurar '+item['name']+' con lo que ya está en la Deck.\n\n'+'\n'.join(text for ok,text in lines)+'\n\n'+('Compila el juego dentro del SDK de KDE; el kit de Spider-Man tarda unos minutos. ' if record['setup'] in ('kit','openpete') else '')+('Antes se instalará el SDK de KDE de Flatpak (una sola vez). ' if needs_sdk else '')+'Los discos originales no se modifican.'
+        if not self.confirm('Configurar '+item['name'],question,'Configurar'):return
+        self.port_busy=True;self.set_status('Configurando '+item['name']+'…')
+        def work():
+            try:
+                if needs_sdk:buildenv.install(lambda text:GLib.idle_add(self.set_status,'SDK de KDE: '+text))
+                done=ports.configure(item['repository'],self.store,games,lambda text:GLib.idle_add(self.set_status,item['name']+': '+text))
+                GLib.idle_add(self.port_configured,item,done)
+            except Exception as error:GLib.idle_add(self.port_failed,item,str(error))
+        threading.Thread(target=work,daemon=True).start()
+
+    def port_configured(self,item,record):
+        self.port_busy=False;self.set_status(item['name']+' configurado con «'+record.get('configured_with','')+'».');self.discover()
+        notes={'ctr':'La primera vez, CTR pregunta por una fuente opcional (elegir «Use Luckiest Guy») y por un preset de gráficos.','openpete':'El juego ya está compilado. Se abre en pantalla completa.','kit':'El juego ya está compilado y listo para jugar.'}
+        if notes.get(record.get('setup')):self.message(item['name']+' listo',notes[record['setup']]+' Se puede agregar a Steam desde la biblioteca.')
         if self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
         return False
 
