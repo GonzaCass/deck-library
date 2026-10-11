@@ -1,5 +1,5 @@
 """Installation, content and portable preset dialogs for the GTK library."""
-import json,pathlib,shlex,subprocess,sys,threading
+import datetime,json,pathlib,shlex,subprocess,sys,threading
 import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib
@@ -41,6 +41,17 @@ SETTING_LABELS={
   'LoadImagePatches':('Aplicar parches del disco','Activa los parches de la base de datos de DuckStation.')},
  'dolphin':{'InternalResolution':('Resolución interna (×)','1 es nativa de Wii.'),'MSAA':('Antialiasing (MSAA)','0 lo desactiva.'),'SSAA':('Supermuestreo (SSAA)','Más costoso que MSAA.'),'MaxAnisotropy':('Filtrado anisotrópico','Exponente: 0 desactivado, 4 equivale a 16×.'),'EFBScaledCopy':('Copia de EFB escalada','Desactivar corrige efectos borrosos.'),'EFBAccessEnable':('Acceso a EFB desde CPU','Necesario para algunos efectos; reduce rendimiento.'),'EFBToTextureEnable':('EFB a textura','Desactivar mejora precisión y reduce velocidad.')},
 }
+
+SECTION_LABELS.update({'eden':{'Core':'Núcleo','Cpu':'Procesador','System':'Sistema','Renderer':'Gráficos'},'wiicompiled':{'video':'Video','audio':'Audio'},'prism':{'General':'Memoria y ventana'},'project2099':{'runtime':'Ejecución'}})
+SETTING_LABELS.setdefault('eden',{}).update({
+ 'use_multi_core':('Varios núcleos de CPU',''),'use_speed_limit':('Limitar la velocidad',''),'speed_limit':('Límite de velocidad (%)','100 es la velocidad original'),'sync_core_speed':('Sincronizar la velocidad de los núcleos',''),
+ 'cpu_accuracy':('Precisión de la CPU','0 automática, 1 precisa, 2 insegura'),'use_custom_cpu_ticks':('Ciclos de CPU personalizados',''),'use_docked_mode':('Modo base (TV)','Desactivado equivale al modo portátil'),
+ 'backend':('API gráfica','0 OpenGL, 1 Vulkan'),'resolution_setup':('Resolución interna','Escala sobre la resolución original de la consola'),'aspect_ratio':('Relación de aspecto',''),'anti_aliasing':('Suavizado de bordes','0 sin suavizado'),
+ 'scaling_filter':('Filtro de escalado','5 es FSR'),'gpu_accuracy':('Precisión de la GPU','0 normal, 1 alta, 2 extrema'),'dma_accuracy':('Precisión de DMA',''),'vram_usage_mode':('Uso de memoria de video',''),
+ 'use_disk_shader_cache':('Caché de shaders en disco',''),'use_vulkan_driver_pipeline_cache':('Caché de pipelines del controlador Vulkan',''),'use_asynchronous_gpu_emulation':('Emulación de GPU asíncrona',''),
+ 'use_asynchronous_shaders':('Compilar shaders en segundo plano','Evita tirones al compilar'),'async_presentation':('Presentación asíncrona',''),'use_vsync':('Sincronización vertical',''),'force_max_clock':('Forzar el reloj máximo de la GPU',''),'max_anisotropy':('Filtro anisotrópico','0 automático, 4 es 16×')})
+SETTING_LABELS.setdefault('wiicompiled',{}).update({'resolution_multiplier':('Multiplicador de resolución',''),'disable_copy_filter':('Desactivar el filtro de copia',''),'frame_interpolation_fps':('Interpolación de cuadros (FPS)',''),'graphics_api':('API gráfica',''),'display_mode':('Modo de pantalla',''),'skip_unready_pipelines':('Omitir pipelines no listos',''),'show_fps':('Mostrar FPS',''),'mix_worker':('Mezcla de audio en otro hilo','')})
+SETTING_LABELS.setdefault('prism',{}).update({'OverrideMemory':('Personalizar la memoria',''),'MinMemAlloc':('Memoria mínima (MiB)',''),'MaxMemAlloc':('Memoria máxima (MiB)',''),'OverrideWindow':('Personalizar la ventana',''),'MinecraftWinWidth':('Ancho de ventana',''),'MinecraftWinHeight':('Alto de ventana',''),'LaunchMaximized':('Iniciar maximizada','')})
 
 class ToolsMixin:
     def gtaiv_dialog(self,e):
@@ -145,20 +156,35 @@ class ToolsMixin:
         panes=Gtk.Box(spacing=16);box.pack_start(panes,True,True,0)
         list_=Gtk.ListBox();scroll=Gtk.ScrolledWindow();scroll.set_size_request(300,-1);scroll.add(list_);panes.pack_start(scroll,False,False,0)
         detail_scroll=Gtk.ScrolledWindow();detail_scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);detail_scroll.get_style_context().add_class('preset-detail');detail=label('Seleccionar un perfil','subtitle');detail.set_valign(Gtk.Align.START);detail.set_max_width_chars(43);detail_scroll.add(detail);panes.pack_start(detail_scroll,True,True,0)
-        selected=[None];items=[p for p in presets.catalog(self.store) if presets.compatible(e,p)]
+        def detected():
+            """What the emulator has right now for this game, read from its own files (never from stored profiles)."""
+            config=self.preferences.get('eden_config') or None
+            try:path=presets.target_for(e,config);values=presets.current_values(e,config)
+            except Exception as error:return {'detected':True,'name':'Ajustes actuales','note':'No se pudieron leer: '+str(error),'text':'No se pudieron leer: '+str(error)}
+            adapter=presets.adapter_for(e);names=SETTING_LABELS.get(adapter,{});sections=SECTION_LABELS.get(adapter,{})
+            own=path.is_file();lines=[('Archivo propio del juego: '+str(path)+' (modificado el '+datetime.datetime.fromtimestamp(path.stat().st_mtime).strftime('%d/%m/%Y %H:%M')+')') if own else 'Este juego no tiene archivo propio: se usan los valores globales del emulador.','']
+            for section,options in values.items():
+                lines.append(sections.get(section,section))
+                for key,value in options.items():lines.append('   '+names.get(key,(key,''))[0]+': '+('sí' if value is True else 'no' if value is False else str(value)))
+            if not values:lines.append('No hay valores reconocidos todavía.')
+            return {'detected':True,'name':'Ajustes actuales','note':'Archivo propio del juego' if own else 'Valores globales del emulador','text':'\n'.join(lines)}
+        def everything():return [detected()]+[p for p in presets.catalog(self.store) if presets.compatible(e,p)]
+        selected=[None];items=everything()
         def fill():
             for row in list_.get_children():list_.remove(row)
             for value in items:
+                if value.get('detected'):
+                    row=Gtk.ListBoxRow();row.value=value;card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5);card.set_border_width(12);card.pack_start(label('Ajustes actuales (detectados)','title'),False,False,0);card.pack_start(label(value['note'],'muted'),False,False,0);row.add(card);list_.add(row);continue
                 row=Gtk.ListBoxRow();row.value=value;card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5);card.set_border_width(12);name=label(value['name'],'title');name.set_max_width_chars(25);card.pack_start(name,False,False,0)
                 status={'proposal':'Para probar','boot-tested':'Arranque comprobado','user-confirmed':'Confirmado por usuario'}[value['tested']['status']]
                 meta=label(value['author']+' · '+status+' · '+', '.join(value['adapter']['versions']),'muted');meta.set_max_width_chars(30);card.pack_start(meta,False,False,0);row.add(card);list_.add(row)
-            if not items:list_.add(label('No hay perfiles compatibles. Importar uno o exportar los ajustes actuales.','muted'))
+            if len(items)<2:list_.add(label('No hay perfiles recomendados para este juego. Importar uno o exportar los ajustes actuales.','muted'))
             list_.show_all()
             if items:list_.select_row(list_.get_row_at_index(0))
         def chosen(_,row):
             selected[0]=getattr(row,'value',None)
             value=selected[0]
-            detail.set_text((value['objective']+'\n'+value.get('notes','')) if value else '')
+            detail.set_text(value['text'] if value and value.get('detected') else (value['objective']+'\n'+value.get('notes','')) if value else '')
         list_.connect('row-selected',chosen)
         def import_(_):
             path=self.pick_file('Importar preset JSON')
@@ -166,7 +192,7 @@ class ToolsMixin:
                 try:
                     value=presets.import_preset(path,self.store)
                     if not presets.compatible(e,value):raise ValueError('El perfil se importó, pero corresponde a otro juego o programa.')
-                    items[:]=[p for p in presets.catalog(self.store) if presets.compatible(e,p)];fill()
+                    items[:]=everything();fill()
                 except Exception as error:self.message('Preset',str(error))
         def export_(_):
             form=Gtk.Dialog(title='Exportar mis ajustes',transient_for=dialog,modal=True);form.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Exportar',Gtk.ResponseType.OK);body=form.get_content_area();body.set_border_width(18);body.set_spacing(10)
@@ -174,7 +200,7 @@ class ToolsMixin:
             if form.run()==Gtk.ResponseType.OK:
                 try:
                     value=presets.export_current(e,name.get_text().strip(),author.get_text().strip(),self.store,self.preferences.get('eden_config') or None);path=self.pick_file('Guardar preset portable',save=True)
-                    if path:atomic_json(path,value);presets.import_preset(path,self.store);items[:]=[p for p in presets.catalog(self.store) if presets.compatible(e,p)];fill();detail.set_text('JSON exportado. Se puede compartir o añadir al catálogo del repositorio.')
+                    if path:atomic_json(path,value);presets.import_preset(path,self.store);items[:]=everything();fill();detail.set_text('JSON exportado. Se puede compartir o añadir al catálogo del repositorio.')
                 except Exception as error:self.message('No se pudo exportar',str(error))
             form.destroy()
         def refresh(_):
@@ -185,7 +211,7 @@ class ToolsMixin:
                 def work():
                     try:
                         count=presets.refresh_catalog(url,self.store)
-                        def done():items[:]=[p for p in presets.catalog(self.store) if presets.compatible(e,p)];fill();detail.set_text(str(count)+' presets descargados y validados.');return False
+                        def done():items[:]=everything();fill();detail.set_text(str(count)+' presets descargados y validados.');return False
                         GLib.idle_add(done)
                     except Exception as error:GLib.idle_add(self.message,'No se pudo descargar',str(error))
                 threading.Thread(target=work,daemon=True).start()
@@ -194,6 +220,7 @@ class ToolsMixin:
         def apply_(_):
             value=selected[0]
             if not value:self.message('Sin perfil','Seleccionar un perfil de la lista.');return
+            if value.get('detected'):self.message('Ajustes actuales','Estos son los valores que el emulador usa ahora. Elegir un perfil recomendado para cambiarlos, o editarlos uno por uno en Ajustes del juego.');return
             try:
                 path,changes=presets.preview(e,value,self.preferences.get('eden_config') or None)
                 confirm=Gtk.MessageDialog(transient_for=dialog,modal=True,buttons=Gtk.ButtonsType.OK_CANCEL,text='Aplicar '+value['name']);confirm.format_secondary_text('\n'.join(f'{key}: {old} → {new}' for key,old,new in changes)+'\n\nPrograma: '+value['adapter']['id']+' · versiones declaradas: '+', '.join(value['adapter']['versions'])+'\nSe guarda una copia de seguridad. No instala actualizaciones ni mods.');response=confirm.run();confirm.destroy()
@@ -205,7 +232,7 @@ class ToolsMixin:
             except Exception as error:self.message('Restaurar ajuste',str(error))
         def feedback_(_):
             value=selected[0]
-            if not value:return
+            if not value or value.get('detected'):return
             form=Gtk.Dialog(title='Comentarios',transient_for=dialog,modal=True);form.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar comentarios',Gtk.ResponseType.OK);body=form.get_content_area();body.set_border_width(18);body.set_spacing(10);choice=Gtk.ComboBoxText()
             for key,title in [('works','Funcionó'),('issues','Con problemas'),('not-tested','Sin probar')]:choice.append(key,title)
             choice.set_active(0);notes=Gtk.Entry();notes.set_placeholder_text('Juego probado y resultado (sin datos privados)');body.pack_start(choice,False,False,0);body.pack_start(notes,False,False,0);form.set_default_size(650,180);form.show_all()

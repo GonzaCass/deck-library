@@ -10,6 +10,7 @@ from .models import Store,atomic_json
 REPO='GonzaCass/deck-library'
 CATALOG_URL='https://raw.githubusercontent.com/GonzaCass/deck-library/main/presets/catalog.json'
 PROJECT2099_REPO='GenryTheFox0/Project-2099'
+HANDLED_HERE='patchzyy/wiicompiled'  # updated by wiiupdate.py, so Quiver's report is not repeated
 INTERVAL=6*3600
 JSON_LIMIT=2*1024*1024
 DOWNLOAD_LIMIT=64*1024*1024
@@ -74,6 +75,7 @@ def quiver_apps(preferences=None,home=None):
 def check_quiver(preferences=None,get=fetch_json,home=None):
     updates=[]
     for app in quiver_apps(preferences,home):
+        if app['repository'].lower()==HANDLED_HERE:continue
         try:release=latest_release(app['repository'],get)
         except (OSError,ValueError):break
         if release and release.get('tag_name') not in (app['installed'],app['skipped']) and is_newer(release['tag_name'],app['installed']):
@@ -107,7 +109,7 @@ def check_all(store,preferences,entries,force=False,get=fetch_json):
     if not force and time.time()-state.get('checked',0)<INTERVAL:return state
     state={**state,'checked':time.time(),'errors':[]}
     from . import ports
-    for key,run in (('app',lambda:check_app(get=get)),('ports',lambda:check_quiver(preferences,get)),('catalog',lambda:ports.installed_updates(store,get)),('project2099',lambda:check_project2099(entries,get))):
+    for key,run in (('app',lambda:check_app(get=get)),('ports',lambda:check_quiver(preferences,get)),('catalog',lambda:ports.installed_updates(store,get)),('project2099',lambda:check_project2099(entries,get)),('wiicompiled',lambda:__import__('deck_library.wiiupdate',fromlist=['check']).check(preferences,get))):
         try:state[key]=run()
         except (OSError,ValueError,KeyError) as error:state['errors'].append(f'{key}: {error}')
     if preferences.get('catalog_auto',True):
@@ -153,5 +155,6 @@ def summary(state):
     if state.get('app'):items.append(('app',f'Deck Library {state["app"]["version"]} disponible',state['app']))
     for port in state.get('ports') or []:items.append(('port',f'{port["name"]}: {port["installed"]} → {port["latest"]}',port))
     for port in state.get('catalog') or []:items.append(('catalog',f'{port["name"]}: {port["installed"]} → {port["latest"]}',port))
+    if state.get('wiicompiled'):w=state['wiicompiled'];items.append(('wii',f'{w["name"]}: {w["installed"]} → {w["latest"]}',w))
     if state.get('project2099'):p=state['project2099'];items.append(('port',f'{p["name"]}: {p["installed"]} → {p["latest"]}',p))
     return items

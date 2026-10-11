@@ -32,10 +32,32 @@ class UpdatesMixin:
         item=next((a for a in known if a['repository']==data['repository']),None) or {'name':data['name'],'repository':data['repository']}
         self.install_port(item,True)
 
+    def update_wiicompiled(self):
+        from . import wiiupdate
+        found=wiiupdate.installations(self.preferences)
+        if not found:self.message('WiiCompiled','No se encontró una instalación de WiiCompiled administrada por Quiver.');return
+        item=found[0];info=wiiupdate.latest()
+        if not info:self.message('WiiCompiled','No se pudo consultar la última versión.');return
+        image=wiiupdate.find_image(self.entries)
+        if not image:
+            chooser=Gtk.FileChooserDialog(title='Elegir la imagen PAL limpia de Mario Kart Wii (RMCP01)',transient_for=self,action=Gtk.FileChooserAction.OPEN);chooser.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Elegir',Gtk.ResponseType.OK)
+            if chooser.run()==Gtk.ResponseType.OK:image=chooser.get_filename()
+            chooser.destroy()
+            if not image:return
+        if not self.confirm('Actualizar Mario Kart Wii',f'Se descarga el setup oficial {info["tag"]} (suma SHA-256 verificada) y se vuelve a compilar el juego con la imagen del disco. Necesita unos 20 GB libres y tarda varios minutos; cerrar el juego antes. Si algo falla, se restaura el setup anterior.','Actualizar'):return
+        self.set_status('Actualizando Mario Kart Wii…')
+        def work():
+            try:tag=wiiupdate.update(item,info,image,lambda t:GLib.idle_add(self.set_status,t[-160:]))
+            except Exception as error:GLib.idle_add(self.failed,str(error));return
+            def done():
+                self.toast('Mario Kart Wii actualizado a '+tag);self.set_status('Mario Kart Wii actualizado a '+tag+'.');self.check_updates(True);return False
+            GLib.idle_add(done)
+        threading.Thread(target=work,daemon=True).start()
+
     def pending_updates(self):return updates.summary(getattr(self,'update_state',{}) or {})
 
     def refresh_update_badges(self):
-        count=len(self.pending_updates())+(1 if getattr(self,'update_installed',None) else 0)
+        count=len(self.pending_updates())+(1 if getattr(self,'update_installed',None) else 0);self.banner_text.show()
         self.update_badge.set_text(str(count));self.update_badge.set_visible(count>0)
         state=getattr(self,'update_state',{}) or {}
         if getattr(self,'update_installed',None):
@@ -43,7 +65,7 @@ class UpdatesMixin:
         elif state.get('app'):
             self.banner_text.set_text(f'Deck Library {state["app"]["version"]} disponible.');self.banner_action.set_label('Ver actualización');self.banner_action.show();self.update_banner.show()
         elif self.pending_updates():
-            self.banner_text.set_text(f'{len(self.pending_updates())} actualizaciones de ports disponibles.');self.banner_action.set_label('Ver');self.banner_action.show();self.update_banner.show()
+            n=len(self.pending_updates());self.banner_text.set_text(f'{n} actualización de ports disponible.' if n==1 else f'{n} actualizaciones de ports disponibles.');self.banner_action.set_label('Ver');self.banner_action.show();self.update_banner.show()
         else:self.update_banner.hide()
 
     def banner_clicked(self):
@@ -102,12 +124,13 @@ class UpdatesMixin:
         presets=state.get('presets')
         card.pack_start(label(f'{presets["count"]} perfiles en el catálogo · {presets["new"]} nuevos · {presets["changed"]} modificados en la última revisión' if presets else 'Catálogo sin revisar.','muted'),False,False,0)
         card=self.card(box,'Ports')
-        ports=[item for item in self.pending_updates() if item[0] in ('port','catalog')]
+        ports=[item for item in self.pending_updates() if item[0] in ('port','catalog','wii')]
         if ports:
             for kind,text,data in ports:
                 row=Gtk.Box(spacing=10);row.pack_start(label(text),True,True,0)
                 if data.get('page'):row.pack_end(Gtk.LinkButton.new_with_label(data['page'],'Ver versión'),False,False,0)
                 if kind=='catalog':row.pack_end(button('Actualizar',lambda _,d=data:self.update_catalog_port(d),True),False,False,0)
+                if kind=='wii':row.pack_end(button('Actualizar aquí',lambda _:self.update_wiicompiled(),True),False,False,0)
                 card.pack_start(row,False,False,0)
             quiver=pathlib.Path.home()/'ports/quiver-launcher/launch.sh'
             if quiver.is_file():card.pack_start(button('Abrir Quiver para actualizar',lambda _:subprocess.Popen([str(quiver)],start_new_session=True)),False,False,0)

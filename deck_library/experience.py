@@ -14,8 +14,26 @@ class ExperienceMixin:
         combo=Gtk.ComboBoxText()
         for key,name in [('automatic','Automático (recomendado)'),('libretro','Libretro · consolas clásicas'),('wikipedia','Wikipedia · sin cuenta'),('steamgriddb','SteamGridDB · carátulas 600 × 900'),('off','Solo imágenes locales')]:combo.append(key,name)
         combo.set_active_id(self.preferences.get('artwork_provider','automatic'));box.pack_start(combo,False,False,0)
-        key=Gtk.Entry();key.set_visibility(False);key.set_placeholder_text('Clave API de SteamGridDB (opcional)');key.set_text(self.preferences.get('steamgriddb_key',''));box.pack_start(key,False,False,0)
-        link=Gtk.LinkButton.new_with_label('https://www.steamgriddb.com/profile/preferences/api','Obtener una clave en SteamGridDB');box.pack_start(link,False,False,0)
+        box.pack_start(label('Clave de SteamGridDB (opcional)','title'),False,False,6)
+        box.pack_start(label('Con una clave, las carátulas, fondos, logotipos e íconos de Steam se buscan en SteamGridDB. Cómo conseguirla: 1) iniciar sesión en steamgriddb.com con la cuenta de Steam; 2) abrir el perfil y entrar en Preferencias → API; 3) copiar la clave y pegarla aquí. Es gratuita y personal: no compartirla.','muted'),False,False,0)
+        key=Gtk.Entry();key.set_visibility(False);key.set_placeholder_text('Pegar la clave API de SteamGridDB');key.set_text(self.preferences.get('steamgriddb_key',''));key.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY,'view-reveal-symbolic');key.set_icon_tooltip_text(Gtk.EntryIconPosition.SECONDARY,'Mostrar u ocultar la clave')
+        key.connect('icon-press',lambda entry,*a:entry.set_visibility(not entry.get_visibility()));box.pack_start(key,False,False,0)
+        row=Gtk.Box(spacing=12);verdict=label('','muted')
+        def test(_):
+            text=key.get_text().strip()
+            if not text:verdict.set_text('Pegar primero la clave.');return
+            verdict.set_text('Probando…')
+            def work():
+                from . import steamart
+                import urllib.error
+                try:steamart.find_games(text,'Zelda');result='Clave válida.'
+                except urllib.error.HTTPError as error:result='SteamGridDB rechazó la clave.' if error.code in (401,403) else 'SteamGridDB respondió con error '+str(error.code)+'.'
+                except Exception as error:result='No se pudo probar: '+str(error)
+                GLib.idle_add(verdict.set_text,result)
+            threading.Thread(target=work,daemon=True).start()
+        from .gui import button
+        row.pack_start(button('Probar clave',test),False,False,0);row.pack_start(verdict,True,True,0);box.pack_start(row,False,False,0)
+        link=Gtk.LinkButton.new_with_label('https://www.steamgriddb.com/profile/preferences/api','Abrir la página de claves de SteamGridDB');box.pack_start(link,False,False,0)
         box.pack_start(label('La clave se guarda solo en esta Deck. Al buscar se envía el nombre del juego al proveedor y las imágenes se guardan localmente.','muted'),False,False,0)
         return combo,key
 

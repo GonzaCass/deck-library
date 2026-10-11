@@ -881,3 +881,47 @@ class DisplayModTests(PortDefaultsTests):
         (folder/'build/mods/state.toml').write_text('format_version = 2\n');self.ports.enhance_kit(folder)
         import tomllib;state=tomllib.loads((folder/'build/mods/state.toml').read_text());self.assertEqual({(f['package_id'],f['id']) for f in state['feature']},{('psx.enhancement.pgxp','pgxp'),('psx.deck.display','interpolation'),('psx.deck.display','widescreen')})
         (folder/'build/mods/state.toml').write_text('format_version = 2\n[[feature]]\npackage_id = "x.other"\nid = "y"\nenabled = true\n');before=(folder/'build/mods/state.toml').read_text();self.ports.enhance_kit(folder);self.assertEqual((folder/'build/mods/state.toml').read_text(),before)
+
+class WiiUpdateTests(unittest.TestCase):
+    def setUp(self):
+        import tempfile;self.root=pathlib.Path(tempfile.mkdtemp());self.addCleanup(shutil.rmtree,self.root,True)
+        self.folder=self.root/'Apps/MarioKartWii';(self.folder/'.steamdeck').mkdir(parents=True);(self.folder/'.steamdeck/runner.json').write_text('{"type":"flatpak","app_id":"io.example.Wheel"}')
+        self.tool=self.folder/'WiiCompiled-Setup-x86_64.AppImage';self.tool.write_bytes(b'\x7fELFold');(self.folder/'version.txt').write_text('v0.2.33')
+        self.apps=[{'name':'Mario Kart Wii','repository':'patchzyy/Wiicompiled','installed':'v0.2.33','skipped':'','folder':str(self.folder)}]
+        self.home=self.root/'home';self.home.mkdir()
+    def release(self,payload=b'\x7fELFnew'):
+        import hashlib
+        return {'tag_name':'v0.2.34','html_url':'https://x/r','body':'n','assets':[{'name':'WiiCompiled-Setup-x86_64.AppImage','browser_download_url':'https://x/a','digest':'sha256:'+hashlib.sha256(payload).hexdigest()}]}
+    def opener(self,payload):
+        class Response(io.BytesIO):
+            headers={'Content-Length':str(len(payload))}
+            def __enter__(self):return self
+            def __exit__(self,*a):return False
+        return lambda url,timeout=0:Response(payload)
+    def test_the_installation_is_found_with_its_flatpak_runner_and_the_update_is_reported_once(self):
+        from deck_library import wiiupdate
+        with patch('deck_library.updates.quiver_apps',return_value=self.apps):
+            found=wiiupdate.installations(None,self.home);self.assertEqual(found[0]['command'][:2],['flatpak','run']);self.assertEqual(found[0]['data_home'],self.home/'.var/app/io.example.Wheel/data')
+            self.assertEqual(wiiupdate.check(None,lambda url:self.release(),self.home),{'name':'Mario Kart Wii','installed':'v0.2.33','latest':'v0.2.34','page':'https://x/r'})
+            self.assertEqual(updates.check_quiver(None,lambda url:self.release(),self.home),[])
+        with patch('deck_library.updates.quiver_apps',return_value=[{**self.apps[0],'installed':'v0.2.34'}]):self.assertIsNone(wiiupdate.check(None,lambda url:self.release(),self.home))
+    def test_a_download_whose_hash_differs_is_refused_and_the_old_tool_stays(self):
+        from deck_library import wiiupdate
+        image=self.root/'mk.iso';image.write_bytes(b'RMCP01'+b'0'*100)
+        with patch('deck_library.updates.quiver_apps',return_value=self.apps):item=wiiupdate.installations(None,self.home)[0]
+        info=wiiupdate.latest(lambda url:self.release(b'\x7fELFother'))
+        with self.assertRaisesRegex(ValueError,'SHA-256'):wiiupdate.update(item,info,image,opener=self.opener(b'\x7fELFnew'),run=lambda *a,**k:0)
+        self.assertEqual(self.tool.read_bytes(),b'\x7fELFold');self.assertEqual((self.folder/'version.txt').read_text(),'v0.2.33');self.assertFalse(list(self.folder.glob('*.download')))
+    def test_update_installs_the_new_tool_runs_the_install_and_failure_restores_the_previous_one(self):
+        from deck_library import wiiupdate
+        image=self.root/'mk.iso';image.write_bytes(b'RMCP01'+b'0'*100);payload=b'\x7fELFnew'
+        with patch('deck_library.updates.quiver_apps',return_value=self.apps):item=wiiupdate.installations(None,self.home)[0]
+        item['data_home']=self.home;info=wiiupdate.latest(lambda url:self.release(payload));calls=[]
+        usage=type('U',(),{'free':50_000_000_000})()
+        with patch('deck_library.wiiupdate.shutil.disk_usage',return_value=usage):tag=wiiupdate.update(item,info,image,opener=self.opener(payload),run=lambda command,cwd,env,log,progress,cancel:calls.append(command))
+        self.assertEqual(tag,'v0.2.34');self.assertEqual(self.tool.read_bytes(),payload);self.assertEqual((self.folder/'version.txt').read_text(),'v0.2.34');self.assertEqual(calls[0][-3:-1],['install','--game']);self.assertFalse((self.folder/(self.tool.name+'.previous')).exists())
+        (self.folder/'version.txt').write_text('v0.2.33');self.tool.write_bytes(b'\x7fELFold')
+        def failing(*a,**k):raise RuntimeError('boom')
+        with patch('deck_library.wiiupdate.shutil.disk_usage',return_value=usage),self.assertRaises(RuntimeError):wiiupdate.update(item,info,image,opener=self.opener(payload),run=failing)
+        with patch('deck_library.wiiupdate.shutil.disk_usage',return_value=type('U',(),{'free':1})()),self.assertRaisesRegex(RuntimeError,'20 GB'):wiiupdate.update(item,info,image,opener=self.opener(payload),run=failing)
+        self.assertEqual(self.tool.read_bytes(),b'\x7fELFold');self.assertEqual((self.folder/'version.txt').read_text(),'v0.2.33')

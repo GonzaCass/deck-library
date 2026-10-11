@@ -104,6 +104,8 @@ A Link to the Past in Spanish: `deck_library.patching.apply_ups` applies the fan
 
 Steam artwork: the game detail page has **Arte de Steam**, backed by `deck_library.steamart` (SteamGridDB API, vertical and horizontal covers, hero, logo with its position JSON, and icon, in the file layout Decky's SteamGridDB plugin writes). Existing files are kept unless a slot is explicitly replaced, replaced files are backed up, images are validated by magic bytes (PNG/JPEG/WebP, 20 MB limit) and written through the same Steam-closed queue as shortcuts. **Settings → Completar arte de todos los accesos de Steam** (`steamart.complete_missing`) fills only empty slots for every shortcut and reports per game. The app needs the user's own SteamGridDB key; the key embedded in Decky's plugin is reserved for it by its author.
 
+UI: left sidebar, overlay game cards, flat controls with one accent colour, visible focus, 150-300 ms ease-out transitions (`deck_library/motion.py`: fades, staggered card entrance, slide between library and detail, toasts), all disabled by the animations switch. The per-game settings dialog starts with the emulator's current values read from its own files. `deck_library/wiiupdate.py` updates a Quiver-managed WiiCompiled in place (SHA-256 from the GitHub digest, `install --game`, rollback of the previous setup tool).
+
 None of these ports exists for A Link Between Worlds, Breath of the Wild or Skyward Sword; those stay emulated.
 
 ### Library view

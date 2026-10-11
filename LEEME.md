@@ -38,6 +38,14 @@ En la ficha de un juego con acceso en Steam, **Arte de Steam** busca en SteamGri
 
 **Ajustes → Completar arte de todos los accesos de Steam** hace lo mismo para toda la biblioteca de una vez: solo llena los espacios vacíos, informa por juego qué se agregó y qué no se encontró, y ofrece reiniciar Steam para guardar. Hace falta una clave API propia de SteamGridDB: la clave del plugin de Decky va embebida en ese plugin y su autor advierte que usarla en otros proyectos provoca el bloqueo.
 
+### Diseño, movimiento y actualizaciones propias
+
+- **Interfaz:** barra lateral con íconos, tarjetas de juego con el nombre y la plataforma sobre un degradado, marca de «ya en Steam», controles más planos y un único color de acento. Foco visible en todos los controles (para usar el mando con Steam Input) y objetivos táctiles de al menos 36 px.
+- **Movimiento:** transiciones de 150–300 ms con salida suave, aparición escalonada de las tarjetas al abrir la biblioteca o cambiar de filtro, deslizamiento entre la biblioteca y la ficha de un juego, y avisos breves al guardar cambios. **Ajustes → Animaciones y transiciones** lo desactiva por completo.
+- **Ajustes detectados:** el diálogo de ajustes de cada juego empieza con **Ajustes actuales**, leídos del archivo propio del emulador (con fecha de modificación) o de los valores globales si el juego no tiene uno, antes de los perfiles recomendados del catálogo.
+- **Clave de SteamGridDB:** Ajustes explica cómo conseguirla (iniciar sesión en steamgriddb.com, Perfil → Preferencias → API), permite mostrarla u ocultarla y tiene un botón **Probar clave**.
+- **Mario Kart Wii (WiiCompiled):** la pestaña **Actualizaciones** ofrece **Actualizar aquí** cuando hay una versión nueva del setup oficial. Descarga el AppImage, verifica su SHA-256 con el valor que publica GitHub, vuelve a instalar el juego con la imagen PAL de la biblioteca (necesita unos 20 GB libres) y restaura el setup anterior si algo falla. No hace falta abrir Quiver.
+
 ## Instalación
 
 1. Copiar y extraer `DeckLibrary-0.4.0.tar.gz` en modo Escritorio.
@@ -82,7 +90,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.6.5**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.7.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
