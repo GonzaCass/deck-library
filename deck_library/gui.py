@@ -150,6 +150,27 @@ class PageStack(Gtk.Stack):
             self.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT if new>old else Gtk.StackTransitionType.SLIDE_RIGHT if new<old else Gtk.StackTransitionType.CROSSFADE)
         super().set_visible_child_name(name)
 
+class Banner(Gtk.DrawingArea):
+    """Steam's own background (and logo) for a shortcut, cropped to the page width with a fade into the page colour."""
+    def __init__(self,hero,logo=None,height=210):
+        super().__init__();self.set_size_request(-1,height);self.hero=self.logo=None
+        try:self.hero=GdkPixbuf.Pixbuf.new_from_file_at_scale(hero,1600,-1,True)
+        except (GLib.Error,OSError):pass
+        if logo:
+            try:self.logo=GdkPixbuf.Pixbuf.new_from_file_at_scale(logo,-1,96,True)
+            except (GLib.Error,OSError):pass
+        self.connect('draw',self.draw_banner)
+    def draw_banner(self,widget,cr):
+        import cairo
+        w=widget.get_allocated_width();h=widget.get_allocated_height();cr.set_source_rgb(0.075,0.071,0.063);cr.paint()
+        if self.hero:
+            scale=max(w/self.hero.get_width(),h/self.hero.get_height());cr.save();cr.rectangle(0,0,w,h);cr.clip()
+            cr.translate((w-self.hero.get_width()*scale)/2,(h-self.hero.get_height()*scale)/2);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,self.hero,0,0);cr.paint();cr.restore()
+        shade=cairo.LinearGradient(0,h*0.35,0,h);shade.add_color_stop_rgba(0,0.075,0.071,0.063,0);shade.add_color_stop_rgba(1,0.075,0.071,0.063,1);cr.set_source(shade);cr.rectangle(0,0,w,h);cr.fill()
+        if self.logo:
+            scale=min(1,(w*0.4)/self.logo.get_width());cr.save();cr.translate(24,h-24-self.logo.get_height()*scale);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,self.logo,0,0);cr.paint();cr.restore()
+        return False
+
 class Poster(Gtk.DrawingArea):
     """Fixed 2:3 canvas; contain artwork without cropping game titles."""
     def __init__(self,entry,path,width=160,height=240,overlay=False,steam=False):
@@ -421,8 +442,19 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         missing=[controllers.FAMILY_NAMES[f] for f,value in state.items() if value is None]
         return 'Layout de gamepad asignado a todos los tipos de mando.' if not missing else 'Sin layout para: '+', '.join(missing)+'. Esos mandos no se detectan en el juego.'
 
+    def steam_banner(self,e):
+        """The shortcut's hero (and logo) from Steam's grid folder, or None."""
+        from . import steamart
+        if not self.in_steam(e) or not e.metadata.get('steam_account'):return None
+        try:art=steamart.existing(pathlib.Path(e.metadata['steam_account']),e.metadata['steam_appid'])
+        except (OSError,ValueError,TypeError):return None
+        if not art.get('hero'):return None
+        return Banner(str(art['hero']),str(art['logo']) if art.get('logo') else None)
+
     def show_detail(self,e):
         self.clear_detail();back=button('← Biblioteca',lambda _:self.open_library());back.get_style_context().add_class('flat');back.set_halign(Gtk.Align.START);self.detail.pack_start(back,False,False,0)
+        banner=self.steam_banner(e)
+        if banner:self.detail.pack_start(banner,False,False,0);motion.fade_in(banner,320)
         hero=Gtk.Box(spacing=28);art=Poster(e,find_cover(e),200,300);hero.pack_start(art,False,False,0);info=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14);info.set_hexpand(True);info.pack_start(label(e.platform.upper(),'pill'),False,False,0);info.pack_start(label(e.name,'hero'),False,False,0)
         steam_text='En la biblioteca de Steam' if e.metadata.get('steam_store') else 'Acceso guardado en Steam' if self.in_steam(e) else 'Sin acceso en Steam'
         info.pack_start(label(steam_text,'muted'),False,False,0)
@@ -433,7 +465,7 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         if self.in_steam(e) and e.kind!='steam':info.pack_start(button('Editar acceso de Steam',lambda _:self.steam_edit_dialog(e)),False,False,0)
         if self.in_steam(e):info.pack_start(button('Arte de Steam (portada, fondo, logotipo, ícono)',lambda _:self.steam_art_dialog(e)),False,False,0)
         origin=e.metadata.get('artwork',{})
-        if origin.get('page'):info.pack_start(Gtk.LinkButton.new_with_label(origin['page'],'Carátula de '+origin.get('provider','proveedor')),False,False,0)
+        if origin.get('page') and '/grid/' not in (e.cover or ''):info.pack_start(Gtk.LinkButton.new_with_label(origin['page'],'Carátula de '+origin.get('provider','proveedor')),False,False,0)
         hero.pack_start(info,True,True,0);self.detail.pack_start(hero,False,False,0)
         options=Gtk.FlowBox();options.set_selection_mode(Gtk.SelectionMode.NONE);options.set_min_children_per_line(1);options.set_max_children_per_line(3);options.set_homogeneous(True);options.set_column_spacing(12);options.set_row_spacing(12)
         gta=bool(e.metadata.get('gtaiv_root'))

@@ -40,7 +40,7 @@ En la ficha de un juego con acceso en Steam, **Arte de Steam** busca en SteamGri
 
 ### Diseño, movimiento y actualizaciones propias
 
-- **Interfaz:** rediseño «grafito y brasa»: superficies neutras cálidas, un único color de acento naranja, barra lateral con íconos e indicador de sección, título de página con contador, filtros como pestañas de texto, controles rectangulares (esquinas de 4 px) y tarjetas de juego con el título y la plataforma debajo (marca «EN STEAM» cuando ya tienen acceso). Foco visible en todos los controles (para usar el mando con Steam Input) y objetivos táctiles de al menos 36 px. La carátula de cada juego usa el arte que Steam ya tiene para su acceso, por ejemplo el elegido con el plugin SteamGridDB de Decky.
+- **Interfaz:** rediseño «grafito y brasa»: superficies neutras cálidas, un único color de acento naranja, barra lateral con íconos e indicador de sección, título de página con contador, filtros como pestañas de texto, controles rectangulares (esquinas de 4 px) y tarjetas de juego con el título y la plataforma debajo (marca «EN STEAM» cuando ya tienen acceso). Foco visible en todos los controles (para usar el mando con Steam Input) y objetivos táctiles de al menos 36 px. La carátula de cada juego usa el arte que Steam ya tiene para su acceso, por ejemplo el elegido con el plugin SteamGridDB de Decky, y la ficha muestra su fondo y su logotipo como banner.
 - **Movimiento:** transiciones de 150–300 ms con salida suave, aparición escalonada de las tarjetas al abrir la biblioteca o cambiar de filtro, deslizamiento entre la biblioteca y la ficha de un juego, y avisos breves al guardar cambios. **Ajustes → Animaciones y transiciones** lo desactiva por completo.
 - **Ajustes detectados:** el diálogo de ajustes de cada juego empieza con **Ajustes actuales**, leídos del archivo propio del emulador (con fecha de modificación) o de los valores globales si el juego no tiene uno, antes de los perfiles recomendados del catálogo.
 - **Clave de SteamGridDB:** Ajustes explica cómo conseguirla (iniciar sesión en steamgriddb.com, Perfil → Preferencias → API), permite mostrarla u ocultarla y tiene un botón **Probar clave**.
@@ -90,7 +90,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.8.2**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.8.3**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
