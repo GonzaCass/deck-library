@@ -789,11 +789,11 @@ class ThreeDsSettingsTests(DeckMaxTests):
         self.assertEqual(deckmax.set_3ds_language(self.home,5,busy=lambda a:True),'busy')
     def test_dual_screen_layout_and_swap_keys_are_written_and_game_files_use_the_global_flag(self):
         from deck_library import deckmax
-        az=self.write('.config/azahar-emu/qt-config.ini','[Renderer]\nlayout_option=5\n[UI]\nShortcuts\\Main%20Window\\Swap%20Screens\\KeySeq=Ctrl+Tab\n')
+        az=self.write('.config/azahar-emu/qt-config.ini','[Layout]\nlayout_option=5\n[Renderer]\nlayout_option=5\nlayout_option\\default=false\n[UI]\nShortcuts\\Main%20Window\\Swap%20Screens\\KeySeq=Ctrl+Tab\n')
         botw=self.write('.config/eden/custom/01007EF00011E000.ini','[System]\nlanguage_index\\use_global=true\n[Renderer]\nresolution_setup\\use_global=true\n')
         deckmax.apply(self.home,busy=lambda a:False)
-        text=az.read_text();self.assertIn('layout_option=1',text);self.assertIn('Swap%20Screens\\KeySeq=F9',text);self.assertIn('Toggle%20Screen%20Layout\\KeySeq=F10',text)
-        text=botw.read_text();self.assertIn('language_index=14',text);self.assertIn('language_index\\use_global=false',text);self.assertIn('resolution_setup=2',text);self.assertIn('resolution_setup\\use_global=false',text)
+        text=az.read_text();layout=text.split('[Layout]')[1].split('[')[0];self.assertIn('layout_option=1',layout);self.assertNotIn('layout_option',text.split('[Renderer]')[1].split('[')[0]);self.assertIn('Swap%20Screens\\KeySeq=F9',text);self.assertIn('Toggle%20Screen%20Layout\\KeySeq=F10',text)
+        text=botw.read_text();self.assertIn('language_index=14',text);self.assertIn('language_index\\use_global=false',text);self.assertIn('language_index\\default=false',text);self.assertIn('resolution_setup=2',text);self.assertIn('resolution_setup\\use_global=false',text);self.assertIn('resolution_setup\\default=false',text)
 
 class PortDefaultsTests(ConfigureTests):
     def test_enhance_kit_adds_video_keys_and_mods_without_overriding_the_player(self):
@@ -804,7 +804,7 @@ class PortDefaultsTests(ConfigureTests):
         import tomllib
         changed=self.ports.enhance_kit(folder);video=tomllib.loads((folder/'game.toml').read_text())['video']
         self.assertEqual((video['supersampling'],video['geometry_correction'],video['perspective_texturing']),(2,True,True));self.assertNotIn('frame_interpolation',video)
-        state=tomllib.loads((folder/'build/mods/state.toml').read_text());self.assertEqual({f['id'] for f in state['feature'] if f['enabled']},{'pgxp','fast-loading','cd-speed'})
+        state=tomllib.loads((folder/'build/mods/state.toml').read_text());self.assertEqual({f['id'] for f in state['feature'] if f['enabled']},{'pgxp'})
         self.assertEqual(self.ports.enhance_kit(folder),[]);self.assertTrue(changed)
     def test_a_state_the_player_already_edited_is_kept(self):
         folder=self.root/'kit';(folder/'build/mods/packages/psx.enhancement.pgxp/1.0.0').mkdir(parents=True);(folder/'build/mods/packages/psx.enhancement.pgxp/1.0.0/manifest.toml').write_text('x')
@@ -944,3 +944,13 @@ class SpanishPatchTests(ZeldaPortTests):
         with zipfile.ZipFile(downloads/'ZELDA_translation.zip','w') as archive:archive.writestr('25th/logo.ups',make_ups(us,us[:50]+b'z'*(len(us)-50)));archive.writestr('ZELDA-main.ups',make_ups(us,spanish))
         with patch.dict(self.ports.ZELDA3_ES,{'sha1':{digest:'zelda3_es.sfc'}}):self.assertTrue(build_spanish_zelda3(home,us))
         with patch.dict(self.ports.ZELDA3_ES,{'sha1':{'0'*40:'zelda3_es.sfc'}}):self.assertEqual(build_spanish_zelda3(home,us),'')
+
+
+class RetiredModsTests(PortDefaultsTests):
+    def test_a_state_written_by_an_earlier_version_loses_the_speed_mods(self):
+        import tomllib
+        folder=self.root/'kit';pkg=folder/'build/mods/packages'
+        for pid in ('psx.enhancement.pgxp','psx.enhancement.fast-loading'):(pkg/pid/'1.0.0').mkdir(parents=True);(pkg/pid/'1.0.0/manifest.toml').write_text('x')
+        (folder/'build/mods/state.toml').write_text('format_version = 2\n[[feature]]\npackage_id = "psx.enhancement.fast-loading"\nid = "fast-loading"\nenabled = true\n[feature.values]\nmultiplier = 4\n')
+        self.ports.enhance_kit(folder);state=tomllib.loads((folder/'build/mods/state.toml').read_text())
+        self.assertNotIn('fast-loading',{f['id'] for f in state['feature']});self.assertIn('pgxp',{f['id'] for f in state['feature']})
