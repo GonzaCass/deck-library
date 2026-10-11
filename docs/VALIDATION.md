@@ -151,3 +151,7 @@ Se inspeccionó la carpeta `grid` real tras el trabajo con el plugin SteamGridDB
 ### 0.6.4 - arte de Steam en lote
 
 `complete_missing` se probó con proveedor simulado: llena solo los espacios vacíos, omite los accesos de la tienda de Steam, informa «completo» cuando no falta nada y un juego que falla (error de red) no detiene a los demás. El botón aparece en Ajustes. Sin verificar contra la API real de SteamGridDB (no hay clave propia en esta Deck). El plugin SteamGridDB de Decky se revisó solo para saber cómo accede a la API: usa una clave embebida con una advertencia de su autor contra su uso en otros proyectos, por lo que Deck Library no la utiliza.
+
+### 0.6.5 - arte de Steam con la API real
+
+Con una clave propia de SteamGridDB se consultó la API real: la búsqueda de «The Legend of Zelda: A Link Between Worlds» devolvió el juego y cada espacio dio imágenes de las medidas que usa Steam (600×900, 460×215, 1920×620, logotipo y 512×512). El lote recorrió los 23 accesos: 18 estaban completos, Breath of the Wild recibió portada horizontal, fondo, logotipo e ícono (escritos en la carpeta `grid` con Steam cerrado y reabierto) y las instancias de Minecraft se omiten a propósito porque SteamGridDB las resuelve todas al juego genérico. Se corrigió que una imagen no válida (por ejemplo un GIF) abortara todos los espacios de un juego: ahora pasa al siguiente candidato, y se acepta ICO solo para el ícono. No se vio el resultado dentro de la biblioteca de Steam.
