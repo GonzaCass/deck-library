@@ -83,7 +83,7 @@ def _sync(store=None,wait=True,timeout=86400):
         result,backup=update_shortcuts(value['account'],entries,lambda e:pathlib.Path(e.command[0]) if e.kind=='steam' else make_launcher(e,store))
         from .steam_inventory import sync_covers
         covers=sync_covers(value['account'],entries,result)
-        _controllers(value['account'],[r['appid'] for r in result if 'appid' in r],store)
+        _controllers(value['account'],[r['appid'] for r in result if 'appid' in r],store,[r['appid'] for r in result if 'appid' in r and by_id.get(r.get('id')) is not None and by_id[r['id']].platform in DUAL_SCREEN])
     if remove:
         removed,removal_backup=remove_shortcuts(value['account'],remove);backup=backup or removal_backup
         move_artwork_aside(value['account'],remove)
@@ -94,7 +94,7 @@ def _sync(store=None,wait=True,timeout=86400):
     fix=[a for a in value.get('controllers',[]) if a not in remove]
     if fix:
         from . import controllers
-        controllers.apply(value['account'],fix,force=True)
+        controllers.apply(value['account'],fix,force=True,special=dual_screen_appids(store.load()))
     count=len(result)+len(removed)+len(fix)
     atomic_json(store.root/'last-sync.json',{'state':'saved','count':count,'shortcuts':result,'removed':removed,'layouts':fix,'covers':covers,'backup':backup,'date':datetime.datetime.now().isoformat()})
     # Don't erase a newly queued selection if it changed while writing.
@@ -129,11 +129,17 @@ def restart_steam(store=None):
 def _log(store,text):
     with (store.root/'worker.log').open('a') as out:out.write(datetime.datetime.now().isoformat()+' '+text+'\n')
 
-def _controllers(account,appids,store):
+DUAL_SCREEN={'Nintendo 3DS'}
+
+def dual_screen_appids(entries):
+    """App IDs of shortcuts whose game needs the screen-swap layout."""
+    return [e.metadata['steam_appid'] for e in entries if e.platform in DUAL_SCREEN and e.metadata.get('steam_appid')]
+
+def _controllers(account,appids,store,special=()):
     """Give new shortcuts a gamepad layout for every controller family; never overwrite existing choices."""
     from .installations import settings
     if not settings(store).get('fix_controllers',True):return
     try:
         from . import controllers
-        controllers.apply(account,appids)
+        controllers.apply(account,appids,special=special)
     except Exception as error:_log(store,'controles: '+str(error))

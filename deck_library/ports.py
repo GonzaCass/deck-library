@@ -472,7 +472,8 @@ def entry_for(folder):
         # The built game's own launcher adopts the BIOS on first run and stores it in bios.cfg; only then can it boot directly.
         exe=built;cwd=str(built.parent)
         if (built.parent/'bios.cfg').is_file():args=[*args,'--no-launcher']
-    command=buildenv.wrap([str(exe),*args],record.get('env')) if record.get('sandbox') else [str(exe),*args]
+    env=[f'{k}={v}' for k,v in (record.get('env') or {}).items()]
+    command=buildenv.wrap([str(exe),*args],record.get('env')) if record.get('sandbox') else [*(['env',*env] if env else []),str(exe),*args]
     title=record.get('cover_title') or next((b.get('cover_title','') for b in BUILTIN if b['repository']==record['repository']),'')
     return Entry(record.get('name',folder.name),command,'port','Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],**({'game_title':title} if title else {}),'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
 
@@ -540,6 +541,59 @@ def ensure_overlay_compiler(folder):
         path.write_text(patch_toml(text,{'runtime':{'overlay_autocompile_cmd':wanted}}));changed.append(str(path))
     return changed
 
+VIDEO_TARGET={'supersampling':4,'geometry_correction':True,'perspective_texturing':True}
+KIT_MODS=(('psx.enhancement.pgxp','pgxp',{}),('psx.enhancement.fast-loading','fast-loading',{'multiplier':4}),('psx.enhancement.cd-speed','cd-speed',{'multiplier':2}))
+
+def enhance_kit(folder):
+    """Highest picture the Deck screen supports for a recompilation kit, plus the kit's own safe mods.
+
+    `[video]`: 4x supersampling (about 1280x960, the height of the 1280x800 panel), PGXP geometry/texture correction.
+    The kit's runtime has no frame interpolation (its `frame_interpolation` key is ignored: it is mod-owned and no such mod ships). Mods: PGXP, fast loading (host pacing, cannot desync) and a 2x CD drive.
+    Only keys the kit documents are written; a value the player already changed in `[video]` is left alone.
+    Returns the files changed.
+    """
+    import tomllib
+    from .presets import patch_toml
+    folder=pathlib.Path(folder);changed=[]
+    for path in (folder/'game.toml',folder/'build'/'game.toml'):
+        if not path.is_file():continue
+        text=path.read_text()
+        try:current=tomllib.loads(text).get('video',{})
+        except tomllib.TOMLDecodeError:continue
+        missing={k:v for k,v in VIDEO_TARGET.items() if k not in current}
+        if missing:path.write_text(patch_toml(text,{'video':missing}));changed.append(str(path))
+    packages=next((d for d in (folder/'build'/'mods'/'packages',folder/'build'/'mods'/'bundled') if d.is_dir()),folder/'build'/'mods'/'packages')
+    state=folder/'build'/'mods'/'state.toml'
+    if packages.is_dir() and not (state.is_file() and 'package_id' in state.read_text()):
+        lines=['format_version = 2','']
+        usable=[(pid,feature,values) for pid,feature,values in KIT_MODS if any((packages/pid).glob('*/manifest.toml'))]
+        for pid,_,_ in usable:
+            version=sorted(path.parent.name for path in (packages/pid).glob('*/manifest.toml'))[-1];lines+=['[[package]]',f'id = "{pid}"',f'version = "{version}"','']
+        for pid,feature,values in usable:
+            lines+=['[[feature]]',f'package_id = "{pid}"',f'id = "{feature}"','enabled = true','']
+            if values:lines+=['[feature.values]']+[f'{k} = {v}' for k,v in values.items()]+['']
+        state.write_text('\n'.join(lines));changed.append(str(state))
+    return changed
+
+# Deck defaults for the Zelda ports: 1280x800 panel, Spanish where the game carries it.
+WWHD_ENV={'WWHD_LANGUAGE':'5','WWHD_FULLSCREEN':'1','WWHD_ASPECT':'16:10','WWHD_DRC_MODE':'pip','WWHD_INTERP':'1','WWHD_INTERP_FPS':'120','WWHD_FXAA':'1','WWHD_ANISO':'1'}
+# Picori renders the GBA picture 5x (1200x800: exactly the panel height) and keeps its 90 fps clock; ROM language 4 is Spanish.
+PICORI_CONFIG={'fullscreen':True,'internal_scale':5,'upscale_method':'nearest','frame_time_ns':11111111,'widescreen_enabled':True,'vsync':True}
+
+def tune_port(record,folder):
+    """Idempotent Deck defaults for a configured Zelda port. Returns the list of files or settings changed."""
+    folder=pathlib.Path(folder);changed=[]
+    if record.get('setup')=='wwhd' and record.get('env')!=WWHD_ENV:
+        record['env']=dict(WWHD_ENV);changed.append('env')
+    if record.get('setup')=='rom' and record.get('configured') and (folder/'baserom_eu.gba').is_file():
+        path=folder/'config.json'
+        try:config=json.loads(path.read_text()) if path.is_file() else {}
+        except ValueError:return changed
+        wanted={**PICORI_CONFIG,'preferred_language':4}
+        if any(config.get(k)!=v for k,v in wanted.items()):
+            path.write_text(json.dumps({**config,**wanted},indent=4,sort_keys=True)+'\n');changed.append(str(path))
+    return changed
+
 def ensure_controller_default(folder):
     """Make Player 1 use the first game controller in a recompilation kit, unless game.toml already says otherwise.
 
@@ -563,8 +617,16 @@ def maintain(store=None,home=None):
     """Idempotent fixes for ports installed by earlier versions. Returns what was changed."""
     store=store or Store();root=ports_root(home);changed=[]
     for record in records(store).values():
-        if record.get('setup')=='kit' and (root/record['folder']).is_dir():changed+=ensure_controller_default(root/record['folder'])+ensure_overlay_compiler(root/record['folder'])
-    return changed
+        if record.get('setup')=='kit' and (root/record['folder']).is_dir():changed+=ensure_controller_default(root/record['folder'])+ensure_overlay_compiler(root/record['folder'])+enhance_kit(root/record['folder'])
+    saved=records(store)
+    for repository,record in saved.items():
+        folder=root/record.get('folder','')
+        if record.get('setup') in ('rom','wwhd') and folder.is_dir():
+            done=tune_port(record,folder)
+            if done:
+                changed+=done;atomic_json(store.root/'ports.json',{**records(store),repository:record})
+                if (folder/'.deck-library-port.json').is_file():atomic_json(folder/'.deck-library-port.json',record)
+    return list(dict.fromkeys(changed))
 
 def configure(repository,store=None,games=(),progress=print,home=None,run=None):
     """Prepare an installed port with what the Deck already has: the disc from the library and, for kits, the BIOS found by hash.
@@ -588,14 +650,14 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
     if kind=='kit':
         if not disc['cue']:raise ValueError('El kit necesita el archivo .cue del disco.')
         bios=find_bios(record['bios']['sha256'],home);cli='psxrecomp/psxrecomp_cli.py';base=['python3',cli]
-        ensure_controller_default(folder);ensure_overlay_compiler(folder)
+        ensure_controller_default(folder);ensure_overlay_compiler(folder);enhance_kit(folder)
         outcome=apply_runtime_patches(folder)
         if outcome=='incompatible':progress('Esta versión del kit no admite la mejora de rendimiento; se compila sin ella')
         record['patch_level']=PATCH_LEVEL if outcome in ('applied','present','not-needed') else 0
         progress('Verificando el disco');run([*base,'verify-disc','--config','game.toml','--project-root','.','--disc',disc['cue']],cwd=str(folder),progress=progress)
         progress('Generando el juego a partir del disco');run([*base,'generate','--config','game.toml','--project-root','.','--disc',disc['cue'],'--bios',bios],cwd=str(folder),progress=progress)
         progress('Compilando (varios minutos)');run([*base,'rebuild','--config','game.toml','--project-root','.','--build-dir','build','--target','psx-runtime','--exe-basename',executable.name,'--no-pgo'],cwd=str(folder),progress=progress)
-        ensure_controller_default(folder);ensure_overlay_compiler(folder)
+        ensure_controller_default(folder);ensure_overlay_compiler(folder);enhance_kit(folder)
         config=folder/'build/bios.cfg'
         if not config.is_file():
             staged=sorted((folder/'psxrecomp/bios').glob('*.[Bb][Ii][Nn]'))
@@ -661,6 +723,7 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
             run(command,cwd=str(temp/'squashfs-root'),progress=progress,sandbox=False)
         disc={'name':pathlib.Path(image).name}
     else:raise ValueError('Tipo de configuración desconocido: '+str(kind))
+    tune_port(record,folder)
     record['configured']=True;record['configured_with']=disc['name'] if disc else '';record['configured_date']=time.strftime('%Y-%m-%dT%H:%M:%S')
     saved=records(store);saved[repository]=record;atomic_json(store.root/'ports.json',saved);atomic_json(folder/'.deck-library-port.json',record)
     return record
