@@ -1,4 +1,4 @@
-import hashlib,io,json,os,pathlib,struct,tarfile,tempfile,unittest
+import shutil,hashlib,io,json,os,pathlib,struct,tarfile,tempfile,unittest
 from unittest.mock import patch
 from deck_library import controllers,updates
 from deck_library.models import Entry,Store
@@ -388,7 +388,7 @@ class BuildEnvironmentTests(PortCatalogTests):
         with patch.object(buildenv,'installed',return_value=True):self.assertFalse(any(i.startswith('Falta el entorno') for i in diagnostics(entry,self.store)[0]))
     def test_builtin_spider_man_kits_are_flagged_for_the_sdk(self):
         kits={b['repository'] for b in self.ports.BUILTIN if b.get('setup')=='kit'};self.assertEqual(len(kits),2)
-        flagged={a['repository'] for a in self.ports.merged([],{}) if a['kit']};self.assertEqual(flagged,kits|{'web/openpete'})
+        flagged={a['repository'] for a in self.ports.merged([],{}) if a['kit']};self.assertEqual(flagged,kits|{'web/openpete','snesrev/zelda3'})
 
 class KitRequirementTests(PortCatalogTests):
     def kit(self,fragment):return next(b for b in self.ports.merged([],{}) if fragment in b['repository'])
@@ -664,3 +664,94 @@ class ConfigureKitPerformanceTests(ConfigureTests,KitPerformanceTests):
             seen.append((command[2],'spu_get_ctrl' in (kit/'psxrecomp/runtime/src/interrupts.c').read_text(),'overlay_autocompile_cmd' in (kit/'game.toml').read_text()));return 0
         record=self.ports.configure('web/x',self.store,[('Spider-Man (USA)',str(cue))],lambda _:None,home,run=run)
         self.assertEqual(seen[0],('verify-disc',True,True));self.assertEqual(record['patch_level'],self.ports.PATCH_LEVEL);self.assertEqual(self.ports.records(self.store)['web/x']['patch_level'],self.ports.PATCH_LEVEL)
+
+class ZeldaPortTests(ConfigureTests):
+    def rom_home(self,system='gba',name='cualquier nombre.gba',size=1024,header=False):
+        home=self.root/'home';folder=home/'Emulation/roms'/system;folder.mkdir(parents=True);data=bytes(range(256))*(size//256)
+        (folder/name).write_bytes((b'H'*512 if header else b'')+data);return home,folder/name,data
+    def spec(self,data,**extra):return {'systems':['gba'],'sizes':[len(data),len(data)+512],'sha1':{hashlib.sha1(data).hexdigest():'baserom_eu.gba'},'name':'Prueba',**extra}
+    def test_a_rom_is_found_by_sha1_whatever_its_name_and_a_wrong_one_is_not(self):
+        home,path,data=self.rom_home();(path.parent/'otra.gba').write_bytes(b'x'*1024)
+        found=self.ports.find_rom(self.spec(data),home);self.assertEqual((found['path'],found['target'],found['header']),(str(path),'baserom_eu.gba',False))
+        self.assertIsNone(self.ports.find_rom({**self.spec(data),'sha1':{'0'*40:'x'}},home));self.assertIsNone(self.ports.find_rom(self.spec(data),self.root/'vacio'))
+    def test_a_copier_header_is_ignored_only_when_the_spec_allows_it(self):
+        home,path,data=self.rom_home(header=True)
+        self.assertIsNone(self.ports.find_rom(self.spec(data),home))
+        found=self.ports.find_rom(self.spec(data,strip_header=True),home);self.assertTrue(found['header'])
+    def test_rom_setup_copies_the_rom_under_the_name_the_port_expects(self):
+        home,path,data=self.rom_home();record=self.installed(home,'kit',exe='tmc_pc',folder='Picori',extra={'setup':'rom','disc':None,'rom':self.spec(data)})
+        self.ports.configure('web/x',self.store,[],lambda _:None,home);self.assertEqual((home/'ports/Picori/baserom_eu.gba').read_bytes(),data)
+    def test_zelda3_installs_python_libraries_builds_in_the_sdk_and_sets_audio_and_aspect(self):
+        home,path,data=self.rom_home('snes','z.smc',header=True);spec={'systems':['snes'],'sizes':[len(data),len(data)+512],'sha1':{hashlib.sha1(data).hexdigest():'zelda3.sfc'},'strip_header':True,'name':'ALttP'}
+        self.installed(home,'kit',exe='zelda3',sandbox=True,folder='Z3',extra={'setup':'zelda3','disc':None,'rom':spec});folder=home/'ports/Z3';(folder/'zelda3.ini').write_text('Fullscreen = 0\nExtendedAspectRatio = 4:3\n');calls=[]
+        def run(command,cwd=None,progress=None,until=None):
+            calls.append(command)
+            if command[0]=='sh':(folder/'zelda3').write_bytes(b'\x7fELF');(folder/'zelda3_assets.dat').write_bytes(b'd')
+            return 0
+        record=self.ports.configure('web/x',self.store,[],lambda _:None,home,run=run)
+        self.assertEqual((folder/'zelda3.sfc').read_bytes(),data);self.assertEqual(calls[0][:4],['python3','-m','pip','install']);self.assertIn('Pillow',calls[0]);self.assertEqual(calls[1][0],'sh');self.assertIn('make',calls[1][2])
+        self.assertEqual(record['env'],{'SDL_AUDIODRIVER':'pulseaudio'});ini=(folder/'zelda3.ini').read_text();self.assertIn('ExtendedAspectRatio = 16:10',ini);self.assertIn('Fullscreen = 1',ini)
+        entry=self.ports.entry_for(folder);self.assertIn('--env=SDL_AUDIODRIVER=pulseaudio',entry.command)
+    def test_zelda3_fails_clearly_when_the_build_produces_nothing(self):
+        home,path,data=self.rom_home('snes','z.sfc');spec={'systems':['snes'],'sizes':[len(data)],'sha1':{hashlib.sha1(data).hexdigest():'zelda3.sfc'},'name':'ALttP'}
+        self.installed(home,'kit',exe='zelda3',sandbox=True,folder='Z3',extra={'setup':'zelda3','disc':None,'rom':spec})
+        with self.assertRaisesRegex(RuntimeError,'zelda3'):self.ports.configure('web/x',self.store,[],lambda _:None,home,run=lambda *a,**k:0)
+        self.assertFalse(self.ports.records(self.store)['web/x']['configured'])
+    def wiiu_home(self,name='Wind Waker HD (USA, Asia).wux'):
+        home=self.root/'home';roms=home/'Emulation/roms/wiiu/roms';roms.mkdir(parents=True,exist_ok=True);image=roms/name;image.write_bytes(b'wux');bios=home/'Emulation/bios/sysdata';bios.mkdir(parents=True,exist_ok=True)
+        (bios/'keys.txt').write_text('# cabecera\n'+'a'*32+' # Wii U Common Key\n'+'b'*32+' # The Legend of Zelda: The Wind Waker HD [EUR, WUD]\n'+'c'*32+' # The Legend of Zelda: The Wind Waker HD [USA, WUD]\n'+'d'*32+' # The Legend of Zelda: The Wind Waker HD [USA, NUS]\n');return home,image
+    SPEC={'title':'wind waker hd','exts':['.wux','.wud','.wua'],'name':'WWHD'}
+    def test_wii_u_keys_are_matched_by_region_and_comment(self):
+        home,image=self.wiiu_home();self.assertEqual(self.ports.wiiu_keys('wind waker hd','USA',home),('c'*32,'a'*32));self.assertEqual(self.ports.wiiu_keys('wind waker hd','EUR',home),('b'*32,'a'*32))
+        self.assertEqual(self.ports.wiiu_keys('wind waker hd','JPN',home),(None,'a'*32));self.assertEqual(self.ports.wiiu_keys('x','USA',self.root/'nada'),(None,None))
+    def test_requirements_report_the_disc_and_the_keys_without_showing_them(self):
+        home,image=self.wiiu_home();lines=self.ports.requirements({'wiiu':self.SPEC},[('Wind Waker HD',str(image))],home);text=' '.join(t for _,t in lines)
+        self.assertEqual([ok for ok,_ in lines],[True,True]);self.assertNotIn('c'*32,text);self.assertNotIn('a'*32,text)
+        self.assertEqual([ok for ok,_ in self.ports.requirements({'wiiu':self.SPEC},[],home)],[False])
+        (home/'Emulation/bios/sysdata/keys.txt').write_text('# vacío\n');self.assertEqual([ok for ok,_ in self.ports.requirements({'wiiu':self.SPEC},[('x',str(image))],home)],[True,False])
+    def test_wwhd_setup_uses_private_temporary_key_files_and_removes_them(self):
+        import stat
+        home,image=self.wiiu_home();self.installed(home,'kit',exe='WindWakerHD.AppImage',folder='WWHD',extra={'setup':'wwhd','disc':None,'wiiu':self.SPEC});seen={}
+        def run(command,cwd=None,progress=None,until=None,sandbox=True):
+            if command[0].endswith('.AppImage'):(pathlib.Path(cwd)/'squashfs-root/tools/installer').mkdir(parents=True);return 0
+            keys=[pathlib.Path(command[command.index(flag)+1]) for flag in ('--disc-key','--common-key')]
+            seen.update(command=command,sandbox=sandbox,modes=[stat.S_IMODE(k.stat().st_mode) for k in keys],contents=[k.read_text().strip() for k in keys],paths=keys);return 0
+        record=self.ports.configure('web/x',self.store,[('Wind Waker HD',str(image))],lambda _:None,home,run=run)
+        self.assertEqual(seen['modes'],[0o600,0o600]);self.assertEqual(seen['contents'],['c'*32,'a'*32]);self.assertFalse(seen['sandbox']);self.assertIn(str(image),seen['command']);self.assertIn('--no-launch',seen['command'])
+        self.assertFalse(any(k.exists() for k in seen['paths']));self.assertFalse(any('c'*32 in part or 'a'*32 in part for part in seen['command']));self.assertTrue(record['configured'])
+    def test_a_cemu_archive_needs_no_keys_and_missing_keys_stop_a_disc_image(self):
+        home,image=self.wiiu_home('Wind Waker HD (USA).wua');self.installed(home,'kit',exe='W.AppImage',folder='WWHD',extra={'setup':'wwhd','disc':None,'wiiu':self.SPEC});seen={}
+        def run(command,cwd=None,progress=None,until=None,sandbox=True):
+            if command[0].endswith('.AppImage'):(pathlib.Path(cwd)/'squashfs-root').mkdir();return 0
+            seen['command']=command;return 0
+        self.ports.configure('web/x',self.store,[('x',str(image))],lambda _:None,home,run=run);self.assertIn('--archive',seen['command']);self.assertNotIn('--disc-key',seen['command'])
+        home2,image2=self.wiiu_home();(home2/'Emulation/bios/sysdata/keys.txt').write_text('# nada\n')
+        with self.assertRaisesRegex(ValueError,'Faltan requisitos|claves'):self.ports.configure('web/x',self.store,[('x',str(image2))],lambda _:None,home2,run=run)
+
+class AssetNameTests(PortCatalogTests):
+    def test_wind_in_a_game_name_is_not_windows_and_real_windows_builds_are_still_skipped(self):
+        names=['WindWakerHD-v0.2.12-windows-x86_64.zip','WindWakerHD-v0.2.12-macos-arm64.zip','WindWakerHD-v0.2.12-android-x86_64.apk','WindWakerHD-v0.2.12-linux-aarch64.AppImage','WindWakerHD-v0.2.12-linux-x86_64.zip','WindWakerHD-v0.2.12-linux-x86_64.AppImage','SHA256SUMS.txt']
+        self.assertEqual(self.ports.pick_asset([{'name':n} for n in names])['name'],'WindWakerHD-v0.2.12-linux-x86_64.AppImage')
+        for bad in ('game-win64.zip','game-win-x64.zip','game_win32.zip','game-windows.zip','game-mac.zip','game-x64-win.zip'):self.assertIsNone(self.ports.pick_asset([{'name':bad}]),bad)
+    def test_the_executable_override_survives_cleaning_twice(self):
+        once=self.ports.clean({'repository':'a/uno','executable':'zelda3'},'','x');self.assertEqual(once['exe'],'zelda3');self.assertEqual(self.ports.clean(once)['exe'],'zelda3')
+
+class DeckMaxTests(unittest.TestCase):
+    def setUp(self):
+        import tempfile;self.home=pathlib.Path(tempfile.mkdtemp());self.addCleanup(shutil.rmtree,self.home,True)
+    def write(self,relative,text):
+        path=self.home/relative;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text);return path
+    def test_graphics_keys_change_and_everything_else_is_kept_with_a_backup(self):
+        from deck_library import deckmax
+        ds=self.write('.local/share/duckstation/settings.ini','[GPU]\nResolutionScale = 2\nRenderer = Vulkan\n[Controller1]\nType = DigitalController\n')
+        az=self.write('.config/azahar-emu/qt-config.ini','[Renderer]\nresolution_factor=2\nresolution_factor\\default=true\n[Controls]\nx=1\n')
+        result=dict(deckmax.apply(self.home,busy=lambda a:False))
+        self.assertEqual((result['DuckStation'],result['Azahar'],result['Dolphin'],result['Eden']),('applied','applied','missing','missing'))
+        text=ds.read_text();self.assertIn('ResolutionScale = 5',text);self.assertIn('PGXPEnable = true',text);self.assertIn('Renderer = Vulkan',text);self.assertIn('Type = DigitalController',text)
+        text=az.read_text();self.assertIn('resolution_factor=4',text);self.assertIn('resolution_factor\\default=false',text);self.assertIn('x=1',text)
+        self.assertEqual(len(list(ds.parent.glob('settings.ini.deck-library-*.bak'))),1)
+        self.assertEqual(dict(deckmax.apply(self.home,busy=lambda a:False))['DuckStation'],'present');self.assertEqual(len(list(ds.parent.glob('*.bak'))),1)
+    def test_a_running_emulator_is_left_alone(self):
+        from deck_library import deckmax
+        ds=self.write('.local/share/duckstation/settings.ini','[GPU]\nResolutionScale = 2\n')
+        self.assertEqual(dict(deckmax.apply(self.home,busy=lambda a:True))['DuckStation'],'busy');self.assertIn('ResolutionScale = 2',ds.read_text())

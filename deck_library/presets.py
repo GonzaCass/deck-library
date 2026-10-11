@@ -138,7 +138,7 @@ def target_for(entry,config_dir=None):
         return pathlib.Path(entry.source).parent/'spider_man_edge_of_time.toml'
     if adapter=='wiicompiled':
         path=entry.metadata.get('config')
-        if not path:raise ValueError('Indicá la instalación de WiiCompiled en Instalaciones y rutas.')
+        if not path:raise ValueError('Indicar la instalación de WiiCompiled en Instalaciones y rutas.')
         return pathlib.Path(path)
     if adapter=='prism':return pathlib.Path(entry.source)
     if adapter=='dolphin':

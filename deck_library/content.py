@@ -124,7 +124,7 @@ def install_nsp(path,config_dir=None,progress=lambda text:None):
                 if digest.hexdigest()[:32].lower()!=item['name'][:32].lower():raise ValueError('El hash NCA no coincide. No se instaló este NSP.')
                 added.append((temporary,dest))
         # All parts validated before any become visible to Eden.
-        if emulator_busy():raise RuntimeError('Eden se abrió durante la preparación; cerralo y volvé a intentar.')
+        if emulator_busy():raise RuntimeError('Eden se abrió durante la preparación; cerrarlo y reintentar.')
         committed=[]
         try:
             for temporary,dest in added:

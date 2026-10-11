@@ -33,7 +33,7 @@ def diagnostics(entry,store=None):
     log=store.root/'logs'/(entry.id+'.log')
     details=log.read_text(errors='replace')[-18000:] if log.exists() else ''
     if 'invalid merge-dirs' in details:issues.append('Flatpak no pudo preparar su extensión gráfica. El juego no llegó a arrancar; revisar el runtime, no la ROM.')
-    if 'Cannot execute instruction at unmapped address' in details:issues.append('El juego emulado se detuvo con una excepción. Si usa mods, probá el perfil sin mods.')
+    if 'Cannot execute instruction at unmapped address' in details:issues.append('El juego emulado se detuvo con una excepción. Si usa mods, probar el perfil sin mods.')
     return issues,details
 
 def make_launcher(entry,store=None):
