@@ -480,7 +480,7 @@ def entry_for(folder):
 
 DATA_CTR=pathlib.Path('.local/share/ctr-turbocharged')
 
-PATCH_LEVEL=1
+PATCH_LEVEL=2
 SPU_MARKER='spu_get_ctrl'
 SPU_PATCHES=[
  ('psxrecomp/runtime/src/spu.c',[("void spu_get_global_state(SpuGlobalState* out) {","/* Cheap read of SPUCNT for the per-sample event scheduler (spu_get_global_state builds the whole state). */\nuint16_t spu_get_ctrl(void) {\n    return (uint16_t)spu_regs[reg_index(0x1F801DAAu)];\n}\n\nvoid spu_get_global_state(SpuGlobalState* out) {")]),
@@ -492,7 +492,7 @@ SPU_PATCHES=[
   ("    if ((state.ctrl & 0x0040u) != 0 &&\n        (psx_get_cycle_count() % 768u) == 0) {","    if ((spu_ctrl & 0x0040u) != 0 &&\n        (psx_get_cycle_count() % 768u) == 0) {")]),
 ]
 
-def apply_runtime_patches(folder):
+def apply_spu_patch(folder):
     """Local performance patch for recompilation kits: the SPU sample scheduler asked for the complete SPU state (about a fifth of the
     CPU time during video) when it only needs the control register. The behaviour is identical.
 
@@ -520,6 +520,84 @@ def apply_runtime_patches(folder):
         path.write_text(text)
     return 'applied'
 
+DISPLAY_PACKAGE='psx.deck.display'
+DISPLAY_SOURCE=r"""/* Deck Library: display options for recompilation kits (frame interpolation at the display's refresh, widescreen). */
+#include "mod_plugins.h"
+
+static void deck_interpolation_activate(void) {
+    (void)psx_mod_set_frame_interpolation_blend(PSX_MOD_FRAME_INTERPOLATION_MOTION_ADAPTIVE);
+    (void)psx_mod_set_frame_interpolation(0);   /* 0 = follow the measured display refresh */
+}
+
+static void deck_widescreen_activate(void) {
+    (void)psx_mod_set_fixed_display_aspect(16, 10);
+}
+
+PSX_MOD_CONSTRUCTOR(psx_register_deck_display_plugins) {
+    (void)psx_mod_register_activation_plugin("psx.deck.interpolation", deck_interpolation_activate);
+    (void)psx_mod_register_activation_plugin("psx.deck.widescreen", deck_widescreen_activate);
+}
+"""
+DISPLAY_MANIFEST="""format_version = 5
+id = "psx.deck.display"
+version = "1.0.0"
+name = "Steam Deck display"
+author = "Deck Library"
+description = "Frame interpolation at the display refresh and a 16:10 widescreen view, through the framework's own plugin interface."
+resolver = "declarative"
+save_compatibility = "shared"
+
+[[target]]
+game_id = "*"
+
+[[feature]]
+id = "interpolation"
+name = "Frame interpolation"
+description = "Presentation only: blends finished game frames at the display refresh. Game logic, audio and timers keep their original speed; fast movement can show ghosting."
+group = "Visual"
+default_enabled = false
+
+[[plugin]]
+feature = "interpolation"
+id = "psx.deck.interpolation"
+
+[[feature]]
+id = "widescreen"
+name = "Widescreen 16:10"
+description = "Widens the 3D view to the Deck's 16:10 screen. Experimental: 2D screens and video stay 4:3."
+group = "Visual"
+default_enabled = false
+
+[[plugin]]
+feature = "widescreen"
+id = "psx.deck.widescreen"
+"""
+CMAKE_ANCHOR='    ${PSXRECOMP_ROOT}/runtime/src/mod_builtin_bezel.c\n'
+
+def apply_display_mod(folder):
+    """Adds the Deck display mod (source, CMake entry, package) to a kit. Returns 'applied', 'present' or 'incompatible'."""
+    folder=pathlib.Path(folder);root=folder/'psxrecomp'
+    cmake=root/'runtime/runtime.cmake';source=root/'runtime/src/mod_builtin_deck.c';manifest=root/'mods/builtin/packages'/DISPLAY_PACKAGE/'1.0.0/manifest.toml'
+    if not cmake.is_file() or not (root/'runtime/include/mod_plugins.h').is_file():return 'incompatible'
+    text=cmake.read_text();header=(root/'runtime/include/mod_plugins.h').read_text()
+    if 'psx_mod_set_fixed_display_aspect' not in header or 'psx_mod_set_frame_interpolation_blend' not in header:return 'incompatible'
+    if 'mod_builtin_deck.c' in text and source.is_file() and manifest.is_file():return 'present'
+    if 'mod_builtin_deck.c' not in text:
+        if text.count(CMAKE_ANCHOR)!=1:return 'incompatible'
+        backup=cmake.with_name(cmake.name+'.orig')
+        if not backup.exists():backup.write_text(text)
+        cmake.write_text(text.replace(CMAKE_ANCHOR,CMAKE_ANCHOR+'    ${PSXRECOMP_ROOT}/runtime/src/mod_builtin_deck.c\n',1))
+    source.write_text(DISPLAY_SOURCE);manifest.parent.mkdir(parents=True,exist_ok=True);manifest.write_text(DISPLAY_MANIFEST)
+    return 'applied'
+
+def apply_runtime_patches(folder):
+    """SPU speed-up plus the Deck display mod. 'applied' when anything changed, 'incompatible' when neither fits this kit,
+    otherwise 'present' (or 'not-needed')."""
+    spu=apply_spu_patch(folder);display=apply_display_mod(folder)
+    if 'applied' in (spu,display):return 'applied'
+    if spu=='incompatible' and display=='incompatible':return 'incompatible'
+    return 'present' if 'present' in (spu,display) else 'not-needed'
+
 def overlay_command(folder):
     """Command the runtime runs to compile newly seen code overlays to native code with gcc (available inside the SDK)."""
     import shlex
@@ -542,7 +620,17 @@ def ensure_overlay_compiler(folder):
     return changed
 
 VIDEO_TARGET={'supersampling':4,'geometry_correction':True,'perspective_texturing':True}
-KIT_MODS=(('psx.enhancement.pgxp','pgxp',{}),('psx.enhancement.fast-loading','fast-loading',{'multiplier':4}),('psx.enhancement.cd-speed','cd-speed',{'multiplier':2}))
+KIT_MODS=(('psx.enhancement.pgxp','pgxp',{}),('psx.enhancement.fast-loading','fast-loading',{'multiplier':4}),('psx.enhancement.cd-speed','cd-speed',{'multiplier':2}),('psx.deck.display','interpolation',{}),('psx.deck.display','widescreen',{}))
+
+def mods_state_is_ours(state):
+    """True when a kit's mod state is missing, empty or only lists features this module enables, so it may be rewritten."""
+    import tomllib
+    state=pathlib.Path(state)
+    if not state.is_file():return True
+    try:data=tomllib.loads(state.read_text())
+    except tomllib.TOMLDecodeError:return False
+    known={(pid,feature) for pid,feature,_ in KIT_MODS}
+    return all((f.get('package_id'),f.get('id')) in known and f.get('enabled') for f in data.get('feature',[]))
 
 def enhance_kit(folder):
     """Highest picture the Deck screen supports for a recompilation kit, plus the kit's own safe mods.
@@ -564,21 +652,25 @@ def enhance_kit(folder):
         if missing:path.write_text(patch_toml(text,{'video':missing}));changed.append(str(path))
     packages=next((d for d in (folder/'build'/'mods'/'packages',folder/'build'/'mods'/'bundled') if d.is_dir()),folder/'build'/'mods'/'packages')
     state=folder/'build'/'mods'/'state.toml'
-    if packages.is_dir() and not (state.is_file() and 'package_id' in state.read_text()):
-        lines=['format_version = 2','']
+    if packages.is_dir() and mods_state_is_ours(state):
         usable=[(pid,feature,values) for pid,feature,values in KIT_MODS if any((packages/pid).glob('*/manifest.toml'))]
-        for pid,_,_ in usable:
+        lines=['format_version = 2','']
+        for pid in dict.fromkeys(p for p,_,_ in usable):
             version=sorted(path.parent.name for path in (packages/pid).glob('*/manifest.toml'))[-1];lines+=['[[package]]',f'id = "{pid}"',f'version = "{version}"','']
         for pid,feature,values in usable:
             lines+=['[[feature]]',f'package_id = "{pid}"',f'id = "{feature}"','enabled = true','']
             if values:lines+=['[feature.values]']+[f'{k} = {v}' for k,v in values.items()]+['']
-        state.write_text('\n'.join(lines));changed.append(str(state))
+        text='\n'.join(lines)
+        if not state.is_file() or state.read_text()!=text:state.write_text(text);changed.append(str(state))
     return changed
 
 # Deck defaults for the Zelda ports: 1280x800 panel, Spanish where the game carries it.
 WWHD_ENV={'WWHD_LANGUAGE':'5','WWHD_FULLSCREEN':'1','WWHD_ASPECT':'16:10','WWHD_DRC_MODE':'pip','WWHD_INTERP':'1','WWHD_INTERP_FPS':'120','WWHD_FXAA':'1','WWHD_ANISO':'1'}
 # Picori renders the GBA picture 5x (1200x800: exactly the panel height) and keeps its 90 fps clock; ROM language 4 is Spanish.
 PICORI_CONFIG={'fullscreen':True,'internal_scale':5,'upscale_method':'nearest','frame_time_ns':11111111,'widescreen_enabled':True,'vsync':True}
+
+# A Link to the Past: the fan translation F01h (ROM-hacking translation 2195) applied over the USA ROM has this SHA-1.
+ZELDA3_ES={'systems':['snes','sfc'],'sizes':[1048576,1049088],'sha1':{'461fcbd700d1332009c0e85a7a136e2a8e4b111e':'zelda3_es.sfc'},'strip_header':True,'name':'A Link to the Past (español)'}
 
 def tune_port(record,folder):
     """Idempotent Deck defaults for a configured Zelda port. Returns the list of files or settings changed."""
@@ -698,6 +790,13 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
             text=ini.read_text()
             for key,value in (('ExtendedAspectRatio','16:10'),('Fullscreen','1'),('EnhancedMode7','1'),('NoSpriteLimits','1'),('NewRenderer','1'),('LinearFiltering','0')):text=re.sub(r'(?m)^'+key+r'\s*=.*$',key+' = '+value,text,count=1)
             ini.write_text(text)
+        spanish=find_rom(ZELDA3_ES,home)
+        if spanish:
+            progress('Extrayendo los textos en español de la traducción')
+            data=pathlib.Path(spanish['path']).read_bytes();(folder/'zelda3_es.sfc').write_bytes(data[512:] if spanish['header'] else data)
+            prefix='PYTHONPATH='+shlex.quote(str(folder/'pylibs'))+' python3 assets/restool.py '
+            run(['sh','-c',prefix+'--extract-dialogue -r zelda3_es.sfc && '+prefix+'--languages=es'],cwd=str(folder),progress=progress)
+            if ini.is_file():ini.write_text(re.sub(r'(?m)^#\s*Language\s*=.*$|^Language\s*=.*$','Language = es',ini.read_text(),count=1))
         # Inside the SDK SDL tries JACK first and gives up; PulseAudio (PipeWire's server on the Deck) is the one that works.
         record['env']={'SDL_AUDIODRIVER':'pulseaudio'};disc={'name':pathlib.Path(found['path']).name}
     elif kind=='wwhd':

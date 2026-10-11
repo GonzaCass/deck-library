@@ -28,8 +28,9 @@ A Link Between Worlds, Breath of the Wild y Skyward Sword no tienen port nativo 
 - **A Link Between Worlds** (Azahar): idioma de la consola 3DS en español, resolución 3× (la pantalla superior ocupa la altura de la Deck) y **una sola pantalla**. En la Deck, **L4** alterna entre pantalla superior e inferior (F9) y **R4** cambia la disposición (F10), mediante un layout de Steam Input propio para los juegos de 3DS.
 - **Wind Waker HD**: español, 16:10, imagen del GamePad en un recuadro dentro de la misma ventana, interpolación de cuadros (hasta la frecuencia de la pantalla), FXAA y anisotrópico. Los cambios se guardan como variables `WWHD_` del acceso.
 - **Minish Cap** (Picori): español con la ROM europea, escala interna 5× (1200×800), pantalla completa y reloj de 90 FPS.
-- **A Link to the Past**: el juego original no tiene versión en español. `zelda3` admite la traducción de aficionados (hash SHA-1 `461FCBD7…`), que debe aportarse ya aplicada sobre la ROM propia; el parche de romhacking.net no se pudo descargar desde aquí.
-- **Spider-Man 1 y 2** (kits PSX): supersampling 4×, corrección PGXP de geometría y texturas, y los mods oficiales del kit: PGXP, carga rápida y unidad de CD 2×. El runtime de estos kits no incluye interpolación de cuadros ni widescreen, de modo que siguen a la velocidad original del juego.
+- **A Link to the Past**: el juego original no tiene versión en español. Con la traducción de aficionados «Re-Traducción F01h» (parche UPS sobre la ROM USA; el resultado tiene el SHA-1 `461FCBD7…` que el port reconoce), **Configurar** extrae los textos y deja `Language = es`. Los diálogos quedan en español; los rótulos del menú (ITEM, EQUIPMENT…) siguen en inglés porque el port no importa esos gráficos.
+- **Spider-Man 1 y 2** (kits PSX): supersampling 4×, PGXP y los mods oficiales del kit (PGXP, carga rápida, CD 2×), más un mod propio de Deck Library con **interpolación de cuadros a la frecuencia de la pantalla** (solo presentación: mezcla cuadros terminados, la lógica y el audio siguen a la velocidad original; el movimiento rápido puede dejar estela) y **widescreen 16:10** (experimental: las pantallas 2D y los videos siguen en 4:3). Usa la interfaz de plugins del propio framework; requiere recompilar el kit (botón «Mejorar rendimiento»).
+- **Breath of the Wild** en Eden: el parche «60 FPS (1.9.0)» de Nexus Mods se instala en la carpeta de mods del juego (exefs, hash de compilación CD57B23F…). 90 FPS no es posible con ese parche: Eden emula una pantalla de 60 Hz.
 
 ## Instalación
 
@@ -75,7 +76,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.6.1**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.6.2**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
