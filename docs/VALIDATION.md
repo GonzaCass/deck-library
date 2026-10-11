@@ -179,3 +179,7 @@ Cada juego con acceso en Steam usa como carátula el retrato que Steam ya guarda
 ### 0.8.3 - banner en la ficha
 
 La ficha de un juego con acceso en Steam muestra como banner el fondo (`_hero`) y el logotipo (`_logo`) que Steam guarda para ese acceso, recortados al ancho de la página y con un degradado hacia el color de la página. Se comprobó con Breath of the Wild (arte descargado por el lote de arte): fondo y logotipo se ven y la carátula vertical también es la de Steam. Sin arte de fondo, la ficha queda como antes.
+
+### 0.9.0 - guía por juego y traducción automática
+
+Se agregó `docs/PORTS.md` con la guía de cada port y juego con emulador trabajados (Spider-Man 1 y 2, Crash, Spyro, Minish Cap, A Link to the Past, Wind Waker HD, Breath of the Wild, A Link Between Worlds, Mario Kart Wii, Steam) y **Configurar** de A Link to the Past genera ahora la ROM en español a partir del parche `.ups` que encuentre (suelto o en un zip de Descargas o de la carpeta de ROMs), siempre que las tres sumas CRC y el SHA-1 del resultado coincidan: los tests cubren un parche correcto, uno ajeno, uno dentro de un zip y un resultado con otro hash. No se volvió a ejecutar sobre la ROM real, que ya existe desde 0.6.2.

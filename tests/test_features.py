@@ -925,3 +925,22 @@ class WiiUpdateTests(unittest.TestCase):
         with patch('deck_library.wiiupdate.shutil.disk_usage',return_value=usage),self.assertRaises(RuntimeError):wiiupdate.update(item,info,image,opener=self.opener(payload),run=failing)
         with patch('deck_library.wiiupdate.shutil.disk_usage',return_value=type('U',(),{'free':1})()),self.assertRaisesRegex(RuntimeError,'20 GB'):wiiupdate.update(item,info,image,opener=self.opener(payload),run=failing)
         self.assertEqual(self.tool.read_bytes(),b'\x7fELFold');self.assertEqual((self.folder/'version.txt').read_text(),'v0.2.33')
+
+class SpanishPatchTests(ZeldaPortTests):
+    def setup_roms(self):
+        import hashlib
+        home,path,us=self.rom_home('snes','z.sfc',size=2048);spanish=bytearray(us);spanish[10:20]=b'ESPANOL!!!';spanish=bytes(spanish)
+        return home,us,spanish,hashlib.sha1(spanish).hexdigest()
+    def test_a_loose_patch_that_matches_is_applied_and_a_wrong_one_is_ignored(self):
+        from deck_library.ports import build_spanish_zelda3
+        home,us,spanish,digest=self.setup_roms();downloads=home/'Downloads';downloads.mkdir()
+        (downloads/'otro.ups').write_bytes(make_ups(b'x'*100,b'y'*100));(downloads/'real.ups').write_bytes(make_ups(us,spanish))
+        with patch.dict(self.ports.ZELDA3_ES,{'sha1':{digest:'zelda3_es.sfc'}}):result=build_spanish_zelda3(home,us)
+        self.assertTrue(result.endswith('(Spanish).sfc'));self.assertEqual(pathlib.Path(result).read_bytes(),spanish)
+    def test_a_patch_inside_a_zip_works_and_a_result_with_another_hash_is_refused(self):
+        import zipfile
+        from deck_library.ports import build_spanish_zelda3
+        home,us,spanish,digest=self.setup_roms();downloads=home/'Downloads';downloads.mkdir()
+        with zipfile.ZipFile(downloads/'ZELDA_translation.zip','w') as archive:archive.writestr('25th/logo.ups',make_ups(us,us[:50]+b'z'*(len(us)-50)));archive.writestr('ZELDA-main.ups',make_ups(us,spanish))
+        with patch.dict(self.ports.ZELDA3_ES,{'sha1':{digest:'zelda3_es.sfc'}}):self.assertTrue(build_spanish_zelda3(home,us))
+        with patch.dict(self.ports.ZELDA3_ES,{'sha1':{'0'*40:'zelda3_es.sfc'}}):self.assertEqual(build_spanish_zelda3(home,us),'')

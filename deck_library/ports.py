@@ -672,6 +672,35 @@ PICORI_CONFIG={'fullscreen':True,'internal_scale':5,'upscale_method':'nearest','
 # A Link to the Past: the fan translation F01h (ROM-hacking translation 2195) applied over the USA ROM has this SHA-1.
 ZELDA3_ES={'systems':['snes','sfc'],'sizes':[1048576,1049088],'sha1':{'461fcbd700d1332009c0e85a7a136e2a8e4b111e':'zelda3_es.sfc'},'strip_header':True,'name':'A Link to the Past (español)'}
 
+def build_spanish_zelda3(home,us_data,progress=lambda text:None):
+    """Apply a fan-translation UPS patch found in Downloads or the SNES ROM folder (loose or inside a zip) to the USA ROM.
+
+    A patch counts only when every checksum matches and the result has the SHA-1 zelda3 expects for Spanish, so the other
+    patches of the same pack (extras, 25th-anniversary logo) are skipped. Returns the written ROM path or ''.
+    """
+    import hashlib,zipfile
+    from .patching import apply_ups
+    home=pathlib.Path(home);wanted=set(ZELDA3_ES['sha1']);candidates=[]
+    for folder in (home/'Downloads',home/'Emulation/roms/snes'):
+        try:names=sorted(folder.iterdir())
+        except OSError:continue
+        for path in names:
+            if path.suffix.lower()=='.ups' and path.stat().st_size<8*1024*1024:candidates.append((path.name,path.read_bytes))
+            elif path.suffix.lower()=='.zip' and 'zelda' in path.name.lower() and path.stat().st_size<64*1024*1024:
+                try:
+                    with zipfile.ZipFile(path) as archive:
+                        for item in archive.infolist():
+                            if item.filename.lower().endswith('.ups') and item.file_size<8*1024*1024:candidates.append((item.filename,lambda d=archive.read(item):d))
+                except (zipfile.BadZipFile,OSError):continue
+    for name,read in candidates:
+        try:
+            patched=apply_ups(us_data,read())
+        except (ValueError,OSError,zipfile.BadZipFile,RuntimeError):continue
+        if hashlib.sha1(patched).hexdigest() in wanted:
+            progress('Aplicando la traducción '+pathlib.PurePosixPath(name).name)
+            target=home/'Emulation/roms/snes'/'The Legend of Zelda - A Link to the Past (Spanish).sfc';target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(patched);return str(target)
+    return ''
+
 def tune_port(record,folder):
     """Idempotent Deck defaults for a configured Zelda port. Returns the list of files or settings changed."""
     folder=pathlib.Path(folder);changed=[]
@@ -791,6 +820,9 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
             for key,value in (('ExtendedAspectRatio','16:10'),('Fullscreen','1'),('EnhancedMode7','1'),('NoSpriteLimits','1'),('NewRenderer','1'),('LinearFiltering','0')):text=re.sub(r'(?m)^'+key+r'\s*=.*$',key+' = '+value,text,count=1)
             ini.write_text(text)
         spanish=find_rom(ZELDA3_ES,home)
+        if not spanish:
+            built=build_spanish_zelda3(home,data[512:] if found['header'] else data,progress)
+            if built:spanish=find_rom(ZELDA3_ES,home)
         if spanish:
             progress('Extrayendo los textos en español de la traducción')
             data=pathlib.Path(spanish['path']).read_bytes();(folder/'zelda3_es.sfc').write_bytes(data[512:] if spanish['header'] else data)

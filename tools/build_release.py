@@ -4,7 +4,7 @@ import hashlib,pathlib,tarfile
 ROOT=pathlib.Path(__file__).resolve().parent.parent
 import sys;sys.path.insert(0,str(ROOT))
 from deck_library import __version__ as VERSION
-files=[ROOT/name for name in ('app.py','install.py','launch.sh','Instalar.sh','README.md','LEEME.md','LICENSE','.gitignore','.github/workflows/test.yml','assets/icon.svg','assets/screenshot.png','assets/welcome.png','docs/VALIDATION.md','docs/PRESETS.md','docs/COMMUNITY-PRESETS.md','docs/GTAIV.md','docs/PROJECT2099.md','docs/DMC3-CRIMSON.md','tools/build_release.py')]
+files=[ROOT/name for name in ('app.py','install.py','launch.sh','Instalar.sh','README.md','LEEME.md','LICENSE','.gitignore','.github/workflows/test.yml','assets/icon.svg','assets/screenshot.png','assets/welcome.png','docs/VALIDATION.md','docs/PRESETS.md','docs/COMMUNITY-PRESETS.md','docs/GTAIV.md','docs/PROJECT2099.md','docs/DMC3-CRIMSON.md','docs/SPIDER-MAN-SHATTERED-DIMENSIONS.md','docs/PORTS.md','tools/build_release.py')]
 for folder in ('deck_library','tests'):
     files.extend(sorted((ROOT/folder).glob('*.py')))
 files.extend(sorted((ROOT/'presets').glob('*.json')))

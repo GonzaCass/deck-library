@@ -106,6 +106,8 @@ Steam artwork: the game detail page has **Arte de Steam**, backed by `deck_libra
 
 UI: left sidebar, overlay game cards, flat controls with one accent colour, visible focus, 150-300 ms ease-out transitions (`deck_library/motion.py`: fades, staggered card entrance, slide between library and detail, toasts), all disabled by the animations switch. The per-game settings dialog starts with the emulator's current values read from its own files. `deck_library/wiiupdate.py` updates a Quiver-managed WiiCompiled in place (SHA-256 from the GitHub digest, `install --game`, rollback of the previous setup tool).
 
+A per-game guide (requirements, what the app sets, limits, how to revert) is in [docs/PORTS.md](docs/PORTS.md) (Spanish). `ports.build_spanish_zelda3` applies a UPS translation patch found in Downloads or the SNES ROM folder when its result has the SHA-1 zelda3 expects.
+
 None of these ports exists for A Link Between Worlds, Breath of the Wild or Skyward Sword; those stay emulated.
 
 ### Library view
