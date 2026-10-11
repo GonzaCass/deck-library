@@ -113,3 +113,7 @@ Measured on this Deck with the game running without window or audio (`PSX_HEADLE
 Spider-Man 2 had `overlay_cache = true` but no `overlay_autocompile_cmd`, so the runtime selected the unavailable bundled-toolchain tier and interpreted every code overlay it loaded (0 native and 26,089 interpreted overlay dispatches in 70 s). With the command pointing at `compile_overlays.py --compiler gcc` (python3 and gcc exist inside the SDK) overlays were captured, compiled in about 2 s and loaded: 14,151 native and 10,075 interpreted in the same time, improving as more of the game is visited.
 
 Tried and discarded: the kit's PGO (`[pgo] enabled`). The training ran but wrote no profile (its CMake does not implement PGO for gcc), so the result was rebuilt without it. Not verified: audible sound quality and real frame pacing on the Deck's own display in Gaming Mode.
+
+### 0.5.5
+
+The Spider-Man 2 runtime is newer and its sample-event scheduler no longer requests the complete SPU state, so the local SPU patch reports `not-needed` instead of a failure (its kit keeps the overlay compiler setting, which was the cause of its slowness).

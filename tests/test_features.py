@@ -634,6 +634,9 @@ class KitPerformanceTests(PortCatalogTests):
         self.assertEqual(self.ports.apply_runtime_patches(folder),'incompatible')
         self.assertEqual((folder/'psxrecomp/runtime/src/interrupts.c').read_text(),other);self.assertEqual((folder/'psxrecomp/runtime/src/spu.c').read_text(),self.SPU);self.assertFalse((folder/'psxrecomp/runtime/src/spu.c.orig').exists())
         self.assertEqual(self.ports.apply_runtime_patches(self.root/'no-existe'),'incompatible')
+    def test_a_newer_runtime_without_the_problem_needs_no_patch(self):
+        newer=self.INT.replace('spu_get_global_state(&state);','').replace('SpuGlobalState state;','').replace('state.ctrl','0');folder=self.kit(interrupts=newer)
+        self.assertEqual(self.ports.apply_runtime_patches(folder),'not-needed');self.assertFalse((folder/'psxrecomp/runtime/src/spu.c.orig').exists());self.assertEqual((folder/'psxrecomp/runtime/src/interrupts.c').read_text(),newer)
     def test_half_applied_sources_are_not_patched_again(self):
         folder=self.kit(spu=self.SPU+'/* spu_get_ctrl */\n');self.assertEqual(self.ports.apply_runtime_patches(folder),'incompatible')
     def test_overlay_compiler_command_quotes_paths_and_is_set_only_for_games_with_overlays(self):
