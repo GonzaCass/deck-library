@@ -72,11 +72,22 @@ class CatalogMixin:
                 side.pack_start(label('Configurado','good'),False,False,0)
                 if record.get('setup')=='kit' and record.get('patch_level',0)<ports.PATCH_LEVEL:side.pack_start(button('Mejorar rendimiento',lambda _,i=item:self.configure_port(i),True),False,False,0)
                 else:side.pack_start(button('Volver a configurar',lambda _,i=item:self.configure_port(i)),False,False,0)
+                if record.get('setup')=='wwhd':side.pack_start(button('Preparar shaders',lambda _:self.prepare_shaders()),False,False,0)
             elif record:side.pack_start(label('Instalado','good'),False,False,0)
             else:side.pack_start(button('Instalar',lambda _,i=item:self.install_port(i,False)),False,False,0)
             if 'Agregado' in item['source']:side.pack_start(button('Quitar de la lista',lambda _,i=item:self.remove_repository(i),tone='danger'),False,False,0)
             row.pack_end(side,False,False,0);self.catalog_rows.pack_start(row,False,False,0)
         self.catalog_rows.show_all();self.load_icons(images,generation);self.check_kits(kits,generation)
+
+    def prepare_shaders(self):
+        from . import ports
+        self.set_status('Preparando los shaders de Wind Waker HD…')
+        def work():
+            result=ports.prepare_wwhd_shaders(progress=lambda t:GLib.idle_add(self.set_status,'Shaders: '+t[-120:]))
+            def done():
+                self.set_status(result['message']);self.message('Wind Waker HD · shaders',result['message']);return False
+            GLib.idle_add(done)
+        threading.Thread(target=work,daemon=True).start()
 
     def check_kits(self,kits,generation):
         """Compare each kit's BIOS and disc requirements with what is already on the Deck."""

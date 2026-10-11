@@ -705,6 +705,53 @@ def build_spanish_zelda3(home,us_data,progress=lambda text:None):
             target=home/'Emulation/roms/snes'/'The Legend of Zelda - A Link to the Past (Spanish).sfc';target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(patched);return str(target)
     return ''
 
+def wwhd_env(home):
+    """Environment for Wind Waker HD's setup and shader tools: the player's real config and data folders, whatever the current
+    desktop session exports (a remote session can point XDG_CONFIG_HOME somewhere else, and the game would never find the result)."""
+    from .runtime import clean_environment
+    env=dict(clean_environment());home=pathlib.Path(home)
+    env['XDG_CONFIG_HOME']=str(home/'.config');env['XDG_DATA_HOME']=str(home/'.local/share');env['XDG_CACHE_HOME']=str(home/'.cache')
+    return env
+
+def prepare_wwhd_shaders(home=None,progress=lambda text:None,run=None):
+    """Compile Wind Waker HD's shaders and pipelines for this computer before playing (removes most first-visit stutter).
+
+    Uses the port's own preparation module from its AppImage and the game already built in ~/.local/share/wwhd. It needs a graphics
+    session that can present Vulkan: from a remote desktop without DRI3 it reports that and leaves the existing caches alone.
+    Returns {'status','message'}.
+    """
+    from . import buildenv
+    home=pathlib.Path(home or pathlib.Path.home());data=home/'.local/share/wwhd'
+    appimages=sorted((home/'ports/WindWakerHD').glob('WindWakerHD-*.AppImage'))
+    exe=data/'bin/wwhd';game=data/'game'
+    if not appimages or not exe.is_file() or not game.is_dir():return {'status':'unavailable','message':'Primero hay que instalar y configurar Wind Waker HD.'}
+    work_root=home/'.cache';work_root.mkdir(parents=True,exist_ok=True)
+    with tempfile.TemporaryDirectory(prefix='wwhd-shaders-',dir=work_root) as temp:
+        env=wwhd_env(home);run=run or (lambda command,**kw:buildenv.run(command,**kw))
+        run([str(appimages[-1]),'--appimage-extract'],cwd=temp,progress=lambda _:None,sandbox=False,env=env)
+        package=pathlib.Path(temp)/'squashfs-root';template=package/'tools/shadercache/template.bin'
+        if not template.is_file():return {'status':'unavailable','message':'Esta versión del port no incluye la preparación de shaders.'}
+        code=("import sys,json;sys.path.insert(0,sys.argv[1]+'/tools/installer');import shader_prebuild as s;from pathlib import Path\n"
+              "root=s.default_cache_root(None,False)\n"
+              "r=s.prepare(Path(sys.argv[2]),Path(sys.argv[3]),Path(sys.argv[4]),root,Path(sys.argv[1]),progress=lambda t,fraction=None:print('PROGRESS',t,flush=True))\n"
+              "print('RESULT',json.dumps(r),flush=True)")
+        lines=[]
+        def seen(text):
+            lines.append(text)
+            if text.startswith('PROGRESS'):progress(text[9:])
+        try:run(['python3','-c',code,str(package),str(game),str(template),str(exe)],cwd=temp,progress=seen,sandbox=False,env=env)
+        except Exception as error:
+            return {'status':'failed','message':'No se pudo preparar: '+str(error)[-200:]}
+    result=next((l for l in reversed(lines) if l.startswith('RESULT')),'')
+    try:info=json.loads(result[7:])
+    except ValueError:info={}
+    status=str(info.get('status','failed'))
+    if status in ('ready','done','ok','prepared'):return {'status':'ready','message':'Shaders preparados.'}
+    text=str(info.get('message') or '')
+    if 'DRI3' in ' '.join(lines) or 'present' in text.lower() or status=='failed':
+        return {'status':'failed','message':'Esta sesión no puede dibujar con Vulkan (por ejemplo un escritorio remoto). Repetir desde el escritorio de la Deck. '+text[:160]}
+    return {'status':status,'message':text or 'Sin cambios.'}
+
 def tune_port(record,folder):
     """Idempotent Deck defaults for a configured Zelda port. Returns the list of files or settings changed."""
     folder=pathlib.Path(folder);changed=[]
@@ -855,7 +902,7 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
                     with os.fdopen(fd,'w') as out:out.write(value+'\n')
                 command+=['--image',image,'--disc-key',str(temp/'disc.key'),'--common-key',str(temp/'common.key')]
             progress('Preparando el juego: extrae, traduce y compila (unos 10 minutos)')
-            run(command,cwd=str(temp/'squashfs-root'),progress=progress,sandbox=False)
+            run(command,cwd=str(temp/'squashfs-root'),progress=progress,sandbox=False,env=wwhd_env(home))
         disc={'name':pathlib.Path(image).name}
     else:raise ValueError('Tipo de configuración desconocido: '+str(kind))
     tune_port(record,folder)
