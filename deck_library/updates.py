@@ -1,7 +1,7 @@
 """Update checks for Deck Library, its preset catalog and installed ports; verified self-update.
 
 Every request is HTTPS with a size cap. Nothing is installed without a matching SHA-256 published
-next to the release asset. Ports installed by Quiver are only reported: Quiver owns their files.
+next to the release asset. Ports found in Quiver's folder are reported and, for WiiCompiled and for ports with a GitHub release, updated from Deck Library itself.
 """
 import hashlib,json,os,pathlib,re,subprocess,sys,tarfile,tempfile,time,urllib.error,urllib.request
 from . import __version__
@@ -79,7 +79,7 @@ def check_quiver(preferences=None,get=fetch_json,home=None):
         try:release=latest_release(app['repository'],get)
         except (OSError,ValueError):break
         if release and release.get('tag_name') not in (app['installed'],app['skipped']) and is_newer(release['tag_name'],app['installed']):
-            updates.append({'name':app['name'],'installed':app['installed'],'latest':release['tag_name'],'page':release.get('html_url','')})
+            updates.append({'name':app['name'],'installed':app['installed'],'latest':release['tag_name'],'page':release.get('html_url',''),'repository':app['repository']})
     return updates
 
 def check_project2099(entries,get=fetch_json):

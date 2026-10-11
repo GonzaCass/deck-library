@@ -131,10 +131,9 @@ class UpdatesMixin:
                 if data.get('page'):row.pack_end(Gtk.LinkButton.new_with_label(data['page'],'Ver versión'),False,False,0)
                 if kind=='catalog':row.pack_end(button('Actualizar',lambda _,d=data:self.update_catalog_port(d),True),False,False,0)
                 if kind=='wii':row.pack_end(button('Actualizar aquí',lambda _:self.update_wiicompiled(),True),False,False,0)
+                if kind=='port' and data.get('repository'):row.pack_end(button('Instalar la nueva versión aquí',lambda _,d=data:self.update_catalog_port(d),True),False,False,0)
                 card.pack_start(row,False,False,0)
-            quiver=pathlib.Path.home()/'ports/quiver-launcher/launch.sh'
-            if quiver.is_file():card.pack_start(button('Abrir Quiver para actualizar',lambda _:subprocess.Popen([str(quiver)],start_new_session=True)),False,False,0)
-        else:card.pack_start(label('Los ports de Quiver y Project-2099 instalados están al día.','muted'),False,False,0)
+        else:card.pack_start(label('Los ports instalados están al día.','muted'),False,False,0)
         for error in state.get('errors') or []:card.pack_start(label('No se pudo consultar '+error,'status'),False,False,0)
         card=self.card(box,'Opciones')
         for key,text,default in (('check_updates','Buscar actualizaciones al abrir',True),('auto_update','Instalar automáticamente las actualizaciones de Deck Library',True),('catalog_auto','Actualizar los ajustes recomendados desde el catálogo',True),('auto_update_ports','Actualizar automáticamente los ports instalados desde el catálogo',False)):
