@@ -480,7 +480,7 @@ def entry_for(folder):
 
 DATA_CTR=pathlib.Path('.local/share/ctr-turbocharged')
 
-PATCH_LEVEL=2
+PATCH_LEVEL=3
 SPU_MARKER='spu_get_ctrl'
 SPU_PATCHES=[
  ('psxrecomp/runtime/src/spu.c',[("void spu_get_global_state(SpuGlobalState* out) {","/* Cheap read of SPUCNT for the per-sample event scheduler (spu_get_global_state builds the whole state). */\nuint16_t spu_get_ctrl(void) {\n    return (uint16_t)spu_regs[reg_index(0x1F801DAAu)];\n}\n\nvoid spu_get_global_state(SpuGlobalState* out) {")]),
@@ -525,7 +525,7 @@ DISPLAY_SOURCE=r"""/* Deck Library: display options for recompilation kits (fram
 #include "mod_plugins.h"
 
 static void deck_interpolation_activate(void) {
-    (void)psx_mod_set_frame_interpolation_blend(PSX_MOD_FRAME_INTERPOLATION_MOTION_ADAPTIVE);
+    (void)psx_mod_set_frame_interpolation_blend(PSX_MOD_FRAME_INTERPOLATION_LINEAR);
     (void)psx_mod_set_frame_interpolation(0);   /* 0 = follow the measured display refresh */
 }
 
@@ -581,7 +581,7 @@ def apply_display_mod(folder):
     if not cmake.is_file() or not (root/'runtime/include/mod_plugins.h').is_file():return 'incompatible'
     text=cmake.read_text();header=(root/'runtime/include/mod_plugins.h').read_text()
     if 'psx_mod_set_fixed_display_aspect' not in header or 'psx_mod_set_frame_interpolation_blend' not in header:return 'incompatible'
-    if 'mod_builtin_deck.c' in text and source.is_file() and manifest.is_file():return 'present'
+    if 'mod_builtin_deck.c' in text and source.is_file() and manifest.is_file() and source.read_text()==DISPLAY_SOURCE and manifest.read_text()==DISPLAY_MANIFEST:return 'present'
     if 'mod_builtin_deck.c' not in text:
         if text.count(CMAKE_ANCHOR)!=1:return 'incompatible'
         backup=cmake.with_name(cmake.name+'.orig')
@@ -620,7 +620,11 @@ def ensure_overlay_compiler(folder):
     return changed
 
 VIDEO_TARGET={'supersampling':4,'geometry_correction':True,'perspective_texturing':True}
-KIT_MODS=(('psx.enhancement.pgxp','pgxp',{}),('psx.enhancement.fast-loading','fast-loading',{'multiplier':4}),('psx.enhancement.cd-speed','cd-speed',{'multiplier':2}),('psx.deck.display','interpolation',{}),('psx.deck.display','widescreen',{}))
+KIT_MODS=(('psx.enhancement.pgxp','pgxp',{}),('psx.deck.display','interpolation',{}),('psx.deck.display','widescreen',{}))
+# Enabled by earlier versions and removed: Fast Loading speeds the whole game up for as long as it detects a load, and
+# CD-streaming games (Spider-Man) are always loading; CD Speed can expose timing bugs. A state listing only these and the
+# current features is ours to rewrite.
+RETIRED_MODS=(('psx.enhancement.fast-loading','fast-loading'),('psx.enhancement.cd-speed','cd-speed'))
 
 def mods_state_is_ours(state):
     """True when a kit's mod state is missing, empty or only lists features this module enables, so it may be rewritten."""
@@ -629,7 +633,7 @@ def mods_state_is_ours(state):
     if not state.is_file():return True
     try:data=tomllib.loads(state.read_text())
     except tomllib.TOMLDecodeError:return False
-    known={(pid,feature) for pid,feature,_ in KIT_MODS}
+    known={(pid,feature) for pid,feature,_ in KIT_MODS}|set(RETIRED_MODS)
     return all((f.get('package_id'),f.get('id')) in known and f.get('enabled') for f in data.get('feature',[]))
 
 def enhance_kit(folder):
@@ -665,7 +669,7 @@ def enhance_kit(folder):
     return changed
 
 # Deck defaults for the Zelda ports: 1280x800 panel, Spanish where the game carries it.
-WWHD_ENV={'WWHD_LANGUAGE':'5','WWHD_FULLSCREEN':'1','WWHD_ASPECT':'16:10','WWHD_DRC_MODE':'pip','WWHD_INTERP':'1','WWHD_INTERP_FPS':'120','WWHD_FXAA':'1','WWHD_ANISO':'1'}
+WWHD_ENV={'WWHD_LANGUAGE':'5','WWHD_FULLSCREEN':'1','WWHD_ASPECT':'16:10','WWHD_DRC_MODE':'auto','WWHD_INTERP':'1','WWHD_INTERP_FPS':'120','WWHD_INTERP_PACED':'1','WWHD_FXAA':'1','WWHD_ANISO':'1'}
 # Picori renders the GBA picture 5x (1200x800: exactly the panel height) and keeps its 90 fps clock; ROM language 4 is Spanish.
 PICORI_CONFIG={'fullscreen':True,'internal_scale':5,'upscale_method':'nearest','frame_time_ns':11111111,'widescreen_enabled':True,'vsync':True}
 

@@ -23,9 +23,9 @@ def qt(**values):
     return out
 
 def qt_game(**values):
-    """Per-game Qt INI (Eden `custom/<title id>.ini`): a value only counts once its `\\use_global` flag is false."""
+    """Per-game Qt INI (Eden `custom/<title id>.ini`): a value only counts when both `\\default` and `\\use_global` are false."""
     out={}
-    for key,value in values.items():out[key]=value;out[key+'\\use_global']=False
+    for key,value in values.items():out[key]=value;out[key+'\\default']=False;out[key+'\\use_global']=False
     return out
 
 BOTW='01007EF00011E000'
@@ -40,10 +40,22 @@ def targets(home):
     return [
      ('duckstation','DuckStation',home/'.local/share/duckstation/settings.ini',{'GPU':{'ResolutionScale':5,'PGXPEnable':True,'PGXPTextureCorrection':True,'PGXPCulling':True,'DisableInterlacing':True,'Multisamples':1},'Display':{'VSync':True}},True),
      ('dolphin','Dolphin',flatpak/'GFX.ini',{'Settings':{'InternalResolution':3,'ShaderCompilationMode':2,'WaitForShadersBeforeStarting':True},'Enhancements':{'MaxAnisotropy':4}},True),
-     ('azahar','Azahar',home/'.config/azahar-emu/qt-config.ini',{'Renderer':qt(resolution_factor=3,async_shader_compilation=True,use_disk_shader_cache=True,use_vsync_new=True,use_hw_shader=True,layout_option=1),'UI':{**shortcut('Swap Screens',SWAP_KEY),**shortcut('Toggle Screen Layout',LAYOUT_KEY)}},False),
+     ('azahar','Azahar',home/'.config/azahar-emu/qt-config.ini',{'Renderer':qt(resolution_factor=3,async_shader_compilation=True,use_disk_shader_cache=True,use_vsync_new=True,use_hw_shader=True),'Layout':qt(layout_option=1),'UI':{**shortcut('Swap Screens',SWAP_KEY),**shortcut('Toggle Screen Layout',LAYOUT_KEY)}},False),
      ('eden','Eden',home/'.config/eden/qt-config.ini',{'Renderer':qt(use_asynchronous_shaders=True,max_anisotropy=4,use_vsync=1)},False),
      ('eden','Eden (Breath of the Wild)',home/'.config/eden/custom'/(BOTW+'.ini'),{'System':qt_game(language_index=14,region_index=1),'Renderer':qt_game(resolution_setup=2,scaling_filter=5,fsr_sharpening_slider=40,anti_aliasing=0,gpu_accuracy=0)},False),
     ]
+
+def drop_keys(text,section,keys):
+    """Remove `keys` (and their `\\default` markers) from one INI section; everything else stays."""
+    out=[];current=None;names=set(keys)|{k+'\\default' for k in keys}
+    for line in text.splitlines():
+        header=re.fullmatch(r'\s*\[([^]]+)\]\s*',line)
+        if header:current=header[1]
+        elif current==section and line.split('=',1)[0].strip() in names:continue
+        out.append(line)
+    return '\n'.join(out)+'\n'
+
+MISPLACED={'azahar':('Renderer',('layout_option',))}
 
 def apply(home=None,busy=running):
     """Returns [(emulator, state)] with state applied / present / busy / missing."""
@@ -51,7 +63,7 @@ def apply(home=None,busy=running):
     for adapter,name,path,updates,spaced in targets(home):
         if not path.is_file():results.append((name,'missing'));continue
         if busy(adapter):results.append((name,'busy'));continue
-        old=path.read_text(encoding='utf-8');new=patch_ini(old,updates,spaced)
+        old=path.read_text(encoding='utf-8');base=drop_keys(old,*MISPLACED[adapter]) if adapter in MISPLACED else old;new=patch_ini(base,updates,spaced)
         if new==old:results.append((name,'present'));continue
         shutil.copy2(path,path.with_name(path.name+'.deck-library-'+time.strftime('%Y%m%d-%H%M%S')+'.bak'))
         path.write_text(new,encoding='utf-8');results.append((name,'applied'))
