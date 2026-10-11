@@ -21,10 +21,10 @@ LAUNCHERS=('launch.sh','run.sh','start.sh')
 
 def ports_root(home=None):return pathlib.Path(home or pathlib.Path.home())/'ports'
 
-SETUP_KIT='Kit de instalación: requiere el disco y la BIOS propios y compila el juego en el primer inicio (CMake, Ninja, Python 3 y un compilador C/C++). SteamOS no los incluye.'
+SETUP_KIT='Kit de instalación: requiere el disco y la BIOS propios y compila el juego en el primer inicio. En la Deck corre dentro del SDK de KDE de Flatpak, que la app instala una vez (sin root).'
 BUILTIN=[
- {'name':'Spider-Man (PSX)','repository':'alexbeavs-ps1-ports/spider-man-recomp','folderName':'SpiderManPSX','category':'PlayStation','note':'Necesita el disco SLUS-00875 (EE. UU.) y la BIOS SCPH-5502 o 5552 (Europa). '+SETUP_KIT},
- {'name':'Spider-Man 2: Enter Electro (PSX)','repository':'alexbeavs-ps1-ports/spider-man-2-enter-electro-recomp','folderName':'SpiderMan2PSX','category':'PlayStation','note':'Necesita el disco SLUS-01378 (EE. UU., Rev 1) y la BIOS SCPH-1001 (EE. UU.). Una copia europea no sirve. '+SETUP_KIT},
+ {'name':'Spider-Man (PSX)','repository':'alexbeavs-ps1-ports/spider-man-recomp','folderName':'SpiderManPSX','category':'PlayStation','kit':True,'note':'Necesita el disco SLUS-00875 (EE. UU.) y la BIOS SCPH-5502 o 5552 (Europa). '+SETUP_KIT},
+ {'name':'Spider-Man 2: Enter Electro (PSX)','repository':'alexbeavs-ps1-ports/spider-man-2-enter-electro-recomp','folderName':'SpiderMan2PSX','category':'PlayStation','kit':True,'note':'Necesita el disco SLUS-01378 (EE. UU., Rev 1) y la BIOS SCPH-1001 (EE. UU.). Una copia europea no sirve. '+SETUP_KIT},
 ]
 PLATFORMS={'playstation':'PlayStation','ps1':'PlayStation','psx':'PlayStation','playstation 2':'PlayStation 2','ps2':'PlayStation 2','gamecube':'GameCube','wii':'Wii','nintendo':'Nintendo','n64':'Nintendo 64','xbox':'Xbox 360','rexglue':'Xbox 360'}
 
@@ -52,7 +52,7 @@ def clean(item,category='',source=''):
     if not isinstance(folder,str) or not FOLDER.fullmatch(folder):folder=re.sub(r'[^A-Za-z0-9._-]','',repo.split('/')[1]) or 'port'
     name=item.get('name');icon=item.get('appIconUrl');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
     ai=bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
-    return {'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else ''}
+    return {'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True}
 
 def parse_source(document,source=''):
     """Entries of a Quiver list file ({apps:[...]}) or a GithubLauncher list ({category:[...]})."""
@@ -262,9 +262,11 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
             shutil.copy2(archive,staging/archive.name);(staging/archive.name).chmod(0o755)
         else:
             progress('Extrayendo');extract(archive,staging);flatten(staging)
+        from . import buildenv
+        kit=buildenv.looks_like_kit(staging)
         executable=find_executable(staging,item['repository'])
         if executable:executable.chmod(executable.stat().st_mode|0o111)
-        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'verified':digest.startswith('sha256:'),'executable':executable.name if executable else '','date':time.strftime('%Y-%m-%dT%H:%M:%S')}
+        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'verified':digest.startswith('sha256:'),'executable':executable.name if executable else '','sandbox':kit,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
         atomic_json(staging/'.deck-library-port.json',record)
         if destination.exists():
             old=root/'.deck-library-replaced'/(item['folder']+'-'+time.strftime('%Y%m%dT%H%M%S'));old.parent.mkdir(exist_ok=True);destination.rename(old)
@@ -290,4 +292,6 @@ def entry_for(folder):
     except (OSError,ValueError):return None
     exe=folder/record.get('executable','') if record.get('executable') else None
     if not exe or not exe.is_file():return None
-    return Entry(record.get('name',folder.name),[str(exe)],'port','Linux',str(exe),str(folder),metadata={'port_repository':record['repository'],'port_tag':record.get('tag','')})
+    from . import buildenv
+    command=buildenv.wrap([str(exe)]) if record.get('sandbox') else [str(exe)]
+    return Entry(record.get('name',folder.name),command,'port','Linux',str(exe),str(folder),metadata={'port_repository':record['repository'],'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {})})

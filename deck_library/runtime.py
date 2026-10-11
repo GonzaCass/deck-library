@@ -22,6 +22,9 @@ def diagnostics(entry,store=None):
     elif pathlib.Path(executable).is_file() and not os.access(executable,os.X_OK):issues.append('El programa no tiene permiso de ejecución.')
     if entry.source and not pathlib.Path(entry.source).exists():issues.append('No se encuentra el juego. Puede haberse movido o faltar la microSD.')
     if entry.command[0].endswith('.exe'):issues.append('Un ejecutable Windows necesita Wine/Proton. Usar un launcher de Lutris o Heroic, o un comando personalizado.')
+    if entry.metadata.get('sandbox'):
+        from . import buildenv
+        if not buildenv.installed():issues.append('Falta el entorno de compilación (SDK de KDE de Flatpak). Instalarlo desde el catálogo de ports.')
     if entry.kind=='wiicompiled':
         try:
             check=subprocess.run(['flatpak','info','io.github.TeamWheelWizard.WheelWizard'],env=clean_environment(),capture_output=True,timeout=8)
