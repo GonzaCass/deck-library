@@ -589,3 +589,25 @@ class InstallerCacheTests(unittest.TestCase):
         package('0.5.1');install();self.assertEqual(running(),'0.5.1')
         icon=home/'.local/share/icons/hicolor/scalable/apps/deck-library.svg';self.assertTrue(icon.is_file());self.assertGreater(icon.stat().st_mtime,1e9)
         import shutil;shutil.rmtree(root)
+
+class KitControllerTests(PortCatalogTests):
+    def kit_folder(self,game_toml,build_toml=None):
+        folder=self.install_root/'Kit';(folder/'build').mkdir(parents=True);(folder/'game.toml').write_text(game_toml)
+        if build_toml is not None:(folder/'build/game.toml').write_text(build_toml)
+        return folder
+    def test_player_one_is_set_to_the_first_controller_in_both_copies_without_touching_other_keys(self):
+        import tomllib
+        toml='[game]\nname = "X"\n\n[controller]\ndefault_mode = "digital"\n\n[video]\nrenderer = "opengl"\n'
+        folder=self.kit_folder(toml,toml);changed=self.ports.ensure_controller_default(folder);self.assertEqual(len(changed),2)
+        for name in ('game.toml','build/game.toml'):
+            data=tomllib.loads((folder/name).read_text());self.assertEqual((data['controller']['p1_device'],data['controller']['default_mode'],data['video']['renderer']),('auto','digital','opengl'))
+        self.assertEqual(self.ports.ensure_controller_default(folder),[])
+    def test_an_explicit_choice_and_a_missing_table_are_handled(self):
+        import tomllib
+        folder=self.kit_folder('[controller]\np1_device = "keyboard"\n');self.assertEqual(self.ports.ensure_controller_default(folder),[]);self.assertIn('keyboard',(folder/'game.toml').read_text())
+        other=self.root/'Otro';(other).mkdir();(other/'game.toml').write_text('[game]\nname = "Y"\n');self.ports.ensure_controller_default(other);self.assertEqual(tomllib.loads((other/'game.toml').read_text())['controller']['p1_device'],'auto')
+        (other/'game.toml').write_text('esto no es toml [[');self.assertEqual(self.ports.ensure_controller_default(other),[])
+    def test_maintain_repairs_installed_kits_only(self):
+        home=self.root/'home';kit=home/'ports/Kit';kit.mkdir(parents=True);(kit/'game.toml').write_text('[game]\nname = "X"\n');plain=home/'ports/Plain';plain.mkdir();(plain/'game.toml').write_text('[game]\nname = "Y"\n')
+        self.ports.atomic_json(self.store.root/'ports.json',{'a/kit':{'folder':'Kit','setup':'kit'},'a/plain':{'folder':'Plain','setup':'ctr'}})
+        changed=self.ports.maintain(self.store,home);self.assertEqual(changed,[str(kit/'game.toml')]);self.assertNotIn('p1_device',(plain/'game.toml').read_text())
