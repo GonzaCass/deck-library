@@ -57,6 +57,7 @@ class Store:
             if overwrite or e.id not in existing:existing[e.id]=e
             else:
                 old=existing[e.id]
+                if e.metadata.get('port_repository') and not old.metadata.get('manual_command'):old.command=e.command;old.source=e.source;old.cwd=e.cwd
                 if not old.game_id:old.game_id=e.game_id
                 if not old.cover:old.cover=e.cover
                 old.metadata={**e.metadata,**old.metadata}
