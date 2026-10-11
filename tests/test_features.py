@@ -571,3 +571,21 @@ class GameTitleTests(PortCatalogTests):
         record=self.ports.records(self.store)['a/uno'];record['repository']='web/ctr-turbocharged';record['cover_title']='CTR - Crash Team Racing';self.ports.atomic_json(folder/'.deck-library-port.json',record)
         port=self.ports.entry_for(folder);self.assertEqual(port.metadata['game_title'],'CTR - Crash Team Racing')
         shown,hidden=visible_entries([port,Entry('CTR - Crash Team Racing',['/e'],kind='emulated',platform='PlayStation')]);self.assertEqual((len(shown),hidden),(1,1))
+
+class InstallerCacheTests(unittest.TestCase):
+    def test_a_same_length_update_with_zero_mtime_is_not_shadowed_by_the_old_compiled_cache(self):
+        import os,subprocess,sys
+        root=pathlib.Path(tempfile.mkdtemp());home=root/'home';home.mkdir();source=root/'pkg'
+        def package(version):
+            for d in ('deck_library','assets','docs','presets'):(source/d).mkdir(parents=True,exist_ok=True)
+            for f in ('app.py','launch.sh','README.md','LEEME.md','LICENSE'):(source/f).write_text('x')
+            (source/'deck_library/__init__.py').write_text("__version__ = '%s'\n"%version);(source/'assets/icon.svg').write_text('<svg/>')
+            (source/'install.py').write_text((pathlib.Path(__file__).resolve().parent.parent/'install.py').read_text())
+            for path in source.rglob('*'):os.utime(path,(0,0))
+        env={**os.environ,'HOME':str(home)};dest=root/'dest'
+        def install():subprocess.run([sys.executable,str(source/'install.py'),'--destination',str(dest)],env=env,check=True,capture_output=True)
+        def running():return subprocess.run([sys.executable,'-c','import deck_library;print(deck_library.__version__)'],cwd=str(dest),env=env,capture_output=True,text=True).stdout.strip()
+        package('0.4.0');install();self.assertEqual(running(),'0.4.0');self.assertTrue(list(dest.rglob('__pycache__')))
+        package('0.5.1');install();self.assertEqual(running(),'0.5.1')
+        icon=home/'.local/share/icons/hicolor/scalable/apps/deck-library.svg';self.assertTrue(icon.is_file());self.assertGreater(icon.stat().st_mtime,1e9)
+        import shutil;shutil.rmtree(root)
