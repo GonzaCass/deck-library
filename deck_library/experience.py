@@ -189,6 +189,87 @@ class ExperienceMixin:
         box.pack_start(button('Elegir imagen local',local),False,False,0)
         if e.metadata.get('artwork',{}).get('page'):box.pack_start(Gtk.LinkButton.new_with_label(e.metadata['artwork']['page'],'Ver origen de la carátula actual'),False,False,0)
         dialog.show_all();lookup(None);dialog.run();alive['value']=False;dialog.destroy()
+    def steam_art_dialog(self,e):
+        """Choose the five Steam artwork slots of a shortcut from SteamGridDB; chosen images are written when Steam is closed."""
+        from .gui import label,button
+        from . import steamart
+        from .service import queue_art
+        key=self.preferences.get('steamgriddb_key','')
+        if not key:
+            self.message('Falta la clave de SteamGridDB','Agregar la clave API en Ajustes. Es la misma cuenta que usa el plugin de Decky.');return
+        account=pathlib.Path(e.metadata['steam_account']);appid=e.metadata['steam_appid']
+        dialog=Gtk.Dialog(title='Arte de Steam · '+e.name,transient_for=self,modal=True);dialog.set_default_size(900,660);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
+        box=dialog.get_content_area();box.set_border_width(18);box.set_spacing(10)
+        top=Gtk.Box(spacing=10);query=Gtk.Entry();query.set_text(cover_provider.title_for(e));top.pack_start(query,True,True,0);games=Gtk.ComboBoxText();top.pack_start(games,False,False,0);find=button('Buscar juego',lambda _:look(),True);top.pack_start(find,False,False,0);box.pack_start(top,False,False,0)
+        status=label('','muted');box.pack_start(status,False,False,0)
+        present=steamart.existing(account,appid);chosen={};notebook=Gtk.Notebook();box.pack_start(notebook,True,True,0);lists={};state={'alive':True,'game':None}
+        summary=label('','muted');box.pack_start(summary,False,False,0)
+        def refresh_summary():
+            parts=[f'{steamart.SLOTS[s][1]}: '+('elegido' if s in chosen else 'ya en Steam' if present[s] else 'falta') for s in steamart.SLOTS];summary.set_text(' · '.join(parts));save.set_sensitive(bool(chosen))
+        for slot,(_,title,_,_) in steamart.SLOTS.items():
+            scroll=Gtk.ScrolledWindow();flow=Gtk.FlowBox();flow.set_selection_mode(Gtk.SelectionMode.NONE);flow.set_max_children_per_line(6 if slot in ('portrait','icon','logo') else 3);scroll.add(flow);lists[slot]=flow;notebook.append_page(scroll,Gtk.Label(label=title+(' ✓' if present[slot] else '')))
+        def add_tile(slot,row,path):
+            if not state['alive']:return False
+            width,height={'portrait':(120,180),'banner':(220,103),'hero':(300,97),'logo':(160,90),'icon':(96,96)}[slot]
+            try:pixbuf=GdkPixbuf.Pixbuf.new_from_file_at_scale(path,width,height,True)
+            except GLib.Error:return False
+            pick=Gtk.Button();pick.add(Gtk.Image.new_from_pixbuf(pixbuf));pick.set_tooltip_text((row.get('author') or '')+' · '+f'{row["width"]}×{row["height"]}')
+            def chose(_,slot=slot,row=row):pick_image(slot,row)
+            pick.connect('clicked',chose);lists[slot].add(pick);pick.show_all();return False
+        def pick_image(slot,row):
+            status.set_text('Descargando la imagen elegida…')
+            def work():
+                try:data,ext=steamart.fetch_image(row['url']);path=steamart.stage(self.store,appid,slot,data,ext)
+                except Exception as error:GLib.idle_add(status.set_text,'No se pudo descargar: '+str(error));return
+                def done():chosen[slot]=path;status.set_text(steamart.SLOTS[slot][1]+' elegido. Guardar para aplicarlo.');refresh_summary();return False
+                GLib.idle_add(done)
+            threading.Thread(target=work,daemon=True).start()
+        def load_slot(slot,game_id,autopick=False):
+            def work():
+                try:rows=steamart.candidates(key,game_id,slot)
+                except Exception as error:GLib.idle_add(status.set_text,'SteamGridDB: '+str(error));return
+                if autopick and rows and not present[slot] and slot not in chosen:GLib.idle_add(pick_image,slot,rows[0])
+                from concurrent.futures import ThreadPoolExecutor,as_completed
+                with ThreadPoolExecutor(5) as pool:
+                    jobs={pool.submit(cover_provider.download,{'url':r['thumb'],'title':e.name,'provider':'SteamGridDB','page':r['page']},self.store):r for r in rows}
+                    for job in as_completed(jobs):
+                        try:path=job.result()
+                        except Exception:continue
+                        GLib.idle_add(add_tile,slot,jobs[job],path)
+            threading.Thread(target=work,daemon=True).start()
+        def load_all(game_id,autopick=False):
+            e.metadata['sgdb_id']=game_id
+            for slot in steamart.SLOTS:
+                self.reset_page(lists[slot]);load_slot(slot,game_id,autopick)
+        def look():
+            text=query.get_text().strip()
+            if not text:return
+            status.set_text('Buscando el juego en SteamGridDB…')
+            def work():
+                try:found=steamart.find_games(key,text)
+                except Exception as error:GLib.idle_add(status.set_text,'SteamGridDB: '+str(error));return
+                def show():
+                    games.remove_all()
+                    for g in found:games.append(str(g['id']),g['name'])
+                    if not found:status.set_text('Sin resultados. Probar otro nombre.');return False
+                    games.set_active_id(str(e.metadata.get('sgdb_id')) if str(e.metadata.get('sgdb_id')) in {str(g['id']) for g in found} else str(found[0]['id']));status.set_text('Elegir una imagen por pestaña.');return False
+                GLib.idle_add(show)
+            threading.Thread(target=work,daemon=True).start()
+        games.connect('changed',lambda c:load_all(int(c.get_active_id())) if c.get_active_id() else None)
+        bottom=Gtk.Box(spacing=10)
+        def complete(_):
+            gid=games.get_active_id()
+            if not gid:return
+            for slot in steamart.SLOTS:
+                if not present[slot] and slot not in chosen:load_slot(slot,int(gid),True)
+            status.set_text('Eligiendo automáticamente lo que falta…')
+        bottom.pack_start(button('Completar lo que falta',complete),False,False,0)
+        save=button('Guardar en Steam',lambda _:commit(),True);bottom.pack_end(save,False,False,0);box.pack_start(bottom,False,False,0)
+        def commit():
+            items=[{'appid':appid,'slot':s,'file':f} for s,f in chosen.items()]
+            self.store.save(self.entries);dialog.response(Gtk.ResponseType.CLOSE)
+            self.run_queue(lambda:queue_art(items,account,self.store),'Preparando el arte de Steam…')
+        refresh_summary();dialog.show_all();look();dialog.run();state['alive']=False;dialog.destroy()
     def steam_edit_dialog(self,e):
         from .gui import label
         from .steam_inventory import shortcuts,launch_command

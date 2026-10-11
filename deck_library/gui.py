@@ -374,6 +374,7 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         elif not e.metadata.get('steam_store'):actions.pack_start(button('Agregar a Steam',lambda _:self.single_steam(e)),False,False,0)
         actions.pack_start(button('Cambiar carátula',lambda _:self.artwork_dialog(e)),False,False,0);info.pack_start(actions,False,False,0)
         if self.in_steam(e) and e.kind!='steam':info.pack_start(button('Editar acceso de Steam',lambda _:self.steam_edit_dialog(e)),False,False,0)
+        if self.in_steam(e):info.pack_start(button('Arte de Steam (portada, fondo, logotipo, ícono)',lambda _:self.steam_art_dialog(e)),False,False,0)
         origin=e.metadata.get('artwork',{})
         if origin.get('page'):info.pack_start(Gtk.LinkButton.new_with_label(origin['page'],'Carátula de '+origin.get('provider','proveedor')),False,False,0)
         hero.pack_start(info,True,True,0);self.detail.pack_start(hero,False,False,0)

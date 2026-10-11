@@ -29,18 +29,26 @@ def queue_controllers(appids,account,store=None,start_worker=True):
     if not appids:return {'state':'idle','count':0}
     return _queue(account,store or Store(),[],[],start_worker,appids)
 
-def _queue(account,store,ids,remove,start_worker,fix=()):
+def queue_art(items,account,store=None,start_worker=True):
+    """Queue chosen Steam artwork: items are {appid, slot, file}; written once Steam is closed."""
+    from .steamart import SLOTS
+    items=[{'appid':int(i['appid'])&0xffffffff,'slot':i['slot'],'file':str(i['file'])} for i in items if i.get('slot') in SLOTS]
+    if not items:return {'state':'idle','count':0}
+    return _queue(account,store or Store(),[],[],start_worker,art=items)
+
+def _queue(account,store,ids,remove,start_worker,fix=(),art=()):
     pending=store.root/'pending.json'
     with pending_lock(store):
         if pending.exists():
             previous=json.loads(pending.read_text())
             if previous['account']!=str(account):raise ValueError('Hay cambios pendientes para otra cuenta. Guardarlos antes de cambiar de cuenta.')
-            ids=list(dict.fromkeys(previous['ids']+ids));remove=list(dict.fromkeys(previous.get('remove',[])+remove));fix=list(dict.fromkeys(previous.get('controllers',[])+list(fix)))
+            ids=list(dict.fromkeys(previous['ids']+ids));remove=list(dict.fromkeys(previous.get('remove',[])+remove));fix=list(dict.fromkeys(previous.get('controllers',[])+list(fix)));art=[a for a in previous.get('art',[]) if (a['appid'],a['slot']) not in {(n['appid'],n['slot']) for n in art}]+list(art)
         # A shortcut queued for removal must not also be written, and vice versa.
         if remove:ids=[i for i in ids if i not in {e.id for e in store.load() if e.metadata.get('steam_appid') in remove}]
         value={'schema':1,'account':str(account),'ids':ids}
         if remove:value['remove']=remove
         if fix:value['controllers']=fix
+        if art:value['art']=art
         atomic_json(pending,value)
     if not steam_running():return sync(store,wait=False)
     if start_worker:
@@ -56,7 +64,7 @@ def _queue(account,store,ids,remove,start_worker,fix=()):
                 started=result.returncode==0
             if not started and not os.environ.get('SteamAppId'):
                 subprocess.Popen(args,env=clean_environment(),stdout=output,stderr=subprocess.STDOUT,start_new_session=True)
-    return {'state':'pending','count':len(ids)+len(remove)+len(fix)}
+    return {'state':'pending','count':len(ids)+len(remove)+len(fix)+len(art)}
 
 def sync(store=None,wait=True,timeout=86400):
     store=store or Store();store.root.mkdir(parents=True,exist_ok=True)
@@ -71,7 +79,7 @@ def _sync(store=None,wait=True,timeout=86400):
     start=time.monotonic()
     while steam_running():
         if not wait:
-            queued=json.loads(pending.read_text());return {'state':'pending','count':len(queued['ids'])+len(queued.get('remove',[]))+len(queued.get('controllers',[]))}
+            queued=json.loads(pending.read_text());return {'state':'pending','count':len(queued['ids'])+len(queued.get('remove',[]))+len(queued.get('controllers',[]))+len(queued.get('art',[]))}
         if time.monotonic()-start>timeout:return {'state':'pending','count':0}
         time.sleep(2)
     value=json.loads(pending.read_text()); by_id={e.id:e for e in store.load()}
@@ -95,14 +103,19 @@ def _sync(store=None,wait=True,timeout=86400):
     if fix:
         from . import controllers
         controllers.apply(value['account'],fix,force=True,special=dual_screen_appids(store.load()))
-    count=len(result)+len(removed)+len(fix)
-    atomic_json(store.root/'last-sync.json',{'state':'saved','count':count,'shortcuts':result,'removed':removed,'layouts':fix,'covers':covers,'backup':backup,'date':datetime.datetime.now().isoformat()})
+    art_done=0
+    if value.get('art'):
+        from . import steamart
+        for item in value['art']:
+            if steamart.write(value['account'],item['appid'],item['slot'],item['file'],steam_running):art_done+=1
+    count=len(result)+len(removed)+len(fix)+art_done
+    atomic_json(store.root/'last-sync.json',{'state':'saved','count':count,'shortcuts':result,'removed':removed,'layouts':fix,'art':art_done,'covers':covers,'backup':backup,'date':datetime.datetime.now().isoformat()})
     # Don't erase a newly queued selection if it changed while writing.
     with pending_lock(store):
         changed=pending.exists() and json.loads(pending.read_text())!=value
         if pending.exists() and not changed:pending.unlink()
     if changed:return _sync(store,wait,timeout)
-    return {'state':'saved','count':count,'added':len(result),'removed':len(removed),'layouts':len(fix),'backup':backup}
+    return {'state':'saved','count':count,'added':len(result),'removed':len(removed),'layouts':len(fix),'art':art_done,'backup':backup}
 
 
 def restart_steam(store=None):

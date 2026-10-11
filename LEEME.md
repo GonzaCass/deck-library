@@ -32,6 +32,10 @@ A Link Between Worlds, Breath of the Wild y Skyward Sword no tienen port nativo 
 - **Spider-Man 1 y 2** (kits PSX): supersampling 4×, PGXP y los mods oficiales del kit (PGXP, carga rápida, CD 2×), más un mod propio de Deck Library con **interpolación de cuadros a la frecuencia de la pantalla** (solo presentación: mezcla cuadros terminados, la lógica y el audio siguen a la velocidad original; el movimiento rápido puede dejar estela) y **widescreen 16:10** (experimental: las pantallas 2D y los videos siguen en 4:3). Usa la interfaz de plugins del propio framework; requiere recompilar el kit (botón «Mejorar rendimiento»).
 - **Breath of the Wild** en Eden: el parche «60 FPS (1.9.0)» de Nexus Mods se instala en la carpeta de mods del juego (exefs, hash de compilación CD57B23F…). 90 FPS no es posible con ese parche: Eden emula una pantalla de 60 Hz.
 
+### Arte de Steam
+
+En la ficha de un juego con acceso en Steam, **Arte de Steam** busca en SteamGridDB (con la misma clave API de **Ajustes**) la portada vertical, la horizontal, el fondo, el logotipo y el ícono, con las mismas rutas de archivo que usa el plugin SteamGridDB de Decky. Lo que ya existe se muestra marcado y no se reemplaza salvo que se elija otra imagen; cada archivo reemplazado deja una copia en `grid/.deck-library-backups`. **Completar lo que falta** elige automáticamente la primera imagen de cada espacio vacío. Las imágenes elegidas se guardan al cerrar Steam, junto con el resto de los cambios pendientes.
+
 ## Instalación
 
 1. Copiar y extraer `DeckLibrary-0.4.0.tar.gz` en modo Escritorio.
@@ -76,7 +80,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.6.2**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.6.3**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
