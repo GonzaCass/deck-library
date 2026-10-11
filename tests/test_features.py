@@ -408,3 +408,24 @@ class KitRequirementTests(PortCatalogTests):
     def test_missing_bios_is_reported_and_kits_without_requirements_report_nothing(self):
         lines=self.ports.requirements(self.kit('spider-man-recomp'),[],self.root/'vacio');self.assertEqual(lines[0][0],False);self.assertIn('hash exacto',lines[0][1])
         self.assertEqual(self.ports.requirements({'name':'x'},['a']),[])
+
+class BuiltKitTests(PortCatalogTests):
+    def test_a_built_kit_starts_the_game_directly_and_keeps_a_stable_id(self):
+        self.install({'Kit/Launcher':b'\x7fELF','Kit/CMakeLists.txt':b'x','Kit/README-SETUP.txt':b'x'})
+        folder=self.install_root/'Uno';before=self.ports.entry_for(folder)
+        self.assertNotIn('--no-launcher',before.command);self.assertEqual(before.source,str(folder/'Launcher'))
+        (folder/'build').mkdir();(folder/'build/Launcher').write_bytes(b'\x7fELF');(folder/'build/Launcher').chmod(0o755)
+        first_run=self.ports.entry_for(folder)
+        self.assertNotIn('--no-launcher',first_run.command);self.assertIn('--command='+str(folder/'build/Launcher'),first_run.command)
+        (folder/'build/bios.cfg').write_text('/algun/bios.bin\n');after=self.ports.entry_for(folder)
+        self.assertEqual(after.command[-1],'--no-launcher');self.assertIn('--command='+str(folder/'build/Launcher'),after.command)
+        self.assertEqual((before.id,after.cwd),(after.id,str(folder/'build')));self.assertTrue(after.metadata['built']);self.assertEqual(first_run.id,after.id)
+    def test_rescan_updates_the_command_of_a_managed_port_without_duplicating_it(self):
+        self.install({'Kit/Launcher':b'\x7fELF','Kit/CMakeLists.txt':b'x','Kit/README-SETUP.txt':b'x'})
+        folder=self.install_root/'Uno';store=self.store;store.merge([self.ports.entry_for(folder)])
+        (folder/'build').mkdir();(folder/'build/Launcher').write_bytes(b'\x7fELF');(folder/'build/Launcher').chmod(0o755);(folder/'build/bios.cfg').write_text('x')
+        store.merge([self.ports.entry_for(folder)],overwrite=False);saved=store.load()
+        self.assertEqual(len(saved),1);self.assertIn('--no-launcher',saved[0].command)
+    def test_manual_commands_are_not_overwritten_by_a_rescan(self):
+        self.install({'Tool':b'\x7fELF'});folder=self.install_root/'Uno';entry=self.ports.entry_for(folder);entry.command=['/mi/comando'];entry.metadata['manual_command']=True;self.store.save([entry])
+        self.store.merge([self.ports.entry_for(folder)],overwrite=False);self.assertEqual(self.store.load()[0].command,['/mi/comando'])

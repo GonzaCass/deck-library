@@ -81,3 +81,9 @@ Not verified: generating and compiling a game from a disc. Both kits require a U
 ### 0.4.3
 
 178 core tests pass. On this Deck the kit cards found `scph5502.bin` (SHA-256 1faaa18f...) and `scph1001.bin` (71af94d1...) in the EmuDeck BIOS folder, which are the exact hashes the Spider-Man and Spider-Man 2 kits require. The PlayStation library holds `Spider-Man (Spain)` and `Spider-Man 2 - Enter - Electro (Europe)`; the kits pin the USA executables and Redump hashes (SLUS-00875, SLUS-01378 Rev 1), so those discs are reported as the wrong region. The kit's own verify-disc hashes the CHD container, so it cannot identify a CHD; the region conclusion rests on the release names and on the pinned identities.
+
+### 0.4.4 - Spider-Man PSX kits generated and compiled on the Deck
+
+192 core tests pass. With USA discs supplied by the user (SLUS-00875: size, MD5, SHA-1 and CRC32 equal to the kit's pinned Redump identity; SLUS-01378: size, MD5 and SHA-1 equal to the pinned Rev 1 identity) and the BIOS files found by hash in the EmuDeck folder, both kits ran their own disc verification, generated the recompiled game and BIOS C code, and compiled the runtime inside the KDE SDK 6.11 Flatpak (about 6 minutes for Spider-Man, 648 build steps). Both built games started inside the sandbox on the Steam Deck: Spider-Man showed its first 3D scene with the launcher reporting 'Disc verified, SLUS-00875, NTSC-U'; Spider-Man 2 booted straight (`--no-launcher`) to its intro and reported SLUS-01378. The kit's launcher adopts the BIOS on first run and stores it in `build/bios.cfg`; Deck Library starts a built kit with its launcher until that file exists and directly afterwards.
+
+Not verified: gameplay, frame rate and audio (the test session had no usable audio device), Gaming Mode launch from Steam, and the kit warning that the generated SCPH-1001 BIOS code may not match the current emitter fingerprint (the game booted regardless).

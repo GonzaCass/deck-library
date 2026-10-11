@@ -23,8 +23,8 @@ def ports_root(home=None):return pathlib.Path(home or pathlib.Path.home())/'port
 
 SETUP_KIT='Kit de instalación: requiere el disco y la BIOS propios y compila el juego en el primer inicio. En la Deck corre dentro del SDK de KDE de Flatpak, que la app instala una vez (sin root).'
 BUILTIN=[
- {'name':'Spider-Man (PSX)','repository':'alexbeavs-ps1-ports/spider-man-recomp','folderName':'SpiderManPSX','category':'PlayStation','kit':True,'bios':{'name':'SCPH-5502 o 5552 (Europa)','sha256':['1faaa18fa820a0225e488d9f086296b8e6c46df739666093987ff7d8fd352c09']},'disc':{'serial':'SLUS-00875','match':'spiderman','exclude':'spiderman2'},'note':'Necesita el disco SLUS-00875 (EE. UU.) y la BIOS SCPH-5502 o 5552 (Europa). '+SETUP_KIT},
- {'name':'Spider-Man 2: Enter Electro (PSX)','repository':'alexbeavs-ps1-ports/spider-man-2-enter-electro-recomp','folderName':'SpiderMan2PSX','category':'PlayStation','kit':True,'bios':{'name':'SCPH-1001 (EE. UU.)','sha256':['71af94d1e47a68c11e8fdb9f8368040601514a42a5a399cda48c7d3bff1e99d3']},'disc':{'serial':'SLUS-01378','match':'spiderman2enterelectro','exclude':''},'note':'Necesita el disco SLUS-01378 (EE. UU., Rev 1) y la BIOS SCPH-1001 (EE. UU.). Una copia europea no sirve. '+SETUP_KIT},
+ {'name':'Spider-Man (PS1 recompilado)','repository':'alexbeavs-ps1-ports/spider-man-recomp','folderName':'SpiderManPSX','category':'PlayStation','kit':True,'bios':{'name':'SCPH-5502 o 5552 (Europa)','sha256':['1faaa18fa820a0225e488d9f086296b8e6c46df739666093987ff7d8fd352c09']},'disc':{'serial':'SLUS-00875','match':'spiderman','exclude':'spiderman2'},'note':'Necesita el disco SLUS-00875 (EE. UU.) y la BIOS SCPH-5502 o 5552 (Europa). '+SETUP_KIT},
+ {'name':'Spider-Man 2: Enter Electro (PS1 recompilado)','repository':'alexbeavs-ps1-ports/spider-man-2-enter-electro-recomp','folderName':'SpiderMan2PSX','category':'PlayStation','kit':True,'bios':{'name':'SCPH-1001 (EE. UU.)','sha256':['71af94d1e47a68c11e8fdb9f8368040601514a42a5a399cda48c7d3bff1e99d3']},'disc':{'serial':'SLUS-01378','match':'spiderman2enterelectro','exclude':''},'note':'Necesita el disco SLUS-01378 (EE. UU., Rev 1) y la BIOS SCPH-1001 (EE. UU.). Una copia europea no sirve. '+SETUP_KIT},
 ]
 PLATFORMS={'playstation':'PlayStation','ps1':'PlayStation','psx':'PlayStation','playstation 2':'PlayStation 2','ps2':'PlayStation 2','gamecube':'GameCube','wii':'Wii','nintendo':'Nintendo','n64':'Nintendo 64','xbox':'Xbox 360','rexglue':'Xbox 360'}
 
@@ -155,7 +155,7 @@ def icon_path(store,item,get=None):
     try:
         if url:data=cover_provider.request(url,limit=ICON_LIMIT)
         else:
-            title=re.sub(r'\s*\((?:PSX|PS1|PS2|N64)\)\s*$','',item['name'])
+            title=re.sub(r'\s*\((?:PSX|PS1|PS2|N64)(?: recompilado)?\)\s*$','',item['name'])
             rows=cover_provider.search(title,{'artwork_provider':'automatic','_artwork_platform':platform_for(item.get('list',''))})
             row=next((r for r in rows if cover_provider.normalized(r['title'])==cover_provider.normalized(title)),None)
             if not row:raise ValueError('sin portada')
@@ -319,14 +319,28 @@ def installed_updates(store,get=fetch_json):
         if tag and tag!=record.get('tag') and pick_asset(release.get('assets',[])):result.append({'name':record.get('name',repo),'repository':repo,'installed':record.get('tag',''),'latest':tag,'page':release.get('html_url','')})
     return result
 
+def port_id(repository):
+    """Stable library id for a catalog port, so the entry survives a change of executable."""
+    import hashlib
+    return hashlib.sha256(('port:'+repository.lower()).encode()).hexdigest()[:20]
+
 def entry_for(folder):
-    """Library entry for a port installed by this module, or None."""
+    """Library entry for a port installed by this module, or None.
+
+    A setup kit that has already been generated and compiled starts its built game directly
+    (`--no-launcher`) instead of reopening the setup wizard.
+    """
     from .models import Entry
+    from . import buildenv
     folder=pathlib.Path(folder)
     try:record=json.loads((folder/'.deck-library-port.json').read_text())
     except (OSError,ValueError):return None
     exe=folder/record.get('executable','') if record.get('executable') else None
     if not exe or not exe.is_file():return None
-    from . import buildenv
-    command=buildenv.wrap([str(exe)]) if record.get('sandbox') else [str(exe)]
-    return Entry(record.get('name',folder.name),command,'port','Linux',str(exe),str(folder),metadata={'port_repository':record['repository'],'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {})})
+    args=[];cwd=str(folder);built=folder/'build'/exe.name
+    if record.get('sandbox') and built.is_file():
+        # The built game's own launcher adopts the BIOS on first run and stores it in bios.cfg; only then can it boot directly.
+        exe=built;cwd=str(built.parent)
+        if (built.parent/'bios.cfg').is_file():args=['--no-launcher']
+    command=buildenv.wrap([str(exe),*args]) if record.get('sandbox') else [str(exe)]
+    return Entry(record.get('name',folder.name),command,'port','Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {})})
