@@ -426,7 +426,7 @@ def apply_runtime_patches(folder):
     CPU time during video) when it only needs the control register. The behaviour is identical.
 
     Edits are applied only when the original text is found exactly, so a different kit version is left alone.
-    Returns 'applied', 'present' or 'incompatible'.
+    Returns 'applied', 'present', 'not-needed' or 'incompatible'.
     """
     folder=pathlib.Path(folder);texts={}
     for rel,edits in SPU_PATCHES:
@@ -434,6 +434,7 @@ def apply_runtime_patches(folder):
         if not path.is_file():return 'incompatible'
         texts[path]=path.read_text()
     if all(SPU_MARKER in text for text in texts.values()):return 'present'
+    if not any(SPU_MARKER in text for text in texts.values()) and 'spu_get_global_state' not in texts[folder/'psxrecomp/runtime/src/interrupts.c']:return 'not-needed'  # newer runtimes no longer have the problem
     if any(SPU_MARKER in text for text in texts.values()):return 'incompatible'
     updated={}
     for rel,edits in SPU_PATCHES:
@@ -520,7 +521,7 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
         ensure_controller_default(folder);ensure_overlay_compiler(folder)
         outcome=apply_runtime_patches(folder)
         if outcome=='incompatible':progress('Esta versión del kit no admite la mejora de rendimiento; se compila sin ella')
-        record['patch_level']=PATCH_LEVEL if outcome in ('applied','present') else 0
+        record['patch_level']=PATCH_LEVEL if outcome in ('applied','present','not-needed') else 0
         progress('Verificando el disco');run([*base,'verify-disc','--config','game.toml','--project-root','.','--disc',disc['cue']],cwd=str(folder),progress=progress)
         progress('Generando el juego a partir del disco');run([*base,'generate','--config','game.toml','--project-root','.','--disc',disc['cue'],'--bios',bios],cwd=str(folder),progress=progress)
         progress('Compilando (varios minutos)');run([*base,'rebuild','--config','game.toml','--project-root','.','--build-dir','build','--target','psx-runtime','--exe-basename',executable.name,'--no-pgo'],cwd=str(folder),progress=progress)
