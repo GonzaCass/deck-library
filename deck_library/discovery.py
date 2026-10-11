@@ -13,7 +13,8 @@ SYSTEMS={
  'ps2':('PlayStation 2','pcsx2-qt',('-batch','-fullscreen'),{'.iso','.chd','.m3u'}),
  'psp':('PSP','ppsspp',('--fullscreen',),{'.iso','.cso','.pbp'}),
  '3ds':('Nintendo 3DS','azahar',('-f',),{'.3ds','.cci','.cxi'}),
- 'wiiu':('Wii U','cemu',('-f','-g'),{'.wua','.wud','.rpx'}),
+ 'n3ds':('Nintendo 3DS','azahar',('-f',),{'.3ds','.cci','.cxi'}),
+ 'wiiu':('Wii U','cemu',('-f','-g'),{'.wua','.wud','.wux','.rpx'}),
 }
 REJECT_PARTS={'updates','update','dlc','mods','duplicates','firmware','keys','sistemas','systems','bios'}
 

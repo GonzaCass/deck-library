@@ -35,7 +35,7 @@ label { color:@text; }
 label.muted, label.status { color:@dim; }
 label.status { font-size:13px; }
 label.subtitle { color:@dim; font-size:16px; }
-label.hero { font-size:30px; font-weight:800; }
+label.hero { font-size:26px; font-weight:800; }
 label.welcome-title { font-size:38px; font-weight:800; }
 label.title { font-size:17px; font-weight:700; }
 label.pill { color:@accent; font-size:12px; font-weight:700; }
@@ -43,8 +43,21 @@ label.badge { background:@accent; color:@on_accent; border-radius:10px; padding:
 label.good { color:@good; }
 dialog viewport, dialog scrolledwindow, dialog list { background:@bg; }
 
-.sidebar { background:@surface; padding:22px 12px; border-right:1px solid @line; }
-.brand { font-size:19px; font-weight:800; }
+.header { background:@surface; padding:6px 20px; border-bottom:1px solid @line; }
+.brand { font-size:18px; font-weight:800; }
+button.tab { background:transparent; border:0; border-bottom:3px solid transparent; border-radius:0; padding:14px 20px; box-shadow:none; }
+button.tab label { color:@dim; font-weight:700; font-size:15px; }
+button.tab:hover label { color:@text; }
+button.tab.active { border-bottom-color:@accent; }
+button.tab.active label { color:@text; }
+button.chip { background:@surface; border:1px solid @line; border-radius:999px; padding:5px 18px; min-height:24px; }
+button.chip label { color:@dim; font-weight:600; }
+button.chip.active { background:@accent; border-color:@accent; }
+button.chip.active label { color:@on_accent; }
+label.tag { background:@raised; border-radius:999px; padding:2px 11px; font-size:12px; font-weight:600; color:@dim; }
+label.tag.accent { background:alpha(@accent,0.18); color:@accent; }
+label.tag.warn { background:alpha(#f0a35c,0.18); color:#f0a35c; }
+.divider { background:@line; min-height:1px; }
 .card { background:@surface; border:1px solid @line; border-radius:12px; padding:16px; }
 .preset-detail { background:@surface; padding:16px; border-radius:12px; }
 .banner { background:@raised; border:1px solid @accent; border-radius:12px; padding:10px 14px; }
@@ -128,9 +141,9 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         super().__init__(title='Deck Library');self.set_wmclass('deck-library','deck-library');self.set_icon_from_file(str(pathlib.Path(__file__).resolve().parent.parent/'assets/icon.svg'));self.set_default_size(1200,740);self.set_size_request(960,620)
         self.store=Store();self.preferences=settings(self.store);self.view=self.preferences.get('view','covers');self.entries=[];self.checked=set();self.selected=None;self.selection_mode=False;self.platform_filter='all';self.type_filter='all';self.artwork_attempted=set();self.artwork_busy=False;self.discover_busy=False;self.wizard_step=0
         self.connect('destroy',Gtk.main_quit)
-        layout=Gtk.Box();self.add(layout)
-        self.build_sidebar(layout)
-        main=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);main.set_border_width(24);layout.pack_start(main,True,True,0)
+        layout=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.add(layout)
+        self.build_header(layout)
+        main=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);main.set_border_width(20);layout.pack_start(main,True,True,0)
         self.pages=Gtk.Stack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);main.pack_start(self.pages,True,True,0)
         self.build_library()
         detail_scroll=Gtk.ScrolledWindow();detail_scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);detail_scroll.add(self.detail);self.pages.add_named(detail_scroll,'detail')
@@ -158,34 +171,34 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         if title:box.pack_start(label(title,'title'),False,False,0)
         parent.pack_start(box,False,False,0);return box
 
-    def build_sidebar(self,layout):
-        side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);side.set_size_request(210,-1);side.get_style_context().add_class('sidebar');layout.pack_start(side,False,False,0)
+    def build_header(self,layout):
+        bar=Gtk.Box(spacing=18);bar.get_style_context().add_class('header');layout.pack_start(bar,False,False,0)
         brand=Gtk.Box(spacing=10)
-        try:brand.pack_start(Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(__file__).resolve().parent.parent/'assets/icon.svg'),34,34,True)),False,False,0)
+        try:brand.pack_start(Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(__file__).resolve().parent.parent/'assets/icon.svg'),32,32,True)),False,False,0)
         except GLib.Error:pass
-        brand.pack_start(label('Deck Library','brand'),False,False,0);side.pack_start(brand,False,False,10)
-        self.nav_buttons={}
-        for text,callback in [('Biblioteca',lambda _:self.open_library()),('Agregar juegos',lambda _:self.add_hub()),('Catálogo de ports',lambda _:self.catalog_page()),('Actualizaciones',lambda _:self.updates_page()),('Ajustes',lambda _:self.settings_page())]:
-            widget=Gtk.Button();widget.connect('clicked',callback);widget.get_style_context().add_class('nav');row=Gtk.Box(spacing=8);name=label(text);row.pack_start(name,True,True,0)
+        brand.pack_start(label('Deck Library','brand'),False,False,0);bar.pack_start(brand,False,False,0)
+        tabs=Gtk.Box(spacing=0);bar.pack_start(tabs,False,False,8);self.nav_buttons={}
+        for text,callback in [('Biblioteca',lambda _:self.open_library()),('Catálogo',lambda _:self.catalog_page()),('Actualizaciones',lambda _:self.updates_page()),('Ajustes',lambda _:self.settings_page())]:
+            widget=Gtk.Button();widget.connect('clicked',callback);widget.get_style_context().add_class('tab');row=Gtk.Box(spacing=8);row.pack_start(label(text),False,False,0)
             if text=='Actualizaciones':
-                self.update_badge=label('0','badge');self.update_badge.set_no_show_all(True);self.update_badge.set_yalign(0.5);row.pack_end(self.update_badge,False,False,0)
-            widget.add(row);side.pack_start(widget,False,False,0);self.nav_buttons[text]=widget
-        side.pack_end(label('Versión '+__version__,'muted'),False,False,0)
+                self.update_badge=label('0','badge');self.update_badge.set_no_show_all(True);self.update_badge.set_yalign(0.5);row.pack_start(self.update_badge,False,False,0)
+            widget.add(row);tabs.pack_start(widget,False,False,0);self.nav_buttons[text]=widget
+        bar.pack_end(button('Agregar juegos',lambda _:self.add_hub(),True),False,False,0);bar.pack_end(label('v'+__version__,'muted'),False,False,0)
 
     def build_library(self):
         library=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14);self.pages.add_named(library,'library')
-        heading=Gtk.Box(spacing=12);titles=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);titles.pack_start(label('Biblioteca','hero'),False,False,0);self.library_count=label('','subtitle');titles.pack_start(self.library_count,False,False,0)
-        heading.pack_start(titles,True,True,0);heading.pack_end(button('Agregar juegos',lambda _:self.add_hub(),True),False,False,0);heading.pack_end(button('Buscar juegos',lambda _:self.discover()),False,False,0);library.pack_start(heading,False,False,0)
         self.update_banner=Gtk.Box(spacing=12);self.update_banner.get_style_context().add_class('banner');self.update_banner.set_no_show_all(True)
         self.banner_text=label('');self.banner_text.set_line_wrap(False);self.banner_text.set_hexpand(True);self.update_banner.pack_start(self.banner_text,True,True,0);self.banner_action=button('Ver',lambda _:self.banner_clicked(),True);self.update_banner.pack_end(self.banner_action,False,False,0);library.pack_start(self.update_banner,False,False,0)
         toolbar=Gtk.Box(spacing=10);self.search=Gtk.SearchEntry();self.search.set_placeholder_text('Buscar juego');self.search.connect('search-changed',lambda _:self.render());toolbar.pack_start(self.search,True,True,0)
-        self.platform_picker=Gtk.ComboBoxText();self.platform_picker.append('all','Todas las plataformas');self.platform_picker.set_active_id('all');self.platform_picker.connect('changed',self.filter_changed);toolbar.pack_start(self.platform_picker,False,False,0)
-        self.type_picker=Gtk.ComboBoxText();self.type_picker.append('all','Todos los tipos')
-        for key,title in TYPES:self.type_picker.append(key,title)
-        self.type_picker.set_active_id('all');self.type_picker.connect('changed',self.type_changed);toolbar.pack_start(self.type_picker,False,False,0)
         self.view_picker=Gtk.ComboBoxText();self.view_picker.append('covers','Carátulas');self.view_picker.append('list','Lista');self.view_picker.set_active_id(self.view);self.view_picker.connect('changed',self.change_view);toolbar.pack_start(self.view_picker,False,False,0)
-        self.prefer_ports=Gtk.CheckButton(label='Preferir ports');self.prefer_ports.set_tooltip_text('Oculta la versión por emulador de un juego que ya tiene port.');self.prefer_ports.set_active(self.preferences.get('prefer_ports',True));self.prefer_ports.connect('toggled',self.prefer_changed);toolbar.pack_start(self.prefer_ports,False,False,0)
-        self.select_button=button('Seleccionar',lambda _:self.toggle_selection());toolbar.pack_start(self.select_button,False,False,0);library.pack_start(toolbar,False,False,0)
+        self.select_button=button('Seleccionar',lambda _:self.toggle_selection());toolbar.pack_start(self.select_button,False,False,0);toolbar.pack_start(button('Buscar juegos',lambda _:self.discover()),False,False,0);library.pack_start(toolbar,False,False,0)
+        filters=Gtk.Box(spacing=8);library.pack_start(filters,False,False,0);self.chip_buttons={}
+        for key,title in [('all','Todos'),*TYPES]:
+            chip=Gtk.Button(label=title);chip.get_style_context().add_class('chip');chip.connect('clicked',lambda _,k=key:self.type_changed(k));filters.pack_start(chip,False,False,0);self.chip_buttons[key]=chip
+        self.chip_buttons['all'].get_style_context().add_class('active')
+        self.platform_picker=Gtk.ComboBoxText();self.platform_picker.append('all','Todas las plataformas');self.platform_picker.set_active_id('all');self.platform_picker.connect('changed',self.filter_changed);filters.pack_start(self.platform_picker,False,False,6)
+        self.prefer_ports=Gtk.CheckButton(label='Preferir ports');self.prefer_ports.set_tooltip_text('Oculta la versión por emulador de un juego que ya tiene port.');self.prefer_ports.set_active(self.preferences.get('prefer_ports',True));self.prefer_ports.connect('toggled',self.prefer_changed);filters.pack_start(self.prefer_ports,False,False,0)
+        self.library_count=label('','status');self.library_count.set_line_wrap(False);self.library_count.set_ellipsize(3);self.library_count.set_halign(Gtk.Align.END);filters.pack_end(self.library_count,False,False,0)
         self.library_stack=Gtk.Stack();self.library_stack.set_vexpand(True);library.pack_start(self.library_stack,True,True,0)
         scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.list=Gtk.ListBox();self.list.connect('row-selected',self.on_select);scroll.add(self.list);self.library_stack.add_named(scroll,'list')
         covers_scroll=Gtk.ScrolledWindow();covers_scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.covers=Gtk.FlowBox();self.covers.set_selection_mode(Gtk.SelectionMode.NONE);self.covers.set_max_children_per_line(8);self.covers.set_min_children_per_line(1);self.covers.set_column_spacing(16);self.covers.set_row_spacing(20);self.covers.set_homogeneous(True);self.covers.set_valign(Gtk.Align.START);covers_scroll.add(self.covers);self.library_stack.add_named(covers_scroll,'covers')
@@ -203,7 +216,7 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         enabled=self.preferences.get('animations',True);Gtk.Settings.get_default().set_property('gtk-enable-animations',enabled)
         for stack in (self.pages,self.library_stack,self.wizard_box):stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if enabled else Gtk.StackTransitionType.NONE);stack.set_transition_duration(160 if enabled else 0)
     def page_changed(self,stack,*args):
-        page=stack.get_visible_child_name();active={'library':'Biblioteca','detail':'Biblioteca','add':'Agregar juegos','catalog':'Catálogo de ports','welcome':'Agregar juegos','updates':'Actualizaciones','settings':'Ajustes'}.get(page)
+        page=stack.get_visible_child_name();active={'library':'Biblioteca','detail':'Biblioteca','catalog':'Catálogo','updates':'Actualizaciones','settings':'Ajustes'}.get(page)
         for text,widget in self.nav_buttons.items():
             context=widget.get_style_context()
             if text==active:context.add_class('active')
@@ -270,7 +283,13 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         if self.platform_picker.get_active_id() is None:self.platform_filter='all';self.platform_picker.set_active_id('all')
         self.platform_picker.handler_unblock_by_func(self.filter_changed)
     def filter_changed(self,picker):self.platform_filter=picker.get_active_id() or 'all';self.render()
-    def type_changed(self,picker):self.type_filter=picker.get_active_id() or 'all';self.render()
+    def type_changed(self,key):
+        self.type_filter=key
+        for name,chip in self.chip_buttons.items():
+            style=chip.get_style_context()
+            if name==key:style.add_class('active')
+            else:style.remove_class('active')
+        self.render()
     def prefer_changed(self,check):self.preferences['prefer_ports']=check.get_active();save_settings(self.preferences,self.store);self.render()
     def shown_entries(self):
         """Library entries after the duplicate rule; also returns how many emulator versions were left out."""
@@ -281,7 +300,7 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
     def in_steam(self,e):return e.metadata.get('steam_appid') is not None and not e.metadata.get('steam_store')
     def render(self):
         self.reset_page(self.list);self.reset_page(self.covers);visible=self.visible()
-        shown,hidden=self.shown_entries();platforms=len({e.platform for e in shown});games=len(shown);self.library_count.set_text(f'{games} {"juego" if games==1 else "juegos"} en {platforms} {"plataforma" if platforms==1 else "plataformas"}'+(f' · {hidden} por emulador ocultos (tienen port)' if hidden else ''))
+        shown,hidden=self.shown_entries();platforms=len({e.platform for e in shown});games=len(shown);self.library_count.set_text(f'{games} {"juego" if games==1 else "juegos"}'+(f' · {hidden} ocultos por tener port' if hidden else ''))
         for entry in visible:
             row=Gtk.ListBoxRow();row.entry=entry;box=Gtk.Box(spacing=14);row.add(box)
             if self.selection_mode:

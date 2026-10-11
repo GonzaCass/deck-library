@@ -27,9 +27,10 @@ def install(progress=print,popen=subprocess.Popen):
         if line:tail=(tail+[line])[-8:];progress(line[:140])
     if process.wait():raise RuntimeError('No se pudo instalar el SDK de KDE desde Flathub:\n'+'\n'.join(tail[-4:]))
 
-def wrap(command):
+def wrap(command,env=None):
     """Command line that runs `command` inside the SDK with network, display, audio, input and the home folder."""
-    return [flatpak(),'run','--devel','--share=network','--share=ipc','--socket=x11','--socket=wayland','--socket=pulseaudio','--device=all','--filesystem=home','--branch='+BRANCH,'--command='+command[0],SDK,*command[1:]]
+    extra=['--env='+k+'='+str(v) for k,v in sorted((env or {}).items())]
+    return [flatpak(),'run','--devel',*extra,'--share=network','--share=ipc','--socket=x11','--socket=wayland','--socket=pulseaudio','--device=all','--filesystem=home','--branch='+BRANCH,'--command='+command[0],SDK,*command[1:]]
 
 def is_wrapped(command):
     return len(command)>1 and command[0].endswith('flatpak') and any(part==SDK for part in command)

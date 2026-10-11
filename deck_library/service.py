@@ -116,7 +116,7 @@ def restart_steam(store=None):
         for _ in range(40):
             if not steam_running():break
             time.sleep(1)
-        if steam_running():raise RuntimeError('Steam sigue abierto. Cerralo completamente desde Steam → Salir.')
+        if steam_running():raise RuntimeError('Steam sigue abierto. Cerrarlo completamente desde Steam → Salir.')
         # The deferred service may hold the lock while finishing the same queue.
         for _ in range(15):
             result=sync(store,wait=False)

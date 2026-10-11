@@ -23,13 +23,27 @@ LAUNCHERS=('launch.sh','run.sh','start.sh')
 def ports_root(home=None):return pathlib.Path(home or pathlib.Path.home())/'ports'
 
 SETUP_KIT='Kit de instalación: requiere el disco y la BIOS propios y compila el juego en el primer inicio. En la Deck corre dentro del SDK de KDE de Flatpak, que la app instala una vez (sin root).'
-WEB_HOSTS=('dl.openpete.com','ctr.cmzi.uk')
+WEB_HOSTS=('dl.openpete.com','ctr.cmzi.uk','codeload.github.com')
+ZELDA3_COMMIT='45a149d8b4bb8098f53d1009f76e76e7d8b79bbf'
+COMMON_KEY_COMMENT='wii u common key'
 BUILTIN=[
  {'name':'Spider-Man (PS1 recompilado)','repository':'alexbeavs-ps1-ports/spider-man-recomp','folderName':'SpiderManPSX','category':'PlayStation','kit':True,'setup':'kit','cover_title':'Spider-Man','bios':{'name':'SCPH-5502 o 5552 (Europa)','sha256':['1faaa18fa820a0225e488d9f086296b8e6c46df739666093987ff7d8fd352c09']},'disc':{'serial':'SLUS-00875','match':'spiderman','exclude':'spiderman2'},'note':'Necesita el disco SLUS-00875 (EE. UU.) y la BIOS SCPH-5502 o 5552 (Europa). '+SETUP_KIT},
  {'name':'Spider-Man 2: Enter Electro (PS1 recompilado)','repository':'alexbeavs-ps1-ports/spider-man-2-enter-electro-recomp','folderName':'SpiderMan2PSX','category':'PlayStation','kit':True,'setup':'kit','cover_title':'Spider-Man 2 - Enter - Electro','bios':{'name':'SCPH-1001 (EE. UU.)','sha256':['71af94d1e47a68c11e8fdb9f8368040601514a42a5a399cda48c7d3bff1e99d3']},'disc':{'serial':'SLUS-01378','match':'spiderman2enterelectro','exclude':''},'note':'Necesita el disco SLUS-01378 (EE. UU., Rev 1) y la BIOS SCPH-1001 (EE. UU.). Una copia europea no sirve. '+SETUP_KIT},
  {'name':'Spyro the Dragon (OpenPete)','repository':'web/openpete','folderName':'OpenPete','category':'PlayStation','kit':True,'setup':'openpete','web':{'kind':'openpete'},'cover_title':'Spyro the Dragon','disc':{'serial':'SCUS-94228','match':'spyrothedragon','exclude':''},'note':'Descarga de openpete.com (se verifica el SHA-256 publicado). Necesita el disco NTSC-U SCUS-94228. Compila el juego desde el disco en el primer inicio, dentro del SDK de KDE de Flatpak.'},
  {'name':'Crash Team Racing: Turbocharged','repository':'web/ctr-turbocharged','folderName':'CTRTurbocharged','category':'PlayStation','setup':'ctr','web':{'kind':'ctr'},'cover_title':'CTR - Crash Team Racing','disc':{'serial':'SCUS-94426','match':'crashteamracing','exclude':''},'note':'Descarga de ctr.cmzi.uk (el sitio no publica hash; se comprueba el tamaño). Necesita el BIN crudo MODE2/2352 del disco NTSC-U SCUS-94426, que se copia como ctr-u.bin en ~/.local/share/ctr-turbocharged.'},
 ]
+BUILTIN+=[
+ {'name':'The Legend of Zelda: The Minish Cap','repository':'999sian/tmc','folderName':'TheLegendOfZeldaTheMinishCap-ProjectPicori','category':'Game Boy Advance','setup':'rom','cover_title':'Legend of Zelda, The - The Minish Cap',
+  'rom':{'systems':['gba'],'sizes':[16777216],'sha1':{'cff199b36ff173fb6faf152653d1bccf87c26fb7':'baserom_eu.gba','b4bd50e4131b027c334547b4524e2dbbd4227130':'baserom.gba','6c5404a1effb17f481f352181d0f1c61a2765c5d':'baserom_jp.gba'},'name':'Minish Cap (USA, Europa o Japón)'},
+  'note':'Project Picori, port nativo. Necesita la ROM de GBA (se reconoce por SHA-1, sea cual sea el nombre del archivo); la edición europea incluye el texto en español.'},
+ {'name':'The Legend of Zelda: A Link to the Past','repository':'snesrev/zelda3','folderName':'Zelda3-LinkToThePast','category':'Super Nintendo','kit':True,'setup':'zelda3','executable':'zelda3','web':{'kind':'zelda3'},'cover_title':'Legend of Zelda, The - A Link to the Past',
+  'rom':{'systems':['snes','sfc'],'sizes':[1048576,1049088],'sha1':{'6d4f10a8b10e10dbe624cb23cf03b88bb8252973':'zelda3.sfc'},'strip_header':True,'name':'A Link to the Past (USA, versión 1.0)'},
+  'note':'Reimplementación nativa en C (snesrev/zelda3). Se compila en la Deck dentro del SDK de KDE y necesita la ROM USA: se acepta con o sin el encabezado de 512 bytes. No existe versión oficial en español.'},
+ {'name':'The Legend of Zelda: The Wind Waker HD','repository':'ZeldaWWHDRecomp/ZeldaWWHDRecomp','folderName':'WindWakerHD','category':'Wii U','setup':'wwhd','cover_title':'Legend of Zelda, The - The Wind Waker HD',
+  'wiiu':{'title':'wind waker hd','exts':['.wux','.wud','.wua'],'name':'Wind Waker HD (disco de Wii U)'},
+  'note':'Port nativo por recompilación. Necesita el disco de Wii U (.wux/.wud/.wua) y, para .wux/.wud, la clave del disco y la clave común, que se leen de keys.txt de EmuDeck y solo se usan en archivos temporales. La versión USA incluye español.'},
+]
+
 PLATFORMS={'playstation':'PlayStation','ps1':'PlayStation','psx':'PlayStation','playstation 2':'PlayStation 2','ps2':'PlayStation 2','gamecube':'GameCube','wii':'Wii','nintendo':'Nintendo','n64':'Nintendo 64','xbox':'Xbox 360','rexglue':'Xbox 360'}
 
 def platform_for(category):
@@ -78,6 +92,48 @@ def find_disc(spec,games):
         return {'name':name,'source':str(path),'cue':str(cue) if cue else '','bin':str(binary) if binary else ''}
     return None
 
+def find_rom(spec,home=None):
+    """A ROM by SHA-1 in the EmuDeck system folders, whatever its name. Returns {path, target, header} or None.
+
+    `sha1` maps hash -> the file name the port expects; with `strip_header` a 512-byte copier header is ignored for the hash.
+    """
+    home=pathlib.Path(home or pathlib.Path.home());roots=[home/'Emulation/roms'/system for system in spec.get('systems',[])]
+    sizes=set(spec.get('sizes',[]));wanted={k.lower():v for k,v in spec.get('sha1',{}).items()}
+    for root in roots:
+        if not root.is_dir():continue
+        for path in sorted(root.rglob('*')):
+            try:
+                if not path.is_file() or (sizes and path.stat().st_size not in sizes):continue
+                data=path.read_bytes()
+            except OSError:continue
+            header=len(data)%1024==512 and spec.get('strip_header',False)
+            digest=hashlib.sha1(data[512:] if header else data).hexdigest()
+            if digest in wanted:return {'path':str(path),'target':wanted[digest],'header':header}
+    return None
+
+def keys_file(home=None):
+    home=pathlib.Path(home or pathlib.Path.home())
+    return next((f for f in (home/'Emulation/bios/sysdata/keys.txt',home/'Emulation/bios/keys.txt',home/'.local/share/Cemu/keys.txt') if f.is_file()),None)
+
+def wiiu_keys(title,region,home=None):
+    """(disc key, common key) as hex strings from Cemu's keys.txt, matched by the comment next to each key; None when missing."""
+    path=keys_file(home);disc=common=None
+    if path is None:return None,None
+    for line in path.read_text(errors='replace').splitlines():
+        match=re.match(r'\s*([0-9a-fA-F]{32})\s*#\s*(.*)',line)
+        if not match:continue
+        key,comment=match[1],match[2].strip().lower()
+        if title in comment and '['+region.lower()+',' in comment and 'wud' in comment and not disc:disc=key
+        if comment.startswith(COMMON_KEY_COMMENT) and not common:common=key
+    return disc,common
+
+def find_wiiu_image(spec,games):
+    for game in games:
+        name,source=(game,'') if isinstance(game,str) else game
+        low=(name+' '+source).lower()
+        if spec['title'] in low and pathlib.Path(source).suffix.lower() in spec['exts'] and pathlib.Path(source).is_file():return source
+    return ''
+
 def requirements(item,games,home=None):
     """Lines (ok, text) describing what a port still needs, from what the library already has.
 
@@ -88,6 +144,15 @@ def requirements(item,games,home=None):
     if item.get('bios'):
         found=find_bios(item['bios'].get('sha256',[]),home)
         lines.append((True,'BIOS '+item['bios'].get('name','')+': encontrada en '+found) if found else (False,'BIOS '+item['bios'].get('name','')+': no se encontró un archivo con el hash exacto.'))
+    if item.get('rom'):
+        found=find_rom(item['rom'],home)
+        lines.append((True,'ROM '+item['rom'].get('name','')+': encontrada en '+found['path']) if found else (False,'ROM '+item['rom'].get('name','')+': no se encontró un archivo con el SHA-1 exacto en las carpetas de EmuDeck.'))
+    if item.get('wiiu'):
+        image=find_wiiu_image(item['wiiu'],games)
+        lines.append((True,'Disco '+item['wiiu']['name']+': encontrado en '+image) if image else (False,'Disco '+item['wiiu']['name']+': no está en la biblioteca.'))
+        if image and not image.lower().endswith('.wua'):
+            region='USA' if '(usa' in image.lower() else 'EUR';disc,common=wiiu_keys(item['wiiu']['title'],region,home)
+            lines.append((bool(disc and common),'Claves de Wii U ('+region+'): '+('encontradas en keys.txt.' if disc and common else 'faltan en keys.txt (clave del disco y clave común).')))
     disc=item.get('disc')
     if disc:
         exact=find_disc(disc,games)
@@ -112,7 +177,7 @@ def clean(item,category='',source=''):
     if not isinstance(folder,str) or not FOLDER.fullmatch(folder):folder=re.sub(r'[^A-Za-z0-9._-]','',repo.split('/')[1]) or 'port'
     name=item.get('name');icon=item.get('appIconUrl');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
     ai=bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
-    return {'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr') else '','web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
+    return {'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','rom','zelda3','wwhd') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
 
 def parse_source(document,source=''):
     """Entries of a Quiver list file ({apps:[...]}) or a GithubLauncher list ({category:[...]})."""
@@ -211,7 +276,8 @@ def pick_asset(assets):
     for asset in assets:
         name=str(asset.get('name',''));low=name.lower()
         if re.search(r'\.(sha256|sig|txt|md5|json|asc|exe|msi|dmg|apk|deb|rpm|pkg|7z|rar)$|source|src\b',low):continue
-        if re.search(r'win|mac|osx|darwin|android|arm64|aarch64|armv|i386|x86\b|32-?bit',low):continue
+        # 'win' and 'mac' only as whole words: "WindWakerHD" and "machine" are not Windows or macOS.
+        if re.search(r'(?<![a-z])(?:win|windows|win32|win64|mac|macos)(?![a-z])|osx|darwin|android|arm64|aarch64|armv|i386|x86\b|32-?bit',low):continue
         linux=bool(re.search(r'linux|steamdeck|steam-deck|deck',low))
         if not linux and not low.endswith('.appimage'):continue
         score=1
@@ -238,6 +304,8 @@ def resolve_web(web,page=None):
         build=next((b for b in data.get('builds',[]) if b.get('key')=='appimage' and b.get('platform')=='linux'),None)
         if not build or not str(build.get('downloadUrl','')).startswith('/api/download/'):raise ValueError('No hay un AppImage de Linux en la lista de builds.')
         return {'tag':str(build.get('commit','')),'name':build['name'],'url':home.rstrip('/')+build['downloadUrl'],'sha256':'','size':int(build.get('size') or 0),'page':home}
+    if kind=='zelda3':
+        return {'tag':ZELDA3_COMMIT[:7],'name':'zelda3-'+ZELDA3_COMMIT[:7]+'.tar.gz','url':'https://codeload.github.com/snesrev/zelda3/tar.gz/'+ZELDA3_COMMIT,'sha256':'','size':0,'page':'https://github.com/snesrev/zelda3'}
     raise ValueError('Fuente web desconocida.')
 
 def release_for(repo,get=fetch_json):
@@ -350,13 +418,15 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
             progress('Extrayendo');extract(archive,staging);flatten(staging)
         from . import buildenv
         kit=buildenv.looks_like_kit(staging)
+        if item['setup']=='zelda3':kit=True  # built from source, runs inside the SDK
         if item['web'] and item['web']['kind']=='openpete':
             # The AppImage is unpacked once: its compiler needs the SDK's headers, and the module it builds is kept next to the unpacked files.
             progress('Desempaquetando OpenPete');(runner or subprocess.run)([str(staging/archive.name),'--appimage-extract'],cwd=str(staging),capture_output=True,timeout=300,check=True)
             (staging/archive.name).unlink();executable=staging/'squashfs-root/AppRun';kit=True
+        elif item.get('exe'):executable=staging/item['exe']
         else:executable=find_executable(staging,item['repository'])
-        if executable:executable.chmod(executable.stat().st_mode|0o111)
-        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
+        if executable and executable.exists():executable.chmod(executable.stat().st_mode|0o111)
+        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
         atomic_json(staging/'.deck-library-port.json',record)
         if destination.exists():
             old=root/'.deck-library-replaced'/(item['folder']+'-'+time.strftime('%Y%m%dT%H%M%S'));old.parent.mkdir(exist_ok=True);destination.rename(old)
@@ -402,7 +472,7 @@ def entry_for(folder):
         # The built game's own launcher adopts the BIOS on first run and stores it in bios.cfg; only then can it boot directly.
         exe=built;cwd=str(built.parent)
         if (built.parent/'bios.cfg').is_file():args=[*args,'--no-launcher']
-    command=buildenv.wrap([str(exe),*args]) if record.get('sandbox') else [str(exe)]
+    command=buildenv.wrap([str(exe),*args],record.get('env')) if record.get('sandbox') else [str(exe),*args]
     title=record.get('cover_title') or next((b.get('cover_title','') for b in BUILTIN if b['repository']==record['repository']),'')
     return Entry(record.get('name',folder.name),command,'port','Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],**({'game_title':title} if title else {}),'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
 
@@ -544,6 +614,52 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
         target=home/DATA_CTR/'assets/ctr-u.bin';target.parent.mkdir(parents=True,exist_ok=True)
         if not target.is_file() or target.stat().st_size!=source.stat().st_size:
             progress('Copiando el disco como ctr-u.bin');temporary=target.with_suffix('.part');shutil.copyfile(source,temporary);temporary.replace(target)
+    elif kind=='rom':
+        found=find_rom(record['rom'],home)
+        if not found:raise ValueError('No se encontró la ROM de '+record['rom']['name']+'.')
+        target=folder/found['target'];progress('Copiando la ROM como '+found['target']);data=pathlib.Path(found['path']).read_bytes()
+        target.write_bytes(data[512:] if found['header'] else data)
+        disc={'name':pathlib.Path(found['path']).name}
+    elif kind=='zelda3':
+        import shlex
+        found=find_rom(record['rom'],home)
+        if not found:raise ValueError('No se encontró la ROM de '+record['rom']['name']+'.')
+        data=pathlib.Path(found['path']).read_bytes();(folder/found['target']).write_bytes(data[512:] if found['header'] else data)
+        progress('Instalando Pillow y PyYAML (solo para extraer los recursos)')
+        run(['python3','-m','pip','install','--quiet','--target',str(folder/'pylibs'),'Pillow','PyYAML'],cwd=str(folder),progress=progress)
+        progress('Compilando y extrayendo los recursos de la ROM')
+        run(['sh','-c','PYTHONPATH='+shlex.quote(str(folder/'pylibs'))+' make -j8'],cwd=str(folder),progress=progress)
+        for name in ('zelda3','zelda3_assets.dat'):
+            if not (folder/name).is_file():raise RuntimeError('La compilación no generó '+name+'.')
+        ini=folder/'zelda3.ini'
+        if ini.is_file():
+            text=ini.read_text()
+            for key,value in (('ExtendedAspectRatio','16:10'),('Fullscreen','1'),('EnhancedMode7','1'),('NoSpriteLimits','1'),('NewRenderer','1'),('LinearFiltering','0')):text=re.sub(r'(?m)^'+key+r'\s*=.*$',key+' = '+value,text,count=1)
+            ini.write_text(text)
+        # Inside the SDK SDL tries JACK first and gives up; PulseAudio (PipeWire's server on the Deck) is the one that works.
+        record['env']={'SDL_AUDIODRIVER':'pulseaudio'};disc={'name':pathlib.Path(found['path']).name}
+    elif kind=='wwhd':
+        image=find_wiiu_image(record['wiiu'],games)
+        if not image:raise ValueError('No se encontró el disco de Wind Waker HD en la biblioteca.')
+        archive=image.lower().endswith('.wua');region='USA' if '(usa' in image.lower() else 'EUR';keys=None
+        if not archive:
+            keys=wiiu_keys(record['wiiu']['title'],region,home)
+            if not all(keys):raise ValueError('Faltan las claves de Wii U en keys.txt (clave del disco '+region+' y clave común).')
+        appimage=folder/record['executable'];work_root=home/'.cache';work_root.mkdir(parents=True,exist_ok=True)
+        with tempfile.TemporaryDirectory(prefix='wwhd-setup-',dir=work_root) as temp:
+            temp=pathlib.Path(temp);os.chmod(temp,0o700)
+            progress('Desempaquetando la herramienta de instalación')
+            run([str(appimage),'--appimage-extract'],cwd=str(temp),progress=lambda _:None,sandbox=False)
+            command=['python3','tools/installer/setup.py','--yes','--no-launch','--no-shortcuts']
+            if archive:command+=['--archive',image]
+            else:
+                for name,value in (('disc.key',keys[0]),('common.key',keys[1])):
+                    key=temp/name;fd=os.open(key,os.O_WRONLY|os.O_CREAT|os.O_EXCL,0o600)
+                    with os.fdopen(fd,'w') as out:out.write(value+'\n')
+                command+=['--image',image,'--disc-key',str(temp/'disc.key'),'--common-key',str(temp/'common.key')]
+            progress('Preparando el juego: extrae, traduce y compila (unos 10 minutos)')
+            run(command,cwd=str(temp/'squashfs-root'),progress=progress,sandbox=False)
+        disc={'name':pathlib.Path(image).name}
     else:raise ValueError('Tipo de configuración desconocido: '+str(kind))
     record['configured']=True;record['configured_with']=disc['name'] if disc else '';record['configured_date']=time.strftime('%Y-%m-%dT%H:%M:%S')
     saved=records(store);saved[repository]=record;atomic_json(store.root/'ports.json',saved);atomic_json(folder/'.deck-library-port.json',record)

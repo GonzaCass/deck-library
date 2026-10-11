@@ -2,7 +2,7 @@
 
 Native Linux app that gathers ports, applications and emulated games in one library and manages their Steam shortcuts, per-game settings and controller layouts on Steam Deck. The interface is in Spanish.
 
-[Guía en español para instalar y compartir](LEEME.md)
+[Spanish guide: installing and sharing](LEEME.md)
 
 ![Deck Library with a fictional demo library](assets/screenshot.png)
 
@@ -87,6 +87,18 @@ Everything needed to make a port playable is scripted and starts from **Configur
 - **CTR Turbocharged** (ctr.cmzi.uk; the site publishes no hash, only a size, which is checked): the raw MODE2/2352 BIN is copied as `ctr-u.bin` to `~/.local/share/ctr-turbocharged/assets`. On first start the game asks for an optional font (choose *Use Luckiest Guy*) and a graphics preset.
 
 Ports published on their own site are found by reading its page (`resolve_web`); downloads are limited to the hosts `dl.openpete.com` and `ctr.cmzi.uk`, and updates are detected by comparing the published version.
+
+### Zelda ports
+
+Three more built-in entries use the same **Configurar** flow:
+
+- **Minish Cap** (Project Picori, `999sian/tmc`): the GBA ROM is found by SHA-1 in `~/Emulation/roms/gba` whatever its file name (USA, Europe or Japan) and copied next to the binary as `baserom.gba`, `baserom_eu.gba` or `baserom_jp.gba`. The European ROM carries Spanish text.
+- **A Link to the Past** (`snesrev/zelda3`, pinned commit, built from source): the USA 1.0 ROM is found by SHA-1 in `~/Emulation/roms/snes` (a 512-byte copier header is stripped), Pillow and PyYAML are installed into a local folder, `make` runs inside the KDE SDK and the executable starts there with `SDL_AUDIODRIVER=pulseaudio` (SDL otherwise tries JACK first inside the sandbox and gives up). The aspect ratio is set to 16:10. The game was never released in Spanish.
+- **Wind Waker HD** (`ZeldaWWHDRecomp/ZeldaWWHDRecomp`, AppImage verified against the release's SHA-256): the Wii U disc (`.wux`, `.wud` or Cemu `.wua`) is taken from the library. For `.wux`/`.wud` the disc key (matched by the `[USA, WUD]`/`[EUR, WUD]` comment) and the Wii U common key come from Cemu's `keys.txt` in EmuDeck's `bios` folder, are written to private (0600) files in a temporary folder only while the port's own setup runs, and are deleted afterwards; they are never logged or stored. The USA disc includes Spanish.
+
+**Settings → Apply maximum settings for Steam Deck** is the app's one-click maximum-quality profile. It raises DuckStation (5x, PGXP), Dolphin (3x, 16x anisotropic), Azahar (4x, async shaders) and Eden (async shaders, 16x anisotropic) to what the 1280x800 screen supports, keeping a backup of every file and skipping a running emulator.
+
+None of these ports exists for A Link Between Worlds, Breath of the Wild or Skyward Sword; those stay emulated.
 
 ### Library view
 

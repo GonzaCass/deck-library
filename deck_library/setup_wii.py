@@ -108,5 +108,5 @@ def install(image,store=None,setup=None,progress=lambda text:None,cancel=None):
     from .presets import catalog,apply
     preset=next(p for p in catalog(store) if p['id']=='wiicompiled-rmcp01-sharp');apply(entry,preset,store)
     atomic_json(root/'deck-library-install.json',{'sdk':SDK,'data_home':str(data_home),'build':VERSION,'exit_patch':'F12'})
-    progress('Recompilación y preset completados. Ya podés agregarlo a Steam.')
+    progress('Recompilación y preset completados. Listo para agregar a Steam.')
     return entry

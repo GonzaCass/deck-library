@@ -34,7 +34,13 @@ class ExperienceMixin:
         row=Gtk.Box(spacing=12)
         row.pack_start(button('Instalaciones y carpetas',lambda _:self.installation_dialog()),False,False,0)
         row.pack_start(button('Repetir configuración inicial',lambda _:self.start_wizard()),False,False,0)
+        row.pack_start(button('Aplicar ajustes máximos para Steam Deck',lambda _:self.apply_deck_max()),False,False,0)
         self.settings_box.pack_start(row,False,False,0);self.settings_box.show_all();self.pages.set_visible_child_name('settings')
+
+    def apply_deck_max(self):
+        from . import deckmax
+        text={'applied':'actualizado','present':'ya estaba aplicado','busy':'abierto: cerrar y repetir','missing':'no instalado'}
+        done=deckmax.apply();self.message('Ajustes máximos para Steam Deck','Resolución interna y calidad al máximo que admite la pantalla de 1280×800. Se guarda un respaldo de cada archivo modificado.\n\n'+'\n'.join(f'{name}: {text[state]}' for name,state in done))
 
     def start_wizard(self):
         self.wizard_step=0;self.wizard_found=None;self.wizard_checks={};self.checked.clear();self.selection_mode=False;self.draw_wizard();self.wizard_box.show();self.pages.set_visible_child_name('welcome');return False
