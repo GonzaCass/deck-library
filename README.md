@@ -70,7 +70,13 @@ The **Actualizaciones** page checks, at most every six hours: Deck Library relea
 
 ### Port catalog
 
-**Catálogo de ports** lists the community projects of Quiver's public catalog (`tgeorgiadis/quiver-community-app-catalog`, about 230 ports). **Instalar** downloads the latest release asset for Linux x86_64 (AppImage, tar.gz/tar.xz, zip or a bare executable), checks the SHA-256 that GitHub publishes for the asset, extracts it with path and link checks into `~/ports/<folder>` and registers the version, so the library lists it and the updates page can detect new releases. Releases that only ship Windows builds are refused with a message. When several executables are possible none is chosen and the game can be added by hand. Updating moves the previous folder to `~/ports/.deck-library-replaced` instead of deleting it.
+**Catálogo de ports** merges four sources: Quiver's public lists (`tgeorgiadis/quiver-community-app-catalog`), GithubLauncher's list (`SirDiabo/GHLAppList`, which includes Rexglue/Xbox 360 and system emulators and marks AI-assisted projects), a few built-in recommendations and the user's own repositories (about 255 ports). Both launchers use the same data model, so ports installed by either one (`apps.json`, `Apps/`, `version.txt`, `selected_executable.txt`) are found in any folder under `~/ports` or `~/Applications` and checked for updates. Each entry shows its icon, or box art found by platform, plus category, source and notes; the list can be filtered by category and source.
+
+**Agregar repositorio** accepts any GitHub address or `owner/repo`, checks its latest release for a Linux build and keeps it in `custom_ports` of `settings.json`. Extra list files can be added with `catalog_sources` (raw.githubusercontent.com URLs in Quiver's or GithubLauncher's format).
+
+**Instalar** downloads the latest release asset for Linux x86_64 (AppImage, tar.gz/tar.xz, zip or a bare executable), checks the SHA-256 that GitHub publishes for the asset, extracts it with path and link checks into `~/ports/<folder>` and registers the version, so the library lists it and the updates page can detect new releases. Releases that only ship Windows builds are refused with a message. When several executables are possible none is chosen and the game can be added by hand. Updating moves the previous folder to `~/ports/.deck-library-replaced` instead of deleting it.
+
+The recommended Spider-Man entries (`alexbeavs-ps1-ports/spider-man-recomp`, `spider-man-2-enter-electro-recomp`) are setup kits: they need the user's own USA disc and BIOS and compile the game on first start, which needs CMake, Ninja, Python 3 and a C/C++ compiler. SteamOS does not ship a toolchain.
 
 ### Per-game settings
 

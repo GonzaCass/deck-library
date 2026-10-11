@@ -118,12 +118,9 @@ def scan(home=None,extra_roots=(),preferences=None):
                     if not path.is_file() or path.suffix.lower() not in ('.nsp','.xci') or not is_base_rom(path):continue
                     e=Entry(nice_name(path),emulators['eden']['command']+['-f','-g',str(path)],'emulated','Switch',str(path),mods=True);found[e.id]=e
     # Quiver has already selected the executable: don't substitute a setup AppImage.
-    for root in [home/'ports/quiver-launcher',home/'Applications/QuiverLauncher',*map(pathlib.Path,preferences.get('quiver_roots',[]))]:
-        apps=root/'Apps'
-        try:
-            value=json.loads((root/'settings.json').read_text(encoding='utf-8-sig')).get('AppsPath','')
-            if value:apps=pathlib.Path(value).expanduser()
-        except (OSError,ValueError):pass
+    from .installations import launcher_roots,apps_folder,is_launcher_root
+    for root in launcher_roots(home,preferences):
+        apps=apps_folder(root)
         for folder in apps.glob('*'):
             if not folder.is_dir():continue
             choice=folder/'selected_executable.txt'
@@ -133,6 +130,9 @@ def scan(home=None,extra_roots=(),preferences=None):
                     if not exe.is_absolute():exe=choice.parent/exe
                 else:
                     candidates=[p for p in folder.iterdir() if p.is_file() and (p.suffix.lower()=='.appimage' or p.name.lower() in ('launch.sh','run.sh','start.sh')) and not any(word in p.name.lower() for word in ('setup','install','update','uninstall'))]
+                    if len(candidates)!=1:
+                        from .ports import find_executable
+                        guessed=find_executable(folder);candidates=[guessed] if guessed else []
                     if len(candidates)!=1:continue
                     exe=candidates[0]
                 if not exe.is_file():continue
@@ -163,7 +163,7 @@ def scan(home=None,extra_roots=(),preferences=None):
     for ports in dict.fromkeys([home/'ports',*map(pathlib.Path,preferences.get('port_roots',[]))]):
       if ports.is_dir():
         for folder in ports.iterdir():
-            if not folder.is_dir() or folder.name in ('quiver-launcher','steamdeck-tools','deck-library'):continue
+            if not folder.is_dir() or folder.name in ('quiver-launcher','steamdeck-tools','deck-library') or is_launcher_root(folder):continue
             from .ports import entry_for as installed_port
             managed=installed_port(folder)
             if managed:found[managed.id]=managed;continue

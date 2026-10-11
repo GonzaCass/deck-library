@@ -2,7 +2,7 @@
 import configparser,json,os,pathlib,re,shutil,subprocess
 from .models import Store,atomic_json
 
-DEFAULTS={'rom_roots':[],'port_roots':[],'quiver_roots':[],'emulators':{},'prism_roots':[],'wiicompiled_roots':[],'eden_config':'','view':'covers','catalog_url':'','onboarding_complete':False,'artwork_provider':'automatic','steamgriddb_key':'','animations':True,'check_updates':True,'auto_update':True,'auto_update_ports':False,'catalog_auto':True,'fix_controllers':True}
+DEFAULTS={'rom_roots':[],'port_roots':[],'quiver_roots':[],'catalog_sources':[],'custom_ports':[],'emulators':{},'prism_roots':[],'wiicompiled_roots':[],'eden_config':'','view':'covers','catalog_url':'','onboarding_complete':False,'artwork_provider':'automatic','steamgriddb_key':'','animations':True,'check_updates':True,'auto_update':True,'auto_update_ports':False,'catalog_auto':True,'fix_controllers':True}
 
 def settings(store=None):
     store=store or Store();path=store.root/'settings.json'
@@ -37,3 +37,26 @@ def report(home=None,preferences=None):
     from .discovery import available_emulators,prism_installations
     home=pathlib.Path(home or pathlib.Path.home());preferences=preferences or DEFAULTS;emudeck=emudeck_paths(home)
     return {'emudeck':emudeck,'emulators':available_emulators(home,preferences),'prism':prism_installations(home,preferences),'wiicompiled':[str(p) for p in wiicompiled_roots(home,preferences)],'rom_roots':list(dict.fromkeys([emudeck['roms'],*preferences.get('rom_roots',[])])),'port_roots':list(dict.fromkeys([str(home/'ports'),*preferences.get('port_roots',[])]))}
+
+
+def apps_folder(root):
+    """Install folder of a Quiver/GithubLauncher root (settings.json may relocate it)."""
+    root=pathlib.Path(root)
+    try:
+        value=json.loads((root/'settings.json').read_text(encoding='utf-8-sig')).get('AppsPath','')
+        if value:return pathlib.Path(value).expanduser()
+    except (OSError,ValueError):pass
+    return root/'Apps'
+
+def launcher_roots(home=None,preferences=None):
+    """Quiver and GithubLauncher installs. Both keep apps.json, an Apps folder, version.txt and selected_executable.txt."""
+    home=pathlib.Path(home or pathlib.Path.home());preferences=preferences or DEFAULTS
+    roots=[home/'ports/quiver-launcher',home/'Applications/QuiverLauncher',home/'ports/GithubLauncher',home/'ports/github-launcher',home/'Applications/GithubLauncher',*map(pathlib.Path,preferences.get('quiver_roots',[]))]
+    for parent in (home/'ports',home/'Applications'):
+        try:children=[c for c in parent.iterdir() if c.is_dir()]
+        except OSError:continue
+        roots+=[c for c in children if (c/'apps.json').is_file() and (c/'settings.json').is_file()]
+    return list(dict.fromkeys(r for r in roots if r.is_dir()))
+
+def is_launcher_root(folder):
+    folder=pathlib.Path(folder);return (folder/'apps.json').is_file() and (folder/'settings.json').is_file()

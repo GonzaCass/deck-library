@@ -10,6 +10,8 @@ from .models import Store,atomic_json
 from .updates import fetch,fetch_json,RateLimited
 
 INDEX='https://raw.githubusercontent.com/tgeorgiadis/quiver-community-app-catalog/main/index.json'
+GHL_LIST='https://raw.githubusercontent.com/SirDiabo/GHLAppList/main/apps.json'
+SOURCE_NAMES={INDEX:'Quiver',GHL_LIST:'GithubLauncher'}
 CACHE_SECONDS=24*3600
 MAX_DOWNLOAD=2*1024**3
 REPOSITORY=re.compile(r'[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}')
@@ -19,34 +21,124 @@ LAUNCHERS=('launch.sh','run.sh','start.sh')
 
 def ports_root(home=None):return pathlib.Path(home or pathlib.Path.home())/'ports'
 
-def clean(item,source=''):
+SETUP_KIT='Kit de instalación: requiere el disco y la BIOS propios y compila el juego en el primer inicio (CMake, Ninja, Python 3 y un compilador C/C++). SteamOS no los incluye.'
+BUILTIN=[
+ {'name':'Spider-Man (PSX)','repository':'alexbeavs-ps1-ports/spider-man-recomp','folderName':'SpiderManPSX','category':'PlayStation','note':'Necesita el disco SLUS-00875 (EE. UU.) y la BIOS SCPH-5502 o 5552 (Europa). '+SETUP_KIT},
+ {'name':'Spider-Man 2: Enter Electro (PSX)','repository':'alexbeavs-ps1-ports/spider-man-2-enter-electro-recomp','folderName':'SpiderMan2PSX','category':'PlayStation','note':'Necesita el disco SLUS-01378 (EE. UU., Rev 1) y la BIOS SCPH-1001 (EE. UU.). Una copia europea no sirve. '+SETUP_KIT},
+]
+PLATFORMS={'playstation':'PlayStation','ps1':'PlayStation','psx':'PlayStation','playstation 2':'PlayStation 2','ps2':'PlayStation 2','gamecube':'GameCube','wii':'Wii','nintendo':'Nintendo','n64':'Nintendo 64','xbox':'Xbox 360','rexglue':'Xbox 360'}
+
+def platform_for(category):
+    low=str(category).lower()
+    for key in sorted(PLATFORMS,key=len,reverse=True):
+        if key in low:return PLATFORMS[key]
+    return ''
+
+def parse_repository(text):
+    """owner/repo from `owner/repo` or any github.com URL; None when it is something else."""
+    text=str(text).strip()
+    match=re.fullmatch(r'(?:https://github\.com/)?([A-Za-z0-9_.-]+)/([A-Za-z0-9_.-]+?)(?:\.git)?(?:/.*)?',text)
+    repo=match[1]+'/'+match[2] if match else ''
+    return repo if valid_repository(repo) else None
+
+def valid_repository(repo):
+    return isinstance(repo,str) and bool(REPOSITORY.fullmatch(repo)) and not any(part.strip('.')=='' for part in repo.split('/'))
+
+def clean(item,category='',source=''):
     """A catalog entry reduced to the fields used here, or None when it is malformed."""
     if not isinstance(item,dict):return None
-    repo=item.get('repository');folder=item.get('folderName') or ''
-    if not isinstance(repo,str) or not REPOSITORY.fullmatch(repo):return None
+    repo=item.get('repository');folder=item.get('folderName') or item.get('folder') or ''
+    if not valid_repository(repo):return None
     if not isinstance(folder,str) or not FOLDER.fullmatch(folder):folder=re.sub(r'[^A-Za-z0-9._-]','',repo.split('/')[1]) or 'port'
-    name=item.get('name');icon=item.get('appIconUrl')
-    return {'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':source}
+    name=item.get('name');icon=item.get('appIconUrl');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
+    ai=bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
+    return {'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else ''}
 
-def fetch_catalog(get=fetch_json):
-    index=get(INDEX);found={}
-    for entry in index.get('lists',[])[:40]:
-        url=entry.get('remoteLocation','') if isinstance(entry,dict) else ''
+def parse_source(document,source=''):
+    """Entries of a Quiver list file ({apps:[...]}) or a GithubLauncher list ({category:[...]})."""
+    if not isinstance(document,dict):return []
+    rows=[]
+    if isinstance(document.get('apps'),list):
+        rows=[clean(a,document.get('name',''),source) for a in document['apps'][:2000]]
+    else:
+        for category,apps in list(document.items())[:60]:
+            if isinstance(apps,list):rows+=[clean(a,category,source) for a in apps[:2000]]
+    return [r for r in rows if r]
+
+def fetch_catalog(get=fetch_json,extra=()):
+    """Quiver's community lists, GithubLauncher's list and any extra raw-GitHub sources, merged by repository."""
+    found={}
+    def add(rows):
+        for item in rows:
+            key=item['repository'].lower();previous=found.get(key)
+            if previous is None:found[key]=item
+            else:
+                # GithubLauncher's categories are finer than Quiver's; its AI-assisted flag is kept.
+                if item['source']=='GithubLauncher' and item['list']:previous['list']=item['list']
+                previous['ai']=previous['ai'] or item['ai'];previous['source']=', '.join(dict.fromkeys(filter(None,[*previous['source'].split(', '),item['source']])))
+    failures=0
+    for url in (INDEX,GHL_LIST,*extra):
         if not url.startswith('https://raw.githubusercontent.com/'):continue
         try:document=get(url)
-        except (OSError,ValueError):continue
-        for raw in document.get('apps',[])[:2000]:
-            item=clean(raw,str(document.get('name','')))
-            if item:found.setdefault(item['repository'].lower(),item)
+        except (OSError,ValueError):failures+=1;continue
+        source=SOURCE_NAMES.get(url,'Personalizada')
+        if isinstance(document,dict) and isinstance(document.get('lists'),list):
+            for entry in document['lists'][:40]:
+                location=entry.get('remoteLocation','') if isinstance(entry,dict) else ''
+                if not location.startswith('https://raw.githubusercontent.com/'):continue
+                try:add(parse_source(get(location),source))
+                except (OSError,ValueError):continue
+        else:add(parse_source(document,source))
+    if not found and failures:raise OSError('No se pudo descargar ninguna fuente del catálogo.')
     return sorted(found.values(),key=lambda i:i['name'].casefold())
 
-def catalog(store,force=False,get=fetch_json):
+def merged(apps,preferences=None):
+    """Remote catalog plus the built-in recommendations and the user's own repositories; the latter two win on conflicts."""
+    result={a['repository'].lower():a for a in apps}
+    for raw,source in [(b,'Recomendado') for b in BUILTIN]+[(c,'Agregado') for c in (preferences or {}).get('custom_ports',[])]:
+        item=clean(raw,'',source)
+        if item:
+            previous=result.get(item['repository'].lower(),{});result[item['repository'].lower()]={**previous,**{k:v for k,v in item.items() if v or k not in previous}}
+    return sorted(result.values(),key=lambda i:i['name'].casefold())
+
+ICON_LIMIT=2*1024*1024
+
+def icon_path(store,item,get=None):
+    """Cached icon or box art for a catalog entry, or '' when none is available. Network work: call off the GTK thread."""
+    import hashlib
+    from . import cover_provider
+    folder=store.root/'catalog-icons';url=item.get('icon') or ''
+    if not url:
+        platform=platform_for(item.get('list',''))
+        if not platform:return ''
+        key='cover:'+platform+':'+item['name']
+    else:key=url
+    base=folder/hashlib.sha256(key.encode()).hexdigest()
+    for suffix in ('.png','.jpg','.webp','.ico','.none'):
+        if (base.with_suffix(suffix)).exists():return '' if suffix=='.none' else str(base.with_suffix(suffix))
+    folder.mkdir(parents=True,exist_ok=True)
+    try:
+        if url:data=cover_provider.request(url,limit=ICON_LIMIT)
+        else:
+            title=re.sub(r'\s*\((?:PSX|PS1|PS2|N64)\)\s*$','',item['name'])
+            rows=cover_provider.search(title,{'artwork_provider':'automatic','_artwork_platform':platform_for(item.get('list',''))})
+            row=next((r for r in rows if cover_provider.normalized(r['title'])==cover_provider.normalized(title)),None)
+            if not row:raise ValueError('sin portada')
+            data=cover_provider.request(row['url'],limit=ICON_LIMIT)
+    except (OSError,ValueError):
+        base.with_suffix('.none').write_bytes(b'');return ''
+    suffix='.png' if data.startswith(b'\x89PNG') else '.jpg' if data.startswith(b'\xff\xd8') else '.webp' if data[:4]==b'RIFF' else '.ico' if data[:4]==b'\x00\x00\x01\x00' else ''
+    if not suffix:
+        base.with_suffix('.none').write_bytes(b'');return ''
+    base.with_suffix(suffix).write_bytes(data);return str(base.with_suffix(suffix))
+
+def catalog(store,force=False,get=fetch_json,extra=()):
     """Cached list; a failed refresh falls back to the previous copy."""
     path=store.root/'catalog-ports.json'
     try:cached=json.loads(path.read_text())
     except (OSError,ValueError):cached={}
     if not force and cached.get('apps') and time.time()-cached.get('time',0)<CACHE_SECONDS:return cached['apps']
-    try:apps=fetch_catalog(get)
+    try:apps=fetch_catalog(get,extra)
     except (OSError,ValueError,KeyError):
         if cached.get('apps'):return cached['apps']
         raise

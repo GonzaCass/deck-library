@@ -91,5 +91,5 @@ La carátula elegida en Deck Library se copia al grid vertical de Steam al agreg
 - **Mando:** los accesos nuevos reciben el layout de gamepad de Steam para DualSense, DualShock, Xbox y Switch Pro. Para un acceso existente, usar **Mando → Asignar layout** con Steam cerrado.
 - **Actualizaciones:** página propia con avisos de Deck Library, ajustes recomendados y ports. La instalación automática de Deck Library se activa en esa página.
 - **Ajustes del juego:** resolución, FPS, correcciones y rendimiento por juego (DuckStation, Dolphin, Eden y Prism), con respaldo y restauración.
-- **Catálogo de ports:** instala proyectos de la comunidad (lista pública de Quiver) desde GitHub, con verificación de integridad, y avisa cuando hay una versión nueva.
+- **Catálogo de ports:** reúne las listas de Quiver y GithubLauncher, recomendados (Spider-Man 1 y 2 de PSX) y repositorios propios, con íconos o portadas, categorías y filtros. Instala desde GitHub con verificación de integridad y avisa cuando hay una versión nueva. Los ports instalados con Quiver o GithubLauncher también se detectan.
 - **Actualización automática:** Deck Library avisa cuando hay una versión nueva y se actualiza sola en modo Escritorio; se desactiva en la página Actualizaciones.
