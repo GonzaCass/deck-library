@@ -53,8 +53,8 @@ def merge_steam(entries,home=None,account=None):
         if match:
             match.metadata.update(steam_appid=item['appid'],steam_account=str(account),steam_name=item['name'])
             own=own_portrait(account,item['appid'])
-            stale=bool(match.cover) and '/grid/' in match.cover and not pathlib.Path(match.cover).name.startswith(str(item['appid']))
-            if own and (not match.cover or not pathlib.Path(match.cover).is_file() or stale):match.cover=own
+            # Steam's own portrait (for example the one chosen with Decky's SteamGridDB plugin) is the source of truth for a shortcut.
+            if own:match.cover=own
             if match.kind=='steam':match.metadata['steam_original']=item
             continue
         platform='Minecraft' if instance else 'Windows' if launch.lower().endswith('.exe') else 'Steam'

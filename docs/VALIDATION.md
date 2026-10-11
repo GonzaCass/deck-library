@@ -171,3 +171,7 @@ Actualización de Mario Kart Wii ejecutada de verdad sobre la instalación exist
 ### 0.8.1 - sin Quiver para actualizar
 
 El botón «Abrir Quiver para actualizar» aparecía siempre que la tarjeta de ports tenía una actualización pendiente, incluida la de WiiCompiled que ya se actualiza desde la app. Se eliminó: los ports detectados en la carpeta de Quiver ahora ofrecen «Instalar la nueva versión aquí» (usa el instalador de Deck Library con el último release de GitHub). En esta Deck el único port administrado por Quiver es Mario Kart Wii, de modo que ese camino genérico se comprobó solo con pruebas automáticas.
+
+### 0.8.2 - carátulas tomadas de Steam
+
+Cada juego con acceso en Steam usa como carátula el retrato que Steam ya guarda para ese acceso (por ejemplo el elegido con el plugin SteamGridDB de Decky); si Steam no tiene uno, se conserva la carátula anterior. Aplicado a la biblioteca real: 16 carátulas pasaron a ser las de Steam. Se vuelve a aplicar en cada búsqueda de juegos.
