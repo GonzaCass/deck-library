@@ -563,3 +563,11 @@ class StopTests(unittest.TestCase):
         from deck_library import buildenv
         seen=[];self.assertEqual(buildenv.run(['sh','-c','echo uno; echo dos; sleep 30'],progress=seen.append,until=lambda:len(seen)>=2,sandbox=False),0);self.assertEqual(seen,['uno','dos'])
         with self.assertRaisesRegex(RuntimeError,'fallo'):buildenv.run(['sh','-c','echo fallo; exit 3'],progress=lambda _:None,sandbox=False)
+
+class GameTitleTests(PortCatalogTests):
+    def test_a_port_with_a_different_title_still_hides_the_emulator_version(self):
+        from deck_library.library_view import visible_entries
+        self.install({'Tool':b'\x7fELF'});folder=self.install_root/'Uno'
+        record=self.ports.records(self.store)['a/uno'];record['repository']='web/ctr-turbocharged';record['cover_title']='CTR - Crash Team Racing';self.ports.atomic_json(folder/'.deck-library-port.json',record)
+        port=self.ports.entry_for(folder);self.assertEqual(port.metadata['game_title'],'CTR - Crash Team Racing')
+        shown,hidden=visible_entries([port,Entry('CTR - Crash Team Racing',['/e'],kind='emulated',platform='PlayStation')]);self.assertEqual((len(shown),hidden),(1,1))

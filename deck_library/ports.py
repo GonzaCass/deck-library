@@ -356,7 +356,7 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
             (staging/archive.name).unlink();executable=staging/'squashfs-root/AppRun';kit=True
         else:executable=find_executable(staging,item['repository'])
         if executable:executable.chmod(executable.stat().st_mode|0o111)
-        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','disc':item['disc'],'bios':item['bios'],'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
+        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
         atomic_json(staging/'.deck-library-port.json',record)
         if destination.exists():
             old=root/'.deck-library-replaced'/(item['folder']+'-'+time.strftime('%Y%m%dT%H%M%S'));old.parent.mkdir(exist_ok=True);destination.rename(old)
@@ -403,7 +403,8 @@ def entry_for(folder):
         exe=built;cwd=str(built.parent)
         if (built.parent/'bios.cfg').is_file():args=[*args,'--no-launcher']
     command=buildenv.wrap([str(exe),*args]) if record.get('sandbox') else [str(exe)]
-    return Entry(record.get('name',folder.name),command,'port','Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
+    title=record.get('cover_title') or next((b.get('cover_title','') for b in BUILTIN if b['repository']==record['repository']),'')
+    return Entry(record.get('name',folder.name),command,'port','Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],**({'game_title':title} if title else {}),'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
 
 
 DATA_CTR=pathlib.Path('.local/share/ctr-turbocharged')
