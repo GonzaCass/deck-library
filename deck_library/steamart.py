@@ -21,10 +21,11 @@ SLOTS={
 LOGO_POSITION={'nVersion':1,'logoPosition':{'pinnedPosition':'BottomLeft','nWidthPct':50,'nHeightPct':50}}
 
 def image_type(data):
-    """File extension of a PNG, JPEG or WebP payload, or None."""
+    """File extension of a PNG, JPEG, WebP or ICO payload, or None."""
     if data.startswith(b'\x89PNG\r\n\x1a\n'):return '.png'
     if data.startswith(b'\xff\xd8\xff'):return '.jpg'
     if data[:4]==b'RIFF' and data[8:12]==b'WEBP':return '.webp'
+    if data[:4]==b'\x00\x00\x01\x00':return '.ico'
     return None
 
 def existing(account,appid):
@@ -53,7 +54,7 @@ def candidates(key,game_id,slot,request=cover_provider.request,limit=18):
 
 def fetch_image(url,request=cover_provider.request):
     data=request(url,limit=IMAGE_LIMIT,timeout=60);ext=image_type(data)
-    if not ext:raise ValueError('La imagen descargada no es PNG, JPEG ni WebP.')
+    if not ext:raise ValueError('La imagen descargada no es PNG, JPEG, WebP ni ICO.')
     return data,ext
 
 def stage(store,appid,slot,data,ext):
@@ -65,7 +66,8 @@ def write(account,appid,slot,source,is_running):
     """Copy `source` into the grid folder as the slot's file. Returns True when something changed."""
     from .steam import SteamRunningError
     suffix=SLOTS[slot][0];source=pathlib.Path(source);data=source.read_bytes();ext=image_type(data)
-    if not ext:raise ValueError('La imagen no es PNG, JPEG ni WebP.')
+    if not ext:raise ValueError('La imagen no es PNG, JPEG, WebP ni ICO.')
+    if ext=='.ico' and slot!='icon':raise ValueError('Un archivo ICO solo sirve para el ícono.')
     if len(data)>IMAGE_LIMIT:raise ValueError('La imagen es demasiado grande para Steam.')
     grid=pathlib.Path(account)/'grid';grid.mkdir(parents=True,exist_ok=True);appid=str(int(appid)&0xffffffff)
     target=grid/(appid+suffix+ext);previous=[p for p in (grid/(appid+suffix+e) for e in (*EXTENSIONS,'.ico')) if p.is_file()]
@@ -100,6 +102,7 @@ def complete_missing(key,entries,store,progress=lambda text:None,request=cover_p
     for entry in entries:
         appid=entry.metadata.get('steam_appid');account=entry.metadata.get('steam_account')
         if appid is None or not account or entry.metadata.get('steam_store'):continue
+        if entry.platform=='Minecraft':report.append((entry.name,'omitido: los modpacks se resolverían todos a la misma imagen de Minecraft (elegir a mano)'));continue
         missing=[slot for slot,path in existing(account,appid).items() if not path]
         if not missing:report.append((entry.name,'completo'));continue
         progress(f'{entry.name}: buscando {len(missing)} imágenes')
@@ -112,9 +115,14 @@ def complete_missing(key,entries,store,progress=lambda text:None,request=cover_p
                 game_id=games[title][0]['id']
             got=[]
             for slot in missing:
-                rows=candidates(key,game_id,slot,request,limit=1)
-                if not rows:continue
-                data,ext=fetch_image(rows[0]['url'],request);items.append({'appid':int(appid)&0xffffffff,'slot':slot,'file':stage(store,appid,slot,data,ext),'account':str(account)});got.append(slot)
+                try:rows=candidates(key,game_id,slot,request,limit=4)
+                except Exception:continue
+                for row in rows:
+                    try:
+                        data,ext=fetch_image(row['url'],request)
+                        if ext=='.ico' and slot!='icon':continue
+                        items.append({'appid':int(appid)&0xffffffff,'slot':slot,'file':stage(store,appid,slot,data,ext),'account':str(account)});got.append(slot);break
+                    except Exception:continue
                 time.sleep(pause)
             report.append((entry.name,'se agregó: '+', '.join(SLOTS[s][1] for s in got) if got else 'SteamGridDB no tiene imágenes para los espacios vacíos'))
         except Exception as error:report.append((entry.name,'error: '+str(error)[:100]))

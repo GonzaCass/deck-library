@@ -108,3 +108,24 @@ class CompleteArtTests(SteamArtTests):
         items,report=steamart.complete_missing('k',entries,self.store,request=request,pause=0);names=dict(report)
         self.assertEqual(names['Complete'],'completo');self.assertTrue(names['Broken'].startswith('error'));self.assertTrue(names['Game'].startswith('se agregó'));self.assertNotIn('Store',names)
         self.assertEqual(sorted(i['slot'] for i in items),['banner','hero','icon','logo']);self.assertTrue(all(i['appid']==3000000010 for i in items))
+
+class BadImageTests(CompleteArtTests):
+    def test_a_download_that_is_not_an_image_falls_through_to_the_next_candidate(self):
+        from deck_library import steamart
+        def request(url,key='',limit=0,timeout=0):
+            if 'search/autocomplete' in url:return json.dumps({'data':[{'id':9,'name':'Game'}]}).encode()
+            if '/game/' in url:return json.dumps({'data':[{'id':1,'url':'https://x/bad.gif'},{'id':2,'url':'https://x/ok.png'}]}).encode()
+            return b'GIF89a' if url.endswith('bad.gif') else PNG
+        items,report=steamart.complete_missing('k',[self.entry('Game',3000000020)],self.store,request=request,pause=0)
+        self.assertEqual(len(items),5);self.assertTrue(all(i['file'].endswith('.png') for i in items))
+    def test_an_ico_is_accepted_only_for_the_icon_slot(self):
+        from deck_library import steamart
+        ico=self.root/'i.ico';ico.write_bytes(b'\x00\x00\x01\x00'+b'z'*20)
+        self.assertTrue(steamart.write(self.cfg,7,'icon',ico,lambda:False))
+        with self.assertRaises(ValueError):steamart.write(self.cfg,7,'hero',ico,lambda:False)
+
+class MinecraftSkipTests(CompleteArtTests):
+    def test_modpack_instances_are_skipped_by_the_batch(self):
+        from deck_library import steamart
+        e=self.entry('Pack',3000000030);e.platform='Minecraft'
+        items,report=steamart.complete_missing('k',[e],self.store,request=lambda *a,**k:b'',pause=0);self.assertEqual(items,[]);self.assertTrue(report[0][1].startswith('omitido'))
