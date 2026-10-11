@@ -23,8 +23,8 @@ def ports_root(home=None):return pathlib.Path(home or pathlib.Path.home())/'port
 
 SETUP_KIT='Kit de instalación: requiere el disco y la BIOS propios y compila el juego en el primer inicio. En la Deck corre dentro del SDK de KDE de Flatpak, que la app instala una vez (sin root).'
 BUILTIN=[
- {'name':'Spider-Man (PSX)','repository':'alexbeavs-ps1-ports/spider-man-recomp','folderName':'SpiderManPSX','category':'PlayStation','kit':True,'note':'Necesita el disco SLUS-00875 (EE. UU.) y la BIOS SCPH-5502 o 5552 (Europa). '+SETUP_KIT},
- {'name':'Spider-Man 2: Enter Electro (PSX)','repository':'alexbeavs-ps1-ports/spider-man-2-enter-electro-recomp','folderName':'SpiderMan2PSX','category':'PlayStation','kit':True,'note':'Necesita el disco SLUS-01378 (EE. UU., Rev 1) y la BIOS SCPH-1001 (EE. UU.). Una copia europea no sirve. '+SETUP_KIT},
+ {'name':'Spider-Man (PSX)','repository':'alexbeavs-ps1-ports/spider-man-recomp','folderName':'SpiderManPSX','category':'PlayStation','kit':True,'bios':{'name':'SCPH-5502 o 5552 (Europa)','sha256':['1faaa18fa820a0225e488d9f086296b8e6c46df739666093987ff7d8fd352c09']},'disc':{'serial':'SLUS-00875','match':'spiderman','exclude':'spiderman2'},'note':'Necesita el disco SLUS-00875 (EE. UU.) y la BIOS SCPH-5502 o 5552 (Europa). '+SETUP_KIT},
+ {'name':'Spider-Man 2: Enter Electro (PSX)','repository':'alexbeavs-ps1-ports/spider-man-2-enter-electro-recomp','folderName':'SpiderMan2PSX','category':'PlayStation','kit':True,'bios':{'name':'SCPH-1001 (EE. UU.)','sha256':['71af94d1e47a68c11e8fdb9f8368040601514a42a5a399cda48c7d3bff1e99d3']},'disc':{'serial':'SLUS-01378','match':'spiderman2enterelectro','exclude':''},'note':'Necesita el disco SLUS-01378 (EE. UU., Rev 1) y la BIOS SCPH-1001 (EE. UU.). Una copia europea no sirve. '+SETUP_KIT},
 ]
 PLATFORMS={'playstation':'PlayStation','ps1':'PlayStation','psx':'PlayStation','playstation 2':'PlayStation 2','ps2':'PlayStation 2','gamecube':'GameCube','wii':'Wii','nintendo':'Nintendo','n64':'Nintendo 64','xbox':'Xbox 360','rexglue':'Xbox 360'}
 
@@ -41,6 +41,41 @@ def parse_repository(text):
     repo=match[1]+'/'+match[2] if match else ''
     return repo if valid_repository(repo) else None
 
+BIOS_SIZE=524288
+
+def find_bios(sha256,home=None):
+    """First BIOS file whose SHA-256 matches, searching the usual EmuDeck folders; '' when none."""
+    home=pathlib.Path(home or pathlib.Path.home());wanted={h.lower() for h in sha256}
+    roots=[home/'Emulation/bios',home/'.config/EmuDeck/bios']
+    try:
+        from .installations import emudeck_paths
+        roots.insert(0,pathlib.Path(emudeck_paths(home)['root'])/'bios')
+    except (OSError,KeyError):pass
+    for root in dict.fromkeys(roots):
+        try:files=[f for f in sorted(root.glob('*'))+sorted(root.glob('*/*')) if f.is_file() and f.stat().st_size==BIOS_SIZE]
+        except OSError:continue
+        for file in files:
+            try:
+                if sha256_file(file) in wanted:return str(file)
+            except OSError:continue
+    return ''
+
+def requirements(item,game_names,home=None):
+    """Lines (ok, text) describing what a kit still needs, from what the library already has. ok is None when only a name check was possible."""
+    lines=[]
+    if item.get('bios'):
+        found=find_bios(item['bios'].get('sha256',[]),home)
+        lines.append((True,'BIOS '+item['bios'].get('name','')+': encontrada en '+found) if found else (False,'BIOS '+item['bios'].get('name','')+': no se encontró un archivo con el hash exacto.'))
+    disc=item.get('disc')
+    if disc:
+        def key(name):return re.sub(r'[^a-z0-9]','',re.sub(r'\([^)]*\)|\[[^]]*\]','',name.lower()))
+        match=[n for n in game_names if key(n).startswith(disc.get('match','\0')) and not (disc.get('exclude') and key(n).startswith(disc['exclude']))]
+        usa=[n for n in match if '(USA' in n]
+        if usa:lines.append((None,'Disco '+disc['serial']+': posible copia USA «'+usa[0]+'». Se confirma en el asistente, que exige el hash exacto de Redump.'))
+        elif match:lines.append((False,'Disco '+disc['serial']+': la biblioteca solo tiene «'+match[0]+'», de otra región. El kit exige la edición USA.'))
+        else:lines.append((False,'Disco '+disc['serial']+': no hay una copia en la biblioteca; se necesita la edición USA.'))
+    return lines
+
 def valid_repository(repo):
     return isinstance(repo,str) and bool(REPOSITORY.fullmatch(repo)) and not any(part.strip('.')=='' for part in repo.split('/'))
 
@@ -52,7 +87,7 @@ def clean(item,category='',source=''):
     if not isinstance(folder,str) or not FOLDER.fullmatch(folder):folder=re.sub(r'[^A-Za-z0-9._-]','',repo.split('/')[1]) or 'port'
     name=item.get('name');icon=item.get('appIconUrl');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
     ai=bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
-    return {'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True}
+    return {'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
 
 def parse_source(document,source=''):
     """Entries of a Quiver list file ({apps:[...]}) or a GithubLauncher list ({category:[...]})."""
