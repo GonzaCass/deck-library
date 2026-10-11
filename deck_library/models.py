@@ -48,6 +48,10 @@ class Store:
     def save(self,entries): atomic_json(self.path,{'schema':1,'entries':[e.to_dict() for e in entries]})
     def merge(self,entries,overwrite=True):
         existing={e.id:e for e in self.load()}
+        # A catalog port keeps one entry: older ids of the same repository (for example the setup launcher before it was built) are dropped.
+        repositories={e.metadata['port_repository'] for e in entries if e.metadata.get('port_repository')}
+        for old_id,old in list(existing.items()):
+            if old.metadata.get('port_repository') in repositories and not any(e.id==old_id for e in entries):del existing[old_id]
         for e in entries:
             match=next((old for old in existing.values() if old.kind==e.kind and old.command==e.command),None)
             if not match and e.source:

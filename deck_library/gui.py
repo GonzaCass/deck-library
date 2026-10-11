@@ -14,6 +14,7 @@ from .installations import settings,save_settings,report
 from .gui_tools import ToolsMixin
 from .gui_updates import UpdatesMixin
 from .gui_catalog import CatalogMixin
+from .library_view import TYPES,entry_type,visible_entries
 from .experience import ExperienceMixin
 from .artwork import find_cover
 
@@ -125,7 +126,7 @@ class Poster(Gtk.DrawingArea):
 class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
     def __init__(self):
         super().__init__(title='Deck Library');self.set_wmclass('deck-library','deck-library');self.set_icon_from_file(str(pathlib.Path(__file__).resolve().parent.parent/'assets/icon.svg'));self.set_default_size(1200,740);self.set_size_request(960,620)
-        self.store=Store();self.preferences=settings(self.store);self.view=self.preferences.get('view','covers');self.entries=[];self.checked=set();self.selected=None;self.selection_mode=False;self.platform_filter='all';self.artwork_attempted=set();self.artwork_busy=False;self.discover_busy=False;self.wizard_step=0
+        self.store=Store();self.preferences=settings(self.store);self.view=self.preferences.get('view','covers');self.entries=[];self.checked=set();self.selected=None;self.selection_mode=False;self.platform_filter='all';self.type_filter='all';self.artwork_attempted=set();self.artwork_busy=False;self.discover_busy=False;self.wizard_step=0
         self.connect('destroy',Gtk.main_quit)
         layout=Gtk.Box();self.add(layout)
         self.build_sidebar(layout)
@@ -179,7 +180,11 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         self.banner_text=label('');self.banner_text.set_line_wrap(False);self.banner_text.set_hexpand(True);self.update_banner.pack_start(self.banner_text,True,True,0);self.banner_action=button('Ver',lambda _:self.banner_clicked(),True);self.update_banner.pack_end(self.banner_action,False,False,0);library.pack_start(self.update_banner,False,False,0)
         toolbar=Gtk.Box(spacing=10);self.search=Gtk.SearchEntry();self.search.set_placeholder_text('Buscar juego');self.search.connect('search-changed',lambda _:self.render());toolbar.pack_start(self.search,True,True,0)
         self.platform_picker=Gtk.ComboBoxText();self.platform_picker.append('all','Todas las plataformas');self.platform_picker.set_active_id('all');self.platform_picker.connect('changed',self.filter_changed);toolbar.pack_start(self.platform_picker,False,False,0)
+        self.type_picker=Gtk.ComboBoxText();self.type_picker.append('all','Todos los tipos')
+        for key,title in TYPES:self.type_picker.append(key,title)
+        self.type_picker.set_active_id('all');self.type_picker.connect('changed',self.type_changed);toolbar.pack_start(self.type_picker,False,False,0)
         self.view_picker=Gtk.ComboBoxText();self.view_picker.append('covers','Carátulas');self.view_picker.append('list','Lista');self.view_picker.set_active_id(self.view);self.view_picker.connect('changed',self.change_view);toolbar.pack_start(self.view_picker,False,False,0)
+        self.prefer_ports=Gtk.CheckButton(label='Preferir ports');self.prefer_ports.set_tooltip_text('Oculta la versión por emulador de un juego que ya tiene port.');self.prefer_ports.set_active(self.preferences.get('prefer_ports',True));self.prefer_ports.connect('toggled',self.prefer_changed);toolbar.pack_start(self.prefer_ports,False,False,0)
         self.select_button=button('Seleccionar',lambda _:self.toggle_selection());toolbar.pack_start(self.select_button,False,False,0);library.pack_start(toolbar,False,False,0)
         self.library_stack=Gtk.Stack();self.library_stack.set_vexpand(True);library.pack_start(self.library_stack,True,True,0)
         scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.list=Gtk.ListBox();self.list.connect('row-selected',self.on_select);scroll.add(self.list);self.library_stack.add_named(scroll,'list')
@@ -258,17 +263,23 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         return False
     def refresh_platforms(self):
         self.platform_picker.handler_block_by_func(self.filter_changed);self.platform_picker.remove_all();self.platform_picker.append('all','Todas las plataformas')
-        for platform in sorted({e.platform for e in self.entries}):self.platform_picker.append(platform,platform)
+        for platform in sorted({e.platform for e in self.shown_entries()[0]}):self.platform_picker.append(platform,platform)
         self.platform_picker.set_active_id(self.platform_filter)
         if self.platform_picker.get_active_id() is None:self.platform_filter='all';self.platform_picker.set_active_id('all')
         self.platform_picker.handler_unblock_by_func(self.filter_changed)
     def filter_changed(self,picker):self.platform_filter=picker.get_active_id() or 'all';self.render()
+    def type_changed(self,picker):self.type_filter=picker.get_active_id() or 'all';self.render()
+    def prefer_changed(self,check):self.preferences['prefer_ports']=check.get_active();save_settings(self.preferences,self.store);self.render()
+    def shown_entries(self):
+        """Library entries after the duplicate rule; also returns how many emulator versions were left out."""
+        return visible_entries(self.entries,self.preferences.get('prefer_ports',True))
     def visible(self):
-        text=self.search.get_text().casefold();return sorted([e for e in self.entries if text in (e.name+' '+e.platform).casefold() and (self.platform_filter=='all' or e.platform==self.platform_filter)],key=lambda e:e.name.casefold())
+        text=self.search.get_text().casefold();entries,_=self.shown_entries()
+        return sorted([e for e in entries if text in (e.name+' '+e.platform).casefold() and (self.platform_filter=='all' or e.platform==self.platform_filter) and (self.type_filter=='all' or entry_type(e)==self.type_filter)],key=lambda e:e.name.casefold())
     def in_steam(self,e):return e.metadata.get('steam_appid') is not None and not e.metadata.get('steam_store')
     def render(self):
         self.reset_page(self.list);self.reset_page(self.covers);visible=self.visible()
-        platforms=len({e.platform for e in self.entries});games=len(self.entries);self.library_count.set_text(f'{games} {"juego" if games==1 else "juegos"} en {platforms} {"plataforma" if platforms==1 else "plataformas"}')
+        shown,hidden=self.shown_entries();platforms=len({e.platform for e in shown});games=len(shown);self.library_count.set_text(f'{games} {"juego" if games==1 else "juegos"} en {platforms} {"plataforma" if platforms==1 else "plataformas"}'+(f' · {hidden} por emulador ocultos (tienen port)' if hidden else ''))
         for entry in visible:
             row=Gtk.ListBoxRow();row.entry=entry;box=Gtk.Box(spacing=14);row.add(box)
             if self.selection_mode:

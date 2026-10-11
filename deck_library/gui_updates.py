@@ -28,7 +28,8 @@ class UpdatesMixin:
 
     def update_catalog_port(self,data):
         from . import ports
-        item=next((a for a in getattr(self,'catalog_apps',None) or ports.catalog(self.store) if a['repository']==data['repository']),None) or {'name':data['name'],'repository':data['repository']}
+        known=ports.merged(getattr(self,'catalog_apps',None) or ports.catalog(self.store),self.preferences)
+        item=next((a for a in known if a['repository']==data['repository']),None) or {'name':data['name'],'repository':data['repository']}
         self.install_port(item,True)
 
     def pending_updates(self):return updates.summary(getattr(self,'update_state',{}) or {})

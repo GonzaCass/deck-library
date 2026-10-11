@@ -4,10 +4,11 @@ The catalog is only metadata: a repository name per port. Installing downloads t
 asset for Linux x86_64 over HTTPS, verifies the digest GitHub publishes when there is one, extracts
 with path checks and records what was installed so updates can be detected.
 """
-import hashlib,json,os,pathlib,re,shutil,stat,tarfile,tempfile,time,urllib.error,urllib.request,zipfile
+import hashlib,json,os,pathlib,re,shutil,stat,subprocess,tarfile,tempfile,time,urllib.error,urllib.parse,urllib.request,zipfile
 from . import __version__
 from .models import Store,atomic_json
 from .updates import fetch,fetch_json,RateLimited
+from .presets import ps1_serial
 
 INDEX='https://raw.githubusercontent.com/tgeorgiadis/quiver-community-app-catalog/main/index.json'
 GHL_LIST='https://raw.githubusercontent.com/SirDiabo/GHLAppList/main/apps.json'
@@ -22,9 +23,12 @@ LAUNCHERS=('launch.sh','run.sh','start.sh')
 def ports_root(home=None):return pathlib.Path(home or pathlib.Path.home())/'ports'
 
 SETUP_KIT='Kit de instalación: requiere el disco y la BIOS propios y compila el juego en el primer inicio. En la Deck corre dentro del SDK de KDE de Flatpak, que la app instala una vez (sin root).'
+WEB_HOSTS=('dl.openpete.com','ctr.cmzi.uk')
 BUILTIN=[
- {'name':'Spider-Man (PS1 recompilado)','repository':'alexbeavs-ps1-ports/spider-man-recomp','folderName':'SpiderManPSX','category':'PlayStation','kit':True,'bios':{'name':'SCPH-5502 o 5552 (Europa)','sha256':['1faaa18fa820a0225e488d9f086296b8e6c46df739666093987ff7d8fd352c09']},'disc':{'serial':'SLUS-00875','match':'spiderman','exclude':'spiderman2'},'note':'Necesita el disco SLUS-00875 (EE. UU.) y la BIOS SCPH-5502 o 5552 (Europa). '+SETUP_KIT},
- {'name':'Spider-Man 2: Enter Electro (PS1 recompilado)','repository':'alexbeavs-ps1-ports/spider-man-2-enter-electro-recomp','folderName':'SpiderMan2PSX','category':'PlayStation','kit':True,'bios':{'name':'SCPH-1001 (EE. UU.)','sha256':['71af94d1e47a68c11e8fdb9f8368040601514a42a5a399cda48c7d3bff1e99d3']},'disc':{'serial':'SLUS-01378','match':'spiderman2enterelectro','exclude':''},'note':'Necesita el disco SLUS-01378 (EE. UU., Rev 1) y la BIOS SCPH-1001 (EE. UU.). Una copia europea no sirve. '+SETUP_KIT},
+ {'name':'Spider-Man (PS1 recompilado)','repository':'alexbeavs-ps1-ports/spider-man-recomp','folderName':'SpiderManPSX','category':'PlayStation','kit':True,'setup':'kit','cover_title':'Spider-Man','bios':{'name':'SCPH-5502 o 5552 (Europa)','sha256':['1faaa18fa820a0225e488d9f086296b8e6c46df739666093987ff7d8fd352c09']},'disc':{'serial':'SLUS-00875','match':'spiderman','exclude':'spiderman2'},'note':'Necesita el disco SLUS-00875 (EE. UU.) y la BIOS SCPH-5502 o 5552 (Europa). '+SETUP_KIT},
+ {'name':'Spider-Man 2: Enter Electro (PS1 recompilado)','repository':'alexbeavs-ps1-ports/spider-man-2-enter-electro-recomp','folderName':'SpiderMan2PSX','category':'PlayStation','kit':True,'setup':'kit','cover_title':'Spider-Man 2 - Enter - Electro','bios':{'name':'SCPH-1001 (EE. UU.)','sha256':['71af94d1e47a68c11e8fdb9f8368040601514a42a5a399cda48c7d3bff1e99d3']},'disc':{'serial':'SLUS-01378','match':'spiderman2enterelectro','exclude':''},'note':'Necesita el disco SLUS-01378 (EE. UU., Rev 1) y la BIOS SCPH-1001 (EE. UU.). Una copia europea no sirve. '+SETUP_KIT},
+ {'name':'Spyro the Dragon (OpenPete)','repository':'web/openpete','folderName':'OpenPete','category':'PlayStation','kit':True,'setup':'openpete','web':{'kind':'openpete'},'cover_title':'Spyro the Dragon','disc':{'serial':'SCUS-94228','match':'spyrothedragon','exclude':''},'note':'Descarga de openpete.com (se verifica el SHA-256 publicado). Necesita el disco NTSC-U SCUS-94228. Compila el juego desde el disco en el primer inicio, dentro del SDK de KDE de Flatpak.'},
+ {'name':'Crash Team Racing: Turbocharged','repository':'web/ctr-turbocharged','folderName':'CTRTurbocharged','category':'PlayStation','setup':'ctr','web':{'kind':'ctr'},'cover_title':'CTR - Crash Team Racing','disc':{'serial':'SCUS-94426','match':'crashteamracing','exclude':''},'note':'Descarga de ctr.cmzi.uk (el sitio no publica hash; se comprueba el tamaño). Necesita el BIN crudo MODE2/2352 del disco NTSC-U SCUS-94426, que se copia como ctr-u.bin en ~/.local/share/ctr-turbocharged.'},
 ]
 PLATFORMS={'playstation':'PlayStation','ps1':'PlayStation','psx':'PlayStation','playstation 2':'PlayStation 2','ps2':'PlayStation 2','gamecube':'GameCube','wii':'Wii','nintendo':'Nintendo','n64':'Nintendo 64','xbox':'Xbox 360','rexglue':'Xbox 360'}
 
@@ -60,20 +64,41 @@ def find_bios(sha256,home=None):
             except OSError:continue
     return ''
 
-def requirements(item,game_names,home=None):
-    """Lines (ok, text) describing what a kit still needs, from what the library already has. ok is None when only a name check was possible."""
+def find_disc(spec,games):
+    """A library disc whose SYSTEM.CNF serial equals spec['serial'] (BIN, ISO or CUE only). Returns {name, source, cue, bin} or None."""
+    for game in games:
+        name,source=(game,'') if isinstance(game,str) else game
+        path=pathlib.Path(source) if source else None
+        if path is None or path.suffix.lower() not in ('.cue','.bin','.iso','.img'):continue
+        if ps1_serial(path)!=spec.get('serial'):continue
+        cue=path if path.suffix.lower()=='.cue' else next((c for c in (path.with_suffix('.cue'),path.with_suffix('.CUE')) if c.is_file()),None)
+        binary=path
+        if path.suffix.lower()=='.cue':
+            match=re.search(r'FILE\s+"([^"]+)"',path.read_text(errors='replace'));binary=path.parent/match[1] if match else None
+        return {'name':name,'source':str(path),'cue':str(cue) if cue else '','bin':str(binary) if binary else ''}
+    return None
+
+def requirements(item,games,home=None):
+    """Lines (ok, text) describing what a port still needs, from what the library already has.
+
+    `games` holds names or (name, source) pairs. A disc is matched by its serial when the source is a readable image;
+    otherwise by Redump-style name, in which case ok is None (only a name check was possible).
+    """
     lines=[]
     if item.get('bios'):
         found=find_bios(item['bios'].get('sha256',[]),home)
         lines.append((True,'BIOS '+item['bios'].get('name','')+': encontrada en '+found) if found else (False,'BIOS '+item['bios'].get('name','')+': no se encontró un archivo con el hash exacto.'))
     disc=item.get('disc')
     if disc:
+        exact=find_disc(disc,games)
+        if exact:lines.append((True,'Disco '+disc['serial']+': encontrado «'+exact['name']+'» (serial verificado en el disco).'));return lines
+        names=[g if isinstance(g,str) else g[0] for g in games]
         def key(name):return re.sub(r'[^a-z0-9]','',re.sub(r'\([^)]*\)|\[[^]]*\]','',name.lower()))
-        match=[n for n in game_names if key(n).startswith(disc.get('match','\0')) and not (disc.get('exclude') and key(n).startswith(disc['exclude']))]
+        match=[n for n in names if key(n).startswith(disc.get('match','\0')) and not (disc.get('exclude') and key(n).startswith(disc['exclude']))]
         usa=[n for n in match if '(USA' in n]
         if usa:lines.append((None,'Disco '+disc['serial']+': posible copia USA «'+usa[0]+'». Se confirma en el asistente, que exige el hash exacto de Redump.'))
-        elif match:lines.append((False,'Disco '+disc['serial']+': la biblioteca solo tiene «'+match[0]+'», de otra región. El kit exige la edición USA.'))
-        else:lines.append((False,'Disco '+disc['serial']+': no hay una copia en la biblioteca; se necesita la edición USA.'))
+        elif match:lines.append((False,'Disco '+disc['serial']+': la biblioteca solo tiene «'+match[0]+'», de otra región o en un formato que no se puede leer. El port exige la edición NTSC-U.'))
+        else:lines.append((False,'Disco '+disc['serial']+': no hay una copia en la biblioteca; se necesita la edición NTSC-U.'))
     return lines
 
 def valid_repository(repo):
@@ -87,7 +112,7 @@ def clean(item,category='',source=''):
     if not isinstance(folder,str) or not FOLDER.fullmatch(folder):folder=re.sub(r'[^A-Za-z0-9._-]','',repo.split('/')[1]) or 'port'
     name=item.get('name');icon=item.get('appIconUrl');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
     ai=bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
-    return {'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
+    return {'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr') else '','web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
 
 def parse_source(document,source=''):
     """Entries of a Quiver list file ({apps:[...]}) or a GithubLauncher list ({category:[...]})."""
@@ -155,7 +180,7 @@ def icon_path(store,item,get=None):
     try:
         if url:data=cover_provider.request(url,limit=ICON_LIMIT)
         else:
-            title=re.sub(r'\s*\((?:PSX|PS1|PS2|N64)(?: recompilado)?\)\s*$','',item['name'])
+            title=item.get('cover_title') or re.sub(r'\s*\((?:PSX|PS1|PS2|N64)(?: recompilado)?\)\s*$','',item['name'])
             rows=cover_provider.search(title,{'artwork_provider':'automatic','_artwork_platform':platform_for(item.get('list',''))})
             row=next((r for r in rows if cover_provider.normalized(r['title'])==cover_provider.normalized(title)),None)
             if not row:raise ValueError('sin portada')
@@ -195,6 +220,25 @@ def pick_asset(assets):
         score+={'.appimage':4,'.tar.gz':3,'.tgz':3,'.tar.xz':3,'.tar.zst':0,'.zip':2}.get(next((e for e in ('.appimage','.tar.gz','.tgz','.tar.xz','.tar.zst','.zip') if low.endswith(e)),''),3 if bare and linux else 0)
         if score>best_score and score>2:best,best_score=asset,score
     return best
+
+def resolve_web(web,page=None):
+    """Current download of a port published on its own website: {tag, name, url, sha256, size, page}."""
+    kind=web.get('kind')
+    if kind=='openpete':
+        home='https://www.openpete.com/';text=(page or fetch(home,limit=4*1024*1024).decode('utf-8','replace'))
+        link=re.search(r'https://dl\.openpete\.com/(OpenPete-v([0-9.]+)-x86_64\.AppImage)',text)
+        if not link:raise ValueError('No se encontró el AppImage de Linux en openpete.com.')
+        plain=re.sub(r'\s+',' ',re.sub(r'<[^>]+>',' ',text));digest=re.search(r'Linux AppImage has the SHA-256 hash ([0-9a-f]{64})',plain)
+        return {'tag':'v'+link[2],'name':link[1],'url':link[0],'sha256':digest[1] if digest else '','size':0,'page':home}
+    if kind=='ctr':
+        home='https://ctr.cmzi.uk/';text=(page or fetch(home,limit=4*1024*1024).decode('utf-8','replace'))
+        start=text.find('window.__BUILDS__=')
+        if start<0:raise ValueError('No se encontró la lista de builds en ctr.cmzi.uk.')
+        data,_=json.JSONDecoder().raw_decode(text[start+len('window.__BUILDS__='):])
+        build=next((b for b in data.get('builds',[]) if b.get('key')=='appimage' and b.get('platform')=='linux'),None)
+        if not build or not str(build.get('downloadUrl','')).startswith('/api/download/'):raise ValueError('No hay un AppImage de Linux en la lista de builds.')
+        return {'tag':str(build.get('commit','')),'name':build['name'],'url':home.rstrip('/')+build['downloadUrl'],'sha256':'','size':int(build.get('size') or 0),'page':home}
+    raise ValueError('Fuente web desconocida.')
 
 def release_for(repo,get=fetch_json):
     """Latest release, or the newest pre-release when the project has no stable one."""
@@ -276,13 +320,19 @@ def find_executable(folder,repository=''):
     named=[p for p in binaries if key and key in re.sub(r'[^a-z0-9]','',p.name.lower())]
     return named[0] if len(named)==1 else ''
 
-def install(item,store=None,root=None,progress=print,get=fetch_json,replace=False):
+def install(item,store=None,root=None,progress=print,get=fetch_json,replace=False,web=None,runner=None):
     """Install or update one catalog port. Returns the stored record."""
     store=store or Store();root=pathlib.Path(root or ports_root());item=clean(item)
     if item is None:raise ValueError('Entrada de catálogo inválida.')
-    release=release_for(item['repository'],get);asset=pick_asset(release.get('assets',[]))
-    if asset is None:raise ValueError('La última versión no incluye un archivo para Linux x86_64. Se puede instalar manualmente desde '+release.get('html_url','GitHub')+'.')
-    tag=str(release.get('tag_name',''));destination=root/item['folder']
+    if item['web']:
+        resolved=(web or resolve_web)(item['web'])
+        if urllib.parse.urlparse(resolved['url']).hostname not in WEB_HOSTS:raise ValueError('La descarga apunta a un servidor no permitido.')
+        asset={'name':resolved['name'],'browser_download_url':resolved['url'],'digest':('sha256:'+resolved['sha256']) if resolved.get('sha256') else '','size':resolved.get('size') or 0};tag=resolved['tag']
+    else:
+        release=release_for(item['repository'],get);asset=pick_asset(release.get('assets',[]))
+        if asset is None:raise ValueError('La última versión no incluye un archivo para Linux x86_64. Se puede instalar manualmente desde '+release.get('html_url','GitHub')+'.')
+        tag=str(release.get('tag_name',''))
+    destination=root/item['folder']
     if destination.exists() and not replace:raise ValueError('La carpeta '+item['folder']+' ya existe en '+str(root)+'.')
     if destination.is_symlink():raise ValueError('La carpeta de destino es un enlace simbólico.')
     root.mkdir(parents=True,exist_ok=True)
@@ -290,6 +340,7 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
         temp=pathlib.Path(temp);archive=temp/asset['name'].replace('/','_');progress('Descargando '+asset['name'])
         download(asset['browser_download_url'],archive,progress=lambda d,t:progress(f'Descargando {asset["name"]}: {d//(1<<20)} de {t//(1<<20)} MB' if t else f'Descargando {asset["name"]}: {d//(1<<20)} MB'))
         digest=str(asset.get('digest') or '')
+        if asset.get('size') and archive.stat().st_size!=asset['size']:raise ValueError('El tamaño descargado no coincide con el publicado; no se instaló.')
         if digest.startswith('sha256:') and sha256_file(archive)!=digest[7:].lower():raise ValueError('La suma SHA-256 no coincide con la publicada; no se instaló.')
         staging=temp/'files';staging.mkdir()
         if not re.search(r'\.(zip|tar\.gz|tgz|tar\.xz)$',archive.name.lower()):
@@ -299,9 +350,13 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
             progress('Extrayendo');extract(archive,staging);flatten(staging)
         from . import buildenv
         kit=buildenv.looks_like_kit(staging)
-        executable=find_executable(staging,item['repository'])
+        if item['web'] and item['web']['kind']=='openpete':
+            # The AppImage is unpacked once: its compiler needs the SDK's headers, and the module it builds is kept next to the unpacked files.
+            progress('Desempaquetando OpenPete');(runner or subprocess.run)([str(staging/archive.name),'--appimage-extract'],cwd=str(staging),capture_output=True,timeout=300,check=True)
+            (staging/archive.name).unlink();executable=staging/'squashfs-root/AppRun';kit=True
+        else:executable=find_executable(staging,item['repository'])
         if executable:executable.chmod(executable.stat().st_mode|0o111)
-        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'verified':digest.startswith('sha256:'),'executable':executable.name if executable else '','sandbox':kit,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
+        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','disc':item['disc'],'bios':item['bios'],'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
         atomic_json(staging/'.deck-library-port.json',record)
         if destination.exists():
             old=root/'.deck-library-replaced'/(item['folder']+'-'+time.strftime('%Y%m%dT%H%M%S'));old.parent.mkdir(exist_ok=True);destination.rename(old)
@@ -313,6 +368,11 @@ def installed_updates(store,get=fetch_json):
     """Catalog ports whose recorded tag differs from the latest release."""
     result=[]
     for repo,record in records(store).items():
+        if record.get('web'):
+            try:resolved=resolve_web({'kind':record['web']})
+            except (OSError,ValueError):continue
+            if resolved['tag'] and resolved['tag']!=record.get('tag'):result.append({'name':record.get('name',repo),'repository':repo,'installed':record.get('tag',''),'latest':resolved['tag'],'page':resolved['page']})
+            continue
         try:release=release_for(repo,get)
         except (OSError,ValueError):continue
         tag=str(release.get('tag_name',''))
@@ -337,10 +397,61 @@ def entry_for(folder):
     except (OSError,ValueError):return None
     exe=folder/record.get('executable','') if record.get('executable') else None
     if not exe or not exe.is_file():return None
-    args=[];cwd=str(folder);built=folder/'build'/exe.name
+    args=list(record.get('args') or []);cwd=str(folder);built=folder/'build'/exe.name
     if record.get('sandbox') and built.is_file():
         # The built game's own launcher adopts the BIOS on first run and stores it in bios.cfg; only then can it boot directly.
         exe=built;cwd=str(built.parent)
-        if (built.parent/'bios.cfg').is_file():args=['--no-launcher']
+        if (built.parent/'bios.cfg').is_file():args=[*args,'--no-launcher']
     command=buildenv.wrap([str(exe),*args]) if record.get('sandbox') else [str(exe)]
-    return Entry(record.get('name',folder.name),command,'port','Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {})})
+    return Entry(record.get('name',folder.name),command,'port','Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
+
+
+DATA_CTR=pathlib.Path('.local/share/ctr-turbocharged')
+
+def configure(repository,store=None,games=(),progress=print,home=None,run=None):
+    """Prepare an installed port with what the Deck already has: the disc from the library and, for kits, the BIOS found by hash.
+
+    kit: verify the disc, generate the recompiled code and build it inside the SDK, then store the BIOS choice.
+    openpete: pre-build the game module inside the SDK and remember the disc.
+    ctr: copy the raw BIN as ctr-u.bin into the game's data folder.
+    Returns the updated record; raises ValueError with what is missing.
+    """
+    from . import buildenv
+    store=store or Store();home=pathlib.Path(home or pathlib.Path.home());run=run or buildenv.run
+    record=records(store).get(repository)
+    if not record or not record.get('setup'):raise ValueError('Este port no necesita configuración.')
+    folder=ports_root(home)/record['folder']
+    if not folder.is_dir():raise ValueError('La carpeta del port ya no existe: '+str(folder))
+    problems=[text for ok,text in requirements(record,games,home) if ok is False]
+    if problems:raise ValueError('Faltan requisitos:\n'+'\n'.join(problems))
+    disc=find_disc(record['disc'],games) if record.get('disc') else None
+    if record.get('disc') and not disc:raise ValueError('No se encontró el disco '+record['disc']['serial']+' en un formato legible (BIN, ISO o CUE).')
+    kind=record['setup'];executable=folder/record['executable']
+    if kind=='kit':
+        if not disc['cue']:raise ValueError('El kit necesita el archivo .cue del disco.')
+        bios=find_bios(record['bios']['sha256'],home);cli='psxrecomp/psxrecomp_cli.py';base=['python3',cli]
+        progress('Verificando el disco');run([*base,'verify-disc','--config','game.toml','--project-root','.','--disc',disc['cue']],cwd=str(folder),progress=progress)
+        progress('Generando el juego a partir del disco');run([*base,'generate','--config','game.toml','--project-root','.','--disc',disc['cue'],'--bios',bios],cwd=str(folder),progress=progress)
+        progress('Compilando (varios minutos)');run([*base,'rebuild','--config','game.toml','--project-root','.','--build-dir','build','--target','psx-runtime','--exe-basename',executable.name,'--no-pgo'],cwd=str(folder),progress=progress)
+        config=folder/'build/bios.cfg'
+        if not config.is_file():
+            staged=sorted((folder/'psxrecomp/bios').glob('*.[Bb][Ii][Nn]'))
+            if not staged:raise ValueError('La BIOS no quedó preparada junto al juego.')
+            config.parent.mkdir(parents=True,exist_ok=True);config.write_text(str(staged[0])+'\n')
+    elif kind=='openpete':
+        module=executable.parent/'usr/spyro1-recomp.so'
+        if not module.is_file():
+            progress('Compilando OpenPete desde el disco (menos de un minuto)')
+            run([str(executable),'--disc',disc['source'],'--headless'],cwd=str(executable.parent),progress=progress,until=module.is_file)
+            if not module.is_file():raise RuntimeError('OpenPete no llegó a compilar su módulo.')
+        record['args']=['--disc',disc['source'],'--fullscreen','1']
+    elif kind=='ctr':
+        source=pathlib.Path(disc['bin'])
+        if not source.is_file() or source.stat().st_size%2352:raise ValueError('CTR necesita un BIN crudo MODE2/2352; el archivo '+source.name+' no tiene ese formato.')
+        target=home/DATA_CTR/'assets/ctr-u.bin';target.parent.mkdir(parents=True,exist_ok=True)
+        if not target.is_file() or target.stat().st_size!=source.stat().st_size:
+            progress('Copiando el disco como ctr-u.bin');temporary=target.with_suffix('.part');shutil.copyfile(source,temporary);temporary.replace(target)
+    else:raise ValueError('Tipo de configuración desconocido: '+str(kind))
+    record['configured']=True;record['configured_with']=disc['name'] if disc else '';record['configured_date']=time.strftime('%Y-%m-%dT%H:%M:%S')
+    saved=records(store);saved[repository]=record;atomic_json(store.root/'ports.json',saved);atomic_json(folder/'.deck-library-port.json',record)
+    return record
