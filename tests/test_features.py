@@ -712,7 +712,7 @@ class ZeldaPortTests(ConfigureTests):
     def test_wwhd_setup_uses_private_temporary_key_files_and_removes_them(self):
         import stat
         home,image=self.wiiu_home();self.installed(home,'kit',exe='WindWakerHD.AppImage',folder='WWHD',extra={'setup':'wwhd','disc':None,'wiiu':self.SPEC});seen={}
-        def run(command,cwd=None,progress=None,until=None,sandbox=True):
+        def run(command,cwd=None,progress=None,until=None,sandbox=True,env=None):
             if command[0].endswith('.AppImage'):(pathlib.Path(cwd)/'squashfs-root/tools/installer').mkdir(parents=True);return 0
             keys=[pathlib.Path(command[command.index(flag)+1]) for flag in ('--disc-key','--common-key')]
             seen.update(command=command,sandbox=sandbox,modes=[stat.S_IMODE(k.stat().st_mode) for k in keys],contents=[k.read_text().strip() for k in keys],paths=keys);return 0
@@ -721,7 +721,7 @@ class ZeldaPortTests(ConfigureTests):
         self.assertFalse(any(k.exists() for k in seen['paths']));self.assertFalse(any('c'*32 in part or 'a'*32 in part for part in seen['command']));self.assertTrue(record['configured'])
     def test_a_cemu_archive_needs_no_keys_and_missing_keys_stop_a_disc_image(self):
         home,image=self.wiiu_home('Wind Waker HD (USA).wua');self.installed(home,'kit',exe='W.AppImage',folder='WWHD',extra={'setup':'wwhd','disc':None,'wiiu':self.SPEC});seen={}
-        def run(command,cwd=None,progress=None,until=None,sandbox=True):
+        def run(command,cwd=None,progress=None,until=None,sandbox=True,env=None):
             if command[0].endswith('.AppImage'):(pathlib.Path(cwd)/'squashfs-root').mkdir();return 0
             seen['command']=command;return 0
         self.ports.configure('web/x',self.store,[('x',str(image))],lambda _:None,home,run=run);self.assertIn('--archive',seen['command']);self.assertNotIn('--disc-key',seen['command'])
@@ -954,3 +954,25 @@ class RetiredModsTests(PortDefaultsTests):
         (folder/'build/mods/state.toml').write_text('format_version = 2\n[[feature]]\npackage_id = "psx.enhancement.fast-loading"\nid = "fast-loading"\nenabled = true\n[feature.values]\nmultiplier = 4\n')
         self.ports.enhance_kit(folder);state=tomllib.loads((folder/'build/mods/state.toml').read_text())
         self.assertNotIn('fast-loading',{f['id'] for f in state['feature']});self.assertIn('pgxp',{f['id'] for f in state['feature']})
+
+
+class WwhdShadersTests(ZeldaPortTests):
+    def test_the_setup_runs_with_the_players_real_config_folders_and_prepare_reports_the_result(self):
+        import os
+        home=self.root/'home';(home/'ports/WindWakerHD').mkdir(parents=True);(home/'ports/WindWakerHD/WindWakerHD-v1-linux-x86_64.AppImage').write_bytes(b'x')
+        (home/'.local/share/wwhd/bin').mkdir(parents=True);(home/'.local/share/wwhd/bin/wwhd').write_bytes(b'x');(home/'.local/share/wwhd/game').mkdir()
+        seen={}
+        def fake(result):
+            def run(command,cwd=None,progress=None,until=None,sandbox=True,env=None):
+                if command[-1]=='--appimage-extract':
+                    (pathlib.Path(cwd)/'squashfs-root/tools/shadercache').mkdir(parents=True);(pathlib.Path(cwd)/'squashfs-root/tools/shadercache/template.bin').write_bytes(b't')
+                else:progress('PROGRESS Compilando 10%');progress('RESULT '+result);seen['env']=env
+                return 0
+            return run
+        with patch.dict(os.environ,{'XDG_CONFIG_HOME':str(home/'otra')}):
+            ok=self.ports.prepare_wwhd_shaders(home,run=fake('{"status":"ready"}'))
+            bad=self.ports.prepare_wwhd_shaders(home,run=fake('{"status":"failed","message":"Vulkan presentation"}'))
+            env=self.ports.wwhd_env(home)
+        self.assertEqual(ok['status'],'ready');self.assertEqual(bad['status'],'failed');self.assertIn('Vulkan',bad['message'])
+        self.assertEqual(env['XDG_CONFIG_HOME'],str(home/'.config'));self.assertEqual(seen['env']['XDG_CONFIG_HOME'],str(home/'.config'))
+        self.assertEqual(self.ports.prepare_wwhd_shaders(self.root/'nada')['status'],'unavailable')

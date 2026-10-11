@@ -1,2 +1,2 @@
 """Deck Library — native Linux library and Steam shortcut manager."""
-__version__ = '0.9.1'
+__version__ = '0.9.2'
