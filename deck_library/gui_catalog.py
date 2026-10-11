@@ -125,16 +125,22 @@ class CatalogMixin:
         self.preferences['custom_ports']=[c for c in self.preferences.get('custom_ports',[]) if str(c.get('repository','')).lower()!=item['repository'].lower()];save_settings(self.preferences,self.store);self.fill_catalog()
 
     def install_port(self,item,replace):
+        from . import buildenv
         if getattr(self,'port_busy',False):self.set_status('Ya hay una instalación en curso.');return
+        needs_sdk=item.get('kit') and not buildenv.installed()
+        if needs_sdk and not self.confirm('Entorno de compilación','Este port compila el juego en la Deck a partir del disco propio. Para eso hace falta el SDK de KDE '+buildenv.BRANCH+' de Flatpak (descarga de Flathub, varios cientos de MB hasta unos GB). Se instala una sola vez para este usuario y no modifica SteamOS.','Instalar y continuar'):return
         self.port_busy=True;self.set_status('Instalando '+item['name']+'…')
         def work():
-            try:record=ports.install(item,self.store,progress=lambda text:GLib.idle_add(self.set_status,text),replace=replace);GLib.idle_add(self.port_installed,item,record)
+            try:
+                if needs_sdk:buildenv.install(lambda text:GLib.idle_add(self.set_status,'SDK de KDE: '+text))
+                record=ports.install(item,self.store,progress=lambda text:GLib.idle_add(self.set_status,text),replace=replace);GLib.idle_add(self.port_installed,item,record)
             except Exception as error:GLib.idle_add(self.port_failed,item,str(error))
         threading.Thread(target=work,daemon=True).start()
 
     def port_installed(self,item,record):
         self.port_busy=False
-        if record['executable']:self.set_status(f'{item["name"]} {record["tag"]} instalado.')
+        if record.get('sandbox'):self.message(item['name']+' instalado','Abrirlo desde la biblioteca inicia el asistente: pide el disco y la BIOS propios y compila el juego dentro del SDK de KDE (la primera vez tarda varios minutos). Después se agrega a Steam como cualquier otro juego.')
+        elif record['executable']:self.set_status(f'{item["name"]} {record["tag"]} instalado.')
         else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en ~/ports/{record["folder"]}, pero hay varios ejecutables posibles. Elegir el correcto con «Agregar juegos → Elegir un juego o una app».')
         if getattr(self,'update_state',None):self.update_state['catalog']=[u for u in self.update_state.get('catalog') or [] if u['repository']!=item['repository']];self.refresh_update_badges()
         self.discover()

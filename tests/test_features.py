@@ -358,3 +358,34 @@ class CatalogExtrasTests(PortCatalogTests):
             path=self.ports.icon_path(self.store,{'name':'Spider-Man 2: Enter Electro (PSX)','icon':'','list':'PlayStation'})
         self.assertTrue(path);self.assertEqual(search.call_args[0][1]['_artwork_platform'],'PlayStation')
         self.assertEqual(self.ports.icon_path(self.store,{'name':'Algo','icon':'','list':'2D Game Ports'}),'')
+
+class BuildEnvironmentTests(PortCatalogTests):
+    def test_wrapper_runs_the_program_inside_the_sdk_with_display_audio_input_and_home(self):
+        from deck_library import buildenv
+        command=buildenv.wrap(['/home/u/ports/Kit/Launcher','--x'])
+        self.assertTrue(command[0].endswith('flatpak'));self.assertEqual(command[1],'run');self.assertIn('--devel',command);self.assertIn('--share=network',command);self.assertIn('--device=all',command);self.assertIn('--filesystem=home',command);self.assertIn('--command=/home/u/ports/Kit/Launcher',command)
+        self.assertEqual(command[-2:],[buildenv.SDK,'--x']);self.assertTrue(buildenv.is_wrapped(command));self.assertFalse(buildenv.is_wrapped(['/bin/true']))
+    def test_sdk_presence_and_installation_progress(self):
+        from deck_library import buildenv
+        ok=lambda *a,**k:type('R',(),{'returncode':0})();bad=lambda *a,**k:type('R',(),{'returncode':1})()
+        self.assertTrue(buildenv.installed(ok));self.assertFalse(buildenv.installed(bad))
+        class Proc:
+            def __init__(self,code):self.stdout=iter(['Instalando… 10%\n','\n','Listo\n']);self.code=code
+            def wait(self):return self.code
+        lines=[];buildenv.install(lines.append,lambda *a,**k:Proc(0));self.assertEqual(lines,['Instalando… 10%','Listo'])
+        with self.assertRaisesRegex(RuntimeError,'SDK'):buildenv.install(lambda _:None,lambda *a,**k:Proc(1))
+    def test_a_setup_kit_is_detected_and_its_entry_is_wrapped(self):
+        record=self.install({'Kit/Launcher':b'\x7fELF','Kit/CMakeLists.txt':b'project(x)','Kit/README-SETUP.txt':b'setup'})
+        self.assertTrue(record['sandbox']);entry=self.ports.entry_for(self.install_root/'Uno')
+        self.assertTrue(entry.command[0].endswith('flatpak'));self.assertEqual(entry.source,str(self.install_root/'Uno/Launcher'));self.assertEqual(entry.metadata['sandbox'],'flatpak-kde-sdk')
+        plain=self.install({'Tool':b'\x7fELF'},replace=True);self.assertFalse(plain['sandbox']);self.assertEqual(self.ports.entry_for(self.install_root/'Uno').command,[str(self.install_root/'Uno/Tool')])
+    def test_missing_sdk_blocks_launch_with_a_recognised_message(self):
+        from deck_library import buildenv
+        from deck_library.runtime import diagnostics
+        entry=Entry('Kit',['/bin/true'],metadata={'sandbox':'flatpak-kde-sdk'})
+        with patch.object(buildenv,'installed',return_value=False):issues,_=diagnostics(entry,self.store)
+        self.assertTrue(any(i.startswith('Falta el entorno') for i in issues))
+        with patch.object(buildenv,'installed',return_value=True):self.assertFalse(any(i.startswith('Falta el entorno') for i in diagnostics(entry,self.store)[0]))
+    def test_builtin_spider_man_kits_are_flagged_for_the_sdk(self):
+        kits={b['repository'] for b in self.ports.BUILTIN if b.get('kit')};self.assertEqual(len(kits),2)
+        self.assertTrue(all(a['kit'] for a in self.ports.merged([],{}) if a['repository'] in kits))

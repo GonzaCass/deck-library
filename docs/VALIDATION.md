@@ -71,3 +71,9 @@ Not verified on a live Steam session: removal and controller-layout writes again
 ### 0.4.1
 
 148 core tests pass. GithubLauncher's list (`SirDiabo/GHLAppList`, MIT launcher; the list repository declares no license, so it is read at run time and not redistributed) is merged with Quiver's into 255 ports; the catalog page was rendered against the live network with icons from the lists and PlayStation box art found through Libretro. A name clash between the catalog helper and the library's `entries` was caught by that run. Both Spider-Man PSX repositories were inspected: each publishes a Linux x64 setup kit; Spider-Man requires SLUS-00875 and a Europe BIOS, Spider-Man 2 requires SLUS-01378 (USA) and an SCPH-1001 BIOS. They were not installed or compiled here: this Deck has no CMake, Ninja or compiler.
+
+### 0.4.2 - ports that compile on the Deck
+
+164 core tests pass. On this Steam Deck (SteamOS, no compiler, empty `/usr/include`) the KDE SDK 6.11 Flatpak provided CMake 4.4, Ninja, GCC 15, Python 3.13 and SDL3/Vulkan/X11/Wayland/ALSA headers. Inside it, the Spider-Man PSX kit (v0.1.1) configured with SDL3 fetched from source and compiled all 580 build steps into a working setup-host executable. The Spider-Man 2 kit (v0.1.0) was installed from its release with the published SHA-256 verified, started through the wrapper command that Deck Library generates, opened its launcher window and opened the Steam Deck controller. The flatpak sandbox has no network unless `--share=network` is given and mounts only the home folder, both of which the wrapper accounts for.
+
+Not verified: generating and compiling a game from a disc. Both kits require a USA dump (SLUS-00875, SLUS-01378 Rev 1) and the local library only holds Spain and Europe copies, so the disc check, code generation and gameplay were not run, and nothing is claimed about performance.
