@@ -95,3 +95,7 @@ Not verified: gameplay, frame rate and audio (the test session had no usable aud
 Found and fixed during the run: stopping a pre-build left the sandboxed game running (now the whole process group is stopped); duplicate library entries for a setup launcher and its built game (one entry per catalog port); an imported Steam shortcut listed next to the Minecraft instance that owns it.
 
 Not verified: gameplay, audio, Gaming Mode launches, CTR past its first-run prompts, and OpenPete's performance on the Deck's own display. CTR's font prompt could not be dismissed by a scripted click, so it stays a manual step.
+
+### 0.5.2 - installer and compiled caches
+
+Release archives store every file with a modification time of zero. Python reuses a compiled cache when the source's time and size match, so after updates that only changed the version number (same length) the installed app kept running the cached 0.4.0 code while its source said 0.5.1. The installer now copies files with the current time, removes old `__pycache__` folders and replaces the theme icon file so desktop icon caches notice it; a regression test installs two same-length versions with zero mtimes and checks which one runs (it fails with the previous installer). The same property made a time-and-size `rsync` skip a changed file when copying a release into the repository; copies must use `--checksum`.
