@@ -35,3 +35,17 @@ class SteamIntegrationTests(unittest.TestCase):
  def test_fresh_quiver_port_without_saved_selection_is_detected_if_unambiguous(self):
   apps=self.root/'ports/quiver-launcher/Apps/New-Port';apps.mkdir(parents=True);game=apps/'Game.AppImage';game.write_bytes(b'ELF');(apps/'Setup.AppImage').write_bytes(b'SETUP')
   self.assertTrue(any(e.source==str(game) for e in scan(self.root)))
+
+class OwnPortraitTests(unittest.TestCase):
+    def test_a_cover_pointing_at_another_shortcuts_art_is_replaced_by_the_entrys_own(self):
+        from unittest.mock import patch
+        from deck_library import steam_inventory
+        with tempfile.TemporaryDirectory() as tmp:
+            account=pathlib.Path(tmp);grid=account/'grid';grid.mkdir();(grid/'111p.png').write_bytes(b'a');(grid/'222p.png').write_bytes(b'b')
+            entry=Entry('Game',['/x/launchers/'+'a'*20+'.sh'],id='a'*20,cover=str(grid/'222p.png'))
+            item={'appid':111,'name':'Game','exe':'"/x/launchers/abc.sh"','startdir':'"/"','icon':'','launchoptions':''}
+            patches=(patch('deck_library.steam_inventory.shortcuts',return_value=[item]),patch('deck_library.steam_inventory.launch_command',return_value=['/x/launchers/'+'a'*20+'.sh']),patch('deck_library.steam_inventory.prune',side_effect=lambda r,a,p:r))
+            for p in patches:p.start()
+            self.addCleanup(lambda:[p.stop() for p in patches])
+            steam_inventory.merge_steam([entry],home=pathlib.Path(tmp),account=account);self.assertEqual(entry.cover,str(grid/'111p.png'))
+            chosen=account/'chosen.png';chosen.write_bytes(b'c');entry.cover=str(chosen);steam_inventory.merge_steam([entry],home=pathlib.Path(tmp),account=account);self.assertTrue(entry.cover.endswith('chosen.png'))

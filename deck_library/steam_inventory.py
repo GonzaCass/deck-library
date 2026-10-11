@@ -21,6 +21,14 @@ def launch_command(item):
     except ValueError:args=[]
     return [executable,*args]
 
+def own_portrait(account,appid):
+    """The vertical cover Steam already holds for this shortcut (for example one chosen with Decky's SteamGridDB plugin), or ''."""
+    grid=pathlib.Path(account)/'grid'
+    for ext in ('.png','.jpg','.jpeg','.webp'):
+        path=grid/(str(appid)+'p'+ext)
+        if path.is_file():return str(path)
+    return ''
+
 def merge_steam(entries,home=None,account=None):
     from .gtaiv import discover
     entries=list(entries)
@@ -44,6 +52,9 @@ def merge_steam(entries,home=None,account=None):
         match=next((e for e in result if not e.metadata.get("steam_store") and ((managed_id and e.id==managed_id) or (instance and e.metadata.get('instance_id')==instance) or (e.platform=='Minecraft' and e.kind=='minecraft' and re.sub(r'[^a-z0-9]','',e.name.lower())==re.sub(r'[^a-z0-9]','',item['name'].lower())) or (e.kind=='steam' and e.metadata.get('steam_appid')==item['appid']) or (e.kind!='steam' and e.source==launch) or e.name==item['name'])),None)
         if match:
             match.metadata.update(steam_appid=item['appid'],steam_account=str(account),steam_name=item['name'])
+            own=own_portrait(account,item['appid'])
+            stale=bool(match.cover) and '/grid/' in match.cover and not pathlib.Path(match.cover).name.startswith(str(item['appid']))
+            if own and (not match.cover or not pathlib.Path(match.cover).is_file() or stale):match.cover=own
             if match.kind=='steam':match.metadata['steam_original']=item
             continue
         platform='Minecraft' if instance else 'Windows' if launch.lower().endswith('.exe') else 'Steam'
