@@ -23,7 +23,9 @@ def title_key(name):
 
 def duplicate_emulator_entries(entries):
     """Emulator entries whose game is already available as a port (same title once tags are removed)."""
-    ports={title_key(e.name) for e in entries if entry_type(e)=='port'}
+    ports=set()
+    for e in entries:
+        if entry_type(e)=='port':ports|={title_key(e.name),*([title_key(e.metadata['game_title'])] if e.metadata.get('game_title') else [])}
     return [e for e in entries if entry_type(e)=='emulator' and title_key(e.name) in ports]
 
 def visible_entries(entries,prefer_ports=True):
