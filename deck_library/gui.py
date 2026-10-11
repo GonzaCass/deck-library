@@ -4,6 +4,7 @@ import gi
 gi.require_version('Gtk','3.0')
 gi.require_version('PangoCairo','1.0')
 from gi.repository import Gtk,Gdk,GLib,Pango,GdkPixbuf
+from . import motion
 from . import __version__
 from .models import Store,Entry
 from .discovery import scan,available_emulators,nice_name,SYSTEMS
@@ -19,14 +20,15 @@ from .experience import ExperienceMixin
 from .artwork import find_cover
 
 CSS=b'''
-@define-color bg #0e1116;
-@define-color surface #151a22;
-@define-color raised #1d2430;
-@define-color line #2b3544;
-@define-color text #eef1f6;
-@define-color dim #9ba6b8;
-@define-color accent #5ea8ff;
-@define-color on_accent #07182c;
+@define-color bg #0a0d14;
+@define-color surface #111620;
+@define-color raised #1a2131;
+@define-color line #243049;
+@define-color text #eef2fa;
+@define-color dim #98a4bb;
+@define-color accent #4f9dff;
+@define-color accent2 #4f9dff;
+@define-color on_accent #0a1226;
 @define-color good #5fcf9a;
 @define-color bad #ff7b7b;
 
@@ -39,52 +41,54 @@ label.hero { font-size:26px; font-weight:800; }
 label.welcome-title { font-size:38px; font-weight:800; }
 label.title { font-size:17px; font-weight:700; }
 label.pill { color:@accent; font-size:12px; font-weight:700; }
-label.badge { background:@accent; color:@on_accent; border-radius:10px; padding:0 7px; font-size:12px; font-weight:800; }
+label.badge { background:@accent; color:@on_accent; border-radius:10px; padding:0 8px; font-size:12px; font-weight:800; }
+button.nav label.badge { color:@on_accent; }
+label.sidebar-version { color:@dim; font-size:12px; }
 label.good { color:@good; }
 dialog viewport, dialog scrolledwindow, dialog list { background:@bg; }
 
-.header { background:@surface; padding:6px 20px; border-bottom:1px solid @line; }
+.sidebar { background-image:linear-gradient(180deg,#121826,#0a0d14); border-right:1px solid @line; padding:22px 14px; }
 .brand { font-size:18px; font-weight:800; }
-button.tab { background:transparent; border:0; border-bottom:3px solid transparent; border-radius:0; padding:14px 20px; box-shadow:none; }
-button.tab label { color:@dim; font-weight:700; font-size:15px; }
-button.tab:hover label { color:@text; }
-button.tab.active { border-bottom-color:@accent; }
-button.tab.active label { color:@text; }
-button.chip { background:@surface; border:1px solid @line; border-radius:999px; padding:5px 18px; min-height:24px; }
+button.nav { background:transparent; border:0; border-left:3px solid transparent; border-radius:6px; padding:11px 14px; min-height:44px; box-shadow:none; }
+button.nav label { color:@dim; font-weight:700; font-size:15px; }
+button.nav image { color:@dim; }
+button.nav:hover { background:alpha(@accent,0.08); }
+button.nav:hover label, button.nav:hover image { color:@text; }
+button.nav.active { background:alpha(@accent,0.15); border-left-color:@accent; }
+button.nav.active label, button.nav.active image { color:@text; }
+button.nav:focus { outline:2px solid @accent; outline-offset:-2px; }
+button.chip { background:@surface; border:1px solid @line; border-radius:6px; padding:5px 18px; min-height:24px; }
+button.chip:hover { border-color:@accent; }
 button.chip label { color:@dim; font-weight:600; }
-button.chip.active { background:@accent; border-color:@accent; }
+button.chip.active { background:@accent; border-color:transparent; }
 button.chip.active label { color:@on_accent; }
-label.tag { background:@raised; border-radius:999px; padding:2px 11px; font-size:12px; font-weight:600; color:@dim; }
+label.tag { background:@raised; border-radius:4px; padding:2px 11px; font-size:12px; font-weight:600; color:@dim; }
 label.tag.accent { background:alpha(@accent,0.18); color:@accent; }
 label.tag.warn { background:alpha(#f0a35c,0.18); color:#f0a35c; }
 .divider { background:@line; min-height:1px; }
-.card { background:@surface; border:1px solid @line; border-radius:12px; padding:16px; }
-.preset-detail { background:@surface; padding:16px; border-radius:12px; }
-.banner { background:@raised; border:1px solid @accent; border-radius:12px; padding:10px 14px; }
-.selection-bar { background:@raised; border:1px solid @line; padding:10px; border-radius:12px; }
+.card { background:@surface; border:1px solid @line; border-radius:10px; padding:18px; }
+.preset-detail { background:@surface; padding:16px; border-radius:8px; }
+.banner { background:alpha(@accent,0.12); border:1px solid alpha(@accent,0.6); border-radius:8px; padding:10px 14px; }
+.selection-bar { background:@raised; border:1px solid @line; padding:10px; border-radius:8px; }
 
-button { background:@raised; color:@text; border:1px solid @line; border-radius:10px; padding:8px 16px; min-height:30px; box-shadow:none; text-shadow:none; background-image:none; }
+button { background:@raised; color:@text; border:1px solid @line; border-radius:6px; padding:8px 16px; min-height:30px; box-shadow:none; text-shadow:none; background-image:none; }
 button label { color:@text; }
 button:hover { border-color:@accent; }
 button:active { background:@line; }
 button:focus { outline:2px solid @accent; outline-offset:2px; }
 button:disabled { opacity:0.45; }
-button.primary { background:@accent; border-color:@accent; }
+button.primary { background:@accent; border-color:transparent; }
 button.primary label { color:@on_accent; font-weight:700; }
-button.primary:hover { background:#8cc2ff; border-color:#8cc2ff; }
+button.primary:hover { background:#78b4ff; }
 button.danger { background:transparent; border-color:@bad; }
 button.danger label { color:@bad; }
 button.danger:hover { background:alpha(@bad,0.15); }
-button.flat, button.nav { background:transparent; border-color:transparent; }
-button.nav { padding:10px 12px; }
-button.nav:hover { background:@raised; border-color:transparent; }
-button.nav.active { background:@raised; border-color:@line; }
-button.nav.active label { color:@accent; font-weight:700; }
-button.nav.active label.badge { color:@on_accent; }
-button.poster { background:@raised; border:2px solid @line; border-radius:10px; padding:0; }
+button.flat { background:transparent; border-color:transparent; }
+button.poster { background:@raised; border:2px solid transparent; border-radius:8px; padding:0; }
 button.poster:hover, button.poster.selected { border-color:@accent; }
+button.poster.selected { box-shadow:0 0 0 3px alpha(@accent,0.35); }
 
-entry, combobox button { background:@surface; color:@text; border:1px solid @line; border-radius:10px; padding:8px; min-height:30px; }
+entry, combobox button { background:@surface; color:@text; border:1px solid @line; border-radius:6px; padding:8px; min-height:30px; }
 entry:focus { border-color:@accent; }
 list, list row { background:transparent; }
 list row { border-bottom:1px solid @line; padding:10px 8px; }
@@ -97,6 +101,20 @@ progressbar trough { background:@raised; border:0; border-radius:4px; min-height
 progressbar progress { background:@accent; border:0; border-radius:4px; }
 textview text { background:@bg; color:@text; font-family:monospace; font-size:13px; }
 .cover-title { font-size:14px; font-weight:700; }
+
+/* Motion: 150-300 ms, ease-out. Hover and focus must be visible for mouse, touch and gamepad (Steam Input sends keys). */
+button, entry, .card, .banner { transition:background 180ms ease-out, border-color 180ms ease-out, box-shadow 220ms ease-out, opacity 180ms ease-out; }
+button.poster { transition:border-color 200ms ease-out, box-shadow 240ms ease-out; }
+button.poster:hover { box-shadow:0 10px 24px alpha(black,0.5); }
+button.poster:focus { border-color:@accent; box-shadow:0 0 0 3px alpha(@accent,0.4), 0 10px 24px alpha(black,0.5); outline:none; }
+button.tab, button.chip { transition:background 180ms ease-out, border-color 200ms ease-out; }
+button.tab:focus, button.chip:focus { outline:2px solid @accent; outline-offset:-3px; }
+button { min-height:36px; }
+entry { min-height:36px; }
+button.chip { min-height:32px; }
+switch { transition:background 200ms ease-out; }
+.toast { background:@raised; border:1px solid @accent; border-radius:8px; padding:10px 18px; box-shadow:0 8px 24px alpha(black,0.55); }
+label.toast-text { color:@text; font-weight:600; }
 '''
 
 TONES={'play':'primary','danger':'danger'}
@@ -113,10 +131,21 @@ def button(text,callback,primary=False,tone=None):
     if tone in TONES:style.add_class(TONES[tone])
     return widget
 
+class PageStack(Gtk.Stack):
+    """Stack that slides between the library and a game's page and cross-fades between the other pages."""
+    ORDER={'library':0,'detail':1}
+    def set_visible_child_name(self,name):
+        current=self.get_visible_child_name();old=self.ORDER.get(current,0);new=self.ORDER.get(name,0)
+        if not motion.enabled():self.set_transition_type(Gtk.StackTransitionType.NONE);self.set_transition_duration(0)
+        else:
+            self.set_transition_duration(260)
+            self.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT if new>old else Gtk.StackTransitionType.SLIDE_RIGHT if new<old else Gtk.StackTransitionType.CROSSFADE)
+        super().set_visible_child_name(name)
+
 class Poster(Gtk.DrawingArea):
     """Fixed 2:3 canvas; contain artwork without cropping game titles."""
-    def __init__(self,entry,path,width=160,height=240):
-        super().__init__();self.entry=entry;self.set_size_request(width,height);self.pixbuf=None
+    def __init__(self,entry,path,width=160,height=240,overlay=False,steam=False):
+        super().__init__();self.entry=entry;self.overlay=overlay;self.steam=steam;self.set_size_request(width,height);self.pixbuf=None
         if path:
             try:self.pixbuf=GdkPixbuf.Pixbuf.new_from_file_at_scale(path,600,900,True)
             except (GLib.Error,OSError):pass
@@ -134,17 +163,28 @@ class Poster(Gtk.DrawingArea):
             cr.set_line_width(14);cr.stroke()
             layout=self.create_pango_layout(self.entry.name);layout.set_width(int((w-30)*Pango.SCALE));layout.set_wrap(Pango.WrapMode.WORD_CHAR);layout.set_alignment(Pango.Alignment.CENTER);layout.set_font_description(Pango.FontDescription('Sans Bold 19'));_,th=layout.get_pixel_size();cr.set_source_rgb(.93,.95,.98);cr.move_to(15,(h-th)/2);PangoCairo.show_layout(cr,layout)
             cr.set_source_rgba(0,0,0,.3);cr.rectangle(0,h-30,w,30);cr.fill();layout=self.create_pango_layout(self.entry.platform.upper());layout.set_font_description(Pango.FontDescription('Sans Bold 9'));tw,_=layout.get_pixel_size();cr.set_source_rgb(.8,.86,.95);cr.move_to((w-tw)/2,h-23);PangoCairo.show_layout(cr,layout)
+        if self.overlay:self.draw_overlay(widget,cr,w,h)
         return False
+    def draw_overlay(self,widget,cr,w,h):
+        """Bottom gradient with the game's name and platform, and a small badge for shortcuts already in Steam."""
+        import cairo
+        from gi.repository import PangoCairo
+        shade=cairo.LinearGradient(0,h*0.58,0,h);shade.add_color_stop_rgba(0,0.04,0.05,0.09,0);shade.add_color_stop_rgba(1,0.04,0.05,0.09,0.94);cr.set_source(shade);cr.rectangle(0,h*0.58,w,h*0.42);cr.fill()
+        layout=self.create_pango_layout(self.entry.name);layout.set_font_description(Pango.FontDescription('Sans Bold 11'));layout.set_width(int((w-24)*Pango.SCALE));layout.set_ellipsize(Pango.EllipsizeMode.END);layout.set_height(-2)
+        cr.set_source_rgba(1,1,1,.97);cr.move_to(12,h-70);PangoCairo.show_layout(cr,layout)
+        sub=self.create_pango_layout(self.entry.platform.upper());sub.set_font_description(Pango.FontDescription('Sans Bold 8'));cr.set_source_rgba(.62,.72,1,.95);cr.move_to(12,h-24);PangoCairo.show_layout(cr,sub)
+        if self.steam:
+            cr.set_source_rgba(0.04,0.05,0.09,.78);cr.arc(w-22,22,13,0,6.2832);cr.fill();cr.set_source_rgba(.62,.72,1,1);cr.set_line_width(2.4);cr.move_to(w-28,22);cr.line_to(w-23,27);cr.line_to(w-15,17);cr.stroke()
 
 class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
     def __init__(self):
         super().__init__(title='Deck Library');self.set_wmclass('deck-library','deck-library');self.set_icon_from_file(str(pathlib.Path(__file__).resolve().parent.parent/'assets/icon.svg'));self.set_default_size(1200,740);self.set_size_request(960,620)
         self.store=Store();self.preferences=settings(self.store);self.view=self.preferences.get('view','covers');self.entries=[];self.checked=set();self.selected=None;self.selection_mode=False;self.platform_filter='all';self.type_filter='all';self.artwork_attempted=set();self.artwork_busy=False;self.discover_busy=False;self.wizard_step=0
         self.connect('destroy',Gtk.main_quit)
-        layout=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.add(layout)
-        self.build_header(layout)
-        main=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);main.set_border_width(20);layout.pack_start(main,True,True,0)
-        self.pages=Gtk.Stack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);main.pack_start(self.pages,True,True,0)
+        layout=Gtk.Box();self.add(layout)
+        self.build_sidebar(layout)
+        main=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);main.set_border_width(20);overlay=Gtk.Overlay();overlay.add(main);self.toast_widget=motion.Toast();overlay.add_overlay(self.toast_widget);layout.pack_start(overlay,True,True,0)
+        self.pages=PageStack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);main.pack_start(self.pages,True,True,0)
         self.build_library()
         detail_scroll=Gtk.ScrolledWindow();detail_scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);detail_scroll.add(self.detail);self.pages.add_named(detail_scroll,'detail')
         self.settings_box=self.scrolled_page('settings');self.updates_box=self.scrolled_page('updates');self.catalog_box=self.scrolled_page('catalog')
@@ -154,7 +194,7 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         self.status=label('','status');main.pack_start(self.status,False,False,0)
         try:self.entries=self.store.load()
         except Exception as error:self.message('No se pudo leer la biblioteca',str(error))
-        self.apply_motion();self.refresh_platforms();self.render();self.pages.set_visible_child_name('library')
+        self.apply_motion();self.refresh_platforms();self.animate_next=True;self.render();self.pages.set_visible_child_name('library')
         if not self.preferences.get('onboarding_complete'):self.start_wizard()
         else:GLib.idle_add(self.discover)
         self.update_state=None
@@ -171,19 +211,23 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         if title:box.pack_start(label(title,'title'),False,False,0)
         parent.pack_start(box,False,False,0);return box
 
-    def build_header(self,layout):
-        bar=Gtk.Box(spacing=18);bar.get_style_context().add_class('header');layout.pack_start(bar,False,False,0)
-        brand=Gtk.Box(spacing=10)
-        try:brand.pack_start(Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(__file__).resolve().parent.parent/'assets/icon.svg'),32,32,True)),False,False,0)
+    def build_sidebar(self,layout):
+        side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);side.set_size_request(262,-1);side.get_style_context().add_class('sidebar');layout.pack_start(side,False,False,0)
+        brand=Gtk.Box(spacing=12)
+        try:brand.pack_start(Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(__file__).resolve().parent.parent/'assets/icon.svg'),40,40,True)),False,False,0)
         except GLib.Error:pass
-        brand.pack_start(label('Deck Library','brand'),False,False,0);bar.pack_start(brand,False,False,0)
-        tabs=Gtk.Box(spacing=0);bar.pack_start(tabs,False,False,8);self.nav_buttons={}
-        for text,callback in [('Biblioteca',lambda _:self.open_library()),('Catálogo',lambda _:self.catalog_page()),('Actualizaciones',lambda _:self.updates_page()),('Ajustes',lambda _:self.settings_page())]:
-            widget=Gtk.Button();widget.connect('clicked',callback);widget.get_style_context().add_class('tab');row=Gtk.Box(spacing=8);row.pack_start(label(text),False,False,0)
+        brand.pack_start(label('Deck Library','brand'),False,False,0);side.pack_start(brand,False,False,6)
+        add=button('Agregar juegos',lambda _:self.add_hub(),True);side.pack_start(add,False,False,10)
+        self.nav_buttons={};theme=Gtk.IconTheme.get_default()
+        for text,icon,callback in [('Biblioteca',('view-grid-symbolic',),lambda _:self.open_library()),('Catálogo',('folder-download-symbolic','system-software-install-symbolic'),lambda _:self.catalog_page()),('Actualizaciones',('view-refresh-symbolic','software-update-available-symbolic'),lambda _:self.updates_page()),('Ajustes',('emblem-system-symbolic','preferences-system-symbolic'),lambda _:self.settings_page())]:
+            widget=Gtk.Button();widget.set_relief(Gtk.ReliefStyle.NONE);widget.connect('clicked',callback);widget.get_style_context().add_class('nav');row=Gtk.Box(spacing=12)
+            icon=next((i for i in icon if theme.has_icon(i)),None)
+            if icon:row.pack_start(Gtk.Image.new_from_icon_name(icon,Gtk.IconSize.LARGE_TOOLBAR),False,False,0)
+            row.pack_start(label(text),True,True,0)
             if text=='Actualizaciones':
-                self.update_badge=label('0','badge');self.update_badge.set_no_show_all(True);self.update_badge.set_yalign(0.5);row.pack_start(self.update_badge,False,False,0)
-            widget.add(row);tabs.pack_start(widget,False,False,0);self.nav_buttons[text]=widget
-        bar.pack_end(button('Agregar juegos',lambda _:self.add_hub(),True),False,False,0);bar.pack_end(label('v'+__version__,'muted'),False,False,0)
+                self.update_badge=label('0','badge');self.update_badge.set_no_show_all(True);self.update_badge.set_yalign(0.5);row.pack_end(self.update_badge,False,False,0)
+            widget.add(row);side.pack_start(widget,False,False,0);self.nav_buttons[text]=widget
+        side.pack_end(label('Versión '+__version__,'sidebar-version'),False,False,4)
 
     def build_library(self):
         library=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14);self.pages.add_named(library,'library')
@@ -214,7 +258,7 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
 
     def apply_motion(self):
         enabled=self.preferences.get('animations',True);Gtk.Settings.get_default().set_property('gtk-enable-animations',enabled)
-        for stack in (self.pages,self.library_stack,self.wizard_box):stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if enabled else Gtk.StackTransitionType.NONE);stack.set_transition_duration(160 if enabled else 0)
+        for stack in (self.library_stack,self.wizard_box):stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if enabled else Gtk.StackTransitionType.NONE);stack.set_transition_duration(160 if enabled else 0)
     def page_changed(self,stack,*args):
         page=stack.get_visible_child_name();active={'library':'Biblioteca','detail':'Biblioteca','catalog':'Catálogo','updates':'Actualizaciones','settings':'Ajustes'}.get(page)
         for text,widget in self.nav_buttons.items():
@@ -223,7 +267,8 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
             else:context.remove_class('active')
     def reset_page(self,box):
         for child in box.get_children():box.remove(child)
-    def open_library(self):self.pages.set_visible_child_name('library');self.render()
+    def open_library(self):self.animate_next=True;self.pages.set_visible_child_name('library');self.render()
+    def toast(self,text):self.toast_widget.show_text(text)
     def add_hub(self):
         self.reset_page(self.add_box);self.add_box.pack_start(label('Agregar juegos','hero'),False,False,0);self.add_box.pack_start(label('Detectar instalaciones, elegir un archivo o preparar un port.','subtitle'),False,False,0)
         for title,text,action in [('Buscar lo instalado','EmuDeck, ports y las instancias de Minecraft.',lambda _:self.start_wizard()),('Catálogo de ports','Recompilaciones y ports de la comunidad, instalados desde GitHub.',lambda _:self.catalog_page()),('Elegir un juego o una app','ROM, programa o launcher.',lambda _:self.manual()),('Mario Kart Wii','Recompilar una imagen PAL y dejarla lista para la Deck.',lambda _:self.setup_wii_dialog()),('Spider-Man: Edge of Time','Project-2099 desde una ISO de Xbox 360, con Proton y ajustes para la Deck.',lambda _:self.project2099_dialog())]:
@@ -233,7 +278,7 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         path=self.store.root/'last-sync.json'
         try:
             if path.exists() and path.stat().st_mtime>self.last_sync_seen:
-                value=json.loads(path.read_text());self.last_sync_seen=path.stat().st_mtime;self.set_status(self.sync_summary(value));self.discover()
+                value=json.loads(path.read_text());self.last_sync_seen=path.stat().st_mtime;self.set_status(self.sync_summary(value));self.toast(self.sync_summary(value));self.discover()
         except (OSError,ValueError):pass
         return True
     def sync_summary(self,value):
@@ -282,9 +327,9 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         self.platform_picker.set_active_id(self.platform_filter)
         if self.platform_picker.get_active_id() is None:self.platform_filter='all';self.platform_picker.set_active_id('all')
         self.platform_picker.handler_unblock_by_func(self.filter_changed)
-    def filter_changed(self,picker):self.platform_filter=picker.get_active_id() or 'all';self.render()
+    def filter_changed(self,picker):self.platform_filter=picker.get_active_id() or 'all';self.animate_next=True;self.render()
     def type_changed(self,key):
-        self.type_filter=key
+        self.type_filter=key;self.animate_next=True
         for name,chip in self.chip_buttons.items():
             style=chip.get_style_context()
             if name==key:style.add_class('active')
@@ -299,7 +344,7 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         return sorted([e for e in entries if text in (e.name+' '+e.platform).casefold() and (self.platform_filter=='all' or e.platform==self.platform_filter) and (self.type_filter=='all' or entry_type(e)==self.type_filter)],key=lambda e:e.name.casefold())
     def in_steam(self,e):return e.metadata.get('steam_appid') is not None and not e.metadata.get('steam_store')
     def render(self):
-        self.reset_page(self.list);self.reset_page(self.covers);visible=self.visible()
+        self.reset_page(self.list);self.reset_page(self.covers);visible=self.visible();self.new_tiles=[]
         shown,hidden=self.shown_entries();platforms=len({e.platform for e in shown});games=len(shown);self.library_count.set_text(f'{games} {"juego" if games==1 else "juegos"}'+(f' · {hidden} ocultos por tener port' if hidden else ''))
         for entry in visible:
             row=Gtk.ListBoxRow();row.entry=entry;box=Gtk.Box(spacing=14);row.add(box)
@@ -309,7 +354,8 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         if not visible and self.entries:
             self.covers.add(label('Ningún juego coincide con el filtro.','muted'));self.list.add(label('Sin resultados.','muted'))
         self.library_stack.set_visible_child_name(self.view if self.entries else 'empty');self.library_stack.show_all();self.update_selection()
-    def change_view(self,picker):self.view=picker.get_active_id() or 'covers';self.preferences['view']=self.view;save_settings(self.preferences,self.store);self.render()
+        if getattr(self,'animate_next',False):self.animate_next=False;motion.stagger(self.new_tiles)
+    def change_view(self,picker):self.view=picker.get_active_id() or 'covers';self.animate_next=True;self.preferences['view']=self.view;save_settings(self.preferences,self.store);self.render()
     def toggle_selection(self):
         self.selection_mode=not self.selection_mode
         if not self.selection_mode:self.checked.clear()
@@ -327,15 +373,14 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
             self.render();return
         self.selected=e;self.show_detail(e);self.pages.set_visible_child_name('detail')
     def add_cover_card(self,e):
-        tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);tile.set_size_request(165,-1)
-        poster=Gtk.Button();poster.set_relief(Gtk.ReliefStyle.NONE);poster.get_style_context().add_class('poster');poster.set_tooltip_text('Seleccionar '+e.name if self.selection_mode else 'Abrir '+e.name);poster.connect('clicked',lambda _:self.select_game(e));poster.add(Poster(e,find_cover(e)))
+        tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);tile.set_size_request(170,-1)
+        poster=Gtk.Button();poster.set_relief(Gtk.ReliefStyle.NONE);poster.get_style_context().add_class('poster');poster.set_tooltip_text('Seleccionar '+e.name if self.selection_mode else 'Abrir '+e.name);poster.connect('clicked',lambda _:self.select_game(e));poster.add(Poster(e,find_cover(e),170,255,overlay=True,steam=self.in_steam(e)))
         if e.id in self.checked:poster.get_style_context().add_class('selected')
         tile.pack_start(poster,False,False,0)
-        name=label(e.name,'cover-title');name.set_line_wrap(False);name.set_ellipsize(Pango.EllipsizeMode.END);name.set_max_width_chars(19);name.set_tooltip_text(e.name)
         if self.selection_mode:
+            name=label(e.name,'cover-title');name.set_line_wrap(False);name.set_ellipsize(Pango.EllipsizeMode.END);name.set_max_width_chars(19);name.set_tooltip_text(e.name)
             check=Gtk.CheckButton();check.add(name);check.set_active(e.id in self.checked);check.connect('toggled',self.toggle,e.id);tile.pack_start(check,False,False,0)
-        else:tile.pack_start(name,False,False,0)
-        tile.pack_start(label(e.platform+(' · En Steam' if self.in_steam(e) else ''),'pill'),False,False,0);self.covers.add(tile)
+        self.covers.add(tile);self.new_tiles.append(tile)
     def toggle(self,check,id_):
         if check.get_active():self.checked.add(id_)
         else:self.checked.discard(id_)
@@ -465,7 +510,7 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
                     except Exception as error:GLib.idle_add(self.failed,str(error))
                 threading.Thread(target=work,daemon=True).start()
         else:
-            self.set_status('Cambios guardados. Abrir Steam para verlos.');self.message('Cambios guardados','Se guardó un respaldo de la biblioteca de Steam.');self.discover()
+            self.set_status('Cambios guardados. Abrir Steam para verlos.');self.toast('Cambios guardados en Steam');self.discover()
         return False
     def failed(self,text):self.add_button.set_sensitive(True);self.message('No se pudo guardar',text);self.set_status('La biblioteca de Steam no se modificó.');return False
     def manual(self,existing=None):
