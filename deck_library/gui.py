@@ -20,100 +20,108 @@ from .experience import ExperienceMixin
 from .artwork import find_cover
 
 CSS=b'''
-@define-color bg #0a0d14;
-@define-color surface #111620;
-@define-color raised #1a2131;
-@define-color line #243049;
-@define-color text #eef2fa;
-@define-color dim #98a4bb;
-@define-color accent #4f9dff;
-@define-color accent2 #4f9dff;
-@define-color on_accent #0a1226;
-@define-color good #5fcf9a;
-@define-color bad #ff7b7b;
+/* Graphite and ember: warm neutral surfaces, one accent, flat controls. */
+@define-color bg #131210;
+@define-color surface #1b1a17;
+@define-color raised #25231f;
+@define-color line #37342d;
+@define-color text #f3efe7;
+@define-color dim #a39d90;
+@define-color accent #ff8a3d;
+@define-color on_accent #1c0f05;
+@define-color good #7fd194;
+@define-color bad #f07a6a;
 
-window, dialog { background:@bg; color:@text; font-family:Sans; font-size:15px; }
+window, dialog { background:@bg; color:@text; font-family:"Noto Sans", Sans; font-size:15px; }
 label { color:@text; }
-label.muted, label.status { color:@dim; }
+label.muted, label.status, label.meta { color:@dim; }
 label.status { font-size:13px; }
+label.meta { font-size:12px; }
 label.subtitle { color:@dim; font-size:16px; }
-label.hero { font-size:26px; font-weight:800; }
-label.welcome-title { font-size:38px; font-weight:800; }
+label.hero { font-size:30px; font-weight:700; }
+label.welcome-title { font-size:38px; font-weight:700; }
 label.title { font-size:17px; font-weight:700; }
-label.pill { color:@accent; font-size:12px; font-weight:700; }
-label.badge { background:@accent; color:@on_accent; border-radius:10px; padding:0 8px; font-size:12px; font-weight:800; }
-button.nav label.badge { color:@on_accent; }
-label.sidebar-version { color:@dim; font-size:12px; }
+label.pill, label.eyebrow { color:@accent; font-size:11px; font-weight:700; letter-spacing:1px; }
+label.steam-mark { color:@accent; font-size:12px; font-weight:700; }
+label.badge { background:@accent; color:@on_accent; border-radius:3px; padding:0 7px; font-size:12px; font-weight:800; }
 label.good { color:@good; }
+label.sidebar-version { color:@dim; font-size:12px; }
 dialog viewport, dialog scrolledwindow, dialog list { background:@bg; }
 
-.sidebar { background-image:linear-gradient(180deg,#121826,#0a0d14); border-right:1px solid @line; padding:22px 14px; }
-.brand { font-size:18px; font-weight:800; }
-button.nav { background:transparent; border:0; border-left:3px solid transparent; border-radius:6px; padding:11px 14px; min-height:44px; box-shadow:none; }
-button.nav label { color:@dim; font-weight:700; font-size:15px; }
+/* Sidebar */
+.sidebar { background:@surface; border-right:1px solid @line; padding:24px 12px 16px 12px; }
+.brand { font-size:17px; font-weight:700; }
+button.nav { background:transparent; border:0; border-left:3px solid transparent; border-radius:0; padding:10px 14px; min-height:44px; box-shadow:none; }
+button.nav label { color:@dim; font-weight:600; font-size:15px; }
 button.nav image { color:@dim; }
-button.nav:hover { background:alpha(@accent,0.08); }
+button.nav:hover { background:@raised; }
 button.nav:hover label, button.nav:hover image { color:@text; }
-button.nav.active { background:alpha(@accent,0.15); border-left-color:@accent; }
+button.nav.active { background:@raised; border-left-color:@accent; }
 button.nav.active label, button.nav.active image { color:@text; }
+button.nav label.badge { color:@on_accent; }
 button.nav:focus { outline:2px solid @accent; outline-offset:-2px; }
-button.chip { background:@surface; border:1px solid @line; border-radius:6px; padding:5px 18px; min-height:24px; }
-button.chip:hover { border-color:@accent; }
-button.chip label { color:@dim; font-weight:600; }
-button.chip.active { background:@accent; border-color:transparent; }
-button.chip.active label { color:@on_accent; }
-label.tag { background:@raised; border-radius:4px; padding:2px 11px; font-size:12px; font-weight:600; color:@dim; }
-label.tag.accent { background:alpha(@accent,0.18); color:@accent; }
-label.tag.warn { background:alpha(#f0a35c,0.18); color:#f0a35c; }
-.divider { background:@line; min-height:1px; }
-.card { background:@surface; border:1px solid @line; border-radius:10px; padding:18px; }
-.preset-detail { background:@surface; padding:16px; border-radius:8px; }
-.banner { background:alpha(@accent,0.12); border:1px solid alpha(@accent,0.6); border-radius:8px; padding:10px 14px; }
-.selection-bar { background:@raised; border:1px solid @line; padding:10px; border-radius:8px; }
 
-button { background:@raised; color:@text; border:1px solid @line; border-radius:6px; padding:8px 16px; min-height:30px; box-shadow:none; text-shadow:none; background-image:none; }
+/* Filters as text tabs */
+button.chip { background:transparent; border:0; border-bottom:2px solid transparent; border-radius:0; padding:8px 4px; min-height:32px; margin-right:14px; box-shadow:none; }
+button.chip label { color:@dim; font-weight:600; font-size:14px; }
+button.chip:hover label { color:@text; }
+button.chip.active { border-bottom-color:@accent; }
+button.chip.active label { color:@text; }
+button.chip:focus { outline:2px solid @accent; outline-offset:-2px; }
+
+label.tag { background:@raised; border-radius:3px; padding:2px 10px; font-size:12px; font-weight:600; color:@dim; }
+label.tag.accent { background:alpha(@accent,0.16); color:@accent; }
+label.tag.warn { background:alpha(#e8b04a,0.18); color:#e8b04a; }
+.divider { background:@line; min-height:1px; }
+.card { background:@surface; border:1px solid @line; border-radius:8px; padding:18px; }
+.preset-detail { background:@surface; padding:16px; border-radius:8px; }
+.banner { background:@surface; border:1px solid @line; border-left:3px solid @accent; border-radius:4px; padding:10px 14px; }
+.selection-bar { background:@raised; border:1px solid @line; padding:10px; border-radius:6px; }
+
+/* Controls: rectangular, 4px corners */
+button { background:@raised; color:@text; border:1px solid @line; border-radius:4px; padding:8px 16px; min-height:36px; box-shadow:none; text-shadow:none; background-image:none; }
 button label { color:@text; }
-button:hover { border-color:@accent; }
+button:hover { border-color:@dim; }
 button:active { background:@line; }
 button:focus { outline:2px solid @accent; outline-offset:2px; }
 button:disabled { opacity:0.45; }
-button.primary { background:@accent; border-color:transparent; }
+button.primary { background:@accent; border-color:@accent; }
 button.primary label { color:@on_accent; font-weight:700; }
-button.primary:hover { background:#78b4ff; }
+button.primary:hover { background:#ffa264; border-color:#ffa264; }
 button.danger { background:transparent; border-color:@bad; }
 button.danger label { color:@bad; }
-button.danger:hover { background:alpha(@bad,0.15); }
+button.danger:hover { background:alpha(@bad,0.14); }
 button.flat { background:transparent; border-color:transparent; }
-button.poster { background:@raised; border:2px solid transparent; border-radius:8px; padding:0; }
-button.poster:hover, button.poster.selected { border-color:@accent; }
-button.poster.selected { box-shadow:0 0 0 3px alpha(@accent,0.35); }
+button.ghost { background:transparent; border-color:@accent; }
+button.ghost label { color:@accent; font-weight:700; }
+button.ghost:hover { background:alpha(@accent,0.12); }
 
-entry, combobox button { background:@surface; color:@text; border:1px solid @line; border-radius:6px; padding:8px; min-height:30px; }
+/* Game cards */
+button.poster { background:@raised; border:2px solid transparent; border-radius:6px; padding:0; }
+button.poster:hover { border-color:@accent; box-shadow:0 8px 20px alpha(black,0.5); }
+button.poster:focus { border-color:@accent; box-shadow:0 0 0 2px alpha(@accent,0.5); outline:none; }
+button.poster.selected { border-color:@accent; box-shadow:0 0 0 3px alpha(@accent,0.35); }
+.cover-title { font-size:14px; font-weight:700; }
+
+entry, combobox button { background:@surface; color:@text; border:1px solid @line; border-radius:4px; padding:8px; min-height:36px; }
 entry:focus { border-color:@accent; }
 list, list row { background:transparent; }
 list row { border-bottom:1px solid @line; padding:10px 8px; }
 list row:selected { background:@raised; }
-check { min-width:22px; min-height:22px; border:1px solid @dim; border-radius:6px; background:@raised; }
+check { min-width:22px; min-height:22px; border:1px solid @dim; border-radius:3px; background:@raised; }
 check:checked { background:@accent; color:@on_accent; border-color:@accent; }
 switch { background:@line; border-radius:14px; }
 switch:checked { background:@accent; }
-progressbar trough { background:@raised; border:0; border-radius:4px; min-height:5px; }
-progressbar progress { background:@accent; border:0; border-radius:4px; }
+progressbar trough { background:@raised; border:0; border-radius:2px; min-height:5px; }
+progressbar progress { background:@accent; border:0; border-radius:2px; }
 textview text { background:@bg; color:@text; font-family:monospace; font-size:13px; }
-.cover-title { font-size:14px; font-weight:700; }
 
-/* Motion: 150-300 ms, ease-out. Hover and focus must be visible for mouse, touch and gamepad (Steam Input sends keys). */
+/* Motion: 150-300 ms, ease-out. Hover and focus stay visible for mouse, touch and gamepad. */
 button, entry, .card, .banner { transition:background 180ms ease-out, border-color 180ms ease-out, box-shadow 220ms ease-out, opacity 180ms ease-out; }
 button.poster { transition:border-color 200ms ease-out, box-shadow 240ms ease-out; }
-button.poster:hover { box-shadow:0 10px 24px alpha(black,0.5); }
-button.poster:focus { border-color:@accent; box-shadow:0 0 0 3px alpha(@accent,0.4), 0 10px 24px alpha(black,0.5); outline:none; }
-button.tab, button.chip { transition:background 180ms ease-out, border-color 200ms ease-out; }
-button.tab:focus, button.chip:focus { outline:2px solid @accent; outline-offset:-3px; }
-button { min-height:36px; }
-entry { min-height:36px; }
-button.chip { min-height:32px; }
+button.chip { transition:border-color 200ms ease-out; }
 switch { transition:background 200ms ease-out; }
-.toast { background:@raised; border:1px solid @accent; border-radius:8px; padding:10px 18px; box-shadow:0 8px 24px alpha(black,0.55); }
+.toast { background:@raised; border:1px solid @line; border-left:3px solid @accent; border-radius:4px; padding:10px 18px; box-shadow:0 8px 24px alpha(black,0.55); }
 label.toast-text { color:@text; font-weight:600; }
 '''
 
@@ -217,7 +225,7 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         try:brand.pack_start(Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(str(pathlib.Path(__file__).resolve().parent.parent/'assets/icon.svg'),40,40,True)),False,False,0)
         except GLib.Error:pass
         brand.pack_start(label('Deck Library','brand'),False,False,0);side.pack_start(brand,False,False,6)
-        add=button('Agregar juegos',lambda _:self.add_hub(),True);side.pack_start(add,False,False,10)
+        side.pack_start(Gtk.Box(),False,False,8)
         self.nav_buttons={};theme=Gtk.IconTheme.get_default()
         for text,icon,callback in [('Biblioteca',('view-grid-symbolic',),lambda _:self.open_library()),('Catálogo',('folder-download-symbolic','system-software-install-symbolic'),lambda _:self.catalog_page()),('Actualizaciones',('view-refresh-symbolic','software-update-available-symbolic'),lambda _:self.updates_page()),('Ajustes',('emblem-system-symbolic','preferences-system-symbolic'),lambda _:self.settings_page())]:
             widget=Gtk.Button();widget.set_relief(Gtk.ReliefStyle.NONE);widget.connect('clicked',callback);widget.get_style_context().add_class('nav');row=Gtk.Box(spacing=12)
@@ -227,22 +235,22 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
             if text=='Actualizaciones':
                 self.update_badge=label('0','badge');self.update_badge.set_no_show_all(True);self.update_badge.set_yalign(0.5);row.pack_end(self.update_badge,False,False,0)
             widget.add(row);side.pack_start(widget,False,False,0);self.nav_buttons[text]=widget
-        side.pack_end(label('Versión '+__version__,'sidebar-version'),False,False,4)
+        side.pack_end(label('Versión '+__version__,'sidebar-version'),False,False,4);add=button('Agregar juegos',lambda _:self.add_hub());add.get_style_context().add_class('ghost');side.pack_end(add,False,False,8)
 
     def build_library(self):
         library=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14);self.pages.add_named(library,'library')
         self.update_banner=Gtk.Box(spacing=12);self.update_banner.get_style_context().add_class('banner');self.update_banner.set_no_show_all(True)
         self.banner_text=label('');self.banner_text.set_line_wrap(False);self.banner_text.set_hexpand(True);self.update_banner.pack_start(self.banner_text,True,True,0);self.banner_action=button('Ver',lambda _:self.banner_clicked(),True);self.update_banner.pack_end(self.banner_action,False,False,0);library.pack_start(self.update_banner,False,False,0)
-        toolbar=Gtk.Box(spacing=10);self.search=Gtk.SearchEntry();self.search.set_placeholder_text('Buscar juego');self.search.connect('search-changed',lambda _:self.render());toolbar.pack_start(self.search,True,True,0)
+        toolbar=Gtk.Box(spacing=10);titles=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2);titles.pack_start(label('Biblioteca','hero'),False,False,0);self.library_count=label('','meta');self.library_count.set_line_wrap(False);titles.pack_start(self.library_count,False,False,0);toolbar.pack_start(titles,True,True,0)
+        self.search=Gtk.SearchEntry();self.search.set_placeholder_text('Buscar juego');self.search.set_size_request(300,-1);self.search.connect('search-changed',lambda _:self.render());toolbar.pack_start(self.search,False,False,0)
         self.view_picker=Gtk.ComboBoxText();self.view_picker.append('covers','Carátulas');self.view_picker.append('list','Lista');self.view_picker.set_active_id(self.view);self.view_picker.connect('changed',self.change_view);toolbar.pack_start(self.view_picker,False,False,0)
         self.select_button=button('Seleccionar',lambda _:self.toggle_selection());toolbar.pack_start(self.select_button,False,False,0);toolbar.pack_start(button('Buscar juegos',lambda _:self.discover()),False,False,0);library.pack_start(toolbar,False,False,0)
-        filters=Gtk.Box(spacing=8);library.pack_start(filters,False,False,0);self.chip_buttons={}
+        filters=Gtk.Box(spacing=0);library.pack_start(filters,False,False,0);self.chip_buttons={}
         for key,title in [('all','Todos'),*TYPES]:
             chip=Gtk.Button(label=title);chip.get_style_context().add_class('chip');chip.connect('clicked',lambda _,k=key:self.type_changed(k));filters.pack_start(chip,False,False,0);self.chip_buttons[key]=chip
         self.chip_buttons['all'].get_style_context().add_class('active')
-        self.platform_picker=Gtk.ComboBoxText();self.platform_picker.append('all','Todas las plataformas');self.platform_picker.set_active_id('all');self.platform_picker.connect('changed',self.filter_changed);filters.pack_start(self.platform_picker,False,False,6)
+        self.platform_picker=Gtk.ComboBoxText();self.platform_picker.append('all','Todas las plataformas');self.platform_picker.set_active_id('all');self.platform_picker.connect('changed',self.filter_changed);filters.pack_start(self.platform_picker,False,False,8)
         self.prefer_ports=Gtk.CheckButton(label='Preferir ports');self.prefer_ports.set_tooltip_text('Oculta la versión por emulador de un juego que ya tiene port.');self.prefer_ports.set_active(self.preferences.get('prefer_ports',True));self.prefer_ports.connect('toggled',self.prefer_changed);filters.pack_start(self.prefer_ports,False,False,0)
-        self.library_count=label('','status');self.library_count.set_line_wrap(False);self.library_count.set_ellipsize(3);self.library_count.set_halign(Gtk.Align.END);filters.pack_end(self.library_count,False,False,0)
         self.library_stack=Gtk.Stack();self.library_stack.set_vexpand(True);library.pack_start(self.library_stack,True,True,0)
         scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.list=Gtk.ListBox();self.list.connect('row-selected',self.on_select);scroll.add(self.list);self.library_stack.add_named(scroll,'list')
         covers_scroll=Gtk.ScrolledWindow();covers_scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.covers=Gtk.FlowBox();self.covers.set_selection_mode(Gtk.SelectionMode.NONE);self.covers.set_max_children_per_line(8);self.covers.set_min_children_per_line(1);self.covers.set_column_spacing(16);self.covers.set_row_spacing(20);self.covers.set_homogeneous(True);self.covers.set_valign(Gtk.Align.START);covers_scroll.add(self.covers);self.library_stack.add_named(covers_scroll,'covers')
@@ -374,13 +382,17 @@ class Window(CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
         self.selected=e;self.show_detail(e);self.pages.set_visible_child_name('detail')
     def add_cover_card(self,e):
         tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);tile.set_size_request(170,-1)
-        poster=Gtk.Button();poster.set_relief(Gtk.ReliefStyle.NONE);poster.get_style_context().add_class('poster');poster.set_tooltip_text('Seleccionar '+e.name if self.selection_mode else 'Abrir '+e.name);poster.connect('clicked',lambda _:self.select_game(e));poster.add(Poster(e,find_cover(e),170,255,overlay=True,steam=self.in_steam(e)))
+        poster=Gtk.Button();poster.set_relief(Gtk.ReliefStyle.NONE);poster.get_style_context().add_class('poster');poster.set_tooltip_text('Seleccionar '+e.name if self.selection_mode else 'Abrir '+e.name);poster.connect('clicked',lambda _:self.select_game(e));poster.add(Poster(e,find_cover(e),170,255))
         if e.id in self.checked:poster.get_style_context().add_class('selected')
         tile.pack_start(poster,False,False,0)
         if self.selection_mode:
             name=label(e.name,'cover-title');name.set_line_wrap(False);name.set_ellipsize(Pango.EllipsizeMode.END);name.set_max_width_chars(19);name.set_tooltip_text(e.name)
             check=Gtk.CheckButton();check.add(name);check.set_active(e.id in self.checked);check.connect('toggled',self.toggle,e.id);tile.pack_start(check,False,False,0)
-        self.covers.add(tile);self.new_tiles.append(tile)
+        if not self.selection_mode:
+            title=label(e.name,'cover-title');title.set_line_wrap(False);title.set_ellipsize(Pango.EllipsizeMode.END);title.set_max_width_chars(19);title.set_tooltip_text(e.name);tile.pack_start(title,False,False,0)
+        meta=Gtk.Box(spacing=8);kind=label(e.platform.upper(),'eyebrow');kind.set_line_wrap(False);meta.pack_start(kind,False,False,0)
+        if self.in_steam(e):mark=label('EN STEAM','steam-mark');mark.set_line_wrap(False);meta.pack_start(mark,False,False,0)
+        tile.pack_start(meta,False,False,0);self.covers.add(tile);self.new_tiles.append(tile)
     def toggle(self,check,id_):
         if check.get_active():self.checked.add(id_)
         else:self.checked.discard(id_)

@@ -34,7 +34,11 @@ def installations(preferences=None,home=None):
             command=['flatpak','run','--filesystem=home','--env=APPIMAGE_EXTRACT_AND_RUN=1','--command='+str(tools[0]),app_id]
         else:
             data_home=pathlib.Path(os.environ.get('XDG_DATA_HOME',str(home/'.local/share')));command=[str(tools[0])]
-        found.append({'name':app['name'],'folder':folder,'tool':tools[0],'version':app['installed'],'command':command,'data_home':data_home})
+        # Building needs glibc development files, which a game runtime such as Wheel Wizard's lacks: the install runs in the KDE SDK
+        # with the same data folder, as the setup wizard does.
+        from .setup_wii import SDK
+        build=['flatpak','run','--share=network','--filesystem=home','--env=APPIMAGE_EXTRACT_AND_RUN=1','--env=DISABLE_AUTO_UPDATES=1','--env=XDG_DATA_HOME='+str(data_home),'--command='+str(tools[0]),SDK]
+        found.append({'name':app['name'],'folder':folder,'tool':tools[0],'version':app['installed'],'command':command,'build_command':build,'data_home':data_home})
     return found
 
 def latest(get=updates.fetch_json):
@@ -98,7 +102,7 @@ def update(item,info,image,progress=lambda text:None,run=None,opener=urllib.requ
         if temporary.exists():temporary.unlink()
         raise
     version_file.write_text(info['tag'])
-    command=[str(new_tool) if str(tool) in a else a for a in item['command']];command=[a.replace(str(tool),str(new_tool)) for a in command]
+    command=[a.replace(str(tool),str(new_tool)) for a in item.get('build_command') or item['command']]
     log_path=pathlib.Path(item['data_home'])/'WiiCompiled/deck-library-update.log';log_path.parent.mkdir(parents=True,exist_ok=True)
     try:
         with log_path.open('w') as log:

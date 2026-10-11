@@ -919,7 +919,7 @@ class WiiUpdateTests(unittest.TestCase):
         item['data_home']=self.home;info=wiiupdate.latest(lambda url:self.release(payload));calls=[]
         usage=type('U',(),{'free':50_000_000_000})()
         with patch('deck_library.wiiupdate.shutil.disk_usage',return_value=usage):tag=wiiupdate.update(item,info,image,opener=self.opener(payload),run=lambda command,cwd,env,log,progress,cancel:calls.append(command))
-        self.assertEqual(tag,'v0.2.34');self.assertEqual(self.tool.read_bytes(),payload);self.assertEqual((self.folder/'version.txt').read_text(),'v0.2.34');self.assertEqual(calls[0][-3:-1],['install','--game']);self.assertFalse((self.folder/(self.tool.name+'.previous')).exists())
+        self.assertEqual(tag,'v0.2.34');self.assertEqual(self.tool.read_bytes(),payload);self.assertEqual((self.folder/'version.txt').read_text(),'v0.2.34');self.assertEqual(calls[0][-3:-1],['install','--game']);self.assertIn('--command='+str(self.tool),calls[0]);self.assertEqual(calls[0][:2],['flatpak','run']);self.assertEqual(calls[0][calls[0].index('install')-1],'org.kde.Sdk//6.11');self.assertIn('--share=network',calls[0]);self.assertIn('--env=XDG_DATA_HOME='+str(self.home/'.var/app/io.example.Wheel/data'),calls[0]);self.assertFalse((self.folder/(self.tool.name+'.previous')).exists())
         (self.folder/'version.txt').write_text('v0.2.33');self.tool.write_bytes(b'\x7fELFold')
         def failing(*a,**k):raise RuntimeError('boom')
         with patch('deck_library.wiiupdate.shutil.disk_usage',return_value=usage),self.assertRaises(RuntimeError):wiiupdate.update(item,info,image,opener=self.opener(payload),run=failing)
