@@ -89,3 +89,22 @@ class SteamArtTests(unittest.TestCase):
         self.assertEqual(len(json.loads((self.store.root/'pending.json').read_text())['art']),1);self.assertFalse((self.cfg/'grid').exists())
         with patch('deck_library.service.steam_running',return_value=False),patch('deck_library.steam.steam_running',return_value=False):result=sync(self.store,wait=False)
         self.assertEqual((result['state'],result.get('art')),('saved',1));self.assertEqual((self.cfg/'grid/3000000001_hero.png').read_bytes(),PNG);self.assertFalse((self.store.root/'pending.json').exists())
+
+class CompleteArtTests(SteamArtTests):
+    def entry(self,name,appid,**meta):
+        from deck_library.models import Entry
+        return Entry(name,['/bin/true'],metadata={'steam_appid':appid,'steam_account':str(self.cfg),**meta})
+    def test_only_empty_slots_are_filled_and_one_failing_game_does_not_stop_the_rest(self):
+        from deck_library import steamart
+        grid=self.cfg/'grid';grid.mkdir();(grid/'3000000010p.png').write_bytes(PNG)
+        def request(url,key='',limit=0,timeout=0):
+            if 'search/autocomplete/Broken' in url:raise OSError('boom')
+            if 'search/autocomplete' in url:return json.dumps({'data':[{'id':9,'name':'Game'}]}).encode()
+            if '/game/' in url:return json.dumps({'data':[{'id':1,'url':'https://x/i.png','thumb':'https://x/t.png'}]}).encode()
+            return PNG
+        entries=[self.entry('Complete',3000000011),self.entry('Broken',3000000012),self.entry('Game',3000000010),self.entry('Store',3000000013,steam_store=True)]
+        for slot,suffix in (('hero','_hero'),('logo','_logo'),('icon','_icon'),('banner','')):(grid/('3000000011'+suffix+'.png')).write_bytes(PNG)
+        (grid/'3000000011p.png').write_bytes(PNG)
+        items,report=steamart.complete_missing('k',entries,self.store,request=request,pause=0);names=dict(report)
+        self.assertEqual(names['Complete'],'completo');self.assertTrue(names['Broken'].startswith('error'));self.assertTrue(names['Game'].startswith('se agregó'));self.assertNotIn('Store',names)
+        self.assertEqual(sorted(i['slot'] for i in items),['banner','hero','icon','logo']);self.assertTrue(all(i['appid']==3000000010 for i in items))

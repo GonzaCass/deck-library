@@ -35,6 +35,7 @@ class ExperienceMixin:
         row.pack_start(button('Instalaciones y carpetas',lambda _:self.installation_dialog()),False,False,0)
         row.pack_start(button('Repetir configuración inicial',lambda _:self.start_wizard()),False,False,0)
         row.pack_start(button('Aplicar ajustes máximos para Steam Deck',lambda _:self.apply_deck_max()),False,False,0)
+        row.pack_start(button('Completar arte de todos los accesos de Steam',lambda _:self.complete_all_art()),False,False,0)
         self.settings_box.pack_start(row,False,False,0);self.settings_box.show_all();self.pages.set_visible_child_name('settings')
 
     def apply_deck_max(self):
@@ -270,6 +271,29 @@ class ExperienceMixin:
             self.store.save(self.entries);dialog.response(Gtk.ResponseType.CLOSE)
             self.run_queue(lambda:queue_art(items,account,self.store),'Preparando el arte de Steam…')
         refresh_summary();dialog.show_all();look();dialog.run();state['alive']=False;dialog.destroy()
+    def complete_all_art(self):
+        """Fill every empty Steam artwork slot of every shortcut from SteamGridDB, keeping what exists."""
+        from . import steamart
+        from .service import queue_art
+        key=self.preferences.get('steamgriddb_key','')
+        if not key:self.message('Falta la clave de SteamGridDB','Agregar la clave API en Ajustes. La del plugin de Decky es exclusiva de ese plugin y no se puede reutilizar.');return
+        targets=[e for e in self.entries if self.in_steam(e) and e.metadata.get('steam_account')]
+        if not targets:self.message('Sin accesos','Ningún juego de la biblioteca tiene acceso guardado en Steam.');return
+        if not self.confirm('Completar arte de Steam',f'Se buscan en SteamGridDB las imágenes que faltan (portada vertical y horizontal, fondo, logotipo e ícono) de {len(targets)} accesos. Lo que ya existe no se reemplaza. Las imágenes se guardan cuando Steam está cerrado.'):return
+        self.set_status('Buscando arte de Steam…')
+        def work():
+            try:
+                items,report=steamart.complete_missing(key,targets,self.store,lambda t:GLib.idle_add(self.set_status,t))
+                done=[r for r in report if r[1].startswith('se agregó')]
+                by_account={}
+                for item in items:by_account.setdefault(item.pop('account'),[]).append(item)
+                result={'state':'idle','count':0}
+                for account,rows in by_account.items():result=queue_art(rows,pathlib.Path(account),self.store)
+            except Exception as error:GLib.idle_add(self.failed,str(error));return
+            lines='\n'.join(f'{name}: {text}' for name,text in report)
+            GLib.idle_add(self.message,'Arte de Steam',f'{len(items)} imágenes para {len(done)} juegos. Se aplican cuando Steam está cerrado.\n\n'+lines)
+            GLib.idle_add(self.queue_done,{'state':result['state'],'count':len(items)})
+        threading.Thread(target=work,daemon=True).start()
     def steam_edit_dialog(self,e):
         from .gui import label
         from .steam_inventory import shortcuts,launch_command
