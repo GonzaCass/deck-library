@@ -67,3 +67,7 @@ Not verified on a live Steam session: removal and controller-layout writes again
 ### Catalog and publishing checks
 
 114 core tests pass. The catalog reader was run against Quiver's live lists (229 ports, malformed entries dropped); the asset picker was checked against live releases of 40 of them (Windows-only releases are refused, bare Linux binaries are accepted); a real install of Banjo Recompiled v1.0.2 verified its published SHA-256, extracted, identified the executable and appeared in the library scan. GitHub's anonymous rate limit was reached during testing and now produces a clear message.
+
+### 0.4.1
+
+148 core tests pass. GithubLauncher's list (`SirDiabo/GHLAppList`, MIT launcher; the list repository declares no license, so it is read at run time and not redistributed) is merged with Quiver's into 255 ports; the catalog page was rendered against the live network with icons from the lists and PlayStation box art found through Libretro. A name clash between the catalog helper and the library's `entries` was caught by that run. Both Spider-Man PSX repositories were inspected: each publishes a Linux x64 setup kit; Spider-Man requires SLUS-00875 and a Europe BIOS, Spider-Man 2 requires SLUS-01378 (USA) and an SCPH-1001 BIOS. They were not installed or compiled here: this Deck has no CMake, Ninja or compiler.

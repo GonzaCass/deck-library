@@ -57,13 +57,14 @@ def check_app(current=__version__,get=fetch_json):
     return {'version':release['tag_name'].lstrip('v'),'page':release.get('html_url',''),'notes':(release.get('body') or '')[:1500],'archive':assets.get(archive),'checksum':assets.get(archive+'.sha256') if archive else None,'name':archive}
 
 def quiver_apps(preferences=None,home=None):
-    """Installed Quiver ports as {name, repository, installed, folder}."""
-    home=pathlib.Path(home or pathlib.Path.home());roots=[home/'ports/quiver-launcher',*map(pathlib.Path,(preferences or {}).get('quiver_roots',[]))];found=[]
-    for root in dict.fromkeys(roots):
-        try:apps=json.loads((root/'apps.json').read_text()).get('apps',[])
+    """Ports installed through Quiver or GithubLauncher as {name, repository, installed, folder}."""
+    from .installations import launcher_roots,apps_folder
+    found=[]
+    for root in launcher_roots(home,preferences):
+        try:apps=json.loads((root/'apps.json').read_text(encoding='utf-8-sig')).get('apps',[])
         except (OSError,ValueError):continue
         for app in apps:
-            folder=root/'Apps'/str(app.get('folderName',''))
+            folder=apps_folder(root)/str(app.get('folderName',''))
             if not app.get('repository') or not folder.is_dir():continue
             try:installed=(folder/'version.txt').read_text().strip()
             except OSError:continue

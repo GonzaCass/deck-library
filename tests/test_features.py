@@ -286,3 +286,75 @@ class RateLimitTests(unittest.TestCase):
         with patch.object(updates,'refresh_presets',return_value={'count':0,'new':0,'changed':0}):
             state=updates.check_all(store,{},[],force=True,get=get)
         self.assertTrue(state['errors']);tmp.cleanup()
+
+class GithubLauncherTests(PortCatalogTests):
+    def test_github_launcher_list_is_parsed_with_categories_and_ai_flag(self):
+        document={'N64 Ports':[{'name':'Uno','repository':'a/uno','folderName':'Uno'}],'AI - PlayStation Ports':[{'name':'Dos','repository':'b/dos','folderName':'Dos'},'basura',{'repository':'../x'}],'Vacio':[],'meta':'texto'}
+        rows=self.ports.parse_source(document,'GithubLauncher')
+        self.assertEqual([(r['repository'],r['list'],r['ai']) for r in rows],[('a/uno','N64 Ports',False),('b/dos','PlayStation Ports',True)])
+    def test_sources_merge_by_repository_and_record_every_origin(self):
+        quiver={'lists':[{'remoteLocation':'https://raw.githubusercontent.com/q/a.json'}]}
+        data={self.ports.INDEX:quiver,'https://raw.githubusercontent.com/q/a.json':{'name':'Nintendo','apps':[{'name':'Uno','repository':'a/uno'}]},self.ports.GHL_LIST:{'N64 Ports':[{'name':'Uno (otra)','repository':'A/Uno'},{'name':'Tres','repository':'c/tres'}]},'https://raw.githubusercontent.com/me/mine.json':{'apps':[{'repository':'d/cuatro'}]}}
+        apps=self.ports.fetch_catalog(lambda url:data[url],extra=['https://raw.githubusercontent.com/me/mine.json','http://inseguro.example/x.json'])
+        by={a['repository'].lower():a for a in apps};self.assertEqual(sorted(by),['a/uno','c/tres','d/cuatro'])
+        self.assertEqual(by['a/uno']['list'],'N64 Ports');self.assertEqual(by['a/uno']['source'],'Quiver, GithubLauncher');self.assertEqual(by['d/cuatro']['source'],'Personalizada')
+    def test_one_failing_source_does_not_hide_the_others(self):
+        def get(url):
+            if url==self.ports.INDEX:raise OSError('caído')
+            return {'N64 Ports':[{'repository':'a/uno'}]}
+        self.assertEqual([a['repository'] for a in self.ports.fetch_catalog(get)],['a/uno'])
+        with self.assertRaises(OSError):self.ports.fetch_catalog(lambda url:(_ for _ in ()).throw(OSError('x')))
+    def make_launcher(self,home,name,apps_path=None):
+        root=home/'ports'/name;(root/'Apps/Uno').mkdir(parents=True);(root/'Apps/Uno/version.txt').write_text('v1.0');(root/'Apps/Uno/Uno').write_bytes(b'\x7fELF');(root/'Apps/Uno/Uno').chmod(0o755)
+        (root/'apps.json').write_text(json.dumps({'apps':[{'name':'Uno','repository':'a/uno','folderName':'Uno'}]}));(root/'settings.json').write_text('{}');return root
+    def test_a_renamed_github_launcher_install_is_found_for_updates_and_library(self):
+        from deck_library.discovery import scan
+        home=self.root/'home';self.make_launcher(home,'MiLanzador')
+        prefs={'rom_roots':[],'port_roots':[],'quiver_roots':[],'emulators':{}}
+        found=updates.quiver_apps(prefs,home);self.assertEqual([(f['name'],f['installed']) for f in found],[('Uno','v1.0')])
+        self.assertEqual(updates.check_quiver(prefs,lambda url:{'tag_name':'v1.1','html_url':'https://github.com/a'},home)[0]['latest'],'v1.1')
+        library=scan(home,preferences=prefs);self.assertEqual([e.name for e in library],['Uno']);self.assertFalse(any(e.name=='Milanzador' for e in library))
+    def test_custom_apps_path_is_respected(self):
+        from deck_library.installations import apps_folder
+        home=self.root/'home';root=self.make_launcher(home,'GithubLauncher');elsewhere=self.root/'otro';(root/'Apps').rename(elsewhere);(root/'settings.json').write_text('﻿'+json.dumps({'AppsPath':str(elsewhere)}))
+        self.assertEqual(apps_folder(root),elsewhere);self.assertEqual(len(updates.quiver_apps({},home)),1)
+
+class CatalogExtrasTests(PortCatalogTests):
+    def test_repository_text_is_parsed_strictly(self):
+        for text,expected in (('https://github.com/a/uno','a/uno'),('a/uno','a/uno'),('https://github.com/a/uno.git','a/uno'),('https://github.com/a/uno/releases/tag/v1','a/uno'),('../x','None'),('http://evil.example/a/b','None'),('solo','None'),('a/..','None')):
+            self.assertEqual(str(self.ports.parse_repository(text)),expected,text)
+        self.assertFalse(self.ports.valid_repository('../x'))
+    def test_builtin_spider_man_ports_and_custom_repositories_are_merged(self):
+        remote=[self.ports.clean({'name':'Otro','repository':'x/otro'},'N64 Ports','Quiver')]
+        entries=self.ports.merged(remote,{'custom_ports':[{'repository':'me/mi-port','name':'Mi port','category':'PlayStation','note':'ojo'},{'repository':'../mal'}]})
+        by={e['repository']:e for e in entries}
+        self.assertIn('alexbeavs-ps1-ports/spider-man-recomp',by);self.assertIn('alexbeavs-ps1-ports/spider-man-2-enter-electro-recomp',by)
+        self.assertEqual(by['alexbeavs-ps1-ports/spider-man-recomp']['source'],'Recomendado');self.assertIn('SLUS-00875',by['alexbeavs-ps1-ports/spider-man-recomp']['note']);self.assertIn('compila',by['alexbeavs-ps1-ports/spider-man-recomp']['note'])
+        self.assertEqual((by['me/mi-port']['source'],by['me/mi-port']['list']),('Agregado','PlayStation'));self.assertNotIn('../mal',by)
+    def test_custom_entry_overrides_remote_metadata_but_keeps_its_icon(self):
+        remote=[self.ports.clean({'name':'Viejo','repository':'a/uno','appIconUrl':'https://cdn.example/i.png'},'N64 Ports','Quiver')]
+        merged=self.ports.merged(remote,{'custom_ports':[{'repository':'a/uno','name':'Nuevo'}]})
+        self.assertEqual((merged[0]['name'],merged[0]['icon']),('Nuevo','https://cdn.example/i.png'))
+    def test_folder_and_category_survive_a_second_cleaning(self):
+        once=self.ports.clean({'repository':'a/uno','folderName':'Carpeta','category':'PlayStation'},'','Agregado');twice=self.ports.clean(once)
+        self.assertEqual((twice['folder'],twice['list']),('Carpeta','PlayStation'))
+    def test_platform_guess_for_cover_lookup(self):
+        self.assertEqual(self.ports.platform_for('PlayStation Ports'),'PlayStation');self.assertEqual(self.ports.platform_for('PlayStation 2'),'PlayStation 2');self.assertEqual(self.ports.platform_for('2D Game Ports'),'')
+    def test_icons_are_downloaded_once_validated_and_failures_are_remembered(self):
+        png=b'\x89PNG\r\n\x1a\n'+b'x'*20;calls=[]
+        def request(url,key='',limit=0,timeout=0):
+            calls.append(url);return png if 'ok' in url else b'<html>'
+        from deck_library import cover_provider
+        item={'name':'A','icon':'https://cdn.example/ok.png','list':''};bad={'name':'B','icon':'https://cdn.example/bad.png','list':''}
+        with patch.object(cover_provider,'request',request):
+            path=self.ports.icon_path(self.store,item);self.assertTrue(path.endswith('.png') and pathlib.Path(path).read_bytes()==png)
+            self.ports.icon_path(self.store,item);self.assertEqual(self.ports.icon_path(self.store,bad),'');self.ports.icon_path(self.store,bad)
+        self.assertEqual(calls,['https://cdn.example/ok.png','https://cdn.example/bad.png'])
+    def test_box_art_is_searched_by_platform_when_there_is_no_icon(self):
+        from deck_library import cover_provider
+        row={'title':'Spider-Man 2 - Enter - Electro (USA)','url':'https://thumbnails.libretro.com/x.png','provider':'Libretro','page':''}
+        png=b'\x89PNG\r\n\x1a\n'+b'y'*8
+        with patch.object(cover_provider,'search',return_value=[row]) as search,patch.object(cover_provider,'request',return_value=png):
+            path=self.ports.icon_path(self.store,{'name':'Spider-Man 2: Enter Electro (PSX)','icon':'','list':'PlayStation'})
+        self.assertTrue(path);self.assertEqual(search.call_args[0][1]['_artwork_platform'],'PlayStation')
+        self.assertEqual(self.ports.icon_path(self.store,{'name':'Algo','icon':'','list':'2D Game Ports'}),'')
