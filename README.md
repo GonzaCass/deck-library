@@ -100,6 +100,8 @@ Three more built-in entries use the same **Configurar** flow:
 
 Per-game defaults: Eden's Breath of the Wild gets Latin American Spanish, 1x resolution with FSR and normal GPU accuracy; Azahar gets Spanish console language, 3x, single-screen layout and an app-owned Steam Input layout where L4 sends F9 (swap screens) and R4 F10 (layout) for 3DS shortcuts; Wind Waker HD runs with `WWHD_` environment options (Spanish, 16:10, picture-in-picture GamePad, interpolation, FXAA); Picori with the European ROM uses Spanish and 5x internal scale; the PS1 kits get 4x supersampling, PGXP and the kit's own PGXP / fast-loading / CD-speed mods (the kits' runtime has no frame interpolation or widescreen).
 
+A Link to the Past in Spanish: `deck_library.patching.apply_ups` applies the fan translation's UPS patch (all three CRC32s verified); the result is recognised by SHA-1, built with `restool.py --extract-dialogue` / `--languages=es` and selected with `Language = es`. For the PS1 kits, `psx.deck.display` is a built-in plugin package (framework plugin API: `psx_mod_set_frame_interpolation(0)` with motion-adaptive blending, `psx_mod_set_fixed_display_aspect(16, 10)`) added to the kit's `runtime.cmake` with a backup; it needs the kit to be rebuilt.
+
 None of these ports exists for A Link Between Worlds, Breath of the Wild or Skyward Sword; those stay emulated.
 
 ### Library view

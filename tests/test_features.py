@@ -819,3 +819,65 @@ class PortDefaultsTests(ConfigureTests):
         home=self.root/'home';folder=home/'ports/W';folder.mkdir(parents=True);(folder/'game').write_bytes(b'x');(folder/'game').chmod(0o755)
         (folder/'.deck-library-port.json').write_text(json.dumps({'repository':'a/w','name':'W','executable':'game',**record}));entry=self.ports.entry_for(folder)
         self.assertEqual(entry.command[0],'env');self.assertIn('WWHD_LANGUAGE=5',entry.command);self.assertEqual(entry.command[-1],str(folder/'game'))
+
+def make_ups(source,target):
+    import zlib
+    def varint(n):
+        out=bytearray()
+        while True:
+            x=n&0x7f;n>>=7
+            if n:out.append(x);n-=1
+            else:out.append(x|0x80);break
+        return bytes(out)
+    body=bytearray(b'UPS1'+varint(len(source))+varint(len(target)));last=0;i=0;size=max(len(source),len(target))
+    s=source.ljust(size,b'\0');t=target.ljust(size,b'\0')
+    while i<size:
+        if s[i]==t[i]:i+=1;continue
+        j=i
+        while j<size and s[j]!=t[j]:j+=1
+        body+=varint(i-last)+bytes(a^b for a,b in zip(s[i:j],t[i:j]))+b'\0';last=j+1;i=j+1
+    body+=zlib.crc32(source).to_bytes(4,'little')+zlib.crc32(target).to_bytes(4,'little')
+    return bytes(body)+zlib.crc32(bytes(body)).to_bytes(4,'little')
+
+class UpsTests(unittest.TestCase):
+    def test_a_patch_is_applied_and_a_wrong_rom_or_damaged_patch_is_refused(self):
+        from deck_library.patching import apply_ups
+        source=bytes(range(256))*8;target=bytearray(source);target[5]^=0xff;target[900:904]=b'abcd';target+=b'xyz'
+        patch=make_ups(source,bytes(target));self.assertEqual(apply_ups(source,patch),bytes(target))
+        with self.assertRaisesRegex(ValueError,'original'):apply_ups(source[:-1]+b'\1',patch)
+        with self.assertRaisesRegex(ValueError,'dañado'):apply_ups(source,patch[:20]+b'\0'+patch[21:])
+        with self.assertRaisesRegex(ValueError,'UPS'):apply_ups(source,b'IPS1'+patch[4:])
+
+class SpanishZelda3Tests(ZeldaPortTests):
+    def test_a_spanish_rom_adds_the_dialogue_build_and_selects_the_language(self):
+        home,path,data=self.rom_home('snes','z.smc',header=False)
+        import hashlib
+        ours={'systems':['snes'],'sizes':[len(data)],'sha1':{hashlib.sha1(data).hexdigest():'zelda3.sfc'},'name':'ALttP'}
+        spanish=(home/'Emulation/roms/snes/es.sfc');spanish.write_bytes(data[::-1]);digest=hashlib.sha1(data[::-1]).hexdigest()
+        self.installed(home,'kit',exe='zelda3',sandbox=True,folder='Z3',extra={'setup':'zelda3','disc':None,'rom':ours});folder=home/'ports/Z3';(folder/'zelda3.ini').write_text('# Language = de\nFullscreen = 0\n');calls=[]
+        def run(command,cwd=None,progress=None,until=None):
+            calls.append(command)
+            if command[0]=='sh' and 'make' in command[2]:(folder/'zelda3').write_bytes(b'x');(folder/'zelda3_assets.dat').write_bytes(b'd')
+            return 0
+        with patch.dict(self.ports.ZELDA3_ES,{'sha1':{digest:'zelda3_es.sfc'},'sizes':[len(data)]}):self.ports.configure('web/x',self.store,[],lambda _:None,home,run=run)
+        text=' '.join(' '.join(c) for c in calls);self.assertIn('--extract-dialogue -r zelda3_es.sfc',text);self.assertIn('--languages=es',text);self.assertIn('Language = es',(folder/'zelda3.ini').read_text());self.assertEqual((folder/'zelda3_es.sfc').read_bytes(),data[::-1])
+
+class DisplayModTests(PortDefaultsTests):
+    def kit(self):
+        folder=self.root/'kit';(folder/'psxrecomp/runtime/src').mkdir(parents=True);(folder/'psxrecomp/runtime/include').mkdir(parents=True)
+        (folder/'psxrecomp/runtime/runtime.cmake').write_text('set(S\n    ${PSXRECOMP_ROOT}/runtime/src/mod_builtin_pgxp.c\n    ${PSXRECOMP_ROOT}/runtime/src/mod_builtin_bezel.c\n    ${PSXRECOMP_ROOT}/runtime/src/mod_packages.cpp\n)\n')
+        (folder/'psxrecomp/runtime/include/mod_plugins.h').write_text('int psx_mod_set_fixed_display_aspect(uint32_t,uint32_t);\nint psx_mod_set_frame_interpolation_blend(uint32_t);\n');return folder
+    def test_the_display_mod_is_added_once_with_a_backup_and_a_valid_manifest(self):
+        import tomllib
+        folder=self.kit();self.assertEqual(self.ports.apply_display_mod(folder),'applied');self.assertEqual(self.ports.apply_display_mod(folder),'present')
+        cmake=(folder/'psxrecomp/runtime/runtime.cmake').read_text();self.assertEqual(cmake.count('mod_builtin_deck.c'),1);self.assertTrue((folder/'psxrecomp/runtime/runtime.cmake.orig').is_file())
+        manifest=tomllib.loads((folder/'psxrecomp/mods/builtin/packages/psx.deck.display/1.0.0/manifest.toml').read_text());self.assertEqual({f['id'] for f in manifest['feature']},{'interpolation','widescreen'});self.assertEqual({p['id'] for p in manifest['plugin']},{'psx.deck.interpolation','psx.deck.widescreen'})
+        self.assertIn('psx_mod_set_frame_interpolation(0)',(folder/'psxrecomp/runtime/src/mod_builtin_deck.c').read_text())
+    def test_a_kit_whose_framework_lacks_the_plugin_interface_is_left_alone(self):
+        folder=self.kit();(folder/'psxrecomp/runtime/include/mod_plugins.h').write_text('int other(void);\n');self.assertEqual(self.ports.apply_display_mod(folder),'incompatible');self.assertFalse((folder/'psxrecomp/runtime/src/mod_builtin_deck.c').exists())
+    def test_enhance_kit_enables_the_display_features_and_keeps_edited_state(self):
+        folder=self.kit();pkg=folder/'build/mods/packages'
+        for pid in ('psx.enhancement.pgxp','psx.deck.display'):(pkg/pid/'1.0.0').mkdir(parents=True);(pkg/pid/'1.0.0/manifest.toml').write_text('x')
+        (folder/'build/mods/state.toml').write_text('format_version = 2\n');self.ports.enhance_kit(folder)
+        import tomllib;state=tomllib.loads((folder/'build/mods/state.toml').read_text());self.assertEqual({(f['package_id'],f['id']) for f in state['feature']},{('psx.enhancement.pgxp','pgxp'),('psx.deck.display','interpolation'),('psx.deck.display','widescreen')})
+        (folder/'build/mods/state.toml').write_text('format_version = 2\n[[feature]]\npackage_id = "x.other"\nid = "y"\nenabled = true\n');before=(folder/'build/mods/state.toml').read_text();self.ports.enhance_kit(folder);self.assertEqual((folder/'build/mods/state.toml').read_text(),before)
