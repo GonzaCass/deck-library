@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "id": "project2099-deck-720p60",
+  "name": "Project 2099 — Steam Deck 720p / 60 FPS",
+  "game": {
+    "id": "415608B2",
+    "name": "Spider-Man: Edge of Time",
+    "platform": "Windows"
+  },
+  "adapter": {
+    "id": "project2099",
+    "versions": [
+      "2.0.0-beta.4.1"
+    ]
+  },
+  "hardware": [
+    "steam-deck-lcd",
+    "steam-deck-oled"
+  ],
+  "objective": "Nitidez nativa y objetivo de 60 FPS",
+  "author": "Deck Library",
+  "license": "MIT",
+  "tested": {
+    "status": "proposal",
+    "date": "2026-10-01",
+    "notes": "Configuración inicial; falta validar jugando en modo Juego."
+  },
+  "settings": {
+    "runtime": {
+      "window_width": 1280,
+      "window_height": 720,
+      "fullscreen": true,
+      "gpu_backend": "d3d12",
+      "resolution_scale": 1,
+      "eot_internal_scale": 1,
+      "genry_eot_target_fps": 60,
+      "d3d12_present_frame_limiter": true,
+      "d3d12_present_frame_limiter_fps": 60.0,
+      "vsync": false,
+      "anisotropic_override": 4,
+      "async_shader_compilation": true,
+      "store_shaders": true,
+      "input_backend": "xinput",
+      "mnk_mode": false
+    }
+  },
+  "notes": "Proton 11.0, DirectX 12 mediante VKD3D. Mantiene el antialiasing Native AA original y renderizado 1×; sin DLSS/ReShade ni generación de cuadros. 720p conserva 16:9. Usá el layout Gamepad de Steam; no el de Escritorio. En OLED, 60 FPS a 60 Hz para cadencia uniforme; 90 Hz no implica 90 FPS. El rendimiento durante transiciones debe probarse.",
+  "sources": [
+    "https://github.com/GenryTheFox0/Project-2099/blob/main/README.md"
+  ]
+}

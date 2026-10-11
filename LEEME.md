@@ -6,9 +6,13 @@ Agregá ports, aplicaciones y juegos emulados a Steam desde una sola ventana.
 
 **GTA IV:** buscá lo instalado, abrí la ficha del juego y elegí **Ver arreglo → Aplicar arreglo de GTA IV**. Instala FusionFix 4.0.5 y los ajustes de DXVK confirmados en esta Deck, con respaldo y restauración. No abre el juego. [Instructivo y detalles](docs/GTAIV.md).
 
+**DMC3 Crimson:** el [arreglo de arranque desde Steam](docs/DMC3-CRIMSON.md) está documentado con su wrapper, compatibilidad de la DLL, respaldo y requisitos para un futuro botón. Se comprobó el arranque local; aún no hay instalador de Crimson integrado en la app.
+
+**Spider-Man: Shattered Dimensions:** la [guía de configuración en Steam Deck](docs/SPIDER-MAN-SHATTERED-DIMENSIONS.md) registra Proton, audio, voces y controles confirmados en esta instalación. Todavía no es un preset aplicable desde la app.
+
 ## Instalación para vos o un amigo
 
-1. Copiá y extraé `DeckLibrary-0.3.3.tar.gz` en modo Escritorio.
+1. Copiar y extraer `DeckLibrary-0.4.0.tar.gz` en modo Escritorio.
 2. Abrí la carpeta y hacé doble clic en **Instalar.sh**. Elegí **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -50,7 +54,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.3.3**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar tu biblioteca.
+Versión **0.4.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultá [README.md](README.md).
 
@@ -76,3 +80,16 @@ En la ficha de un acceso existente, **Editar acceso de Steam** permite cambiar n
 La carátula elegida en Deck Library se copia al grid vertical de Steam al agregar o actualizar ese acceso, con copia de seguridad de la anterior. Elegir una nueva imagen no cambia Steam inmediatamente: usá **Agregar a Steam** para guardar también allí. No se generan automáticamente imágenes horizontales, fondos ni logotipos.
 
 **Controles** muestra el perfil de Steam Input guardado localmente para la instancia de Minecraft, cuando está disponible, y abre los controles del acceso correcto. Los perfiles no descargados desde Steam Cloud o configurados en otra cuenta pueden no aparecer. No modifica las asignaciones automáticamente.
+
+## Project-2099
+
+**Agregar juegos → Preparar Project-2099** prepares a supplied Xbox 360 ISO (or a ZIP/7z containing one) using the pinned official Beta 4.1 installer under Proton. PS3 images are rejected before downloads. Includes a proposed 720p / 60 FPS profile, Steam shortcuts and installed-port discovery. Gameplay validation remains pending. [Guía en español](docs/PROJECT2099.md).
+
+## Novedades de la 0.4.0
+
+- **Quitar de Steam:** en la ficha de cada juego y en la barra de selección. No toca juegos ni partidas; guarda un respaldo de la lista de accesos.
+- **Mando:** los accesos nuevos reciben el layout de gamepad de Steam para DualSense, DualShock, Xbox y Switch Pro. Para un acceso existente, usar **Mando → Asignar layout** con Steam cerrado.
+- **Actualizaciones:** página propia con avisos de Deck Library, ajustes recomendados y ports. La instalación automática de Deck Library se activa en esa página.
+- **Ajustes del juego:** resolución, FPS, correcciones y rendimiento por juego (DuckStation, Dolphin, Eden y Prism), con respaldo y restauración.
+- **Catálogo de ports:** instala proyectos de la comunidad (lista pública de Quiver) desde GitHub, con verificación de integridad, y avisa cuando hay una versión nueva.
+- **Actualización automática:** Deck Library avisa cuando hay una versión nueva y se actualiza sola en modo Escritorio; se desactiva en la página Actualizaciones.

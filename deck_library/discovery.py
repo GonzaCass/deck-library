@@ -164,9 +164,14 @@ def scan(home=None,extra_roots=(),preferences=None):
       if ports.is_dir():
         for folder in ports.iterdir():
             if not folder.is_dir() or folder.name in ('quiver-launcher','steamdeck-tools','deck-library'):continue
+            from .ports import entry_for as installed_port
+            managed=installed_port(folder)
+            if managed:found[managed.id]=managed;continue
             candidates=[p for p in folder.iterdir() if p.is_file() and (p.suffix.lower()=='.appimage' or p.name.lower() in ('launch.sh','start.sh','run.sh')) and os.access(p,os.X_OK) and not re.search(r'setup|install|uninstall',p.name,re.I)]
             if len(candidates)==1:
                 path=candidates[0]; e=Entry(folder.name.replace('-',' ').title(),[str(path)],'port','Linux',str(path)); found[e.id]=e
+    from .project2099 import discover as discover_project2099
+    for e in discover_project2099(home,preferences):found[e.id]=e
     for e in prism_entries(home,preferences):found[e.id]=e
     for e in found.values():
         if e.platform=='Switch':e.game_id=switch_id(e);e.metadata['adapter']='eden'

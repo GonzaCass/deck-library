@@ -19,4 +19,4 @@ entry='[Desktop Entry]\nType=Application\nName=Deck Library\nComment=Agregar por
 menu=pathlib.Path.home()/'.local/share/applications/deck-library.desktop';menu.parent.mkdir(parents=True,exist_ok=True);menu.write_text(entry)
 if a.desktop:
  desktop=pathlib.Path.home()/'Desktop';desktop.mkdir(exist_ok=True);target=desktop/'Deck Library.desktop';target.write_text(entry);target.chmod(0o755)
-print('Instalado:',dest,'\nAbrí Deck Library desde el menú de aplicaciones.')
+print('Instalado:',dest,'\nDeck Library está disponible en el menú de aplicaciones.')

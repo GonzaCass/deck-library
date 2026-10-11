@@ -33,8 +33,8 @@ def merge_steam(entries,home=None,account=None):
         accounts=find_accounts(home)
         if len(accounts)!=1:return entries
         account=accounts[0]
-    result=list(entries)
-    for item in shortcuts(account):
+    result=list(entries);items=shortcuts(account)
+    for item in items:
         command=launch_command(item);launch=command[0]
         instance=''
         if '--launch' in command:
@@ -49,7 +49,18 @@ def merge_steam(entries,home=None,account=None):
         platform='Minecraft' if instance else 'Windows' if launch.lower().endswith('.exe') else 'Steam'
         entry=Entry(item['name'],command,'steam',platform,launch if launch.startswith('/') else '',item['startdir'].strip('"') or str(pathlib.Path.home()),icon=item['icon'],metadata={'steam_appid':item['appid'],'steam_account':str(account),'steam_name':item['name'],'steam_original':item})
         result.append(entry)
-    return result
+    return prune(result,account,{item['appid'] for item in items})
+
+def prune(entries,account,present):
+    """Forget shortcuts that no longer exist in Steam: imported entries disappear, managed ones lose their Steam link."""
+    kept=[]
+    for entry in entries:
+        meta=entry.metadata
+        if meta.get('steam_store') or meta.get('steam_appid') is None or meta.get('steam_account')!=str(account) or meta['steam_appid'] in present:kept.append(entry);continue
+        if entry.kind=='steam':continue
+        for key in ('steam_appid','steam_account','steam_name','steam_original','steam_override'):meta.pop(key,None)
+        kept.append(entry)
+    return kept
 
 def game_uri(appid):return 'steam://rungameid/'+str((int(appid)<<32)|0x02000000)
 
@@ -81,7 +92,7 @@ def sync_covers(account,entries,results,is_running=None):
         appid=str(by_id[entry.id]['appid']);target=grid/(appid+'p'+suffix)
         previous=[p for ext in ('.png','.jpg','.jpeg','.webp') if (p:=grid/(appid+'p'+ext)).exists()]
         if previous==[target] and target.read_bytes()==data:continue
-        if is_running():raise SteamRunningError('Steam se abrió antes de guardar las carátulas. Volvé a guardar el acceso.')
+        if is_running():raise SteamRunningError('Steam se abrió antes de guardar las carátulas. Guardar el acceso de nuevo.')
         stamp=datetime.datetime.now().strftime('%Y%m%dT%H%M%S%f');backups={}
         for path in previous:
             backup=grid/'.deck-library-backups'/(path.name+'.'+stamp);backup.parent.mkdir(exist_ok=True);shutil.copy2(path,backup);backups[path]=backup

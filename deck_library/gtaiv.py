@@ -37,7 +37,7 @@ def busy(proc=pathlib.Path('/proc')):
     return False
 
 def check_closed():
-    if busy(): raise RuntimeError('Cerrá GTA IV antes de aplicar o restaurar el arreglo.')
+    if busy(): raise RuntimeError('GTA IV debe estar cerrado para aplicar o restaurar el arreglo.')
 
 def version(root):
     data=(root/'GTAIV.exe').read_bytes()

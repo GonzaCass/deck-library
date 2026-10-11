@@ -1,8 +1,6 @@
 # Deck Library
 
-A small native Linux app for adding ports, applications and emulated games to Steam. Built for Steam Deck, with large controls, automatic discovery, batch selection and readable launch errors. Interface currently in Spanish.
-
-**Guided discovery → portrait library → play or add to Steam.**
+Native Linux app that gathers ports, applications and emulated games in one library and manages their Steam shortcuts, per-game settings and controller layouts on Steam Deck. The interface is in Spanish.
 
 [Guía en español para instalar y compartir](LEEME.md)
 
@@ -56,6 +54,28 @@ Generated launchers preserve Steam Input identity and the current display/sessio
 
 This addresses common launch-environment problems; a damaged/misconfigured Flatpak graphics extension or a mod/emulator crash still needs diagnosis. Failures show an error instead of silently closing. **Use diagnostics; don't delete saved games to troubleshoot.**
 
+## 0.4.0
+
+### Remove Steam shortcuts
+
+**Quitar de Steam** is on each game page and in the selection bar. It deletes the shortcut from `shortcuts.vdf`, moves its grid images to `grid/.deck-library-backups`, forgets its controller layouts and renumbers the remaining shortcuts. Games, files and saves are not touched, and a timestamped backup of `shortcuts.vdf` is written first. Like additions, removals are queued while Steam is open and applied once it is closed. Shortcuts that disappear from Steam are also dropped from the library on the next scan.
+
+### Controller layouts (DualSense and others)
+
+Steam keeps the Steam Input layout of a non-Steam shortcut in one `configset_controller_<family>.vdf` per controller family. A shortcut that only has an entry for the Deck itself gets a desktop/browser layout when a DualSense, DualShock, Xbox or Switch Pro pad is connected, so the game sees no XInput device. New shortcuts now receive the gamepad template for every family that has none; existing choices are kept. **Mando → Asignar layout** on a game page replaces the saved layout for that shortcut (a backup of each changed file is kept). Writes need Steam closed. This can be disabled with `fix_controllers` in `settings.json`.
+
+### Updates
+
+The **Actualizaciones** page checks, at most every six hours: Deck Library releases on GitHub, the preset catalog, ports installed through Quiver (`version.txt` against the latest release of their repository) and Project-2099. Everything uses HTTPS with size limits. Deck Library can install its own update: the release must include `DeckLibrary-X.Y.Z.tar.gz` and its `.sha256`; the archive is verified, extracted with path checks and installed with `install.py`. Automatic installation of Deck Library updates is on by default and can be switched off on the page; it only runs in Desktop Mode and asks for a restart. Ports installed from the catalog can also update automatically (off by default). Ports installed by Quiver are only reported; Quiver applies them. GitHub allows 60 anonymous API requests per hour; set `GITHUB_TOKEN` to raise the limit. The catalog defaults to `presets/catalog.json` in this repository.
+
+### Port catalog
+
+**Catálogo de ports** lists the community projects of Quiver's public catalog (`tgeorgiadis/quiver-community-app-catalog`, about 230 ports). **Instalar** downloads the latest release asset for Linux x86_64 (AppImage, tar.gz/tar.xz, zip or a bare executable), checks the SHA-256 that GitHub publishes for the asset, extracts it with path and link checks into `~/ports/<folder>` and registers the version, so the library lists it and the updates page can detect new releases. Releases that only ship Windows builds are refused with a message. When several executables are possible none is chosen and the game can be added by hand. Updating moves the previous folder to `~/ports/.deck-library-replaced` instead of deleting it.
+
+### Per-game settings
+
+**Ajustes del juego** edits the allowlisted options of an emulator for one game: resolution, anti-aliasing, texture filtering, PGXP and other fixes, FPS limit, overclock and disc speed-up for DuckStation (`gamesettings/<SERIAL>.ini`); internal resolution and EFB options for Dolphin; Eden and Prism options use the same form. Controls start from the effective value (the game file, else the emulator-wide setting), only changed options are written, and every save keeps a backup that **Restaurar anteriores** reverts. Files are patched line by line, so repeated keys, patches and cheats stay as they were. The DuckStation serial is read from `SYSTEM.CNF` in BIN/ISO/CUE images; for CHD it must be entered in the game's identifier field. DuckStation per-game patches and cheats are not editable yet.
+
 ## Steam data and backups
 
 Only the selected Steam account is edited. Existing games, app IDs, tags, artwork and unrelated fields are preserved. Matching legacy shortcuts are updated; repeat additions do not create duplicates. A binary KeyValues parser validates the file before any writes. Each changed library gets a timestamped backup beside `shortcuts.vdf`; writes are atomic and refused while Steam is running or a concurrent edit is detected.
@@ -65,6 +85,10 @@ Queued changes and logs stay private. A user service performs deferred writes wh
 ## Local / GitHub community presets
 
 GTA IV Complete Edition installations in Steam also expose **Arreglo de GTA IV**: a pinned FusionFix 4.0.5/DXVK recipe with SHA-256 verification, complete backups and restore. It keeps the game closed and preserves existing graphics/FPS choices. One Steam Deck OLED user confirmed the resulting experience; sustained FPS were not measured. See [the GTA IV instructions and button API](docs/GTAIV.md).
+
+The [DMC3 Crimson Steam launch notes](docs/DMC3-CRIMSON.md) document a separate, locally boot-tested wrapper and Steam API compatibility fix. This is an integration guide; Crimson installation is not yet a button in Deck Library.
+
+The [Spider-Man: Shattered Dimensions Steam Deck notes](docs/SPIDER-MAN-SHATTERED-DIMENSIONS.md) record the user-confirmed Windows/Proton setup for audio, voices and controls. It is a guide until Deck Library supports Windows/Proton presets.
 
 Game details expose recommended profiles, a change preview, apply/backup/restore, allowlisted export, JSON import and local feedback export. A user-provided HTTPS raw GitHub catalog can be downloaded without write credentials. No server, database or automatic upload is deployed. See [the portable preset format](docs/PRESETS.md).
 
@@ -93,8 +117,12 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.3.3**, early release. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.4.0**, early release. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
 [WiiCompiled](https://github.com/patchzyy/Wiicompiled), [Eden](https://git.eden-emu.dev/eden-emu/eden), [Flatpak launch/extension implementation](https://github.com/flatpak/flatpak/blob/main/common/flatpak-run.c). This project is independent of Valve, EmuDeck, Quiver and those emulators.
+
+## Project-2099
+
+**Agregar juegos → Preparar Project-2099** prepares a supplied Xbox 360 ISO (or a ZIP/7z containing one) using the pinned official Beta 4.1 installer under Proton. PS3 images are rejected before downloads. Includes a proposed 720p / 60 FPS profile, Steam shortcuts and installed-port discovery. Gameplay validation remains pending. [Guía en español](docs/PROJECT2099.md).
