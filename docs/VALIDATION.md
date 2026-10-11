@@ -147,3 +147,7 @@ Breath of the Wild: el parche `60fps_1.9.0.pchtxt` (hash de compilación CD57B23
 ### 0.6.3 - arte de Steam
 
 Se inspeccionó la carpeta `grid` real tras el trabajo con el plugin SteamGridDB de Decky: cinco archivos por acceso (`<id>p`, `<id>`, `<id>_hero`, `<id>_logo`, `<id>_icon`) y un `<id>.json` con la posición del logotipo; `steamart` usa exactamente ese diseño. Los tests cubren detección de espacios existentes, escritura con copia de seguridad, rechazo con Steam abierto y de archivos que no son imágenes, filtrado de resultados adultos o de humor, y la cola que espera a que Steam se cierre. El diálogo se abrió con la biblioteca real y datos de proveedor simulados (sin clave ni acceso a SteamGridDB desde aquí): las cinco pestañas, las miniaturas y el resumen por espacio se mostraron correctamente. Sin verificar: búsquedas reales contra la API y el resultado en la biblioteca de Steam.
+
+### 0.6.4 - arte de Steam en lote
+
+`complete_missing` se probó con proveedor simulado: llena solo los espacios vacíos, omite los accesos de la tienda de Steam, informa «completo» cuando no falta nada y un juego que falla (error de red) no detiene a los demás. El botón aparece en Ajustes. Sin verificar contra la API real de SteamGridDB (no hay clave propia en esta Deck). El plugin SteamGridDB de Decky se revisó solo para saber cómo accede a la API: usa una clave embebida con una advertencia de su autor contra su uso en otros proyectos, por lo que Deck Library no la utiliza.

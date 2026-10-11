@@ -88,3 +88,34 @@ def write(account,appid,slot,source,is_running):
     finally:
         if os.path.exists(name):os.unlink(name)
     return True
+
+def complete_missing(key,entries,store,progress=lambda text:None,request=cover_provider.request,pause=0.3):
+    """Pick the first SteamGridDB image for every empty slot of every shortcut.
+
+    `entries` are library entries with `steam_appid`/`steam_account`. Slots that already hold a file are left alone.
+    Returns (items for `service.queue_art`, report lines). One failing game never stops the others.
+    """
+    import time
+    items=[];report=[];games={}
+    for entry in entries:
+        appid=entry.metadata.get('steam_appid');account=entry.metadata.get('steam_account')
+        if appid is None or not account or entry.metadata.get('steam_store'):continue
+        missing=[slot for slot,path in existing(account,appid).items() if not path]
+        if not missing:report.append((entry.name,'completo'));continue
+        progress(f'{entry.name}: buscando {len(missing)} imágenes')
+        try:
+            game_id=entry.metadata.get('sgdb_id')
+            if not game_id:
+                title=cover_provider.title_for(entry)
+                if title not in games:games[title]=find_games(key,title,request)
+                if not games[title]:report.append((entry.name,'sin coincidencia en SteamGridDB'));continue
+                game_id=games[title][0]['id']
+            got=[]
+            for slot in missing:
+                rows=candidates(key,game_id,slot,request,limit=1)
+                if not rows:continue
+                data,ext=fetch_image(rows[0]['url'],request);items.append({'appid':int(appid)&0xffffffff,'slot':slot,'file':stage(store,appid,slot,data,ext),'account':str(account)});got.append(slot)
+                time.sleep(pause)
+            report.append((entry.name,'se agregó: '+', '.join(SLOTS[s][1] for s in got) if got else 'SteamGridDB no tiene imágenes para los espacios vacíos'))
+        except Exception as error:report.append((entry.name,'error: '+str(error)[:100]))
+    return items,report
