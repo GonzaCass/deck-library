@@ -389,3 +389,22 @@ class BuildEnvironmentTests(PortCatalogTests):
     def test_builtin_spider_man_kits_are_flagged_for_the_sdk(self):
         kits={b['repository'] for b in self.ports.BUILTIN if b.get('kit')};self.assertEqual(len(kits),2)
         self.assertTrue(all(a['kit'] for a in self.ports.merged([],{}) if a['repository'] in kits))
+
+class KitRequirementTests(PortCatalogTests):
+    def kit(self,fragment):return next(b for b in self.ports.merged([],{}) if fragment in b['repository'])
+    def test_bios_is_found_by_exact_hash_in_the_emudeck_folder_whatever_its_name(self):
+        home=self.root/'home';bios=home/'Emulation/bios';bios.mkdir(parents=True);data=b'B'*524288;(bios/'cualquier.bin').write_bytes(data);(bios/'otra.bin').write_bytes(b'C'*524288);(bios/'chica.bin').write_bytes(b'x')
+        found=self.ports.find_bios([hashlib.sha256(data).hexdigest().upper()],home);self.assertEqual(found,str(bios/'cualquier.bin'));self.assertEqual(self.ports.find_bios(['0'*64],home),'')
+    def test_disc_check_distinguishes_region_from_the_library_names(self):
+        one=self.kit('spider-man-recomp');two=self.kit('enter-electro')
+        text=lambda lines:' '.join(t for _,t in lines if t.startswith('Disco'))
+        spanish=['Spider-Man (Spain)','Spider-Man 2 - Enter - Electro (Europe)','Castlevania - Symphony of the Night (Europe)']
+        home=self.root/'sinbios'
+        l1=self.ports.requirements(one,spanish,home);l2=self.ports.requirements(two,spanish,home)
+        self.assertIn('otra región',text(l1));self.assertIn('Spain',text(l1));self.assertNotIn('Enter',text(l1));self.assertIn('otra región',text(l2));self.assertIn('Europe',text(l2))
+        self.assertEqual([ok for ok,t in l1 if t.startswith('Disco')],[False])
+        usa=self.ports.requirements(one,['Spider-Man (USA)','Spider-Man 2 - Enter - Electro (USA) (Rev 1)'],home);self.assertEqual([ok for ok,t in usa if t.startswith('Disco')],[None]);self.assertIn('Spider-Man (USA)',text(usa))
+        self.assertIn('no hay una copia',text(self.ports.requirements(one,[],home)))
+    def test_missing_bios_is_reported_and_kits_without_requirements_report_nothing(self):
+        lines=self.ports.requirements(self.kit('spider-man-recomp'),[],self.root/'vacio');self.assertEqual(lines[0][0],False);self.assertIn('hash exacto',lines[0][1])
+        self.assertEqual(self.ports.requirements({'name':'x'},['a']),[])

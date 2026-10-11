@@ -55,7 +55,7 @@ class CatalogMixin:
         matches=[a for a in everything if text in (a['name']+' '+a['repository']).casefold() and (not category or a['list']==category) and (not source or source in a['source'])]
         matches.sort(key=lambda a:(not a['source'].startswith(('Recomendado','Agregado')),a['name'].casefold()))
         self.catalog_status.set_text(f'{len(matches)} de {len(everything)} ports'+(' · se muestran los primeros 60' if len(matches)>60 else ''))
-        self.catalog_generation=getattr(self,'catalog_generation',0)+1;generation=self.catalog_generation;images=[]
+        self.catalog_generation=getattr(self,'catalog_generation',0)+1;generation=self.catalog_generation;images=[];kits=[]
         for item in matches[:60]:
             row=Gtk.Box(spacing=14);row.get_style_context().add_class('card');image=Gtk.Image();image.set_size_request(ICON_SIZE,ICON_SIZE);image.set_valign(Gtk.Align.START);row.pack_start(image,False,False,0);images.append((item,image))
             texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);texts.pack_start(label(item['name'],'title'),False,False,0);record=installed.get(item['repository'])
@@ -63,13 +63,30 @@ class CatalogMixin:
             texts.pack_start(label(item['repository']+(' · instalado '+record['tag'] if record else ''),'muted'),False,False,0)
             if tags:texts.pack_start(label('  ·  '.join(tags),'pill'),False,False,0)
             if item['note']:texts.pack_start(label(item['note'],'status'),False,False,0)
+            if item.get('bios') or item.get('disc'):
+                checks=label('Comprobando requisitos…','status');texts.pack_start(checks,False,False,0);kits.append((item,checks))
             row.pack_start(texts,True,True,0);side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
             if record and item['repository'] in updates:side.pack_start(button('Actualizar',lambda _,i=item:self.install_port(i,True),True),False,False,0)
             elif record:side.pack_start(label('Instalado','good'),False,False,0)
             else:side.pack_start(button('Instalar',lambda _,i=item:self.install_port(i,False)),False,False,0)
             if 'Agregado' in item['source']:side.pack_start(button('Quitar de la lista',lambda _,i=item:self.remove_repository(i),tone='danger'),False,False,0)
             row.pack_end(side,False,False,0);self.catalog_rows.pack_start(row,False,False,0)
-        self.catalog_rows.show_all();self.load_icons(images,generation)
+        self.catalog_rows.show_all();self.load_icons(images,generation);self.check_kits(kits,generation)
+
+    def check_kits(self,kits,generation):
+        """Compare each kit's BIOS and disc requirements with what is already on the Deck."""
+        names=[e.name for e in self.entries if e.platform=='PlayStation']
+        def work():
+            for item,widget in kits:
+                try:lines=ports.requirements(item,names)
+                except Exception:lines=[]
+                GLib.idle_add(self.show_requirements,widget,lines,generation)
+        if kits:threading.Thread(target=work,daemon=True).start()
+
+    def show_requirements(self,widget,lines,generation):
+        if generation!=self.catalog_generation:return False
+        marks={True:'✓ ',False:'✗ ',None:'? '}
+        widget.set_text('\n'.join(marks[ok]+text for ok,text in lines) if lines else '');return False
 
     def load_icons(self,images,generation):
         """Icons and box art arrive in the background; rows keep their layout meanwhile."""
