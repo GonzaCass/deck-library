@@ -22,16 +22,16 @@ El catálogo incluye tres ports nativos que se preparan con **Configurar**:
 
 A Link Between Worlds, Breath of the Wild y Skyward Sword no tienen port nativo y siguen con emulador.
 
-**Ajustes → Aplicar ajustes máximos para Steam Deck** deja DuckStation (5×, PGXP), Dolphin (3×, anisotrópico 16×), Azahar (3×, pantalla única con F9/F10 para alternar, shaders asíncronos) y Eden (shaders asíncronos, anisotrópico 16×) en lo máximo que admite la pantalla de 1280×800. Se hace un respaldo de cada archivo y se omite el emulador que esté abierto.
+**Ajustes → Aplicar ajustes máximos para Steam Deck** deja DuckStation (5×, PGXP), Dolphin (3×, anisotrópico 16×), Azahar (3×, pantalla grande con la otra pequeña, F9/F10 para alternar, shaders asíncronos) y Eden (shaders asíncronos, anisotrópico 16×) en lo máximo que admite la pantalla de 1280×800. Se hace un respaldo de cada archivo y se omite el emulador que esté abierto.
 
 ### Español, pantalla y mods por juego
 
 - **Breath of the Wild** (Eden): idioma español latinoamericano y, solo para este juego, resolución 1× con escalado FSR y precisión de GPU normal, para evitar el desenfoque de bajar 1,5× a la pantalla. El juego va fijo a 30 FPS.
-- **A Link Between Worlds** (Azahar): idioma de la consola 3DS en español, resolución 3× (la pantalla superior ocupa la altura de la Deck) y **una sola pantalla**. En la Deck, **L4** alterna entre pantalla superior e inferior (F9) y **R4** cambia la disposición (F10), mediante un layout de Steam Input propio para los juegos de 3DS.
+- **A Link Between Worlds** (Azahar): idioma de la consola 3DS en español, resolución 3× (la pantalla superior ocupa la altura de la Deck) y **pantalla grande con la otra pequeña** (las dos visibles). En la Deck, **L4** alterna entre pantalla superior e inferior (F9) y **R4** cambia la disposición (F10), mediante un layout de Steam Input propio para los juegos de 3DS.
 - **Wind Waker HD**: español, 16:10, imagen del GamePad en un recuadro dentro de la misma ventana, interpolación de cuadros (hasta la frecuencia de la pantalla), FXAA y anisotrópico. Los cambios se guardan como variables `WWHD_` del acceso.
 - **Minish Cap** (Picori): español con la ROM europea, escala interna 5× (1200×800), pantalla completa y reloj de 90 FPS.
 - **A Link to the Past**: el juego original no tiene versión en español. Con la traducción de aficionados «Re-Traducción F01h» (parche UPS sobre la ROM USA; el resultado tiene el SHA-1 `461FCBD7…` que el port reconoce), **Configurar** extrae los textos y deja `Language = es`. Los diálogos quedan en español; los rótulos del menú (ITEM, EQUIPMENT…) siguen en inglés porque el port no importa esos gráficos.
-- **Spider-Man 1 y 2** (kits PSX): supersampling 4×, PGXP y **60 FPS reales («Smooth 60»)**. El motor escala su lógica por el contador de vblanks, pero su bucle principal espera un vblank extra por cuadro y topa en 30 FPS; el kit se parchea para anular esa espera y acelerar la CPU emulada (8× y 10×). En una medición, los cambios de búfer por vblank pasaron de 0,50 a ~0,96 (juego 1) y de 0,34 a ~0,9 (juego 2); las escenas que saturan la GPU emulada pueden quedar por debajo. Los mods de carga rápida y de CD no se activan (aceleraban todo el juego). Más la interpolación de cuadros y el widescreen 16:10 experimental del mod «Steam Deck display». Requiere recompilar el kit (botón «Mejorar rendimiento»).
+- **Spider-Man 1 y 2** (kits PSX): supersampling 4× y PGXP; el **60 FPS real («Smooth 60»)** queda disponible pero apagado. El motor escala su lógica por el contador de vblanks, pero su bucle principal espera un vblank extra por cuadro y topa en 30 FPS; el kit se parchea para anular esa espera y acelerar la CPU emulada (8× y 10×). En una medición, los cambios de búfer por vblank pasaron de 0,50 a ~0,96 (juego 1) y de 0,34 a ~0,9 (juego 2); las escenas que saturan la GPU emulada pueden quedar por debajo. Con el 60 real activado el juego se sintió acelerado y con los sticks incontrolables, por eso no se aplica por defecto. Los mods de carga rápida y de CD no se activan (aceleraban todo el juego). Más la interpolación de cuadros y el widescreen 16:10 experimental del mod «Steam Deck display». Requiere recompilar el kit (botón «Mejorar rendimiento»).
 - **Breath of the Wild** en Eden: el parche «60 FPS (1.9.0)» de Nexus Mods se instala en la carpeta de mods del juego (exefs, hash de compilación CD57B23F…). 90 FPS no es posible con ese parche: Eden emula una pantalla de 60 Hz.
 
 ### Arte de Steam
@@ -92,7 +92,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.10.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.10.1**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 

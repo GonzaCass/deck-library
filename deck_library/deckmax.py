@@ -40,7 +40,7 @@ def targets(home):
     return [
      ('duckstation','DuckStation',home/'.local/share/duckstation/settings.ini',{'GPU':{'ResolutionScale':5,'PGXPEnable':True,'PGXPTextureCorrection':True,'PGXPCulling':True,'DisableInterlacing':True,'Multisamples':1},'Display':{'VSync':True}},True),
      ('dolphin','Dolphin',flatpak/'GFX.ini',{'Settings':{'InternalResolution':3,'ShaderCompilationMode':2,'WaitForShadersBeforeStarting':True},'Enhancements':{'MaxAnisotropy':4}},True),
-     ('azahar','Azahar',home/'.config/azahar-emu/qt-config.ini',{'Renderer':qt(resolution_factor=3,async_shader_compilation=True,use_disk_shader_cache=True,use_vsync_new=True,use_hw_shader=True),'Layout':qt(layout_option=1),'UI':{**shortcut('Swap Screens',SWAP_KEY),**shortcut('Toggle Screen Layout',LAYOUT_KEY)}},False),
+     ('azahar','Azahar',home/'.config/azahar-emu/qt-config.ini',{'Renderer':qt(resolution_factor=3,async_shader_compilation=True,use_disk_shader_cache=True,use_vsync_new=True,use_hw_shader=True),'Layout':qt(layout_option=2),'UI':{**shortcut('Swap Screens',SWAP_KEY),**shortcut('Toggle Screen Layout',LAYOUT_KEY)}},False),
      ('eden','Eden',home/'.config/eden/qt-config.ini',{'Renderer':qt(use_asynchronous_shaders=True,max_anisotropy=4,use_vsync=1)},False),
      ('eden','Eden (Breath of the Wild)',home/'.config/eden/custom'/(BOTW+'.ini'),{'System':qt_game(language_index=14,region_index=1),'Renderer':qt_game(resolution_setup=2,scaling_filter=5,fsr_sharpening_slider=40,anti_aliasing=0,gpu_accuracy=0)},False),
     ]

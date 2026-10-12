@@ -792,7 +792,7 @@ class ThreeDsSettingsTests(DeckMaxTests):
         az=self.write('.config/azahar-emu/qt-config.ini','[Layout]\nlayout_option=5\n[Renderer]\nlayout_option=5\nlayout_option\\default=false\n[UI]\nShortcuts\\Main%20Window\\Swap%20Screens\\KeySeq=Ctrl+Tab\n')
         botw=self.write('.config/eden/custom/01007EF00011E000.ini','[System]\nlanguage_index\\use_global=true\n[Renderer]\nresolution_setup\\use_global=true\n')
         deckmax.apply(self.home,busy=lambda a:False)
-        text=az.read_text();layout=text.split('[Layout]')[1].split('[')[0];self.assertIn('layout_option=1',layout);self.assertNotIn('layout_option',text.split('[Renderer]')[1].split('[')[0]);self.assertIn('Swap%20Screens\\KeySeq=F9',text);self.assertIn('Toggle%20Screen%20Layout\\KeySeq=F10',text)
+        text=az.read_text();layout=text.split('[Layout]')[1].split('[')[0];self.assertIn('layout_option=2',layout);self.assertNotIn('layout_option',text.split('[Renderer]')[1].split('[')[0]);self.assertIn('Swap%20Screens\\KeySeq=F9',text);self.assertIn('Toggle%20Screen%20Layout\\KeySeq=F10',text)
         text=botw.read_text();self.assertIn('language_index=14',text);self.assertIn('language_index\\use_global=false',text);self.assertIn('language_index\\default=false',text);self.assertIn('resolution_setup=2',text);self.assertIn('resolution_setup\\use_global=false',text);self.assertIn('resolution_setup\\default=false',text)
 
 class PortDefaultsTests(ConfigureTests):
@@ -995,7 +995,8 @@ class Smooth60Tests(ZeldaPortTests):
         for rel,text in self.FILES.items():
             path=other/rel;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text if 'load_accel' not in rel else 'int other(void){return 0;}\n')
         self.assertEqual(self.ports.apply_smooth60_patch(other),'incompatible');self.assertNotIn('g_psx_oc_div',(other/'psxrecomp/runtime/include/psx_cyc.h').read_text())
-    def test_only_known_games_get_the_environment_and_only_when_the_runtime_is_patched(self):
+    def test_the_environment_is_off_by_default_and_a_leftover_one_is_removed(self):
         self.assertEqual(self.ports.smooth60_env('SLUS-99999'),{});env=self.ports.smooth60_env('SLUS-00875');self.assertEqual((env['DECK_WAITVB_FUNC'],env['DECK_WAITVB_ZERO_RA'],env['DECK_CPU_OC']),('0x8005E748','0x8002C294','8'));self.assertEqual(self.ports.smooth60_env('SLUS-01378')['DECK_CPU_OC'],'10')
-        folder=self.kit();record={'setup':'kit','disc':{'serial':'SLUS-00875'}};self.assertNotIn('env',record) if not self.ports.tune_port(record,folder) else None;self.assertNotIn('DECK_CPU_OC',record.get('env',{}))
-        self.ports.apply_smooth60_patch(folder);self.assertIn('env',self.ports.tune_port(record,folder));self.assertEqual(record['env']['DECK_CPU_OC'],'8');self.assertEqual(self.ports.tune_port(record,folder),[])
+        folder=self.kit();self.ports.apply_smooth60_patch(folder);record={'setup':'kit','disc':{'serial':'SLUS-00875'},'env':dict(env)}
+        self.assertEqual(self.ports.tune_port(record,folder),['env']);self.assertNotIn('env',record);self.assertEqual(self.ports.tune_port(record,folder),[])
+        record['env']={'OTRO':'1'};self.assertEqual(self.ports.tune_port(record,folder),[]);self.assertEqual(record['env'],{'OTRO':'1'})

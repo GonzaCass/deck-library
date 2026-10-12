@@ -654,6 +654,8 @@ void psx_advance_cycles_slow(uint32_t cycles) {""")]),
     }
 """)]),
 ]
+# Medido en la Deck: con el 60 real el juego se siente acelerado y los sticks son incontrolables; queda disponible pero apagado.
+SMOOTH60_DEFAULT=False
 SMOOTH60={'SLUS-00875':{'wait':'0x8005E748','zero':'0x8002C294','oc':8},'SLUS-01378':{'wait':'0x80069124','zero':'0x80031E88','oc':10}}
 
 def apply_smooth60_patch(folder):
@@ -847,8 +849,11 @@ def tune_port(record,folder):
     if record.get('setup')=='kit':
         serial=(record.get('disc') or {}).get('serial','')
         patched=(folder/'psxrecomp/runtime/src/load_accel.c').is_file() and SMOOTH60_MARKER in (folder/'psxrecomp/runtime/src/load_accel.c').read_text()
-        wanted=smooth60_env(serial) if patched else {}
-        if wanted and record.get('env')!=wanted:record['env']=wanted;changed.append('env')
+        wanted=smooth60_env(serial) if patched and SMOOTH60_DEFAULT else {}
+        if record.get('env',{})!=wanted and (wanted or record.get('env')==smooth60_env(serial)):
+            if wanted:record['env']=wanted
+            else:record.pop('env',None)
+            changed.append('env')
     if record.get('setup')=='rom' and record.get('configured') and (folder/'baserom_eu.gba').is_file():
         path=folder/'config.json'
         try:config=json.loads(path.read_text()) if path.is_file() else {}
