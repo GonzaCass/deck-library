@@ -480,7 +480,7 @@ def entry_for(folder):
 
 DATA_CTR=pathlib.Path('.local/share/ctr-turbocharged')
 
-PATCH_LEVEL=3
+PATCH_LEVEL=4
 SPU_MARKER='spu_get_ctrl'
 SPU_PATCHES=[
  ('psxrecomp/runtime/src/spu.c',[("void spu_get_global_state(SpuGlobalState* out) {","/* Cheap read of SPUCNT for the per-sample event scheduler (spu_get_global_state builds the whole state). */\nuint16_t spu_get_ctrl(void) {\n    return (uint16_t)spu_regs[reg_index(0x1F801DAAu)];\n}\n\nvoid spu_get_global_state(SpuGlobalState* out) {")]),
@@ -593,10 +593,97 @@ def apply_display_mod(folder):
 def apply_runtime_patches(folder):
     """SPU speed-up plus the Deck display mod. 'applied' when anything changed, 'incompatible' when neither fits this kit,
     otherwise 'present' (or 'not-needed')."""
-    spu=apply_spu_patch(folder);display=apply_display_mod(folder)
-    if 'applied' in (spu,display):return 'applied'
-    if spu=='incompatible' and display=='incompatible':return 'incompatible'
-    return 'present' if 'present' in (spu,display) else 'not-needed'
+    spu=apply_spu_patch(folder);display=apply_display_mod(folder);smooth=apply_smooth60_patch(folder)
+    outcomes=(spu,display,smooth)
+    if 'applied' in outcomes:return 'applied'
+    if all(o=='incompatible' for o in outcomes):return 'incompatible'
+    return 'present' if 'present' in outcomes else 'not-needed'
+
+
+# Smooth 60: the recompiled Spider-Man engine scales its logic by the vblank counter, but its main loop always waits one extra
+# vblank before flipping, which caps it at 30 fps whatever the speed of the machine. The runtime is patched to (a) zero that one
+# wait at the main loop's call site and (b) optionally run the guest CPU N times faster against the fixed-rate GPU and video so a
+# frame fits in one vblank. Both are driven by environment variables, so a kit without them behaves exactly as before.
+SMOOTH60_MARKER='DECK_WAITVB_FUNC'
+SMOOTH60_PATCHES=[
+ ('psxrecomp/runtime/include/psx_cyc.h',[("""static inline void psx_cyc_base(CPUState* cpu) {
+    uint8_t w = cpu->read_absorb_which;
+    if (cpu->read_absorb[w]) cpu->read_absorb[w]--;
+    else                     psx_cyc_charge(1u);
+}""","""/* Deck Library: CPU overclock. With g_psx_oc_div = N > 1 an instruction's base cost is charged once every N instructions
+ * (the CPU runs N times faster against the fixed-rate GPU, timers and video). 0 or 1 = authentic. */
+extern uint32_t g_psx_oc_div;
+extern uint32_t g_psx_oc_ctr;
+static inline void psx_cyc_base(CPUState* cpu) {
+    uint8_t w = cpu->read_absorb_which;
+    if (cpu->read_absorb[w]) cpu->read_absorb[w]--;
+    else if (g_psx_oc_div > 1u) { if (++g_psx_oc_ctr >= g_psx_oc_div) { g_psx_oc_ctr = 0u; psx_cyc_charge(1u); } }
+    else                     psx_cyc_charge(1u);
+}""")]),
+ ('psxrecomp/runtime/src/psx_cycles.c',[("void psx_advance_cycles_slow(uint32_t cycles) {","""/* Deck Library: CPU overclock divisor (see psx_cyc.h); DECK_CPU_OC=N sets it at start-up. */
+uint32_t g_psx_oc_div = 0u;
+uint32_t g_psx_oc_ctr = 0u;
+void psx_set_cpu_overclock(uint32_t divisor) { g_psx_oc_div = divisor > 64u ? 64u : divisor; g_psx_oc_ctr = 0u; }
+__attribute__((constructor)) static void psx_oc_from_env(void) {
+    const char *e = getenv("DECK_CPU_OC");
+    if (e && *e) psx_set_cpu_overclock((uint32_t)atoi(e));
+}
+
+void psx_advance_cycles_slow(uint32_t cycles) {""")]),
+ ('psxrecomp/runtime/src/load_accel.c',[("int psx_vsync_query_hle_try(CPUState* cpu, uint32_t dispatch_addr) {\n","""int psx_vsync_query_hle_try(CPUState* cpu, uint32_t dispatch_addr) {
+    /* Deck Library: DECK_WAITVB_FUNC is the game's wait-N-vblanks function and DECK_WAITVB_ZERO_RA a comma-separated list of
+     * return addresses of calls to it that must not wait (a main loop's unconditional frame limiter). */
+    {
+        static int init = 0; static uint32_t wait_func = 0; static uint32_t zero_ra[8]; static int zero_n = 0;
+        if (!init) {
+            init = 1;
+            const char *e = getenv("DECK_WAITVB_FUNC");
+            wait_func = e ? (uint32_t)strtoul(e, 0, 0) : 0u;
+            e = getenv("DECK_WAITVB_ZERO_RA");
+            while (e && *e && zero_n < 8) {
+                char *end = 0; uint32_t v = (uint32_t)strtoul(e, &end, 0);
+                if (end == e) break;
+                if (v) zero_ra[zero_n++] = v;
+                e = (*end == ',') ? end + 1 : end;
+                if (*end != ',') break;
+            }
+        }
+        if (wait_func && dispatch_addr == wait_func) {
+            for (int i = 0; i < zero_n; i++) if (cpu->gpr[31] == zero_ra[i]) { cpu->gpr[4] = 0u; break; }
+        }
+    }
+""")]),
+]
+SMOOTH60={'SLUS-00875':{'wait':'0x8005E748','zero':'0x8002C294','oc':8},'SLUS-01378':{'wait':'0x80069124','zero':'0x80031E88','oc':10}}
+
+def apply_smooth60_patch(folder):
+    """Add the frame-limiter and CPU-overclock hooks to a kit's runtime. 'applied', 'present' or 'incompatible' (different framework layout)."""
+    folder=pathlib.Path(folder);texts={}
+    for rel,edits in SMOOTH60_PATCHES:
+        path=folder/rel
+        if not path.is_file():return 'incompatible'
+        texts[path]=path.read_text()
+    if all(('g_psx_oc_div' in t or SMOOTH60_MARKER in t) for t in texts.values()):return 'present'
+    updated={}
+    for rel,edits in SMOOTH60_PATCHES:
+        path=folder/rel;text=texts[path]
+        if 'g_psx_oc_div' in text or SMOOTH60_MARKER in text:return 'incompatible'
+        for old,new in edits:
+            if text.count(old)!=1:return 'incompatible'
+            text=text.replace(old,new,1)
+        if 'getenv' in text and '#include <stdlib.h>' not in text:text='#include <stdlib.h>\n'+text
+        updated[path]=text
+    for path,text in updated.items():
+        backup=path.with_name(path.name+'.orig-deck60')
+        if not backup.exists():backup.write_text(texts[path])
+        path.write_text(text)
+    return 'applied'
+
+def smooth60_env(serial):
+    """Environment for a kit whose game is known to scale its logic by the vblank counter; {} for any other game."""
+    known=SMOOTH60.get(serial)
+    if not known:return {}
+    return {'DECK_WAITVB_FUNC':known['wait'],'DECK_WAITVB_ZERO_RA':known['zero'],'DECK_CPU_OC':str(known['oc'])}
 
 def overlay_command(folder):
     """Command the runtime runs to compile newly seen code overlays to native code with gcc (available inside the SDK)."""
@@ -757,6 +844,11 @@ def tune_port(record,folder):
     folder=pathlib.Path(folder);changed=[]
     if record.get('setup')=='wwhd' and record.get('env')!=WWHD_ENV:
         record['env']=dict(WWHD_ENV);changed.append('env')
+    if record.get('setup')=='kit':
+        serial=(record.get('disc') or {}).get('serial','')
+        patched=(folder/'psxrecomp/runtime/src/load_accel.c').is_file() and SMOOTH60_MARKER in (folder/'psxrecomp/runtime/src/load_accel.c').read_text()
+        wanted=smooth60_env(serial) if patched else {}
+        if wanted and record.get('env')!=wanted:record['env']=wanted;changed.append('env')
     if record.get('setup')=='rom' and record.get('configured') and (folder/'baserom_eu.gba').is_file():
         path=folder/'config.json'
         try:config=json.loads(path.read_text()) if path.is_file() else {}
@@ -793,7 +885,7 @@ def maintain(store=None,home=None):
     saved=records(store)
     for repository,record in saved.items():
         folder=root/record.get('folder','')
-        if record.get('setup') in ('rom','wwhd') and folder.is_dir():
+        if record.get('setup') in ('rom','wwhd','kit') and folder.is_dir():
             done=tune_port(record,folder)
             if done:
                 changed+=done;atomic_json(store.root/'ports.json',{**records(store),repository:record})
