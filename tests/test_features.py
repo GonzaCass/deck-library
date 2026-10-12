@@ -976,3 +976,26 @@ class WwhdShadersTests(ZeldaPortTests):
         self.assertEqual(ok['status'],'ready');self.assertEqual(bad['status'],'failed');self.assertIn('Vulkan',bad['message'])
         self.assertEqual(env['XDG_CONFIG_HOME'],str(home/'.config'));self.assertEqual(seen['env']['XDG_CONFIG_HOME'],str(home/'.config'))
         self.assertEqual(self.ports.prepare_wwhd_shaders(self.root/'nada')['status'],'unavailable')
+
+class Smooth60Tests(ZeldaPortTests):
+    FILES={'psxrecomp/runtime/include/psx_cyc.h':"static inline void psx_cyc_base(CPUState* cpu) {\n    uint8_t w = cpu->read_absorb_which;\n    if (cpu->read_absorb[w]) cpu->read_absorb[w]--;\n    else                     psx_cyc_charge(1u);\n}\n",
+           'psxrecomp/runtime/src/psx_cycles.c':"#include <stdint.h>\nvoid psx_advance_cycles_slow(uint32_t cycles) {\n}\n",
+           'psxrecomp/runtime/src/load_accel.c':"int psx_vsync_query_hle_try(CPUState* cpu, uint32_t dispatch_addr) {\n    return 0;\n}\n"}
+    def kit(self):
+        folder=self.root/'kit'
+        for rel,text in self.FILES.items():
+            path=folder/rel;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text)
+        return folder
+    def test_the_runtime_hooks_are_added_once_with_backups_and_an_unknown_layout_is_left_alone(self):
+        folder=self.kit();self.assertEqual(self.ports.apply_smooth60_patch(folder),'applied');self.assertEqual(self.ports.apply_smooth60_patch(folder),'present')
+        header=(folder/'psxrecomp/runtime/include/psx_cyc.h').read_text();self.assertIn('g_psx_oc_div > 1u',header);self.assertEqual(header.count('g_psx_oc_ctr = 0u'),1)
+        self.assertIn('DECK_WAITVB_ZERO_RA',(folder/'psxrecomp/runtime/src/load_accel.c').read_text());self.assertTrue((folder/'psxrecomp/runtime/src/psx_cycles.c.orig-deck60').is_file())
+        (folder/'psxrecomp/runtime/src/load_accel.c').write_text('int other(void){return 0;}\n');(folder/'psxrecomp/runtime/src/load_accel.c.orig-deck60').unlink(missing_ok=True)
+        other=self.root/'other'
+        for rel,text in self.FILES.items():
+            path=other/rel;path.parent.mkdir(parents=True,exist_ok=True);path.write_text(text if 'load_accel' not in rel else 'int other(void){return 0;}\n')
+        self.assertEqual(self.ports.apply_smooth60_patch(other),'incompatible');self.assertNotIn('g_psx_oc_div',(other/'psxrecomp/runtime/include/psx_cyc.h').read_text())
+    def test_only_known_games_get_the_environment_and_only_when_the_runtime_is_patched(self):
+        self.assertEqual(self.ports.smooth60_env('SLUS-99999'),{});env=self.ports.smooth60_env('SLUS-00875');self.assertEqual((env['DECK_WAITVB_FUNC'],env['DECK_WAITVB_ZERO_RA'],env['DECK_CPU_OC']),('0x8005E748','0x8002C294','8'));self.assertEqual(self.ports.smooth60_env('SLUS-01378')['DECK_CPU_OC'],'10')
+        folder=self.kit();record={'setup':'kit','disc':{'serial':'SLUS-00875'}};self.assertNotIn('env',record) if not self.ports.tune_port(record,folder) else None;self.assertNotIn('DECK_CPU_OC',record.get('env',{}))
+        self.ports.apply_smooth60_patch(folder);self.assertIn('env',self.ports.tune_port(record,folder));self.assertEqual(record['env']['DECK_CPU_OC'],'8');self.assertEqual(self.ports.tune_port(record,folder),[])
