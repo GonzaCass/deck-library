@@ -1,5 +1,13 @@
 # Validación — 2026-10-01
 
+## Switch: tres propuestas y prueba directa — 0.10.2, 2026-10-17
+
+Se superaron 572 pruebas automatizadas. Las nuevas comprobaciones cubren las tres opciones distintas para títulos sin perfil, prioridad de presets específicos incluidos/importados, resolución del Title ID, exclusión de otros adaptadores y juegos sin ID, preferencia local persistente por juego y aplicación/exportación/restauración con conservación de rutas, controles e idioma. Se mantienen el bloqueo por versión de Eden conocida y la protección del archivo global.
+
+El diálogo GTK se ejercitó con Xvfb y un almacén temporal: selección de cada propuesta, confirmación de **Aplicar y probar**, lectura del INI resultante y tres lanzamientos mediante el método real `Window.play` y `app.py launch`, usando `/bin/true` como ejecutable de prueba. Se comprobó la salida correcta de cada proceso, **Marcar como mejor**, su selección al reabrir y **Restaurar anterior**. La captura a 880×640 permitió revisar que la lista y ambas filas de acciones quedaran visibles. Los metadatos GTK necesarios se extrajeron temporalmente; no se instalaron paquetes ni se modificó una biblioteca real.
+
+Estas comprobaciones validan el flujo de la aplicación, no la emulación de un juego. No se lanzaron ROMs ni se midieron FPS. Las tres opciones mantienen estado `proposal`, compatibilidad declarada con Eden 0.2.1 y validación pendiente por título en Steam Deck/Gaming Mode.
+
 ## Notas del lanzamiento local de DMC3 Crimson
 
 La instalación existente de Crimson 0.5a se lanzó mediante Steam Desktop con un wrapper directo de DMC3 y una DLL de la API de Steam compatible y aislada. La inspección de los módulos del proceso y la pantalla de bienvenida visible de Crimson confirmaron el arranque. La DLL original de la API de Steam de la colección se conservó. La jugabilidad, los FPS sostenidos y el Modo Juego siguen sin probarse tras este cambio. Esto se documenta en [DMC3-CRIMSON.md](DMC3-CRIMSON.md); no se añadió ningún instalador automático de Crimson a Deck Library.

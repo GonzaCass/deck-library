@@ -136,6 +136,8 @@ Game details expose recommended profiles, a change preview, apply/backup/restore
 
 The initial catalog includes WiiCompiled, Eden profiles for Smash, Mario Kart 8 and three Mario Party games, plus a Prism instance preset with Steam Input recommendations. Profiles explicitly distinguish proposals, boot checks and user confirmations; hardware/version matching does not imply universal FPS or compatibility.
 
+Switch games without a bundled or imported title-specific profile offer three proposals under **Ajustes recomendados**: **Switch — Equilibrado**, **Switch — Rendimiento** and **Switch — Compatibilidad**. They use the five existing Switch presets as references: Vulkan, handheld mode, native resolution, multicore, normal speed and shader cache, with different GPU accuracy and asynchronous shader/presentation settings. A detected or manually entered Title ID is required; declared compatibility is Eden 0.2.1. **Aplicar y probar** previews and backs up the changes, applies the profile and opens the game through its usual launcher. Close Eden before trying another option. **Marcar como mejor** remembers the preferred profile per game locally and selects it when the dialog is reopened; it does not apply settings automatically or publish feedback. Profiles remain applied until changed or restored; **Restaurar anterior** restores the configuration before the latest application. Performance still needs validation per game; existing title-specific presets keep priority.
+
 ## Discovery, covers and setup
 
 Portrait covers are the default view; list view is available. Local Steam, Quiver, Eden and Prism images and privately downloaded provider artwork are reused. Custom local covers can be selected. Public release artwork uses fictional placeholders; downloaded game artwork is not shipped.
@@ -159,7 +161,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.4.0**, early release. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.10.2**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 

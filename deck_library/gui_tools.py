@@ -168,19 +168,19 @@ class ToolsMixin:
                 for key,value in options.items():lines.append('   '+names.get(key,(key,''))[0]+': '+('sí' if value is True else 'no' if value is False else str(value)))
             if not values:lines.append('No hay valores reconocidos todavía.')
             return {'detected':True,'name':'Ajustes actuales','note':'Archivo propio del juego' if own else 'Valores globales del emulador','text':'\n'.join(lines)}
-        def everything():return [detected()]+[p for p in presets.catalog(self.store) if presets.compatible(e,p)]
-        selected=[None];items=everything()
+        def everything():return [detected()]+presets.recommended(e,self.store)
+        selected=[None];items=everything();best=[presets.best_for(e,self.store)]
         def fill():
             for row in list_.get_children():list_.remove(row)
             for value in items:
                 if value.get('detected'):
                     row=Gtk.ListBoxRow();row.value=value;card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5);card.set_border_width(12);card.pack_start(label('Ajustes actuales (detectados)','title'),False,False,0);card.pack_start(label(value['note'],'muted'),False,False,0);row.add(card);list_.add(row);continue
-                row=Gtk.ListBoxRow();row.value=value;card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5);card.set_border_width(12);name=label(value['name'],'title');name.set_max_width_chars(25);card.pack_start(name,False,False,0)
+                row=Gtk.ListBoxRow();row.value=value;card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5);card.set_border_width(12);name=label(value['name']+(' · Mejor opción' if value['id']==best[0] else ''),'title');name.set_max_width_chars(25);card.pack_start(name,False,False,0)
                 status={'proposal':'Para probar','boot-tested':'Arranque comprobado','user-confirmed':'Confirmado por usuario'}[value['tested']['status']]
                 meta=label(value['author']+' · '+status+' · '+', '.join(value['adapter']['versions']),'muted');meta.set_max_width_chars(30);card.pack_start(meta,False,False,0);row.add(card);list_.add(row)
-            if len(items)<2:list_.add(label('No hay perfiles recomendados para este juego. Importar uno o exportar los ajustes actuales.','muted'))
+            if len(items)<2:list_.add(label('No hay perfiles recomendados para este juego. Completar el Title ID en Editar juego para ofrecer la base de Switch, o importar un perfil.' if e.platform=='Switch' and not presets.public_game_id(e) else 'No hay perfiles recomendados para este juego. Importar uno o exportar los ajustes actuales.','muted'))
             list_.show_all()
-            if items:list_.select_row(list_.get_row_at_index(0))
+            if items:list_.select_row(list_.get_row_at_index(next((i for i,v in enumerate(items) if v.get('id')==best[0]),0)))
         def chosen(_,row):
             selected[0]=getattr(row,'value',None)
             value=selected[0]
@@ -217,15 +217,18 @@ class ToolsMixin:
                 threading.Thread(target=work,daemon=True).start()
         toolbar.pack_start(button('Importar JSON',import_),False,False,0);toolbar.pack_start(button('Exportar mis ajustes',export_),False,False,0);toolbar.pack_start(button('Catálogo GitHub',refresh),False,False,0)
         actions=Gtk.Box(spacing=8);box.pack_start(actions,False,False,0)
-        def apply_(_):
+        def apply_(_,play=False):
             value=selected[0]
             if not value:self.message('Sin perfil','Seleccionar un perfil de la lista.');return
             if value.get('detected'):self.message('Ajustes actuales','Estos son los valores que el emulador usa ahora. Elegir un perfil recomendado para cambiarlos, o editarlos uno por uno en Ajustes del juego.');return
             try:
                 path,changes=presets.preview(e,value,self.preferences.get('eden_config') or None)
-                confirm=Gtk.MessageDialog(transient_for=dialog,modal=True,buttons=Gtk.ButtonsType.OK_CANCEL,text='Aplicar '+value['name']);confirm.format_secondary_text('\n'.join(f'{key}: {old} → {new}' for key,old,new in changes)+'\n\nPrograma: '+value['adapter']['id']+' · versiones declaradas: '+', '.join(value['adapter']['versions'])+'\nSe guarda una copia de seguridad. No instala actualizaciones ni mods.');response=confirm.run();confirm.destroy()
+                confirm=Gtk.MessageDialog(transient_for=dialog,modal=True,buttons=Gtk.ButtonsType.OK_CANCEL,text=('Aplicar y probar ' if play else 'Aplicar ')+value['name']);confirm.format_secondary_text('\n'.join(f'{key}: {old} → {new}' for key,old,new in changes)+'\n\nPrograma: '+value['adapter']['id']+' · versiones declaradas: '+', '.join(value['adapter']['versions'])+'\nSe guarda una copia de seguridad. No instala actualizaciones ni mods.'+('\nEl juego se abrirá con este perfil. Cerrar Eden antes de probar otra opción. El perfil permanece aplicado hasta cambiarlo o restaurarlo.' if play else ''));response=confirm.run();confirm.destroy()
                 if response==Gtk.ResponseType.OK:
                     result=presets.apply(e,value,self.store,self.preferences.get('eden_config') or None);detail.set_text(str(result['changes'])+' ajustes aplicados.')
+                    if play:
+                        try:self.play(e);detail.set_text('Perfil aplicado. Abriendo el juego… Cerrar Eden antes de probar otra opción. Después se puede marcar la mejor.')
+                        except Exception as error:self.message('No se pudo abrir el juego','El perfil quedó aplicado y puede restaurarse. '+str(error))
             except Exception as error:self.message('No se pudo aplicar',str(error))
         def restore_(_):
             try:presets.restore(e,self.store);detail.set_text('Ajuste anterior restaurado.')
@@ -241,7 +244,18 @@ class ToolsMixin:
                 if destination:atomic_json(destination,report)
                 detail.set_text('Comentarios guardados localmente.')
             form.destroy()
-        actions.pack_start(button('Aplicar perfil',apply_,tone='play'),False,False,0);actions.pack_start(button('Restaurar anterior',restore_,tone='content'),False,False,0);actions.pack_start(button('Exportar comentarios',feedback_,tone='controls'),False,False,0)
+        def mark_best_(_):
+            value=selected[0]
+            if not value or value.get('detected'):self.message('Sin perfil','Seleccionar el perfil que funcionó mejor.');return
+            try:
+                presets.mark_best(e,value,self.store);best[0]=value['id'];fill();detail.set_text('Mejor opción guardada para este juego en esta biblioteca. No cambia el perfil aplicado.')
+            except Exception as error:self.message('No se pudo guardar',str(error))
+        actions.pack_start(button('Aplicar perfil',apply_,tone='play'),False,False,0)
+        if e.platform=='Switch':actions.pack_start(button('Aplicar y probar',lambda w:apply_(w,True),tone='play'),False,False,0)
+        actions.pack_start(button('Restaurar anterior',restore_,tone='content'),False,False,0)
+        feedback_actions=Gtk.Box(spacing=8);box.pack_start(feedback_actions,False,False,0)
+        if e.platform=='Switch':feedback_actions.pack_start(button('Marcar como mejor',mark_best_,tone='controls'),False,False,0)
+        feedback_actions.pack_start(button('Exportar comentarios',feedback_,tone='controls'),False,False,0)
         fill();dialog.show_all();dialog.run();dialog.destroy()
     def game_settings_dialog(self,e):
         """Manual per-game editor generated from the adapter's allowlist; saved through the shared apply/restore path."""

@@ -33,6 +33,26 @@ Versiones declaradas y hardware se muestran para evaluar compatibilidad. Si la v
 
 Los estados son `proposal` (para probar), `boot-tested` (arranque comprobado) y `user-confirmed` (confirmación reportada). Son declaraciones del autor; esta versión local no dispone de verificación central, votos ni moderación. Ningún preset promete FPS universales.
 
+## Opciones de Switch para juegos sin perfil
+
+Desde 0.10.2, **Ajustes recomendados** usa primero los perfiles específicos incluidos, importados o descargados. Si no hay ninguno para un juego de Switch/Eden con Title ID válido, ofrece tres propuestas. Si falta el ID, indica completarlo en **Editar juego**. Los ajustes actuales siguen visibles; tener un INI personalizado no impide ofrecer estas opciones.
+
+| Opción | Precisión GPU | Shaders asíncronos | Presentación asíncrona |
+| --- | --- | --- | --- |
+| Equilibrado | Normal | Desactivados | Desactivada |
+| Rendimiento | Normal | Activados | Activada |
+| Compatibilidad | Alta | Desactivados | Desactivada |
+
+Todas usan Vulkan, resolución 1× (`resolution_setup=3`), modo portátil, CPU automática, varios núcleos, velocidad normal, caché de shaders y emulación de GPU asíncrona. Los cinco presets existentes aportan los valores comunes; Smash, Mario Kart 8 y Mario Party Superstars aportan las opciones asíncronas de Rendimiento, y Super Mario Party/Jamboree las opciones conservadoras. No se copian requisitos de CTGP ni estados de prueba. La comparación en el juego determina cuál funciona mejor; los nombres no implican FPS medidos.
+
+Las plantillas [Equilibrado](../presets/eden-switch-default.json), [Rendimiento](../presets/eden-switch-performance.json) y [Compatibilidad](../presets/eden-switch-compatibility.json) también se incluyen en el catálogo. Sus identidades `switch-default`, `switch-performance` y `switch-compatibility` no son comodines aplicables: `recommended()` genera copias con el Title ID real e IDs estables por juego. La compatibilidad sigue exigiendo coincidencia exacta de juego y adaptador. Consultar recomendaciones no escribe perfiles en el almacén.
+
+**Aplicar y probar** muestra la vista previa y, tras confirmarla, usa el adaptador habitual con respaldo y abre el juego mediante el mismo lanzamiento que **Jugar**. Con Eden abierto se rechaza aplicar o restaurar: cerrar el juego/emulador antes de probar otra opción. Si falla la apertura, el perfil permanece aplicado y puede restaurarse. No hay restauración automática al cerrar el juego; **Restaurar anterior** recupera la configuración anterior a la última aplicación.
+
+**Marcar como mejor** guarda el ID del perfil para ese juego en `preferred-presets/<id-local>.json`, dentro del almacén privado. La mejor opción se identifica en la lista y se selecciona al reabrir el diálogo. Se puede cambiar la elección. No aplica el perfil, no modifica el catálogo ni su estado de validación y no envía datos. Si cambia la identidad del juego, la preferencia anterior se ignora.
+
+Las tres propuestas declaran Eden 0.2.1 y hardware Deck LCD/OLED. Una versión instalada conocida que no coincida sigue bloqueando la aplicación; si no se detecta, se muestra la versión declarada para su contraste. NAND, partidas, rutas, controles, idioma, mods y ajustes ajenos al perfil se conservan. Rendimiento y Gaming Mode requieren pruebas por título.
+
 ## Adaptadores
 
 - `eden`: modifica el INI personalizado del juego. Marca las opciones como explícitas y sin heredar el valor global. Resolución `3` equivale a 1× en Eden 0.2.1. No modifica NAND, rutas, controles, velocidad superior a 100%, updates ni mods.

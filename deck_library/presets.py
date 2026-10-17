@@ -1,5 +1,5 @@
 """Portable, data-only presets with explicit adapters, backups and local feedback."""
-import configparser,datetime,hashlib,json,os,pathlib,re,shutil,tempfile,tomllib,urllib.request
+import configparser,copy,datetime,hashlib,json,os,pathlib,re,shutil,tempfile,tomllib,urllib.request
 from .models import Store,atomic_json
 from .content import switch_id,eden_paths,emulator_busy
 
@@ -108,6 +108,37 @@ def catalog(store=None):
                 value=validate(json.loads(path.read_text()));by_id[value['id']]=value
             except (OSError,ValueError,TypeError,KeyError):continue
     return list(by_id.values())
+
+SWITCH_BASES=('eden-switch-default','eden-switch-performance','eden-switch-compatibility')
+
+def recommended(entry,store=None):
+    """Prefer title-specific profiles; bind the Switch base to a real Title ID only."""
+    values=catalog(store)
+    matches=[value for value in values if compatible(entry,value)]
+    if matches or entry.platform!='Switch' or adapter_for(entry)!='eden':return matches
+    tid=public_game_id(entry)
+    if not re.fullmatch(r'010[0-9A-Fa-f]{13}',tid):return []
+    profiles=[]
+    for template_id in SWITCH_BASES:
+        template=next((value for value in values if value['id']==template_id),None)
+        if template is None:continue
+        value=copy.deepcopy(template)
+        value['id']='eden-'+tid.lower()+'-'+template_id.removeprefix('eden-switch-')
+        value['game']={'id':tid.upper(),'name':entry.name,'platform':'Switch'}
+        profiles.append(validate(value))
+    return profiles
+
+def mark_best(entry,value,store=None):
+    if not compatible(entry,value):raise ValueError('El preset no corresponde a este juego o programa.')
+    store=store or Store()
+    atomic_json(store.root/'preferred-presets'/(entry.id+'.json'),{'game_id':public_game_id(entry),'adapter':adapter_for(entry),'preset':value['id']})
+
+def best_for(entry,store=None):
+    store=store or Store()
+    try:record=json.loads((store.root/'preferred-presets'/(entry.id+'.json')).read_text())
+    except (OSError,ValueError):return ''
+    if record.get('game_id')!=public_game_id(entry) or record.get('adapter')!=adapter_for(entry):return ''
+    return record.get('preset','')
 
 def import_preset(path,store=None):
     store=store or Store();path=pathlib.Path(path)

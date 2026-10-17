@@ -92,11 +92,15 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.10.1**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.10.2**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
 ## Funciones de biblioteca y presets
+
+Los juegos de Switch sin un preset específico incluido o importado ofrecen tres opciones en **Ajustes recomendados**: **Switch — Equilibrado**, **Switch — Rendimiento** y **Switch — Compatibilidad**. Toman como referencia los cinco perfiles existentes: Vulkan, modo portátil, resolución 1×, varios núcleos, velocidad al 100% y caché de shaders. Equilibrado usa precisión GPU normal sin shaders/presentación asíncronos; Rendimiento activa ambos; Compatibilidad usa precisión alta y desactiva ambos. Requieren un Title ID detectado o completado en **Editar juego** y declaran Eden 0.2.1. Son propuestas **Para probar**, sin garantía de FPS.
+
+**Aplicar y probar** muestra los cambios, guarda respaldo, aplica la opción y abre el juego. Cerrar Eden antes de probar otra. **Marcar como mejor** guarda la preferencia local de ese juego y la selecciona al volver a abrir el diálogo; no cambia los ajustes ni publica datos. El perfil permanece aplicado hasta cambiarlo o restaurarlo. **Restaurar anterior** recupera la configuración anterior a la última aplicación. Los presets específicos tienen prioridad.
 
 - **Carátulas** como vista inicial; se puede cambiar a lista y elegir una imagen local. Se aprovechan imágenes existentes de Steam/Quiver/Prism cuando se encuentran; donde falta arte se muestra una tarjeta de título.
 - **Ajustes → Instalaciones y carpetas** detecta EmuDeck y permite agregar carpetas de ROMs/ports, instalaciones de Quiver, Prism y WiiCompiled, y elegir programas de emuladores que no se detectaron.
