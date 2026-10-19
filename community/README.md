@@ -62,3 +62,7 @@ volumes:
 Conservar los otros volúmenes existentes. Recrear solo el contenedor de Keycloak para activar el montaje. El cliente importable selecciona el tema mediante `attributes.login_theme=deck-library`; para un cliente ya existente, elegir **Login theme → deck-library** en sus ajustes. No cambiar el tema global del realm ni el de otros clientes. El tema ofrece textos de Deck Library en español incluso si el realm no tiene internacionalización habilitada. No modificar las políticas de verificación de correo, doble factor ni contraseña para integrar la interfaz.
 
 La vista usa memoria temporal para cookies y almacenamiento, deniega permisos y ventanas emergentes y limita la navegación al origen HTTPS del proveedor. El servidor no incorpora un endpoint de contraseñas ni permisos administrativos. `GET /v1/me` valida la sesión propia; un 401 elimina la sesión local vencida.
+
+## Remitente específico de Deck Library
+
+Si el realm también tiene otros clientes, no cambiar su remitente SMTP global para poner el nombre de Deck Library. El proveedor opcional [keycloak-mail](keycloak-mail/README.md) aplica un remitente específico solo al cliente configurado y conserva el transporte SMTP existente. Incluye código fuente, pruebas y compilación contra la versión instalada de Keycloak.

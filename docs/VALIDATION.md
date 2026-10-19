@@ -1,5 +1,14 @@
 # Validación
 
+## Remitente de correo — 2026-10-19
+
+Se instaló un proveedor específico de correo, compilado contra Keycloak 26.3.4 y probado primero en un contenedor aislado de la misma imagen. La política superó 16 comprobaciones: selección por realm/cliente, conservación de credenciales y TLS, sobrescritura de From/Reply-To/envelope y ausencia de cambios en el mapa SMTP original. Se fijó la misma versión de imagen del despliegue para evitar actualizaciones incompatibles del SPI interno.
+
+Una cuenta temporal se registró mediante el formulario real de Deck Library con la nueva dirección local como destinataria. El mensaje llegó como **Deck Library <decklibrary@jokerlan.xyz>**, con cabecera DKIM. Se siguió el enlace real del correo, se completó la autorización y `/v1/me` confirmó la sesión comunitaria; después se revocó. Una recuperación iniciada desde el cliente integrado account-console llegó como **Keycloak <keycloack@jokerlan.xyz>**. Se comprobó que el mapa SMTP global quedó sin cambios y se eliminaron los usuarios temporales. No se enviaron mensajes a terceros ni se publicaron perfiles.
+
+La nueva dirección es un alias del buzón SMTP existente. Esta prueba confirma entrega y verificación en el servidor local; no mide recepción en proveedores externos. Cierra la comprobación pendiente de recepción/verificación de registro de la sección 0.16. La navegación física con mando sigue pendiente. El código, compilación y reversión están en [keycloak-mail](../community/keycloak-mail/README.md).
+
+
 ## Versión 0.16 — 2026-10-19
 
 Se superaron 645 pruebas, incluidas 27 de interfaz GTK. Las nuevas pruebas cubren el origen HTTPS permitido, reutilización del componente web, ausencia de instalaciones automáticas, descarte de accesos cancelados, permisos privados de sesión, identidad autenticada, revocación y limpieza de sesiones vencidas. Se comprobaron los botones del panel, cancelación con el controlador lógico y límites de la ventana de cuenta a 840×640.

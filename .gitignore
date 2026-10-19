@@ -37,3 +37,6 @@ ports.json
 
 # Public fallback catalog is intentional metadata, not private installed-port state.
 !/catalog/ports.json
+
+# Generated Keycloak provider; source and build instructions are public.
+/community/keycloak-mail/*.jar
