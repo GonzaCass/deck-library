@@ -263,6 +263,22 @@ class DeckUITests(unittest.TestCase):
         self.assertEqual(self.w.catalog_sort.get_active_id(),'recent')
         self.w.resize(840,520);self.settle();self.assertLessEqual(self.w.get_size().width,840)
 
+    def test_catalog_shows_and_searches_game_title_with_project_and_description(self):
+        from deck_library import ports
+        from gi.repository import Gtk
+        self.w.catalog_page();item=ports.clean({'repository':'author/native','name':'Native Project','game_title':'Original Game','description':'A native port of the original game.'},source='Quiver actual');self.w.catalog_apps=[item]
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):
+            self.w.catalog_search.set_text('Original Game');self.w.fill_catalog();self.settle()
+        def labels(widget):
+            if isinstance(widget,Gtk.Label):yield widget.get_text()
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from labels(child)
+        content=list(labels(self.w.catalog_rows))
+        for text in ('Original Game','Native Project','A native port of the original game.'):self.assertIn(text,content)
+        row=self.w.catalog_rows.get_children()[0];image=row.get_children()[0]
+        self.assertEqual(image.get_storage_type(),Gtk.ImageType.ICON_NAME)
+        self.w.resize(840,640);self.settle();self.assertLessEqual(self.w.get_size().width,840)
+
     def test_transfer_cancel_and_error_dismiss_are_inline(self):
         import threading
         key='test/game';self.w.update_state={'catalog':[{'name':'Game','repository':key,'installed':'v1','latest':'v2'}]};self.w.updates_page();event=threading.Event();self.w.port_jobs={key:event};self.w.start_transfer(key)

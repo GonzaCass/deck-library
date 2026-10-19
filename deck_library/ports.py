@@ -175,13 +175,16 @@ def clean(item,category='',source=''):
     repo=item.get('repository');folder=item.get('folderName') or item.get('folder') or ''
     if not valid_repository(repo):return None
     if not isinstance(folder,str) or not FOLDER.fullmatch(folder):folder=re.sub(r'[^A-Za-z0-9._-]','',repo.split('/')[1]) or 'port'
-    name=item.get('name');icon=item.get('appIconUrl');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
+    name=item.get('name');icon=item.get('appIconUrl') or item.get('icon');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
     ai=bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
     result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','rom','zelda3','wwhd') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
     for key in ('added_at','release_at','first_seen'):
         if type(item.get(key)) in (int,float) and item[key]>=0:result[key]=item[key]
     for key in ('game_title','catalog_slug'):
         if isinstance(item.get(key),str):result[key]=item[key][:160]
+    if isinstance(item.get('description'),str):result['description']=item['description'][:600]
+    fallback=item.get('icon_fallback')
+    if isinstance(fallback,str) and fallback.startswith('https://'):result['icon_fallback']=fallback
     if isinstance(item.get('supported_os'),list):result['supported_os']=[v[:30] for v in item['supported_os'][:10] if isinstance(v,str)]
     return result
 
@@ -207,9 +210,11 @@ def fetch_catalog(get=fetch_json,extra=()):
                 # GithubLauncher's categories are finer than Quiver's; its AI-assisted flag is kept.
                 if item['source']=='GithubLauncher' and item['list']:previous['list']=item['list']
 
-                for k in ('added_at','release_at','game_title','supported_os','catalog_slug'):
+                for k in ('added_at','release_at','game_title','supported_os','catalog_slug','description','icon_fallback'):
                     if item.get(k):previous[k]=item[k]
-                if item.get('source')=='Quiver actual' and item.get('icon'):previous['icon']=item['icon']
+                if item.get('source')=='Quiver actual':
+                    previous['name']=item['name']
+                    if item.get('icon'):previous['icon']=item['icon']
                 previous['ai']=previous['ai'] or item['ai'];previous['source']=', '.join(dict.fromkeys(filter(None,[*previous['source'].split(', '),item['source']])))
     failures=0
     for url in (INDEX,GHL_LIST,*extra):
@@ -242,7 +247,8 @@ def merged(apps,preferences=None):
             previous=result.get(item['repository'].lower(),{});result[item['repository'].lower()]={**previous,**{k:v for k,v in item.items() if v or k not in previous}}
     return sorted(result.values(),key=lambda i:i['name'].casefold())
 
-ICON_LIMIT=2*1024*1024
+ICON_LIMIT=12*1024*1024
+ICON_RETRY_SECONDS=3600
 
 def icon_path(store,item,get=None):
     """Cached icon or box art for a catalog entry, or '' when none is available. Network work: call off the GTK thread."""
@@ -252,47 +258,52 @@ def icon_path(store,item,get=None):
     if not url:
         platform=platform_for(item.get('list',''))
         if not platform:return ''
-        key='cover:'+platform+':'+item['name']
+        key='cover:'+platform+':'+(item.get('cover_title') or item.get('game_title') or item['name'])
     else:key=url
     base=folder/hashlib.sha256(key.encode()).hexdigest()
-    for suffix in ('.png','.jpg','.webp','.ico','.none'):
-        if (base.with_suffix(suffix)).exists():return '' if suffix=='.none' else str(base.with_suffix(suffix))
+    for suffix in ('.png','.jpg','.webp','.ico'):
+        if (base.with_suffix(suffix)).exists():return str(base.with_suffix(suffix))
+    missing=base.with_suffix('.none')
+    if missing.exists() and missing.read_bytes()==b'retry-v2' and time.time()-missing.stat().st_mtime<ICON_RETRY_SECONDS:return ''
     folder.mkdir(parents=True,exist_ok=True)
+    def save(data):
+        suffix='.png' if data.startswith(b'\x89PNG') else '.jpg' if data.startswith(b'\xff\xd8') else '.webp' if data[:4]==b'RIFF' else '.ico' if data[:4]==b'\x00\x00\x01\x00' else ''
+        if not suffix:raise ValueError('imagen no reconocida')
+        target=base.with_suffix(suffix);target.write_bytes(data);missing.unlink(missing_ok=True);return str(target)
+    for candidate in dict.fromkeys(filter(None,(url,item.get('icon_fallback')))):
+        try:return save(cover_provider.request(candidate,limit=ICON_LIMIT))
+        except (OSError,ValueError):pass
     try:
-        if url:data=cover_provider.request(url,limit=ICON_LIMIT)
-        else:
-            title=item.get('cover_title') or re.sub(r'\s*\((?:PSX|PS1|PS2|N64)(?: recompilado)?\)\s*$','',item['name'])
-            rows=cover_provider.search(title,{'artwork_provider':'automatic','_artwork_platform':platform_for(item.get('list',''))})
-            row=next((r for r in rows if cover_provider.normalized(r['title'])==cover_provider.normalized(title)),None)
-            if not row:raise ValueError('sin portada')
-            data=cover_provider.request(row['url'],limit=ICON_LIMIT)
+        platform=platform_for(item.get('list',''))
+        if not platform:raise ValueError('sin plataforma para buscar portada')
+        title=item.get('cover_title') or item.get('game_title') or re.sub(r'\s*\((?:PSX|PS1|PS2|N64)(?: recompilado)?\)\s*$','',item['name'])
+        rows=cover_provider.search(title,{'artwork_provider':'automatic','_artwork_platform':platform})
+        row=next((r for r in rows if cover_provider.normalized(r['title'])==cover_provider.normalized(title)),None)
+        if not row:raise ValueError('sin portada')
+        return save(cover_provider.request(row['url'],limit=ICON_LIMIT))
     except (OSError,ValueError):
-        base.with_suffix('.none').write_bytes(b'');return ''
-    suffix='.png' if data.startswith(b'\x89PNG') else '.jpg' if data.startswith(b'\xff\xd8') else '.webp' if data[:4]==b'RIFF' else '.ico' if data[:4]==b'\x00\x00\x01\x00' else ''
-    if not suffix:
-        base.with_suffix('.none').write_bytes(b'');return ''
-    base.with_suffix(suffix).write_bytes(data);return str(base.with_suffix(suffix))
+        missing.write_bytes(b'retry-v2');return ''
 
 def catalog(store,force=False,get=fetch_json,extra=()):
     """Cached list; a failed refresh falls back to the previous copy."""
     path=store.root/'catalog-ports.json'
     try:cached=json.loads(path.read_text())
     except (OSError,ValueError):cached={}
-    if not force and cached.get('schema')==2 and cached.get('apps') and time.time()-cached.get('time',0)<CACHE_SECONDS:return cached['apps']
+    if not force and cached.get('schema')==3 and cached.get('apps') and time.time()-cached.get('time',0)<CACHE_SECONDS:return cached['apps']
     try:apps=fetch_catalog(get,extra)
     except (OSError,ValueError,KeyError):
         if cached.get('apps'):
             cached['offline']=True;atomic_json(path,cached);return cached['apps']
         bundled=pathlib.Path(__file__).resolve().parent.parent/'catalog/ports.json'
         if bundled.is_file():
-            apps=parse_source(json.loads(bundled.read_text()),'Deck Library');atomic_json(path,{'schema':2,'time':0,'apps':apps,'offline':True});return apps
+            apps=parse_source(json.loads(bundled.read_text()),'Deck Library');atomic_json(path,{'schema':3,'time':0,'apps':apps,'offline':True});return apps
         raise
     if apps:
         seen=cached.get('first_seen',{});now=time.time()
         old={a['repository'].lower() for a in cached.get('apps',[])}
         for a in apps:
             key=a['repository'].lower();seen.setdefault(key,now if old and key not in old else 0);a['first_seen']=seen[key]
-        atomic_json(path,{'schema':2,'time':now,'apps':apps,'first_seen':seen,'last_added':len({a['repository'].lower() for a in apps}-old) if old else 0,'offline':False})
+        atomic_json(path,{'schema':3,'time':now,'apps':apps,'first_seen':seen,'last_added':len({a['repository'].lower() for a in apps}-old) if old else 0,'offline':False})
     return apps
 
 def pick_asset(assets):

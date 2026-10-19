@@ -178,7 +178,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.17.1**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.17.2**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
@@ -221,3 +221,7 @@ Deck Library’s Steam Deck layout now uses native gamepad input on both sticks,
 ### Focus and button indicators (0.17.1)
 
 The focus marker now follows every control: Play, profiles, settings, menus and dialogs. It is restored when the game view refreshes. **B / Circle** closes the current menu or dialog, returns from a game section to its overview and then returns to the library. Button badges show both Deck and PlayStation names (**A / Cross**, **B / Circle**) with contextual actions. Secondary hints adapt to compact windows; dialogs keep Select and Back visible. The marker follows logical focus, so it does not depend on the desktop theme’s button focus style.
+
+### Catalog metadata (0.17.2)
+
+The current public Quiver API supplies game titles, project names, descriptions and artwork. Catalog rows show the game title first and the port name underneath; search matches either name. Current API metadata takes priority over older lists. Portrait artwork supports larger files, falls back to project icons and exact game/platform artwork, and retries failed downloads after one hour. The catalog cache refreshes once on upgrade to load the additional metadata. Projects from independent lists may lack these fields.

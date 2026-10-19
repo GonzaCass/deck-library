@@ -1,5 +1,11 @@
 # Validación
 
+## Versión 0.17.2 — 2026-10-19
+
+Se superaron 666 pruebas, incluidas 39 de GTK. Se comprueban el nombre del juego como título del catálogo y del port como subtítulo, búsqueda por ambos nombres, descripción y diseño a 840 píxeles. Las pruebas de metadatos cubren la prioridad de la API actual sobre las listas antiguas, conservación de imágenes al normalizar el catálogo, alternativa del icono cuando falla la carátula, imágenes de más de 2 MB, reintento de errores de descarga y búsqueda de portadas por el título original.
+
+La consulta de la API pública devolvió 464 proyectos: 460 con juegos asociados y 461 con carátula. Se comprobaron descargas reales de imágenes; los proyectos de fuentes independientes pueden no disponer de esos datos. No se instalaron ni ejecutaron juegos.
+
 ## Versión 0.17.1 — 2026-10-19
 
 Se superaron 661 pruebas, incluidas 38 de GTK. Se verifican foco lógico visible en acciones de la ficha, perfiles, menús y ventanas; navegación entre controles de tamaños distintos; restauración del perfil enfocado al reconstruir una ficha; regreso por niveles con B/Círculo y cierre de popovers antes de salir del juego. Las leyendas muestran nombres de Deck y PlayStation y adaptan las acciones al contexto. Se comprobaron 1280×760 y 840×640 sin desbordar la ventana.

@@ -4,6 +4,50 @@ from deck_library import ports,originals,catalog_sources,project2099_update,proj
 from deck_library.models import Entry,Store
 
 class PortImprovements(unittest.TestCase):
+    def test_live_metadata_survives_old_lists_and_cache_normalization(self):
+        def get(url):
+            if '/release-status?' in url:return {'items':[{'slug':'native','provider':'github','repository':'author/native'}],'isDone':True}
+            if '/apps?' in url:return {'items':[{'slug':'native','projectName':'Native Port','games':[{'title':'Original Game'}],'description':'A native version.','libraryArt':{'capsule':'https://cdn.example/cover.jpg'},'artwork':'https://cdn.example/icon.png'}],'isDone':True}
+            return {'apps':[{'repository':'author/native','name':'Old project name'}]}
+        rows=ports.fetch_catalog(get);item=rows[0]
+        self.assertEqual(item['name'],'Native Port');self.assertEqual(item['game_title'],'Original Game');self.assertEqual(item['description'],'A native version.')
+        normalized=ports.clean(item)
+        self.assertEqual(normalized['icon'],'https://cdn.example/cover.jpg');self.assertEqual(normalized['icon_fallback'],'https://cdn.example/icon.png')
+        self.assertEqual(normalized['description'],'A native version.')
+
+    def test_failed_capsule_uses_the_project_icon_and_caches_it(self):
+        from deck_library import cover_provider
+        with tempfile.TemporaryDirectory() as tmp:
+            item={'name':'Native','icon':'https://cdn.example/cover','icon_fallback':'https://cdn.example/icon','list':''};png=b'\x89PNG'+b'x'*(2*1024*1024+1)
+            def request(url,**kwargs):
+                if url.endswith('/cover'):raise OSError('temporarily unavailable')
+                self.assertGreater(kwargs['limit'],len(png));return png
+            with patch.object(cover_provider,'request',side_effect=request) as download:
+                store=Store(tmp);path=ports.icon_path(store,item);self.assertEqual(pathlib.Path(path).read_bytes(),png)
+                self.assertEqual(ports.icon_path(store,item),path);self.assertEqual(download.call_count,2)
+
+    def test_failed_images_are_retried_after_the_backoff(self):
+        from deck_library import cover_provider
+        with tempfile.TemporaryDirectory() as tmp:
+            store=Store(tmp);item={'name':'Native','icon':'https://cdn.example/cover','list':''}
+            with patch.object(cover_provider,'request',side_effect=OSError('offline')) as download:
+                self.assertEqual(ports.icon_path(store,item),'');self.assertEqual(ports.icon_path(store,item),'');self.assertEqual(download.call_count,1)
+            marker=next((store.root/'catalog-icons').glob('*.none'))
+            import os,time
+            expired=time.time()-ports.ICON_RETRY_SECONDS-1;os.utime(marker,(expired,expired))
+            with patch.object(cover_provider,'request',return_value=b'\x89PNGimage') as download:
+                path=ports.icon_path(store,item);self.assertTrue(path);self.assertEqual(download.call_count,1)
+            self.assertFalse(marker.exists())
+            pathlib.Path(path).unlink();marker.write_bytes(b'')
+            with patch.object(cover_provider,'request',return_value=b'\x89PNGimage') as download:
+                self.assertTrue(ports.icon_path(store,item));self.assertEqual(download.call_count,1)
+
+    def test_missing_artwork_search_uses_the_original_game_title(self):
+        from deck_library import cover_provider
+        with tempfile.TemporaryDirectory() as tmp,patch.object(cover_provider,'search',return_value=[{'title':'Original Game','url':'https://cdn.example/cover'}]) as search,patch.object(cover_provider,'request',return_value=b'\x89PNGimage'):
+            self.assertTrue(ports.icon_path(Store(tmp),{'name':'Obscure Project','game_title':'Original Game','list':'Nintendo 64'}))
+            self.assertEqual(search.call_args.args[0],'Original Game')
+
     def test_current_catalog_uses_pagination_dates_and_release_repository(self):
         def get(url):
             if '/release-status?' in url:return {'items':[{'slug':'one','provider':'github','repository':'author/game'}],'isDone':True}

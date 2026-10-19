@@ -6,7 +6,8 @@ from gi.repository import Gtk,GLib,GdkPixbuf,Pango
 from . import ports
 from .installations import save_settings
 
-ICON_SIZE=56
+ART_WIDTH=88
+ART_HEIGHT=132
 
 class CatalogMixin:
     def catalog_page(self):
@@ -60,12 +61,12 @@ class CatalogMixin:
             if name not in known:self.catalog_category.append(name,name)
         self.reset_page(self.catalog_rows);text=self.catalog_search.get_text().casefold().strip();category=self.catalog_category.get_active_id() or '';source=self.catalog_source.get_active_id() or ''
         installed=ports.records(self.store);updates={u['repository'] for u in (getattr(self,'update_state',None) or {}).get('catalog') or []}
-        matches=[a for a in everything if text in (a['name']+' '+a['repository']).casefold() and (not category or a['list']==category) and (not source or source in a['source'])]
+        matches=[a for a in everything if text in (' '.join((a['name'],a.get('game_title',''),a['repository']))).casefold() and (not category or a['list']==category) and (not source or source in a['source'])]
         order=self.catalog_sort.get_active_id() or 'recent'
         if self.preferences.get('catalog_sort')!=order:self.preferences['catalog_sort']=order;save_settings(self.preferences,self.store)
         if order=='installed':matches=[a for a in matches if self.catalog_installation(a,installed)]
         if order=='new':matches=[a for a in matches if 0<time.time()-(a.get('added_at') or a.get('first_seen') or 0)<30*86400]
-        matches.sort(key=lambda a:(-(a.get('added_at') or a.get('first_seen') or 0) if order in ('recent','new') else -(a.get('release_at') or 0) if order=='release' else 0,a['name'].casefold()))
+        matches.sort(key=lambda a:(-(a.get('added_at') or a.get('first_seen') or 0) if order in ('recent','new') else -(a.get('release_at') or 0) if order=='release' else 0,(a.get('game_title') or a['name']).casefold(),a['name'].casefold()))
         self.catalog_status.set_text(f'{len(matches)} de {len(everything)} ports'+(' · se muestran los primeros 60' if len(matches)>60 else ''))
         try:
             snapshot=json.loads((self.store.root/'catalog-ports.json').read_text());stamp=snapshot.get('time',0)
@@ -73,8 +74,12 @@ class CatalogMixin:
         except (OSError,ValueError):pass
         self.catalog_generation=getattr(self,'catalog_generation',0)+1;generation=self.catalog_generation;images=[];kits=[]
         for item in matches[:60]:
-            row=Gtk.Box(spacing=14);row.get_style_context().add_class('card');image=Gtk.Image();image.set_size_request(ICON_SIZE,ICON_SIZE);image.set_valign(Gtk.Align.START);row.pack_start(image,False,False,0);images.append((item,image))
-            texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);texts.pack_start(label(item['name'],'title'),False,False,0);record=installed.get(item['repository']) or self.catalog_installation(item,installed)
+            row=Gtk.Box(spacing=14);row.get_style_context().add_class('card');image=Gtk.Image.new_from_icon_name('applications-games-symbolic',Gtk.IconSize.DIALOG);image.set_size_request(ART_WIDTH,ART_HEIGHT);image.set_valign(Gtk.Align.START);row.pack_start(image,False,False,0);images.append((item,image))
+            title=item.get('game_title') or item['name'];image.get_accessible().set_name('Carátula de '+title)
+            texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);texts.pack_start(label(title,'title'),False,False,0);record=installed.get(item['repository']) or self.catalog_installation(item,installed)
+            if title.casefold()!=item['name'].casefold():texts.pack_start(label(item['name'],'subtitle'),False,False,0)
+            if item.get('description'):
+                description=label(item['description'],'status');description.set_lines(3);description.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(description,False,False,0)
             tags=[t for t in (item['list'],item['source'],'Asistido por IA' if item['ai'] else '') if t]
             texts.pack_start(label(item['repository']+(' · instalado '+record['tag'] if record else ''),'muted'),False,False,0)
             when=item.get('added_at') or item.get('first_seen') or 0
@@ -142,7 +147,7 @@ class CatalogMixin:
 
     def show_icon(self,image,path,generation):
         if generation!=self.catalog_generation:return False
-        try:image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path,ICON_SIZE,ICON_SIZE,True))
+        try:image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path,ART_WIDTH,ART_HEIGHT,True))
         except GLib.Error:pass
         return False
 
