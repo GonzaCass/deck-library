@@ -76,6 +76,7 @@ class ShellMixin:
         self.view_picker=Gtk.ComboBoxText()
         for key,title in [('covers','Carátulas'),('list','Lista'),('platforms','Por plataforma')]:self.view_picker.append(key,title)
         self.view_picker.set_active_id(self.view);self.view_picker.connect('changed',self.change_view);filters.pack_end(self.view_picker,False,False,0);self.select_button=button('Seleccionar',lambda _:self.toggle_selection());filters.pack_end(self.select_button,False,False,0);page.pack_start(filters,False,False,0)
+        self.originals_bar=Gtk.Box(spacing=10);self.originals_bar.set_no_show_all(True);self.originals_label=label('','muted');self.originals_bar.pack_start(self.originals_label,True,True,0);self.originals_bar.pack_end(button('Revisar originales',lambda _:self.originals_dialog()),False,False,0);page.pack_start(self.originals_bar,False,False,0)
         self.library_stack=Gtk.Stack();self.library_stack.set_vexpand(True);page.pack_start(self.library_stack,True,True,0)
         self.list=Gtk.ListBox();self.list.set_selection_mode(Gtk.SelectionMode.NONE);self.list.connect('row-activated',lambda _,row:self.select_game(row.entry) if hasattr(row,'entry') else None)
         self.covers=self.poster_grid();self.platform_groups=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=20)
@@ -93,12 +94,17 @@ class ShellMixin:
     def apply_motion(self):
         enabled=self.preferences.get('animations',True);Gtk.Settings.get_default().set_property('gtk-enable-animations',enabled)
         for stack in (self.library_stack,self.wizard_box):stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if enabled else Gtk.StackTransitionType.NONE);stack.set_transition_duration(150 if enabled else 0)
-    def shown_entries(self):return visible_entries(self.entries,prefer_ports=False)
+    def shown_entries(self):return visible_entries([e for e in self.entries if e.id not in self.preferences.get('hidden_originals',[])],prefer_ports=False)
     def visible(self):
         text=self.search.get_text().casefold();entries,_=self.shown_entries()
         return sorted([e for e in entries if text in (e.name+' '+e.platform).casefold() and (self.platform_filter=='all' or self.platform_filter==e.platform) and (self.type_filter=='all' or self.type_filter==entry_type(e))],key=lambda e:e.name.casefold())
     def render(self):
         self.library_dirty=False
+        from .originals import pairs
+        originals=[(o,p) for o,p in pairs(self.entries) if o.id not in self.preferences.get('hidden_originals',[])]
+        if originals:
+            self.originals_label.set_text(str(len(originals))+' originales con un port instalado.');self.originals_bar.set_no_show_all(False);self.originals_bar.show_all();self.originals_bar.set_no_show_all(True)
+        else:self.originals_bar.hide()
         from .gui import label,Poster
         self.reset_page(self.list);self.reset_page(self.covers);self.reset_page(self.platform_groups);self.new_tiles=[];entries=self.visible();total=len(self.shown_entries()[0]);self.library_count.set_text(str(total)+' juegos'+(' · '+str(len(entries))+' visibles' if len(entries)!=total else ''))
         groups={}
@@ -149,7 +155,7 @@ class ShellMixin:
         from .gui import label,button
         self.reset_page(self.settings_box);self.settings_box.pack_start(label('Ajustes','hero'),False,False,0)
         from .ui_components import ActionButton
-        for title,description,caption,icon,action in [('Instalaciones y carpetas','Emuladores y carpetas de juegos.','Elegir carpetas','folder',lambda _:self.installation_dialog()),('Carátulas y apariencia','Proveedor de imágenes y animaciones.','Configurar','image',lambda _:self.appearance_dialog()),('Revisar biblioteca','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam),('Configuración inicial','Volver a detectar instalaciones.','Iniciar asistente','plus',lambda _:self.start_wizard())]:
+        for title,description,caption,icon,action in [('Instalaciones y carpetas','Emuladores y carpetas de juegos.','Elegir carpetas','folder',lambda _:self.installation_dialog()),('Carátulas y apariencia','Proveedor de imágenes y animaciones.','Configurar','image',lambda _:self.appearance_dialog()),('Originales y ports','Ocultar o quitar originales que ya tienen un port instalado.','Administrar originales','folder',lambda _:self.originals_dialog()),('Revisar biblioteca','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam),('Configuración inicial','Volver a detectar instalaciones.','Iniciar asistente','plus',lambda _:self.start_wizard())]:
             row=Gtk.Box(spacing=16);row.get_style_context().add_class('settings-row');texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.pack_start(label(title,'title'),False,False,0);texts.pack_start(label(description,'muted'),False,False,0);row.pack_start(texts,True,True,0);row.pack_end(ActionButton(caption,icon,action,'steam' if icon=='steam' else 'quiet'),False,False,0);self.settings_box.pack_start(row,False,False,0)
             if icon=='steam':self.settings_box.pack_start(label('Si Steam está abierto, el acceso se guarda al cerrarlo. Después buscá «Deck Library» en su biblioteca y pulsá Jugar.','meta'),False,False,0)
         self.settings_box.show_all();self.pages.set_visible_child_name('settings')

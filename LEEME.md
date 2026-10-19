@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.14.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.15.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -111,7 +111,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.14.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.15.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
@@ -180,3 +180,15 @@ La ficha del juego se reemplazó por una vista con carátula, acción principal 
 - **Comunidad → Mi cuenta** permite crear una cuenta o iniciar sesión en el navegador. No necesitás GitHub. Para compartir: **Compartir mis ajustes → Revisar mis ajustes → Publicar perfil**. El aporte queda pendiente de revisión. Las estrellas y los comentarios requieren sesión.
 - En modo Juego: cruceta o stick para navegar, A para activar, B para volver y LB/RB para cambiar de sección. Trackpad derecho y R2 conservan puntero/clic. **Steam + X** abre el teclado. El soporte nativo de mandos usa SDL2, incluido en SteamOS.
 - Se conserva la biblioteca al cambiar de pestaña para evitar reconstruir todas las carátulas.
+
+## Ports y originales (0.15)
+
+El catálogo consulta la API actual de Quiver, las listas de GithubLauncher y una lista independiente de ports. Incluye un índice propio de respaldo para poder consultarlo sin conexión. **Nuevos primero** usa la fecha real de incorporación cuando la fuente la publica; **Últimas versiones** ordena por fecha de release. Se muestra cuándo se actualizaron los datos. Una fecha desconocida no se inventa.
+
+Un port detectado desde otra instalación aparece como instalado. Si hay otra variante del mismo juego, se identifica como alternativa y pide confirmar antes de instalarla. Las descargas permiten **Cancelar**; una tarea terminada o fallida se puede **Descartar** desde su fila. Un error de descarga no abre un diálogo que bloquee la app.
+
+**Revisar originales**, sobre la biblioteca, o **Ajustes → Originales y ports** muestra los juegos que tienen port instalado. **Ocultar original** conserva sus archivos y tiene una acción para volver a mostrarlo. **Enviar a la papelera** muestra los archivos y requiere confirmación; se bloquea si otro acceso usa alguno. Los discos originales pueden hacer falta para reconstruir un port al actualizarlo.
+
+**Actualizaciones → Project-2099 → Actualizar** localiza la copia de Xbox 360 disponible o permite elegirla; verifica el SHA-256 del instalador y del paquete, instala en una carpeta temporal y conserva la versión anterior completa. Se preserva UserData. Beta 5 cambia de motor: los mods y ajustes gráficos antiguos quedan en el respaldo. Se mantiene el Proton elegido en el acceso del juego; el instalador utiliza su entorno de instalación. La actualización no abre el juego. También se incluye en la cola al habilitar actualizaciones automáticas de ports.
+
+Los perfiles incluidos y probados aparecen entre los principales con **✓ Comprobado · usuario**. Una prueba de arranque se distingue con **✓ Comprobado · arranque**; no implica validación de rendimiento. Las propuestas nuevas conservan ese estado y los perfiles propios aparecen en las opciones adicionales. Las carátulas llenan el espacio vertical, recortando el excedente si tienen otra proporción.

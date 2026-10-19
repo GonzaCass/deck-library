@@ -62,8 +62,8 @@ class PresetTests(unittest.TestCase):
         value=presets.recommended(entry,self.store)[0];value['id']='community-other'
         path=self.root/'import.json';path.write_text(json.dumps(value));presets.import_preset(path,self.store)
         values=presets.recommended(entry,self.store)
-        self.assertEqual(values[0]['id'],value['id']);self.assertEqual(values[0]['settings'],value['settings'])
-        self.assertTrue(any(v['name'].endswith('Calidad') for v in values))
+        self.assertEqual(values[-1]['id'],value['id']);self.assertEqual(values[-1]['settings'],value['settings'])
+        self.assertTrue(any(v['name'].endswith('Calidad') for v in values[:3]))
     def test_switch_base_requires_title_id_and_eden_and_resolves_filename_ids(self):
         for entry in (Entry('Unknown',['/bin/true'],platform='Switch',source=str(self.root/'Unknown.nsp')),Entry('Other',['/bin/true'],platform='Linux',game_id='0100ABCDEF120000'),Entry('Other',['/bin/true'],platform='Switch',game_id='0100ABCDEF120000',metadata={'adapter':'dolphin'})):
             self.assertEqual(presets.recommended(entry,self.store),[])

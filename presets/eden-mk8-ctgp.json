@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "eden-mk8-ctgp",
-  "name": "Mario Kart 8 Deluxe — 1× y CTGP",
+  "name": "Mario Kart 8 Deluxe — Equilibrado",
   "game": {
     "id": "0100152000022000",
     "name": "Mario Kart 8 Deluxe",
@@ -22,8 +22,8 @@
   "license": "MIT",
   "tested": {
     "status": "boot-tested",
-    "date": "2026-10-01",
-    "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+    "date": "2026-10-19",
+    "notes": "Se comprobó el arranque de CTGP Deluxe en Eden. La validación de este acceso en modo Juego sigue pendiente."
   },
   "settings": {
     "Core": {

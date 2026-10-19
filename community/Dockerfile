@@ -5,6 +5,7 @@ WORKDIR /app
 COPY deck_library /app/deck_library
 COPY community /app/community
 COPY presets /app/presets
+COPY catalog /app/catalog
 USER community
 EXPOSE 8080
 HEALTHCHECK --interval=30s --timeout=3s CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health',timeout=2)"

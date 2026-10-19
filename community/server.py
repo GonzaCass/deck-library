@@ -50,8 +50,8 @@ class API:
         platforms={'eden':'Switch','wiicompiled':'WiiCompiled','prism':'Minecraft','dolphin':'Wii','duckstation':'PlayStation','project2099':'Windows'}
         if adapter not in platforms or not re.fullmatch(r'[A-Za-z0-9._-]{1,80}',game):return
         with self.db() as db:
-            if db.execute("SELECT 1 FROM presets WHERE game=? AND adapter=? AND uid='builtin'",(game.lower(),adapter)).fetchone():return
-        self.rate('seed:'+remote,30,3600)
+            known=db.execute("SELECT 1 FROM presets WHERE game=? AND adapter=? AND uid='builtin'",(game.lower(),adapter)).fetchone()
+        if not known:self.rate('seed:'+remote,30,3600)
         entry=Entry(game,['unused'],platform=platforms[adapter],game_id=game,metadata={'adapter':adapter})
         if presets.public_game_id(entry).lower()!=game.lower():return
         catalog_store=Store(pathlib.Path(self.path).parent/'catalog')
@@ -59,7 +59,7 @@ class API:
         with self.db() as db:
             for value in values:
                 identifier=digest('builtin:'+value['id'])[:32]
-                db.execute("INSERT OR IGNORE INTO presets VALUES(?,?,?,?,?,?,?,?)",(identifier,'builtin',value['author'],game.lower(),adapter,json.dumps(value,ensure_ascii=False),'approved',time.time()))
+                db.execute("INSERT INTO presets VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body,login=excluded.login WHERE presets.uid='builtin' AND presets.body!=excluded.body",(identifier,'builtin',value['author'],game.lower(),adapter,json.dumps(value,ensure_ascii=False),'approved',time.time()))
     def handle(self,method,path,query,body,token='',remote='local'):
         now=time.time()
         if method=='GET' and path=='/health':return {'ok':True,'schema_version':1,'login_available':bool(self.client_id or self.oidc)}

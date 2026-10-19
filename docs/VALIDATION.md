@@ -1,5 +1,14 @@
 # Validación
 
+## Versión 0.15 — 2026-10-19
+
+Se superaron 636 pruebas, incluidas 24 de interfaz GTK. Se comprobaron el catálogo vivo (503 repositorios combinados; 453 con fecha de incorporación de Quiver), su paginación y una fuente independiente. El índice incluido es una copia de metadatos públicos, sin juegos ni instaladores. La revisión local encontró seis parejas de original/port y detectó que CTR Turbocharged ya está instalado. Los tests cubren esas asociaciones, pistas CUE compartidas y referencias externas, ocultación, cancelación, limpieza del estado de errores, orden de fechas, perfiles propios después de los principales y carátulas sin bandas.
+
+El actualizador de Project-2099 se ejercitó con un instalador simulado: instalación en un destino temporal, verificación de paquete, conservación de UserData, respaldo de la versión anterior y fallo sin reemplazar el juego. Se verificaron los assets oficiales de Beta 5 y la presencia del modo automático en el instalador. Se detectaron los datos Xbox 360 de la instalación local como fuente reutilizable. No se actualizó ni se abrió el juego; la instalación real completa de Beta 5 y su jugabilidad en la Deck siguen pendientes.
+
+Los perfiles verificados identifican el nivel real de prueba: Mario Kart Wii y Smash, confirmación del usuario; Mario Kart 8, arranque comprobado y modo Juego pendiente; Project-2099, configuración actual del motor Beta 4.1 probada con Proton 9 y FPS variables. Las propuestas nuevas y la compatibilidad con Beta 5 no se presentan como comprobadas.
+
+
 ## Versión 0.14 — 2026-10-19
 
 Se superaron 621 pruebas, incluidas 20 de GTK. Cubren autorización de cuenta propia con proveedor simulado, migración de SQLite conservando sesiones, estrellas reales y un voto editable por usuario, restricciones de los endpoints de autenticación, perfiles por Title ID, ETA medida, invalidación de actualizaciones completadas, repetición del mando, navegación sin reconstruir carátulas y límites de la ventana comunitaria. Las capturas públicas a 1280×800 contienen juegos e imágenes ficticios.

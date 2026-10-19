@@ -250,3 +250,40 @@ class DeckUITests(unittest.TestCase):
         with patch.object(Client,'search',return_value=[]),patch.object(Gtk.Dialog,'run',run):self.w.community_dialog(self.w.entries[0],mode='publish')
         self.assertLessEqual(sizes[0].width,1232);self.assertLessEqual(sizes[0].height,696)
         self.assertIn('Revisar mis ajustes',labels);self.assertIn('Publicar perfil',labels)
+
+    def test_catalog_recent_order_and_existing_ctr_alternative(self):
+        from deck_library import ports
+        from deck_library.models import Entry
+        self.w.catalog_page();self.w.entries.append(Entry('Crash Team Racing: Turbocharged',['/bin/true']))
+        old=ports.clean({'repository':'test/old','name':'Old'},source='Quiver actual');old['added_at']=100
+        recent=ports.clean({'repository':'CTR-tools/ctr-native','name':'CTR Native'},source='Quiver actual');recent.update(added_at=200,game_title='Crash Team Racing')
+        self.w.catalog_apps=[old,recent]
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog()
+        record=self.w.catalog_installation(recent);self.assertTrue(record['alternative']);self.assertEqual(record['entry'].name,'Crash Team Racing: Turbocharged')
+        self.assertEqual(self.w.catalog_sort.get_active_id(),'recent')
+        self.w.resize(840,520);self.settle();self.assertLessEqual(self.w.get_size().width,840)
+
+    def test_transfer_cancel_and_error_dismiss_are_inline(self):
+        import threading
+        key='test/game';self.w.update_state={'catalog':[{'name':'Game','repository':key,'installed':'v1','latest':'v2'}]};self.w.updates_page();event=threading.Event();self.w.port_jobs={key:event};self.w.start_transfer(key)
+        box,_,_=self.w.transfer_views[key][0];self.assertEqual(box.transfer_control.get_label(),'Cancelar');box.transfer_control.clicked();self.assertTrue(event.is_set())
+        self.w.port_jobs.pop(key);self.w.finish_transfer(key,'No hay archivo Linux');self.assertEqual(box.transfer_control.get_label(),'Descartar');box.transfer_control.clicked();self.assertFalse(box.get_visible())
+
+    def test_project2099_update_is_actionable(self):
+        self.w.update_state={'project2099':{'name':'Project-2099','repository':'GenryTheFox0/Project-2099','installed':'v4','latest':'v5','notes':''}}
+        self.w.updates_page()
+        from gi.repository import Gtk
+        def controls(widget):
+            if isinstance(widget,Gtk.Button):yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from controls(child)
+        action=next(b for b in controls(self.w.updates_box) if b.get_label()=='Actualizar')
+        with patch.object(self.w,'update_project2099') as update:action.clicked();update.assert_called_once()
+
+    def test_portrait_canvas_has_no_side_bands(self):
+        import cairo
+        from unittest.mock import Mock
+        from gi.repository import GdkPixbuf
+        poster=self.gui.Poster(self.w.entries[0],'');poster.pixbuf=GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB,False,8,200,100);poster.pixbuf.fill(0xff0000ff)
+        surface=cairo.ImageSurface(cairo.FORMAT_ARGB32,160,240);poster.draw_poster(Mock(get_allocated_width=lambda:160,get_allocated_height=lambda:240),cairo.Context(surface));surface.flush()
+        self.assertEqual(bytes(surface.get_data()[:4]),b'\x00\x00\xff\xff')

@@ -92,6 +92,9 @@ class GameMixin:
                 ('Importar ajustes de un archivo', 'download', lambda: self.import_game_profile(entry)),
                 ('Exportar mis ajustes', 'upload', lambda: self.export_game_profile(entry)),
             ])
+        from .originals import pairs
+        if any(entry.id==o.id or any(entry.id==p.id for p in ports) for o,ports in pairs(self.entries)):
+            rows.append(('Administrar original y port','folder',lambda:self.originals_dialog(entry)))
         rows.extend([
             ('Cambiar carátula', 'image', lambda: self.artwork_dialog(entry)),
             ('Archivos y acceso de Steam', 'folder', lambda: self.open_game_section('files')),
@@ -172,6 +175,12 @@ class GameMixin:
         self.detail.set_border_width(12 if compact else 20)
         style=self.game_header.get_style_context()
         style.add_class('compact') if compact else style.remove_class('compact')
+        self.game_header.queue_resize();self.detail.queue_resize()
+        GLib.idle_add(self.reflow_game)
+
+    def reflow_game(self):
+        if not self.ui_closed:self.detail.check_resize()
+        return False
 
     def game_steam_pending(self, entry):
         try:
@@ -274,8 +283,8 @@ class GameMixin:
         values = display.highlights(profile)
         summary = ' · '.join(value for _,value in values)
         body.pack_start(text(summary or profile['author'], 'profile-spec', 40), False, False, 0)
-        state = 'Tu favorito' if favourite else display.TEST_STATES[profile['tested']['status']]
-        body.pack_start(text(state, 'meta', 40), False, False, 0)
+        state = display.TEST_STATES[profile['tested']['status']]+(' · Favorito' if favourite else '')
+        body.pack_start(text(state, 'good' if profile['tested']['status']!='proposal' else 'meta', 40), False, False, 0)
         card.rating_label=text('★ Sin valoraciones','rating',40)
         body.pack_start(card.rating_label,False,False,0)
         card.add(body)
@@ -383,7 +392,7 @@ class GameMixin:
             if len(profiles)>3:
                 extra = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
                 for profile in profiles[3:]:extra.pack_start(self.profile_card(profile,choose,profile['id']==best),False,False,0)
-                content.pack_start(Reveal('Más perfiles ('+str(len(profiles)-3)+')',extra),False,False,0)
+                content.pack_start(Reveal('Personalizados y otras opciones ('+str(len(profiles)-3)+')',extra),False,False,0)
             content.pack_start(self.profile_feedback,False,False,0)
             content.pack_start(self.profile_disclosure,False,False,0)
             selected = self.profile_choice.get(entry.id,best)

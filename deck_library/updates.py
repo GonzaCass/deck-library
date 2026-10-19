@@ -85,9 +85,10 @@ def check_quiver(preferences=None,get=fetch_json,home=None):
 def check_project2099(entries,get=fetch_json):
     from .project2099 import VERSION
     if not any(e.metadata.get('adapter')=='project2099' for e in entries):return None
+    current=next((e.metadata.get('build') for e in entries if e.metadata.get('adapter')=='project2099' and e.metadata.get('build') not in (None,'unknown')),VERSION)
     release=latest_release(PROJECT2099_REPO,get)
-    if release and release.get('tag_name','').lstrip('v')!=VERSION and is_newer(release['tag_name'],VERSION):
-        return {'name':'Project-2099','installed':VERSION,'latest':release['tag_name'].lstrip('v'),'page':release.get('html_url',''),'repository':PROJECT2099_REPO,'notes':(release.get('body') or '')[:8000]}
+    if release and release.get('tag_name','').lstrip('v')!=current and is_newer(release['tag_name'],current):
+        return {'name':'Project-2099','installed':current,'latest':release['tag_name'].lstrip('v'),'page':release.get('html_url',''),'repository':PROJECT2099_REPO,'notes':(release.get('body') or '')[:8000]}
     return None
 
 def refresh_presets(preferences,store):

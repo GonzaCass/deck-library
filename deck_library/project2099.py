@@ -74,6 +74,9 @@ def proton_env(store=None,preferred=None):
 def entry_for(folder,build=None):
     folder=pathlib.Path(folder);exe=folder/'SpiderManEOT.exe'
     if build is None:
+        try:build=json.loads((folder/'deck-library-project2099.json').read_text())['version']
+        except (OSError,ValueError,KeyError):pass
+    if build is None:
         try:
             receipt=json.loads((folder/'Support/Install/INSTALL_RECEIPT.json').read_text())
             build=VERSION if 'BETA 4.1' in receipt.get('PortBuild','') else 'unknown'
@@ -85,7 +88,7 @@ def discover(home,preferences):
     for root in dict.fromkeys(roots):
         if root.is_dir():
             for folder in root.iterdir():
-                if folder.is_dir() and all((folder/n).is_file() for n in ('SpiderManEOT.exe','rexruntime.dll','spider_man_edge_of_time.toml')):
+                if folder.is_dir() and all((folder/n).is_file() for n in ('SpiderManEOT.exe','rexruntime.dll')) and ((folder/'spider_man_edge_of_time.toml').is_file() or (folder/'deck-library-project2099.json').is_file()):
                     result.append(entry_for(folder))
     return result
 
@@ -132,7 +135,7 @@ def prepare(source,destination,store=None,progress=print):
         with log.open('w') as out:result=subprocess.run(command,env=proton_env(store),stdout=out,stderr=subprocess.STDOUT)
         if result.returncode or not (destination/'SpiderManEOT.exe').is_file():
             raise RuntimeError('El instalador rechazó el origen o no terminó. Registro: '+str(log)+'\n'+log.read_text(errors='replace')[-2500:])
-    entry=entry_for(destination,VERSION)
+    entry=entry_for(destination,VERSION);entry.metadata['original_source']=str(source)
     from . import presets
     profile=next(p for p in presets.catalog(store) if p['id']=='project2099-deck-720p60')
     presets.apply(entry,profile,store);store.merge([entry]);progress('Instalación completa');return entry

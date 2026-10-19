@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "id": "wiicompiled-rmcp01-sharp",
-  "name": "Mario Kart Wii — nitidez 1.5×",
+  "name": "Mario Kart Wii — Calidad",
   "game": {
     "id": "RMCP01",
     "name": "Mario Kart Wii",
@@ -22,8 +22,8 @@
   "license": "MIT",
   "tested": {
     "status": "user-confirmed",
-    "date": "2026-10-01",
-    "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+    "date": "2026-10-19",
+    "notes": "El usuario confirmó imagen nítida y funcionamiento excelente en su Steam Deck OLED. No garantiza el mismo resultado en otros equipos."
   },
   "settings": {
     "video": {

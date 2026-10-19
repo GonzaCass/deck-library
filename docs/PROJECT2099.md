@@ -53,3 +53,9 @@ El usuario corrigió la lectura del ensayo single_queue a 40–50 FPS; no se acr
 Proton 8.0-5d se instaló desde Steam y falló al arrancar: KERNEL32.dll.CopyFile2 no implementada, salida 1. No hubo prueba de FPS. Se descartó esta versión y se restauró Proton 9 sin single_queue, conservando gráficos y partidas.
 
 Steam en modo Juego había elegido controller_neptune_webbrowser.vdf y registraba mapping uses xinput: false. Con Steam cerrado se respaldó configset_controller_neptune.vdf y se fijó controller_neptune_gamepad_joystick.vdf para este acceso (nombre normalizado y AppID firmado/sin signo), sin editar otros perfiles. Se desactivó show_fps_counter y input_auto_device_switching, manteniendo XInput, mnk_mode=false y fullscreen. Se conservaron los gráficos ajustados por el usuario (FSR3 Performance y objetivo 75). No se abrió el juego; validación del mando después del reinicio pendiente. La demora de arranque reportada no tiene causa confirmada; no se borraron cachés.
+
+## Actualización desde Deck Library (0.15)
+
+El botón Actualizar verifica los assets oficiales de la versión, conserva la instalación anterior hasta que termine la nueva y guarda un respaldo completo antes de reemplazarla. Requiere la copia propia de Xbox 360; se busca en las rutas conocidas y, si falta, se puede elegir. Se conservan las partidas en UserData. Beta 5 cambia de motor y sus mods y opciones gráficas pueden ser incompatibles con Beta 4.1: los archivos anteriores se conservan en el respaldo, no se mezclan con el motor nuevo. Los argumentos del acceso de Steam y el Proton elegido siguen vigentes. El juego no se abre al terminar.
+
+Referencia: [release Beta 5](https://github.com/GenryTheFox0/Project-2099/releases/tag/v2.0.0-beta.5), [instalador oficial](https://github.com/GenryTheFox0/Project-2099/blob/v2.0.0-beta.5/src/Program.cs). La prueba de juego de Beta 5 en Steam Deck está pendiente.

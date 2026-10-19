@@ -105,7 +105,9 @@ def catalog(store=None):
         for path in sorted(folder.glob('*.json')):
             try:
                 if path.stat().st_size>128*1024:continue
-                value=validate(json.loads(path.read_text()));by_id[value['id']]=value
+                value=validate(json.loads(path.read_text()));previous=by_id.get(value['id'])
+                if previous and previous['settings']==value['settings'] and previous['game']==value['game']:value={**value,'name':previous['name'],'tested':previous['tested']}
+                by_id[value['id']]=value
             except (OSError,ValueError,TypeError,KeyError):continue
     return list(by_id.values())
 
@@ -115,7 +117,13 @@ def recommended(entry,store=None):
     """Prefer title-specific profiles; bind the Switch base to a real Title ID only."""
     values=catalog(store)
     matches=[value for value in values if compatible(entry,value)]
-    if entry.platform!='Switch' or adapter_for(entry)!='eden':return matches
+    folder=pathlib.Path(__file__).resolve().parent.parent/'presets'
+    def official(value):
+        try:return json.loads((folder/(value['id']+'.json')).read_text())['settings']==value['settings']
+        except (OSError,ValueError,KeyError):return False
+    official_matches=sorted([v for v in matches if official(v)],key=lambda v:(v['tested']['status']!='user-confirmed',v['tested']['status']!='boot-tested'))
+    custom=[v for v in matches if not official(v)]
+    if entry.platform!='Switch' or adapter_for(entry)!='eden':return [*official_matches,*custom]
     tid=public_game_id(entry)
     if not re.fullmatch(r'010[0-9A-Fa-f]{13}',tid):return []
     profiles=[]
@@ -127,10 +135,10 @@ def recommended(entry,store=None):
         value['game']={'id':tid.upper(),'name':entry.name,'platform':'Switch'}
         if template_id=='eden-switch-performance':value['settings']['Renderer']['resolution_setup']=2
         profiles.append(validate(value))
-    if matches:
-        balanced=copy.deepcopy(matches[0]);balanced['name']=entry.name+' — Equilibrado'
-        profiles=[balanced,*[p for p in profiles if not p['id'].endswith('-default')],*matches[1:]]
-    return profiles
+    if official_matches:
+        balanced=copy.deepcopy(official_matches[0]);balanced['name']=entry.name+' — Equilibrado'
+        profiles=[balanced,*[p for p in profiles if not p['id'].endswith('-default')],*official_matches[1:]]
+    return [*profiles,*custom]
 
 def mark_best(entry,value,store=None):
     if not compatible(entry,value):raise ValueError('El preset no corresponde a este juego o programa.')

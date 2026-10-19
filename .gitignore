@@ -34,3 +34,6 @@ updates.json
 ports.json
 *.db
 *.db-*
+
+# Public fallback catalog is intentional metadata, not private installed-port state.
+!/catalog/ports.json

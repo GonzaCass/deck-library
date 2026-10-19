@@ -3,8 +3,8 @@ from . import presets
 
 TEST_STATES = {
     'proposal': 'Sin probar en este juego',
-    'boot-tested': 'Arranque comprobado',
-    'user-confirmed': 'Probado por un usuario',
+    'boot-tested': '✓ Comprobado · arranque',
+    'user-confirmed': '✓ Comprobado · usuario',
 }
 
 
@@ -17,6 +17,10 @@ def title(profile):
 
 def intent(profile):
     ident = profile['id']
+    mode=title(profile).casefold()
+    if mode=='calidad':return 'monitor',profile['objective']
+    if mode=='rendimiento':return 'speed',profile['objective']
+    if mode=='equilibrado':return 'sliders',profile['objective']
     if ident.endswith('-performance'):
         return 'speed', 'Compilación en segundo plano para reducir pausas.'
     if ident.endswith('-quality'):

@@ -13,7 +13,7 @@ from .presets import ps1_serial
 INDEX='https://raw.githubusercontent.com/tgeorgiadis/quiver-community-app-catalog/main/index.json'
 GHL_LIST='https://raw.githubusercontent.com/SirDiabo/GHLAppList/main/apps.json'
 SOURCE_NAMES={INDEX:'Quiver',GHL_LIST:'GithubLauncher'}
-CACHE_SECONDS=24*3600
+CACHE_SECONDS=6*3600
 MAX_DOWNLOAD=2*1024**3
 REPOSITORY=re.compile(r'[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}')
 FOLDER=re.compile(r'[A-Za-z0-9][A-Za-z0-9 ._()-]{0,79}')
@@ -177,7 +177,13 @@ def clean(item,category='',source=''):
     if not isinstance(folder,str) or not FOLDER.fullmatch(folder):folder=re.sub(r'[^A-Za-z0-9._-]','',repo.split('/')[1]) or 'port'
     name=item.get('name');icon=item.get('appIconUrl');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
     ai=bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
-    return {'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','rom','zelda3','wwhd') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
+    result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','rom','zelda3','wwhd') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
+    for key in ('added_at','release_at','first_seen'):
+        if type(item.get(key)) in (int,float) and item[key]>=0:result[key]=item[key]
+    for key in ('game_title','catalog_slug'):
+        if isinstance(item.get(key),str):result[key]=item[key][:160]
+    if isinstance(item.get('supported_os'),list):result['supported_os']=[v[:30] for v in item['supported_os'][:10] if isinstance(v,str)]
+    return result
 
 def parse_source(document,source=''):
     """Entries of a Quiver list file ({apps:[...]}) or a GithubLauncher list ({category:[...]})."""
@@ -200,6 +206,10 @@ def fetch_catalog(get=fetch_json,extra=()):
             else:
                 # GithubLauncher's categories are finer than Quiver's; its AI-assisted flag is kept.
                 if item['source']=='GithubLauncher' and item['list']:previous['list']=item['list']
+
+                for k in ('added_at','release_at','game_title','supported_os','catalog_slug'):
+                    if item.get(k):previous[k]=item[k]
+                if item.get('source')=='Quiver actual' and item.get('icon'):previous['icon']=item['icon']
                 previous['ai']=previous['ai'] or item['ai'];previous['source']=', '.join(dict.fromkeys(filter(None,[*previous['source'].split(', '),item['source']])))
     failures=0
     for url in (INDEX,GHL_LIST,*extra):
@@ -214,6 +224,12 @@ def fetch_catalog(get=fetch_json,extra=()):
                 try:add(parse_source(get(location),source))
                 except (OSError,ValueError):continue
         else:add(parse_source(document,source))
+    from . import catalog_sources
+    try:add(catalog_sources.quiver(get,clean))
+    except (OSError,ValueError,KeyError,TypeError):pass
+    if get is fetch_json:
+        try:add(catalog_sources.independent(fetch(catalog_sources.INDEPENDENT).decode(),clean))
+        except (OSError,ValueError,UnicodeError):pass
     if not found and failures:raise OSError('No se pudo descargar ninguna fuente del catálogo.')
     return sorted(found.values(),key=lambda i:i['name'].casefold())
 
@@ -262,12 +278,21 @@ def catalog(store,force=False,get=fetch_json,extra=()):
     path=store.root/'catalog-ports.json'
     try:cached=json.loads(path.read_text())
     except (OSError,ValueError):cached={}
-    if not force and cached.get('apps') and time.time()-cached.get('time',0)<CACHE_SECONDS:return cached['apps']
+    if not force and cached.get('schema')==2 and cached.get('apps') and time.time()-cached.get('time',0)<CACHE_SECONDS:return cached['apps']
     try:apps=fetch_catalog(get,extra)
     except (OSError,ValueError,KeyError):
-        if cached.get('apps'):return cached['apps']
+        if cached.get('apps'):
+            cached['offline']=True;atomic_json(path,cached);return cached['apps']
+        bundled=pathlib.Path(__file__).resolve().parent.parent/'catalog/ports.json'
+        if bundled.is_file():
+            apps=parse_source(json.loads(bundled.read_text()),'Deck Library');atomic_json(path,{'schema':2,'time':0,'apps':apps,'offline':True});return apps
         raise
-    if apps:atomic_json(path,{'time':time.time(),'apps':apps})
+    if apps:
+        seen=cached.get('first_seen',{});now=time.time()
+        old={a['repository'].lower() for a in cached.get('apps',[])}
+        for a in apps:
+            key=a['repository'].lower();seen.setdefault(key,now if old and key not in old else 0);a['first_seen']=seen[key]
+        atomic_json(path,{'schema':2,'time':now,'apps':apps,'first_seen':seen,'last_added':len({a['repository'].lower() for a in apps}-old) if old else 0,'offline':False})
     return apps
 
 def pick_asset(assets):
@@ -321,7 +346,12 @@ def records(store):
     try:return json.loads((store.root/'ports.json').read_text())
     except (OSError,ValueError):return {}
 
-def download(url,target,limit=MAX_DOWNLOAD,progress=None):
+class Cancelled(Exception):pass
+
+def check_cancel(cancel):
+    if cancel is not None and cancel.is_set():raise Cancelled('Operación cancelada.')
+
+def download(url,target,limit=MAX_DOWNLOAD,progress=None,cancel=None):
     if not url.startswith('https://'):raise ValueError('La descarga debe usar HTTPS.')
     request=urllib.request.Request(url,headers={'User-Agent':'DeckLibrary/'+__version__})
     with urllib.request.urlopen(request,timeout=30) as response,open(target,'wb') as out:
@@ -329,6 +359,7 @@ def download(url,target,limit=MAX_DOWNLOAD,progress=None):
         total=int(response.headers.get('Content-Length') or 0);done=0
         if total>limit:raise ValueError('El archivo supera el límite de tamaño.')
         while True:
+            check_cancel(cancel)
             block=response.read(1<<20)
             if not block:break
             done+=len(block)
@@ -388,8 +419,9 @@ def find_executable(folder,repository=''):
     named=[p for p in binaries if key and key in re.sub(r'[^a-z0-9]','',p.name.lower())]
     return named[0] if len(named)==1 else ''
 
-def install(item,store=None,root=None,progress=print,get=fetch_json,replace=False,web=None,runner=None,transfer=None):
+def install(item,store=None,root=None,progress=print,get=fetch_json,replace=False,web=None,runner=None,transfer=None,cancel=None):
     """Install or update one catalog port. Returns the stored record."""
+    check_cancel(cancel)
     store=store or Store();root=pathlib.Path(root or ports_root());item=clean(item)
     if item is None:raise ValueError('Entrada de catálogo inválida.')
     if item['web']:
@@ -409,7 +441,8 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
         def downloaded(done,total):
             if transfer:transfer({'phase':'download','done':done,'total':total})
             else:progress(f'Descargando {asset["name"]}: {done//(1<<20)} de {total//(1<<20)} MB' if total else f'Descargando {asset["name"]}: {done//(1<<20)} MB')
-        download(asset['browser_download_url'],archive,progress=downloaded)
+        download(asset['browser_download_url'],archive,progress=downloaded,**({'cancel':cancel} if cancel is not None else {}))
+        check_cancel(cancel)
         digest=str(asset.get('digest') or '')
         if asset.get('size') and archive.stat().st_size!=asset['size']:raise ValueError('El tamaño descargado no coincide con el publicado; no se instaló.')
         if digest.startswith('sha256:') and sha256_file(archive)!=digest[7:].lower():raise ValueError('La suma SHA-256 no coincide con la publicada; no se instaló.')
@@ -431,6 +464,7 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
         if executable and executable.exists():executable.chmod(executable.stat().st_mode|0o111)
         record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
         atomic_json(staging/'.deck-library-port.json',record)
+        check_cancel(cancel)
         if destination.exists():
             old=root/'.deck-library-replaced'/(item['folder']+'-'+time.strftime('%Y%m%dT%H%M%S'));old.parent.mkdir(exist_ok=True);destination.rename(old)
         shutil.move(str(staging),str(destination))

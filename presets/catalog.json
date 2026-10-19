@@ -166,7 +166,7 @@
     {
       "schema_version": 1,
       "id": "eden-mk8-ctgp",
-      "name": "Mario Kart 8 Deluxe — 1× y CTGP",
+      "name": "Mario Kart 8 Deluxe — Equilibrado",
       "game": {
         "id": "0100152000022000",
         "name": "Mario Kart 8 Deluxe",
@@ -187,8 +187,8 @@
       "license": "MIT",
       "tested": {
         "status": "boot-tested",
-        "date": "2026-10-01",
-        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+        "date": "2026-10-19",
+        "notes": "Se comprobó el arranque de CTGP Deluxe en Eden. La validación de este acceso en modo Juego sigue pendiente."
       },
       "settings": {
         "Core": {
@@ -220,7 +220,7 @@
     {
       "schema_version": 1,
       "id": "eden-smash-sharp",
-      "name": "Super Smash Bros. Ultimate — 1×",
+      "name": "Super Smash Bros. Ultimate — Equilibrado",
       "game": {
         "id": "01006A800016E000",
         "name": "Super Smash Bros. Ultimate",
@@ -240,9 +240,9 @@
       "author": "Deck Library",
       "license": "MIT",
       "tested": {
-        "status": "proposal",
-        "date": "2026-10-01",
-        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+        "status": "user-confirmed",
+        "date": "2026-10-19",
+        "notes": "El usuario informó una mejora de imagen y fluidez en Steam Deck. Deben coincidir la versión de Eden y el contenido del juego."
       },
       "settings": {
         "Core": {
@@ -570,7 +570,7 @@
     {
       "schema_version": 1,
       "id": "project2099-deck-1080p-performance",
-      "name": "Project 2099 — salida 1080p / FSR espacial",
+      "name": "Spider-Man: Edge of Time — Calidad",
       "game": {
         "id": "415608B2",
         "name": "Spider-Man: Edge of Time",
@@ -625,7 +625,7 @@
     {
       "schema_version": 1,
       "id": "project2099-deck-720p60",
-      "name": "Project 2099 — Steam Deck 720p / 60 FPS",
+      "name": "Spider-Man: Edge of Time — Rendimiento",
       "game": {
         "id": "415608B2",
         "name": "Spider-Man: Edge of Time",
@@ -675,8 +675,63 @@
     },
     {
       "schema_version": 1,
+      "id": "project2099-deck-confirmed",
+      "name": "Spider-Man: Edge of Time — Equilibrado",
+      "game": {
+        "id": "415608B2",
+        "name": "Spider-Man: Edge of Time",
+        "platform": "Windows"
+      },
+      "adapter": {
+        "id": "project2099",
+        "versions": [
+          "2.0.0-beta.4.1"
+        ]
+      },
+      "hardware": [
+        "steam-deck-lcd",
+        "steam-deck-oled"
+      ],
+      "objective": "Configuración probada en Steam Deck con Proton 9",
+      "author": "Deck Library",
+      "license": "MIT",
+      "tested": {
+        "status": "user-confirmed",
+        "date": "2026-10-19",
+        "notes": "El usuario probó esta instalación con Proton 9, reportando entre 40 y 60 FPS variables. No se garantiza una tasa fija. Corresponde al motor Beta 4.1; no se validó en Beta 5."
+      },
+      "settings": {
+        "runtime": {
+          "window_width": 1280,
+          "window_height": 720,
+          "fullscreen": true,
+          "gpu_backend": "d3d12",
+          "resolution_scale": 1,
+          "eot_internal_scale": 1,
+          "genry_eot_target_fps": 120,
+          "d3d12_present_frame_limiter": true,
+          "d3d12_present_frame_limiter_fps": 120.0,
+          "vsync": false,
+          "anisotropic_override": 4,
+          "async_shader_compilation": true,
+          "store_shaders": true,
+          "input_backend": "xinput",
+          "mnk_mode": false,
+          "present_effect": "cas",
+          "eot_pc_raster_glyphs": false,
+          "eot_pc_prompt_labels": false,
+          "show_fps_counter": false
+        }
+      },
+      "notes": "Verificar la versión del programa y probar el perfil antes de recomendarlo.",
+      "sources": [
+        "https://github.com/GenryTheFox0/Project-2099/releases/tag/v2.0.0-beta.4.1"
+      ]
+    },
+    {
+      "schema_version": 1,
       "id": "wiicompiled-rmcp01-sharp",
-      "name": "Mario Kart Wii — nitidez 1.5×",
+      "name": "Mario Kart Wii — Calidad",
       "game": {
         "id": "RMCP01",
         "name": "Mario Kart Wii",
@@ -697,8 +752,8 @@
       "license": "MIT",
       "tested": {
         "status": "user-confirmed",
-        "date": "2026-10-01",
-        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+        "date": "2026-10-19",
+        "notes": "El usuario confirmó imagen nítida y funcionamiento excelente en su Steam Deck OLED. No garantiza el mismo resultado en otros equipos."
       },
       "settings": {
         "video": {

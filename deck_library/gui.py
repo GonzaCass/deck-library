@@ -212,7 +212,7 @@ class Banner(Gtk.DrawingArea):
         return False
 
 class Poster(Gtk.DrawingArea):
-    """Fixed 2:3 canvas; contain artwork without cropping game titles."""
+    """Fixed 2:3 canvas; fill the cover without side bands."""
     def __init__(self,entry,path,width=160,height=240,overlay=False,steam=False):
         super().__init__();self.entry=entry;self.overlay=overlay;self.steam=steam;self.set_size_request(width,height);self.pixbuf=None
         if path:
@@ -220,11 +220,12 @@ class Poster(Gtk.DrawingArea):
             except (GLib.Error,OSError):pass
         self.connect('draw',self.draw_poster)
     def draw_poster(self,widget,cr):
+        import cairo
         w=widget.get_allocated_width();h=widget.get_allocated_height()
         palettes={'Switch':(.20,.14,.24),'WiiCompiled':(.11,.24,.30),'Wii':(.11,.24,.30),'Minecraft':(.14,.24,.18)}
         color=palettes.get(self.entry.platform,(.15,.18,.25));cr.set_source_rgb(*color);cr.paint()
         if self.pixbuf:
-            pw=self.pixbuf.get_width();ph=self.pixbuf.get_height();scale=min(w/pw,h/ph);cr.save();cr.translate((w-pw*scale)/2,(h-ph*scale)/2);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,self.pixbuf,0,0);cr.paint();cr.restore()
+            pw=self.pixbuf.get_width();ph=self.pixbuf.get_height();scale=max(w/pw,h/ph);cr.save();cr.rectangle(0,0,w,h);cr.clip();cr.translate((w-pw*scale)/2,(h-ph*scale)/2);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,self.pixbuf,0,0);cr.get_source().set_extend(cairo.EXTEND_PAD);cr.paint();cr.restore()
         else:
             from gi.repository import PangoCairo
             cr.set_source_rgba(1,1,1,.06)
@@ -252,7 +253,9 @@ from .gui_progress import ProgressMixin
 from .gui_input import InputMixin
 from .gui_editor import EditorMixin
 
-class Window(InputMixin,ProgressMixin,GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,ActionsMixin,CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
+from .gui_originals import OriginalsMixin
+
+class Window(OriginalsMixin,InputMixin,ProgressMixin,GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,ActionsMixin,CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self,title='Deck Library');self.init_shell()
 

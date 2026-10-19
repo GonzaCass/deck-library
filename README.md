@@ -178,7 +178,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.14.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.15.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
@@ -195,3 +195,11 @@ The Project-2099 adapter prepares a supplied Xbox 360 ISO (or a ZIP/7z containin
 Eden cards offer **Equilibrado**, **Rendimiento** (0.75×) and **Calidad** (1.5×), plus compatibility profiles. Title-specific settings keep their original values in the balanced card. These are proposals, not universal performance guarantees. Known emulator-version checks still apply.
 
 Catalog and update rows show download progress, percentage and estimated time from measured bytes. Compilation shows its current phase without an invented completion percentage. Completed/error state stays in that port's row during the current session. Completed installs invalidate stale update notices. Tab changes reuse the existing library and catalog; native SDL2 input supplements Steam's navigation template in Gaming Mode.
+
+## Port management (0.15)
+
+Discovery identifies installed variants before offering another installation. The library offers reversible hiding or confirmed trashing of original disc images, with shared-file checks. Downloads have inline cancellation/dismissal. The catalog combines the current Quiver API, legacy lists and an independent curated list, tracks real addition/release dates and includes a bundled factual fallback index. Sources: [Quiver API client](https://github.com/tgeorgiadis/quiver-launcher/blob/main/Services/QuiverCatalogClient.cs), [independent list](https://github.com/Sebastrion/awesome-unofficial-pc-ports).
+
+Project-2099 updates download verified installer/payload assets from the official release, install in a temporary folder, preserve UserData and retain the complete old installation. Beta 5 changes engines; old renderer settings and mods stay in that backup. Game shortcut Proton arguments are preserved. The update button does not launch the game. Live Beta 5 gameplay validation is pending; automated tests exercise staging, backup, preservation and failure recovery using a simulated installer.
+
+Included playtested profiles are labelled with their actual test level and take precedence over custom imports in the primary cards. Portrait artwork fills its canvas without side bands.

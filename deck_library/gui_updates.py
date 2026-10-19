@@ -21,8 +21,9 @@ class UpdatesMixin:
     def updates_ready(self,state,manual):
         self.update_busy=False;self.update_state=state;self.refresh_update_badges()
         if state.get('app') and self.preferences.get('auto_update') and not getattr(self,'update_installed',None):self.install_app_update(automatic=True)
-        if self.preferences.get('auto_update_ports') and state.get('catalog'):
-            for port in state['catalog']:self.update_catalog_port(port)
+        if self.preferences.get('auto_update_ports'):
+            self.auto_port_queue=[('catalog',p) for p in state.get('catalog') or []]+([('project2099',state['project2099'])] if state.get('project2099') else [])
+            self.run_next_auto_port()
         if manual and self.pages.get_visible_child_name()=='updates':self.updates_page()
         return False
 
@@ -127,8 +128,10 @@ class UpdatesMixin:
             if entry:row.pack_start(Poster(entry,find_cover(entry),44,66),False,False,0)
             title=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5);title.pack_start(label(data['name'],'title'),False,False,0);title.pack_start(label(str(data['installed'])+' → '+str(data['latest']),'meta'),False,False,0);row.pack_start(title,True,True,0)
             if kind=='wii':row.pack_end(button('Actualizar',lambda _:self.update_wiicompiled(),True),False,False,0)
-            elif data.get('repository') and data['repository']!=updates.PROJECT2099_REPO:row.pack_end(button('Actualizar',lambda _,d=data:self.update_catalog_port(d),True),False,False,0)
+            elif data.get('repository')==updates.PROJECT2099_REPO:row.pack_end(button('Actualizar',lambda _:self.update_project2099(),True),False,False,0)
+            elif data.get('repository'):row.pack_end(button('Actualizar',lambda _,d=data:self.update_catalog_port(d),True),False,False,0)
             if data.get('page'):row.pack_end(Gtk.LinkButton.new_with_label(data['page'],'Publicación original'),False,False,0)
+            if data.get('repository')==updates.PROJECT2099_REPO:card.pack_start(label('Actualización con respaldo completo. Conserva partidas; el cambio de motor deja los mods y ajustes anteriores en la copia de seguridad.','muted'),False,False,0)
             self.transfer_row(card,'wiicompiled' if kind=='wii' else data.get('repository') or 'wiicompiled')
             expander=Gtk.Expander(label='Novedades de '+str(data['latest']));notes=label(updates.notes_text(data.get('notes','')) or 'Abrir para consultar las notas del autor.','muted');notes.set_selectable(True);notes.set_max_width_chars(95);notes.set_margin_top(12);expander.add(notes);card.pack_start(expander,False,False,0)
             loaded=['notes' in data]
@@ -149,3 +152,40 @@ class UpdatesMixin:
             check.connect('toggled',changed);settings_box.pack_start(check,False,False,0)
         for error in state.get('errors') or []:box.pack_start(label('No se pudo consultar '+error,'status'),False,False,0)
         box.show_all();self.pages.set_visible_child_name('updates')
+
+    def run_next_auto_port(self):
+        if getattr(self,'port_busy',False) or not getattr(self,'auto_port_queue',[]):return False
+        kind,data=self.auto_port_queue.pop(0)
+        if kind=='project2099':self.update_project2099(automatic=True)
+        else:self.update_catalog_port(data)
+        if not getattr(self,'port_busy',False):GLib.idle_add(self.run_next_auto_port)
+        return False
+
+    def update_project2099(self,automatic=False):
+        from . import project2099_update,ports
+        if getattr(self,'port_busy',False):self.set_status('Ya hay una instalación en curso.');return
+        entry=next((e for e in self.entries if e.metadata.get('adapter')=='project2099'),None)
+        if not entry:return
+        source=project2099_update.source_for(entry,self.entries)
+        if not source and automatic:self.set_status('Project-2099 necesita indicar la copia original para actualizarse.');return
+        if not source:
+            chooser=Gtk.FileChooserDialog(title='Elegir la copia Xbox 360 de Edge of Time',transient_for=self,action=Gtk.FileChooserAction.OPEN);chooser.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Elegir',Gtk.ResponseType.OK)
+            if chooser.run()==Gtk.ResponseType.OK:source=chooser.get_filename()
+            chooser.destroy()
+            if not source:return
+        key=updates.PROJECT2099_REPO
+        if not hasattr(self,'port_jobs'):self.port_jobs={}
+        cancel=threading.Event();self.port_jobs[key]=cancel;self.port_busy=True;self.start_transfer(key);progress=self.port_progress(key)
+        def finished(result,error):
+            self.port_jobs.pop(key,None);self.port_busy=False;self.finish_transfer(key,error)
+            GLib.idle_add(self.run_next_auto_port)
+            if result:
+                from .models import atomic_json
+                cached=updates.cached(self.store);cached['project2099']=None;atomic_json(updates.cache_path(self.store),cached)
+                self.update_state['project2099']=None;self.refresh_update_badges();self.discover();self.set_status('Project-2099 actualizado a '+result['version']+'. Copia anterior conservada en '+result['backup'])
+            return False
+        def work():
+            try:
+                release=ports.release_for(key);result=project2099_update.update(entry,source,release,self.store,progress,cancel);GLib.idle_add(finished,result,None)
+            except Exception as error:GLib.idle_add(finished,None,str(error))
+        threading.Thread(target=work,daemon=True).start()

@@ -3,9 +3,9 @@
 !community/**
 !presets/
 !presets/**
+!catalog/
+!catalog/**
 !deck_library/
-!presets/
-!presets/**
 !deck_library/**
 **/__pycache__
 **/*.pyc

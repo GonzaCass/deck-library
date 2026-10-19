@@ -58,3 +58,7 @@ Los ajustes de calidad parten de la pantalla de la Deck (1280×800, hasta 90 Hz)
 ## Revertir
 
 Cada cambio de ajustes deja una copia fechada junto al archivo original (`*.deck-library-AAAAMMDD-HHMMSS.bak`, `.orig` para el código de los kits y `grid/.deck-library-backups` para el arte). Los accesos de Steam y los layouts guardan su copia en la carpeta de configuración de Steam.
+
+## Fuentes vigentes (0.15)
+
+El antiguo repositorio de listas de Quiver quedó obsoleto; la app consulta también su API paginada actual (apps y release-status) y une los registros por repositorio. La fecha de incorporación al catálogo y la fecha de release son campos distintos. La lista independiente de Sebastrion aporta otros enlaces a proyectos y el índice incluido con Deck Library conserva una copia factual como respaldo. Los assets se consultan directamente en la release del proyecto al instalar. No se ejecutan scripts obtenidos de los catálogos para descubrir instalaciones.

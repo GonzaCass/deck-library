@@ -1,8 +1,8 @@
 """Community port catalog page: browse, install and update ports from GitHub releases."""
-import threading
+import threading,time,datetime,json
 import gi
 gi.require_version('Gtk','3.0')
-from gi.repository import Gtk,GLib,GdkPixbuf
+from gi.repository import Gtk,GLib,GdkPixbuf,Pango
 from . import ports
 from .installations import save_settings
 
@@ -23,8 +23,14 @@ class CatalogMixin:
         tools=Gtk.Box(spacing=10);self.catalog_search=Gtk.SearchEntry();self.catalog_search.set_placeholder_text('Buscar port o juego');self.catalog_search.connect('search-changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_search,True,True,0)
         self.catalog_category=Gtk.ComboBoxText();self.catalog_category.append('','Todas las categorías');self.catalog_category.set_active_id('');self.catalog_category.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_category,False,False,0)
         self.catalog_source=Gtk.ComboBoxText();self.catalog_source.append('','Todas las fuentes')
-        for name in ('Recomendado','Agregado','Quiver','GithubLauncher'):self.catalog_source.append(name,name)
+        for name in ('Recomendado','Agregado','Quiver','GithubLauncher','Lista independiente'):self.catalog_source.append(name,name)
         self.catalog_source.set_active_id('');self.catalog_source.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_source,False,False,0);box.pack_start(tools,False,False,0)
+        self.catalog_sort=Gtk.ComboBoxText()
+        for key,name in [('recent','Nuevos primero'),('new','Nuevos (30 días)'),('release','Últimas versiones'),('name','Nombre'),('installed','Instalados')]:self.catalog_sort.append(key,name)
+        self.catalog_sort.set_active_id(self.preferences.get('catalog_sort','recent'));self.catalog_sort.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_sort,False,False,0)
+        self.catalog_search.set_width_chars(12)
+        for picker in (self.catalog_category,self.catalog_source,self.catalog_sort):
+            for cell in picker.get_cells():cell.set_property('ellipsize',Pango.EllipsizeMode.END);cell.set_property('max-width-chars',18)
         self.catalog_status=label('Cargando catálogo…','status');box.pack_start(self.catalog_status,False,False,0)
         self.catalog_rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);box.pack_start(self.catalog_rows,False,False,0)
         box.show_all();self.pages.set_visible_child_name('catalog');self.load_catalog(False)
@@ -55,20 +61,34 @@ class CatalogMixin:
         self.reset_page(self.catalog_rows);text=self.catalog_search.get_text().casefold().strip();category=self.catalog_category.get_active_id() or '';source=self.catalog_source.get_active_id() or ''
         installed=ports.records(self.store);updates={u['repository'] for u in (getattr(self,'update_state',None) or {}).get('catalog') or []}
         matches=[a for a in everything if text in (a['name']+' '+a['repository']).casefold() and (not category or a['list']==category) and (not source or source in a['source'])]
-        matches.sort(key=lambda a:(not a['source'].startswith(('Recomendado','Agregado')),a['name'].casefold()))
+        order=self.catalog_sort.get_active_id() or 'recent'
+        if self.preferences.get('catalog_sort')!=order:self.preferences['catalog_sort']=order;save_settings(self.preferences,self.store)
+        if order=='installed':matches=[a for a in matches if self.catalog_installation(a,installed)]
+        if order=='new':matches=[a for a in matches if 0<time.time()-(a.get('added_at') or a.get('first_seen') or 0)<30*86400]
+        matches.sort(key=lambda a:(-(a.get('added_at') or a.get('first_seen') or 0) if order in ('recent','new') else -(a.get('release_at') or 0) if order=='release' else 0,a['name'].casefold()))
         self.catalog_status.set_text(f'{len(matches)} de {len(everything)} ports'+(' · se muestran los primeros 60' if len(matches)>60 else ''))
+        try:
+            snapshot=json.loads((self.store.root/'catalog-ports.json').read_text());stamp=snapshot.get('time',0)
+            self.catalog_status.set_text(self.catalog_status.get_text()+' · '+('copia guardada' if snapshot.get('offline') else 'Actualizado '+datetime.datetime.fromtimestamp(stamp).strftime('%d/%m %H:%M')))
+        except (OSError,ValueError):pass
         self.catalog_generation=getattr(self,'catalog_generation',0)+1;generation=self.catalog_generation;images=[];kits=[]
         for item in matches[:60]:
             row=Gtk.Box(spacing=14);row.get_style_context().add_class('card');image=Gtk.Image();image.set_size_request(ICON_SIZE,ICON_SIZE);image.set_valign(Gtk.Align.START);row.pack_start(image,False,False,0);images.append((item,image))
-            texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);texts.pack_start(label(item['name'],'title'),False,False,0);record=installed.get(item['repository'])
+            texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);texts.pack_start(label(item['name'],'title'),False,False,0);record=installed.get(item['repository']) or self.catalog_installation(item,installed)
             tags=[t for t in (item['list'],item['source'],'Asistido por IA' if item['ai'] else '') if t]
             texts.pack_start(label(item['repository']+(' · instalado '+record['tag'] if record else ''),'muted'),False,False,0)
+            when=item.get('added_at') or item.get('first_seen') or 0
+            if when:tags.append(('Nuevo · ' if time.time()-when<30*86400 else 'Añadido ')+datetime.datetime.fromtimestamp(when).strftime('%d/%m/%Y'))
             if tags:texts.pack_start(label('  ·  '.join(tags),'pill'),False,False,0)
             if item['note']:texts.pack_start(label(item['note'],'status'),False,False,0)
             if item.get('bios') or item.get('disc'):
                 checks=label('Comprobando requisitos…','status');texts.pack_start(checks,False,False,0);kits.append((item,checks))
             row.pack_start(texts,True,True,0);side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
-            if record and item['repository'] in updates:side.pack_start(button('Actualizar',lambda _,i=item:self.install_port(i,True),True),False,False,0)
+            if record and record.get('external'):
+                side.pack_start(label('Port ya instalado','good'),False,False,0)
+                side.pack_start(button('Ver en biblioteca',lambda _,r=record:self.select_game(r['entry'])),False,False,0)
+                if record.get('alternative'):side.pack_start(button('Instalar alternativa',lambda _,i=item:self.install_port(i,False)),False,False,0)
+            elif record and item['repository'] in updates:side.pack_start(button('Actualizar',lambda _,i=item:self.install_port(i,True),True),False,False,0)
             elif record and record.get('setup') and not record.get('configured'):side.pack_start(button('Configurar',lambda _,i=item:self.configure_port(i),True),False,False,0)
             elif record and record.get('setup'):
                 side.pack_start(label('Configurado','good'),False,False,0)
@@ -160,23 +180,38 @@ class CatalogMixin:
         if not self.confirm('Quitar de la lista',item['name']+' deja de aparecer en el catálogo. Lo ya instalado no se modifica.','Quitar',danger=True):return
         self.preferences['custom_ports']=[c for c in self.preferences.get('custom_ports',[]) if str(c.get('repository','')).lower()!=item['repository'].lower()];save_settings(self.preferences,self.store);self.fill_catalog()
 
+    def catalog_installation(self,item,installed=None):
+        from .originals import key
+        direct=(installed if installed is not None else ports.records(self.store)).get(item['repository'])
+        if direct:return direct
+        for e in self.entries:
+            if e.kind not in ('port','wiicompiled'):continue
+            same=e.metadata.get('port_repository','').lower()==item['repository'].lower()
+            if same or key(e.name)==key(item.get('game_title') or item['name']):return {'external':True,'alternative':not same,'entry':e,'tag':e.metadata.get('port_tag') or e.metadata.get('build') or '?'}
+        return None
+
     def install_port(self,item,replace):
         from . import buildenv
         if getattr(self,'port_busy',False):self.set_status('Ya hay una instalación en curso.');return
+        existing=self.catalog_installation(item)
+        if existing and existing.get('external') and not replace and not self.confirm('Ya hay un port instalado',existing['entry'].name+' ya está en tu biblioteca. ¿Instalar también '+item['name']+' como alternativa?','Instalar alternativa'):return
         needs_sdk=item.get('kit') and not buildenv.installed()
         if needs_sdk and not self.confirm('Entorno de compilación','Este port compila el juego en la Deck a partir del disco propio. Para eso hace falta el SDK de KDE '+buildenv.BRANCH+' de Flatpak (descarga de Flathub, varios cientos de MB hasta unos GB). Se instala una sola vez para este usuario y no modifica SteamOS.','Instalar y continuar'):return
         self.port_busy=True;self.set_status('Instalando '+item['name']+'…')
+        if not hasattr(self,'port_jobs'):self.port_jobs={}
+        cancel=threading.Event();self.port_jobs[item['repository']]=cancel
         self.start_transfer(item['repository']);progress=self.port_progress(item['repository'])
         def work():
             try:
                 if needs_sdk:buildenv.install(lambda text:GLib.idle_add(self.set_status,'SDK de KDE: '+text))
-                record=ports.install(item,self.store,progress=progress,transfer=progress,replace=replace);GLib.idle_add(self.port_installed,item,record)
+                record=ports.install(item,self.store,progress=progress,transfer=progress,replace=replace,cancel=cancel);GLib.idle_add(self.port_installed,item,record)
             except Exception as error:GLib.idle_add(self.port_failed,item,str(error))
         threading.Thread(target=work,daemon=True).start()
 
     def port_installed(self,item,record):
         from . import updates
         self.port_busy=False
+        getattr(self,'port_jobs',{}).pop(item['repository'],None)
         updates.port_completed(self.store,item['repository'],record.get('tag',''))
         self.transfer_event(item['repository'],'Descarga verificada; configuración pendiente.' if record.get('setup') else 'Instalación completada.')
         if not record.get('setup'):self.finish_transfer(item['repository'])
@@ -187,6 +222,7 @@ class CatalogMixin:
         else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en ~/ports/{record["folder"]}, pero hay varios ejecutables posibles. Elegir el correcto con «Agregar juegos → Elegir un juego o una app».')
         if getattr(self,'update_state',None):self.update_state['catalog']=[u for u in self.update_state.get('catalog') or [] if u['repository']!=item['repository']];self.refresh_update_badges()
         self.discover()
+        GLib.idle_add(self.run_next_auto_port)
         if self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
         return False
 
@@ -204,7 +240,7 @@ class CatalogMixin:
         needs_sdk=record['setup'] in ('kit','openpete') and not buildenv.installed()
         used=next((text for ok,text in lines if ok and text.startswith('Disco')),'')
         question='Se va a configurar '+item['name']+' con lo que ya está en la Deck.\n\n'+'\n'.join(text for ok,text in lines)+'\n\n'+('Compila el juego dentro del SDK de KDE; el kit de Spider-Man tarda unos minutos. ' if record['setup'] in ('kit','openpete') else '')+('Antes se instalará el SDK de KDE de Flatpak (una sola vez). ' if needs_sdk else '')+'Los discos originales no se modifican.'
-        if not self.confirm('Configurar '+item['name'],question,'Configurar'):return
+        if not automatic and not self.confirm('Configurar '+item['name'],question,'Configurar'):return
         self.port_busy=True;self.set_status('Configurando '+item['name']+'…')
         self.start_transfer(item['repository']);progress=self.port_progress(item['repository'])
         def work():
@@ -217,6 +253,7 @@ class CatalogMixin:
 
     def port_configured(self,item,record):
         self.finish_transfer(item['repository'])
+        GLib.idle_add(self.run_next_auto_port)
         self.port_busy=False;self.set_status(item['name']+' configurado con «'+record.get('configured_with','')+'».');self.discover()
         notes={'ctr':'La primera vez, CTR pregunta por una fuente opcional (elegir «Use Luckiest Guy») y por un preset de gráficos.','openpete':'El juego ya está compilado. Se abre en pantalla completa.','kit':'El juego ya está compilado y listo para jugar.'}
         if notes.get(record.get('setup')):self.message(item['name']+' listo',notes[record['setup']]+' Se puede agregar a Steam desde la biblioteca.')
@@ -224,5 +261,6 @@ class CatalogMixin:
         return False
 
     def port_failed(self,item,text):
+        getattr(self,'port_jobs',{}).pop(item['repository'],None)
         self.finish_transfer(item['repository'],text)
-        self.port_busy=False;self.set_status('No se pudo instalar '+item['name']+'.');self.message('Instalación de '+item['name'],text);return False
+        self.port_busy=False;self.set_status(text if 'cancelad' in text.lower() else 'No se pudo instalar '+item['name']+': '+text);GLib.idle_add(self.run_next_auto_port);return False
