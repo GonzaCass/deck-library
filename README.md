@@ -178,7 +178,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.16.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.17.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
@@ -211,3 +211,9 @@ Open **Account** (the account icon in the top bar), or **Community → My accoun
 Keycloak handles passwords, registration requirements and recovery. Its forms run in a separate, ephemeral WebKit process; the application receives only its own revocable community session. Sessions are checked when opening Account; expired sessions are cleared. Closing the access panel cancels polling and closes the embedded browser.
 
 On Steam Deck the embedded view reuses an installed GNOME Flatpak runtime when available. Otherwise the app offers to install the component from Flathub, or continue in the browser. The app selects X11 when available for GTK embedding; an explicit Wayland override uses the browser fallback. In Gaming Mode, use the D-pad/stick to move, A to select, B to cancel access and **Steam + X** for the keyboard. Physical controller navigation still needs confirmation on the Deck.
+
+### Controller navigation (0.17)
+
+The focused game has a bright border and a highlighted title/card. The left stick and D-pad navigate the actual rows and columns; A opens the game, B returns to the same card, X focuses search and LB/RB change tabs. The right stick scrolls the current view. Moving through the library keeps the focused card visible and does not check games for batch operations. Focus survives artwork refreshes.
+
+Deck Library’s Steam Deck layout now uses native gamepad input on both sticks, with mouse control on the right trackpad. Upgrading refreshes only Deck Library’s existing template, with a backup; it does not change Steam configsets or other games’ layouts. Close and reopen Deck Library from Steam to reload its layout. A custom layout remains selected if you chose one. The physical controls still require confirmation on the Deck; automated coverage includes a real SDL virtual controller driving the GTK interface.

@@ -55,6 +55,11 @@ button.nav.active { background:@raised; }
 button.nav.active label { color:@text; }
 button.poster { padding:0; border:2px solid transparent; border-radius:10px; background:@surface; }
 button.poster:hover,button.poster.selected { border-color:@accent; box-shadow:0 0 0 2px alpha(@accent,0.18); }
+button.poster:focus { border-color:#d7caff; outline:0; box-shadow:0 0 0 3px #b7a7ff; }
+.library-game { border:1px solid transparent; border-radius:14px; padding:4px; transition:background 120ms ease-out,border-color 120ms ease-out; }
+.library-game.game-focused { background:#302a40; border-color:#b7a7ff; }
+.library-game.game-focused .cover-title { color:#e5dcff; }
+list row:focus,list row.game-focused { background:#302a40; border:2px solid #b7a7ff; outline:0; }
 .cover-title { font-size:14px; font-weight:600; }
 entry,combobox button { background:@surface; color:@text; border:1px solid @line; border-radius:9px; padding:8px 12px; min-height:32px; }
 entry:focus { border-color:@accent; }

@@ -1,5 +1,14 @@
 # Validación
 
+## Versión 0.17 — 2026-10-19
+
+Se superaron 654 pruebas, incluidas 32 de interfaz GTK.
+
+Navegación espacial por filas/columnas, foco de carátulas y filas visible, restauración al volver de una ficha y al regenerar la biblioteca, desplazamiento con palanca derecha, umbral con histéresis y repetición sin repetir A. La integración usa un mando virtual real de SDL: se inyectan ejes, se leen a través del backend de la app y se comprueba movimiento de foco y desplazamiento GTK. No se abrieron juegos.
+
+El perfil instalado de la biblioteca seguía basado en teclado/ratón: la palanca derecha enviaba movimiento de ratón. La nueva plantilla deriva del mando nativo de Steam, mantiene ambos joysticks y coloca el ratón exclusivamente en el trackpad derecho. Se comprobó el VDF real instalado y se prueba su generación, respaldo y conservación del original. El instalador refresca solo el archivo de plantilla propio, sin escribir configsets ni modificar perfiles personalizados. Recargar la plantilla en Steam y confirmar las palancas físicas sigue requiriendo la prueba del usuario en modo Juego.
+
+
 ## Remitente de correo — 2026-10-19
 
 Se instaló un proveedor específico de correo, compilado contra Keycloak 26.3.4 y probado primero en un contenedor aislado de la misma imagen. La política superó 16 comprobaciones: selección por realm/cliente, conservación de credenciales y TLS, sobrescritura de From/Reply-To/envelope y ausencia de cambios en el mapa SMTP original. Se fijó la misma versión de imagen del despliegue para evitar actualizaciones incompatibles del SPI interno.

@@ -311,3 +311,72 @@ class DeckUITests(unittest.TestCase):
             GLib.timeout_add(200,capture);return original(dialog)
         with patch.object(Gtk.Dialog,'run',run):account_dialog(self.w)
         self.assertLessEqual(sizes[0].width,840);self.assertLessEqual(sizes[0].height,640)
+
+    def populate_games(self,count=20):
+        from deck_library.models import Entry
+        self.w.entries=[Entry('Juego %02d'%i,['/bin/true',str(i)],platform='Linux') for i in range(count)]
+        self.w.render();self.settle();self.w.focus_library();self.settle()
+
+    def test_controller_cards_highlight_move_and_restore_without_selecting(self):
+        self.populate_games();first=self.w.entries[0].id;second=self.w.entries[1].id
+        self.assertEqual(self.w.get_focus().library_entry_id,first)
+        self.assertTrue(self.w.library_targets[first].get_parent().get_style_context().has_class('game-focused'))
+        self.w.controller_action('right');self.settle();self.assertEqual(self.w.get_focus().library_entry_id,second)
+        self.assertFalse(self.w.library_targets[first].get_parent().get_style_context().has_class('game-focused'))
+        self.assertTrue(self.w.library_targets[second].get_parent().get_style_context().has_class('game-focused'));self.assertFalse(self.w.checked)
+        self.w.controller_action('activate');self.w.controller_action('back');self.settle();self.assertEqual(self.w.get_focus().library_entry_id,second)
+        self.w.render();self.settle();self.assertEqual(self.w.get_focus().library_entry_id,second)
+
+    def test_controller_grid_vertical_movement_and_auto_scroll(self):
+        self.populate_games(35);first=self.w.entries[0].id
+        self.w.controller_action('down');self.settle();focus=self.w.get_focus();self.assertNotEqual(focus.library_entry_id,first)
+        x0,y0=self.w.library_targets[first].translate_coordinates(self.w.covers,0,0);x,y=focus.translate_coordinates(self.w.covers,0,0)
+        self.assertGreater(y,y0);self.assertLess(abs(x-x0),3)
+        last=self.w.entries[-1].id;self.w.focus_library(last);self.settle();scroll=self.w.library_stack.get_visible_child();adjustment=scroll.get_vadjustment()
+        self.assertGreater(adjustment.get_value(),0)
+        point=self.w.library_targets[last].translate_coordinates(scroll.get_child(),0,0)
+        self.assertLessEqual(point[1]+self.w.library_targets[last].get_allocated_height(),adjustment.get_value()+adjustment.get_page_size()+1)
+
+    def test_right_stick_scrolls_without_changing_focus(self):
+        self.populate_games(30);first=self.w.get_focus();scroll=self.w.library_stack.get_visible_child();adjustment=scroll.get_vadjustment();before=adjustment.get_value()
+        self.w.controller_action('scroll_down');self.settle();self.assertGreater(adjustment.get_value(),before);self.assertIs(self.w.get_focus(),first)
+
+    def test_controller_list_focus_is_visible_and_survives_filters(self):
+        self.w.view='list';self.populate_games(10);first=self.w.entries[0].id
+        self.w.controller_action('down');self.settle();self.assertEqual(self.w.get_focus().library_entry_id,self.w.entries[1].id)
+        self.assertTrue(self.w.get_focus().get_style_context().has_class('game-focused'))
+        self.w.search.set_text('Juego 00');self.settle();self.w.focus_library();self.assertEqual(self.w.get_focus().library_entry_id,first);self.assertFalse(self.w.checked)
+        self.w.controller_action('activate');self.assertEqual(self.w.pages.get_visible_child_name(),'detail')
+
+    def test_real_sdl_sticks_move_cards_and_scroll(self):
+        import ctypes as C,time
+        from deck_library.gamepad import SDL,Repeater
+        self.populate_games(30)
+        try:driver=SDL()
+        except OSError as error:self.skipTest(str(error))
+        lib=driver.lib;joystick=None;index=-1
+        signatures=[('SDL_JoystickAttachVirtual',[C.c_int,C.c_int,C.c_int,C.c_int],C.c_int),('SDL_JoystickOpen',[C.c_int],C.c_void_p),('SDL_JoystickSetVirtualAxis',[C.c_void_p,C.c_int,C.c_int16],C.c_int),('SDL_JoystickDetachVirtual',[C.c_int],C.c_int),('SDL_JoystickClose',[C.c_void_p],None)]
+        try:
+            for name,args,result in signatures:
+                if not hasattr(lib,name):self.skipTest('SDL virtual-controller support unavailable')
+                function=getattr(lib,name);function.argtypes=args;function.restype=result
+            index=lib.SDL_JoystickAttachVirtual(1,6,15,0);self.assertGreaterEqual(index,0)
+            joystick=lib.SDL_JoystickOpen(index);pad=lib.SDL_GameControllerOpen(index);self.assertTrue(pad)
+            # Open only our virtual pad; do not consume a physical controller.
+            driver.pads[lib.SDL_JoystickGetDeviceInstanceID(index)]=pad
+            repeat=Repeater()
+            def read():driver.enumerated=time.monotonic();return driver.read()
+            first=self.w.get_focus().library_entry_id
+            lib.SDL_JoystickSetVirtualAxis(joystick,0,14000)
+            actions=read();self.assertIn('right',actions)
+            for action in repeat.events(actions,0):self.w.controller_action(action)
+            self.settle();self.assertNotEqual(self.w.get_focus().library_entry_id,first);focused=self.w.get_focus()
+            lib.SDL_JoystickSetVirtualAxis(joystick,0,0);repeat.events(read(),.1)
+            lib.SDL_JoystickSetVirtualAxis(joystick,3,22000)
+            actions=read();self.assertIn('scroll_down',actions)
+            for action in repeat.events(actions,.2):self.w.controller_action(action)
+            self.settle();self.assertIs(self.w.get_focus(),focused);self.assertGreater(self.w.library_stack.get_visible_child().get_vadjustment().get_value(),0)
+        finally:
+            if joystick:lib.SDL_JoystickClose(joystick)
+            if index>=0:lib.SDL_JoystickDetachVirtual(index)
+            driver.close()

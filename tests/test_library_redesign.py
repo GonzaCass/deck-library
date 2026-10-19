@@ -24,12 +24,19 @@ class RedesignTests(unittest.TestCase):
         from deck_library.library_app import entry
         from deck_library.library_view import visible_entries
         a=entry('/tmp/first/app.py');b=entry('/tmp/second/app.py');self.assertEqual(a.id,b.id);self.assertIn('--gaming',a.command);self.assertEqual(visible_entries([a])[0],[])
-    def test_gtk_layout_uses_return_and_keeps_mouse(self):
+    def test_library_layout_keeps_native_sticks_and_puts_mouse_on_trackpad_only(self):
+        from deck_library.steam_input import parse_text,first
         with tempfile.TemporaryDirectory() as folder:
-            root=pathlib.Path(folder);base='"binding" "key_press SPACE"\n"binding" "key_press W"\n"binding" "mouse_button LEFT"'
-            (root/'controller_neptune_wasd.vdf').write_text(base)
+            root=pathlib.Path(folder)
+            base='"controller_mappings" { "group" { "id" "3" "mode" "joystick_move" } "group" { "id" "8" "mode" "joystick_move" } "preset" { "group_source_bindings" { "3" "joystick active" "8" "right_joystick active" "8" "right_trackpad active" } } }'
+            (root/'controller_neptune_gamepad_joystick.vdf').write_text(base)
             with patch('deck_library.controllers.templates_dir',return_value=root):name=controllers.library_template(root)
-            text=(root/name).read_text();self.assertIn('key_press RETURN',text);self.assertIn('UP_ARROW',text);self.assertIn('mouse_button LEFT',text);self.assertEqual((root/'controller_neptune_wasd.vdf').read_text(),base)
+            value=first(parse_text((root/name).read_text()),'controller_mappings',[]);groups=[v for k,v in value if k=='group'];bindings=first(first(value,'preset',[]),'group_source_bindings',[])
+            self.assertEqual([first(g,'mode') for g in groups],['joystick_move','joystick_move','absolute_mouse']);self.assertIn(('3','joystick active'),bindings);self.assertIn(('8','right_joystick active'),bindings);self.assertIn(('9','right_trackpad active'),bindings);self.assertNotIn(('8','right_trackpad active'),bindings)
+            self.assertEqual((root/'controller_neptune_gamepad_joystick.vdf').read_text(),base)
+            legacy='legacy keyboard template';(root/name).write_text(legacy)
+            with patch('deck_library.controllers.templates_dir',return_value=root):controllers.library_template(root);controllers.library_template(root)
+            backups=list(root.glob(name+'.deck-library-backup-*'));self.assertEqual(len(backups),1);self.assertEqual(backups[0].read_text(),legacy)
     def test_client_rejects_plaintext_and_embedded_credentials(self):
         for url in ('http://example.org','https://user:secret@example.org','https://example.org?token=x'):
             with self.assertRaises(ValueError):Client(Store('/tmp/unused-community-test'),url)

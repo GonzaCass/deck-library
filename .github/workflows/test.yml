@@ -16,7 +16,7 @@ jobs:
       - name: Install GTK and a virtual display
         run: |
           sudo apt-get update
-          sudo apt-get install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0 xvfb fonts-noto-core
+          sudo apt-get install -y python3-gi python3-gi-cairo gir1.2-gtk-3.0 xvfb fonts-noto-core libsdl2-2.0-0
       - name: Check the game workspace at Deck and compact sizes
         run: xvfb-run -a -s "-screen 0 1280x800x24" env DECK_LIBRARY_UI_TESTS=1 /usr/bin/python3 -m unittest discover -s tests -p test_gui_deck.py -v
   mail-policy:

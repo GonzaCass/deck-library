@@ -27,4 +27,12 @@ entry='[Desktop Entry]\nType=Application\nName=Deck Library\nComment=Agregar por
 menu=pathlib.Path.home()/'.local/share/applications/deck-library.desktop';menu.parent.mkdir(parents=True,exist_ok=True);menu.write_text(entry)
 if a.desktop:
  desktop=pathlib.Path.home()/'Desktop';desktop.mkdir(exist_ok=True);target=desktop/'Deck Library.desktop';target.write_text(entry);target.chmod(0o755)
+# Refresh our existing template so upgrades keep native stick input.
+# This file belongs to Deck Library; Steam configsets and custom layouts stay untouched.
+try:
+ from deck_library import controllers
+ from deck_library.steam import find_accounts
+ for account in find_accounts():
+  if (controllers.templates_dir(account)/controllers.LIBRARY_TEMPLATE).is_file():controllers.library_template(account)
+except (OSError,ValueError,ImportError) as error:print('Perfil de mando:',error)
 print('Instalado:',dest,'\nDeck Library está disponible en el menú de aplicaciones.')

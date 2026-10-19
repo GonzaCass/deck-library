@@ -13,8 +13,8 @@ class ShellMixin:
         from .gui import label,button,PageStack
         self.set_wmclass('deck-library','deck-library');self.set_icon_from_file(str(self.asset('icon.png')));self.set_default_size(1240,760);self.set_size_request(840,520)
         self.store=Store();self.preferences=settings(self.store);self.view=self.preferences.get('view','covers');self.checked=set();self.selected=None;self.selection_mode=False;self.platform_filter='all';self.type_filter='all';self.artwork_attempted=set();self.artwork_busy=False;self.discover_busy=False;self.wizard_step=0;self.game_tab='profiles';self.detail_game_id=None;self.profile_choice={}
-        self.ui_closed=False;self.ui_sources=[]
-        self.connect('destroy',Gtk.main_quit);self.connect('destroy',self.close_ui_sources);self.connect('delete-event',lambda *_:not self.discard_game_edits());self.connect('key-press-event',self.library_key);self.connect('map',self.fit_window);self.connect('size-allocate',self.update_game_size)
+        self.ui_closed=False;self.ui_sources=[];self.library_focus_id=None;self.library_targets={};self.controller_mode=False
+        self.connect('destroy',Gtk.main_quit);self.connect('destroy',self.close_ui_sources);self.connect('delete-event',lambda *_:not self.discard_game_edits());self.connect('key-press-event',self.library_key);self.connect('set-focus',self.library_focus_changed);self.connect('map',self.fit_window);self.connect('size-allocate',self.update_game_size)
         root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.add(root);self.build_navigation(root)
         overlay=Gtk.Overlay();root.pack_start(overlay,True,True,0);self.pages=PageStack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);overlay.add(self.pages);self.toast_widget=motion.Toast();overlay.add_overlay(self.toast_widget)
         self.build_library_page();self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.detail.set_border_width(20);self.pages.add_named(self.detail,'detail');self.settings_box=self.scrolled_page('settings');self.updates_box=self.scrolled_page('updates');self.catalog_box=self.scrolled_page('catalog');self.add_box=self.scrolled_page('add');self.pending_box=self.scrolled_page('pending')
@@ -22,6 +22,7 @@ class ShellMixin:
         footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);footer.set_margin_start(24);footer.set_margin_end(24);footer.set_margin_bottom(8);root.pack_end(footer,False,False,0)
         self.build_pending_banner(footer)
         self.artwork_bar=Gtk.Box(spacing=8);self.artwork_bar.set_no_show_all(True);self.artwork_spinner=Gtk.Spinner();self.artwork_label=label('','meta');self.artwork_bar.pack_start(self.artwork_spinner,False,False,0);self.artwork_bar.pack_start(self.artwork_label,True,True,0);footer.pack_start(self.artwork_bar,False,False,0)
+        self.controller_hint=label('A Seleccionar · B Volver · X Buscar · LB/RB Pestañas · Palanca derecha Desplazar','meta');self.controller_hint.set_max_width_chars(70);self.controller_hint.set_ellipsize(Pango.EllipsizeMode.END);self.controller_hint.set_no_show_all(True);footer.pack_start(self.controller_hint,False,False,0)
         self.status=label('','status');self.status.set_line_wrap(False);self.status.set_ellipsize(Pango.EllipsizeMode.END);footer.pack_start(self.status,False,False,0)
         try:self.entries=self.store.load()
         except Exception as error:self.entries=[];self.set_status('No se pudo leer la biblioteca: '+str(error))
@@ -92,7 +93,7 @@ class ShellMixin:
         if not self.accounts:self.account.append_text('Steam sin sesión')
         self.account.set_active(0);self.selection_bar.pack_start(self.account,False,False,0);self.add_button=button('Agregar a Steam',lambda _:self.add_to_steam(),True);self.remove_button=button('Quitar de Steam',lambda _:self.remove_from_steam(),tone='danger');self.selection_bar.pack_end(self.add_button,False,False,0);self.selection_bar.pack_end(self.remove_button,False,False,0);page.pack_end(self.selection_bar,False,False,0)
     def poster_grid(self):
-        grid=Gtk.FlowBox();grid.set_selection_mode(Gtk.SelectionMode.NONE);grid.set_min_children_per_line(1);grid.set_max_children_per_line(9);grid.set_column_spacing(16);grid.set_row_spacing(20);grid.set_homogeneous(True);grid.set_valign(Gtk.Align.START);return grid
+        grid=Gtk.FlowBox();grid.get_style_context().add_class('game-grid');grid.set_selection_mode(Gtk.SelectionMode.NONE);grid.set_min_children_per_line(1);grid.set_max_children_per_line(9);grid.set_column_spacing(16);grid.set_row_spacing(20);grid.set_homogeneous(True);grid.set_valign(Gtk.Align.START);return grid
     def apply_motion(self):
         enabled=self.preferences.get('animations',True);Gtk.Settings.get_default().set_property('gtk-enable-animations',enabled)
         for stack in (self.library_stack,self.wizard_box):stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if enabled else Gtk.StackTransitionType.NONE);stack.set_transition_duration(150 if enabled else 0)
@@ -101,6 +102,8 @@ class ShellMixin:
         text=self.search.get_text().casefold();entries,_=self.shown_entries()
         return sorted([e for e in entries if text in (e.name+' '+e.platform).casefold() and (self.platform_filter=='all' or self.platform_filter==e.platform) and (self.type_filter=='all' or self.type_filter==entry_type(e))],key=lambda e:e.name.casefold())
     def render(self):
+        previous_focus=getattr(self.get_focus(),'library_entry_id',None)
+        self.library_targets={}
         self.library_dirty=False
         from .originals import pairs
         originals=[(o,p) for o,p in pairs(self.entries) if o.id not in self.preferences.get('hidden_originals',[])]
@@ -111,7 +114,9 @@ class ShellMixin:
         self.reset_page(self.list);self.reset_page(self.covers);self.reset_page(self.platform_groups);self.new_tiles=[];entries=self.visible();total=len(self.shown_entries()[0]);self.library_count.set_text(str(total)+' juegos'+(' · '+str(len(entries))+' visibles' if len(entries)!=total else ''))
         groups={}
         for e in entries:
-            row=Gtk.ListBoxRow();row.entry=e;body=Gtk.Box(spacing=16);body.set_border_width(8);row.add(body)
+            row=Gtk.ListBoxRow();row.entry=e
+            if self.view=='list':self.bind_library_focus(row,e)
+            body=Gtk.Box(spacing=16);body.set_border_width(8);row.add(body)
             if self.selection_mode:
                 check=Gtk.CheckButton();check.set_active(e.id in self.checked);check.connect('toggled',self.toggle,e.id);body.pack_start(check,False,False,0)
             body.pack_start(Poster(e,find_cover(e),48,72),False,False,0);texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.pack_start(label(e.name,'title'),False,False,0);texts.pack_start(label(e.platform+(' · En Steam' if self.in_steam(e) else ''),'meta'),False,False,0);body.pack_start(texts,True,True,0);self.list.add(row)
@@ -125,16 +130,17 @@ class ShellMixin:
         if not entries and total:
             for container in (self.covers,self.list,self.platform_groups):container.add(label('No hay juegos con esos filtros.','muted'))
         self.library_stack.set_visible_child_name(self.view if total else 'empty');self.library_stack.show_all();self.update_selection()
+        if previous_focus:GLib.idle_add(self.focus_library,previous_focus)
         if getattr(self,'animate_next',False):self.animate_next=False;motion.stagger(self.new_tiles,rise=0)
     def add_cover_card(self,e,target=None):
         from .gui import label,Poster
-        tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);tile.set_size_request(164,-1);action=Gtk.Button();action.get_style_context().add_class('poster');action.add(Poster(e,find_cover(e),164,246));action.connect('clicked',lambda _:self.select_game(e));action.set_tooltip_text(e.name)
+        tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);tile.get_style_context().add_class('library-game');tile.set_size_request(164,-1);action=Gtk.Button();action.get_style_context().add_class('poster');action.add(Poster(e,find_cover(e),164,246));action.connect('clicked',lambda _:self.select_game(e));action.set_tooltip_text(e.name);self.bind_library_focus(action,e,tile)
         if e.id in self.checked:action.get_style_context().add_class('selected')
-        tile.pack_start(action,False,False,0);name=label(e.name,'cover-title');name.set_line_wrap(False);name.set_ellipsize(Pango.EllipsizeMode.END);name.set_max_width_chars(19);name.set_tooltip_text(e.name);tile.pack_start(name,False,False,0);tile.pack_start(label(e.platform+(' · Steam' if self.in_steam(e) else ''),'meta'),False,False,0);(target if target is not None else self.covers).add(tile);self.new_tiles.append(tile)
+        tile.pack_start(action,False,False,0);name=label(e.name,'cover-title');name.set_line_wrap(False);name.set_ellipsize(Pango.EllipsizeMode.END);name.set_max_width_chars(19);name.set_tooltip_text(e.name);tile.pack_start(name,False,False,0);tile.pack_start(label(e.platform+(' · Steam' if self.in_steam(e) else ''),'meta'),False,False,0);(target if target is not None else self.covers).add(tile);tile.get_parent().set_can_focus(False);self.new_tiles.append(tile)
     def open_library(self):
         if not self.discard_game_edits():return
         if getattr(self,'library_dirty',False):self.render()
-        self.pages.set_visible_child_name('library')
+        self.pages.set_visible_child_name('library');GLib.idle_add(self.focus_library)
     def type_changed(self,key):self.type_filter=key;self.render()
     def change_view(self,picker):self.view=picker.get_active_id() or 'covers';self.preferences['view']=self.view;save_settings(self.preferences,self.store);self.render()
     def toggle_selection(self):
@@ -151,6 +157,7 @@ class ShellMixin:
             else:self.checked.add(e.id)
             self.render();return
         if not self.discard_game_edits():return
+        self.library_focus_id=e.id
         self.detail_game_id=None;self.selected=e;self.show_detail(e);self.pages.set_visible_child_name('detail');self.game_play_button.grab_focus()
     def add_hub(self):self.catalog_page()
     def settings_page(self):

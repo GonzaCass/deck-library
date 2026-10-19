@@ -57,14 +57,15 @@ def read_configset(path):
     if not isinstance(root,list):raise ValueError('Archivo de controles de Steam no reconocido.')
     return root
 
-def render(pairs):
+def render(pairs,root='controller_config'):
+    def escape(value):return value.replace('\\','\\\\').replace('"','\\"')
     def block(items,depth):
         pad='\t'*depth;out=[]
         for key,value in items:
-            if isinstance(value,list):out.append(f'{pad}"{key}"\n{pad}{{\n'+block(value,depth+1)+f'{pad}}}\n')
-            else:out.append(f'{pad}"{key}"\t\t"{value}"\n')
+            if isinstance(value,list):out.append(f'{pad}"{escape(key)}"\n{pad}{{\n'+block(value,depth+1)+f'{pad}}}\n')
+            else:out.append(f'{pad}"{escape(key)}"\t\t"{escape(value)}"\n')
         return ''.join(out)
-    return '"controller_config"\n{\n'+block(pairs,1)+'}\n'
+    return '"'+root+'"\n{\n'+block(pairs,1)+'}\n'
 
 def write_configset(path,pairs,old_text=None):
     """Atomic write; the previous file is kept next to it."""
@@ -130,13 +131,38 @@ def status(account,appid):
     return result
 
 
+LIBRARY_TEMPLATE='controller_neptune_deck_library_ui.vdf'
+
+def library_mapping(text):
+    """Native gamepad sticks/buttons plus a mouse on the right trackpad only."""
+    from .steam_input import first
+    document=parse_text(text);mapping=first(document,'controller_mappings',None)
+    if not isinstance(mapping,list):raise ValueError('Plantilla de mando de Steam no reconocida.')
+    groups=[value for key,value in mapping if key=='group' and isinstance(value,list)]
+    identifier=str(max([int(first(group,'id','0')) for group in groups]+[-1])+1)
+    mouse=[('id',identifier),('mode','absolute_mouse'),('inputs',[('click',[('activators',[('Soft_Press',[('bindings',[('binding','mouse_button LEFT')])])])])]),('settings',[('sensitivity','145')])]
+    mapping.append(('group',mouse))
+    for key,value in mapping:
+        if key!='preset' or not isinstance(value,list):continue
+        for name,bindings in value:
+            if name=='group_source_bindings' and isinstance(bindings,list):
+                bindings[:]=[(k,v) for k,v in bindings if not isinstance(v,str) or not v.startswith('right_trackpad ')]
+                bindings.append((identifier,'right_trackpad active'))
+    for key,value in [('title','Deck Library'),('description','Palanca izquierda: navegar. Palanca derecha: desplazar. A: seleccionar. B: volver. Trackpad derecho: ratón.'),('revision','2')]:
+        mapping[:]=[(k,v) for k,v in mapping if k!=key];mapping.append((key,value))
+    return render(mapping,root='controller_mappings')
+
 def library_template(account):
-    """Keyboard/mouse navigation for GTK, derived from Steam's installed Deck template."""
-    folder=templates_dir(account);text=(folder/'controller_neptune_wasd.vdf').read_text(encoding='utf-8-sig')
-    keys={'SPACE':'RETURN','E':'ESCAPE','R':'TAB','F':'SPACE','W':'UP_ARROW','S':'DOWN_ARROW','D':'RIGHT_ARROW','A':'LEFT_ARROW'}
-    text=re.sub(r'key_press (SPACE|E|R|F|W|S|D|A)(?=[",])',lambda m:'key_press '+keys[m[1]],text)
-    # The stock keyboard template uses the bumpers for scrolling; this app uses them for sections.
-    text=text.replace('mouse_wheel SCROLL_DOWN','key_press PAGE_UP').replace('mouse_wheel SCROLL_UP','key_press PAGE_DOWN')
-    name='controller_neptune_deck_library_ui.vdf';target=folder/name
-    if not target.exists() or target.read_text()!=text:target.write_text(text)
-    return name
+    """Refresh only our owned template; never change a chosen layout/configset here."""
+    folder=templates_dir(account);text=library_mapping((folder/TEMPLATE.format('neptune')).read_text(encoding='utf-8-sig'))
+    target=folder/LIBRARY_TEMPLATE
+    if not target.exists() or target.read_text(encoding='utf-8')!=text:
+        if target.exists():
+            stamp=datetime.datetime.now().strftime('%Y%m%dT%H%M%S%f');backup=target.with_name(target.name+'.deck-library-backup-'+stamp);backup.write_bytes(target.read_bytes());backup.chmod(0o600)
+        fd,temp=tempfile.mkstemp(prefix='.deck-library-template-',dir=folder)
+        try:
+            with os.fdopen(fd,'w') as out:out.write(text);out.flush();os.fsync(out.fileno())
+            os.replace(temp,target)
+        finally:
+            if os.path.exists(temp):os.unlink(temp)
+    return LIBRARY_TEMPLATE
