@@ -1,0 +1,15 @@
+{
+  "clientId": "deck-library",
+  "name": "Deck Library",
+  "enabled": true,
+  "protocol": "openid-connect",
+  "publicClient": true,
+  "standardFlowEnabled": false,
+  "implicitFlowEnabled": false,
+  "directAccessGrantsEnabled": false,
+  "serviceAccountsEnabled": false,
+  "fullScopeAllowed": false,
+  "attributes": {"oauth2.device.authorization.grant.enabled": "true"},
+  "defaultClientScopes": ["profile", "email"],
+  "optionalClientScopes": []
+}

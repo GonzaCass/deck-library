@@ -45,12 +45,13 @@ class UpdatesMixin:
             chooser.destroy()
             if not image:return
         if not self.confirm('Actualizar Mario Kart Wii',f'Se descarga el setup oficial {info["tag"]} (suma SHA-256 verificada) y se vuelve a compilar el juego con la imagen del disco. Necesita unos 20 GB libres y tarda varios minutos; cerrar el juego antes. Si algo falla, se restaura el setup anterior.','Actualizar'):return
-        self.set_status('Actualizando Mario Kart Wii…')
+        self.set_status('Actualizando Mario Kart Wii…');self.start_transfer('wiicompiled');progress=self.port_progress('wiicompiled')
         def work():
-            try:tag=wiiupdate.update(item,info,image,lambda t:GLib.idle_add(self.set_status,t[-160:]))
-            except Exception as error:GLib.idle_add(self.failed,str(error));return
+            try:tag=wiiupdate.update(item,info,image,progress,transfer=progress)
+            except Exception as error:
+                GLib.idle_add(self.finish_transfer,'wiicompiled',str(error));GLib.idle_add(self.failed,str(error));return
             def done():
-                self.toast('Mario Kart Wii actualizado a '+tag);self.set_status('Mario Kart Wii actualizado a '+tag+'.');self.check_updates(True);return False
+                self.finish_transfer('wiicompiled');self.toast('Mario Kart Wii actualizado a '+tag);self.set_status('Mario Kart Wii actualizado a '+tag+'.');self.check_updates(True);return False
             GLib.idle_add(done)
         threading.Thread(target=work,daemon=True).start()
 
@@ -117,6 +118,10 @@ class UpdatesMixin:
             if key not in seen:seen.add(key);unique.append(item)
         box.pack_start(label('Ports · '+str(len(unique))+' actualizaciones','title'),False,False,0)
         if not unique:box.pack_start(label('No hay actualizaciones de ports en la última revisión.','muted'),False,False,0)
+        active_keys={data.get('repository') or 'wiicompiled' for _,_,data in unique}
+        for key in getattr(self,'transfers',{}):
+            if key not in active_keys:
+                card=self.card(box,key.rsplit('/',1)[-1]);self.transfer_row(card,key)
         for kind,text,data in unique:
             card=self.card(box);row=Gtk.Box(spacing=16);card.pack_start(row,False,False,0);entry=next((e for e in self.entries if normalized(e.name)==normalized(data['name'])),None)
             if entry:row.pack_start(Poster(entry,find_cover(entry),44,66),False,False,0)
@@ -124,6 +129,7 @@ class UpdatesMixin:
             if kind=='wii':row.pack_end(button('Actualizar',lambda _:self.update_wiicompiled(),True),False,False,0)
             elif data.get('repository') and data['repository']!=updates.PROJECT2099_REPO:row.pack_end(button('Actualizar',lambda _,d=data:self.update_catalog_port(d),True),False,False,0)
             if data.get('page'):row.pack_end(Gtk.LinkButton.new_with_label(data['page'],'Publicación original'),False,False,0)
+            self.transfer_row(card,'wiicompiled' if kind=='wii' else data.get('repository') or 'wiicompiled')
             expander=Gtk.Expander(label='Novedades de '+str(data['latest']));notes=label(updates.notes_text(data.get('notes','')) or 'Abrir para consultar las notas del autor.','muted');notes.set_selectable(True);notes.set_max_width_chars(95);notes.set_margin_top(12);expander.add(notes);card.pack_start(expander,False,False,0)
             loaded=['notes' in data]
             if loaded[0] and not data.get('notes'):notes.set_text('Esta fuente no incluye notas para la versión. Podés consultar la publicación original.')
@@ -137,7 +143,7 @@ class UpdatesMixin:
                 threading.Thread(target=work,daemon=True).start()
             expander.connect('notify::expanded',expanded)
         options=Gtk.Expander(label='Opciones de actualización');settings_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);options.add(settings_box);box.pack_start(options,False,False,0)
-        for key,text,default in (('check_updates','Buscar al abrir',True),('auto_update','Actualizar Deck Library automáticamente',True),('catalog_auto','Mantener el catálogo de ajustes actualizado',True),('auto_update_ports','Actualizar ports automáticamente',False)):
+        for key,text,default in (('check_updates','Buscar al abrir',True),('auto_update','Actualizar Deck Library automáticamente',True),('catalog_auto','Mantener el catálogo de ajustes actualizado',True),('community_ratings','Consultar valoraciones comunitarias por juego',True),('auto_update_ports','Actualizar ports automáticamente',False)):
             check=Gtk.CheckButton(label=text);check.set_active(self.preferences.get(key,default))
             def changed(widget,key=key):self.preferences[key]=widget.get_active();save_settings(self.preferences,self.store)
             check.connect('toggled',changed);settings_box.pack_start(check,False,False,0)

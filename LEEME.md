@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.13.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.14.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -87,7 +87,7 @@ Las carátulas tienen formato vertical 2:3. Tocá una para abrir su ficha: **Jug
 
 Para agregar varios juegos, tocar **Seleccionar**, marcar las carátulas y usar **Agregar a Steam** en la barra inferior. Si Steam está abierto, los cambios quedan preparados hasta que lo cierres una vez al terminar. Los accesos aparecen en **No Steam** en modo Juego.
 
-**Agregar juegos** ofrece tres caminos: buscar lo instalado, elegir una ROM/app o preparar Mario Kart Wii. En **Ajustes → Instalaciones y carpetas** se pueden corregir las rutas de emuladores, ports, Prism y bibliotecas en microSD. Los ejecutables Windows necesitan un launcher de Wine/Proton configurado.
+**Catálogo de ports** abre directamente los ports disponibles para instalar. En **Ajustes → Instalaciones y carpetas** se pueden corregir las rutas de emuladores, ports, Prism y bibliotecas en microSD. Los ejecutables Windows necesitan un launcher de Wine/Proton configurado.
 
 ## Carátulas automáticas
 
@@ -111,7 +111,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.13.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.14.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
@@ -128,7 +128,7 @@ Elegí una tarjeta, desplegá **Ver cambios** y pulsá **Aplicar ajustes** para 
 - En Switch, **Base, updates y mods** muestra contenido, versión detectada por Eden y qué NSP está registrado en NAND. Permite elegir una base faltante, instalar updates/DLC propios y mods ZIP LayeredFS. Que un archivo esté disponible en una carpeta no significa que esté instalado en NAND. La versión base puede necesitar consultarse en Eden si no se identifica.
 - **Ajustes recomendados** permite aplicar, respaldar, restaurar, importar/exportar JSON y guardar feedback para compartir. Hay siete perfiles iniciales con su estado de prueba. Algunos son propuestas; no todos están validados jugando.
 
-Para compartir ajustes, usá **Más opciones → Exportar mis ajustes** y enviá el JSON; la otra persona lo carga con **Importar ajustes de un archivo**. **Comunidad** ofrece el servicio opcional de perfiles y feedback con inicio de sesión mediante GitHub. La biblioteca local funciona sin cuenta. Ver [servicio comunitario](docs/COMMUNITY-PRESETS.md).
+Para compartir ajustes, usá **Más opciones → Exportar mis ajustes** y enviá el JSON; la otra persona lo carga con **Importar ajustes de un archivo**. **Comunidad** ofrece el servicio opcional de perfiles y feedback con inicio de sesión con cuenta propia. La biblioteca local funciona sin cuenta. Ver [servicio comunitario](docs/COMMUNITY-PRESETS.md).
 
 El formato y sus límites están explicados en [docs/PRESETS.md](docs/PRESETS.md).
 
@@ -144,7 +144,7 @@ La carátula elegida en Deck Library se copia al grid vertical de Steam al agreg
 
 ## Project-2099
 
-**Agregar juegos → Preparar Project-2099** prepara una ISO de Xbox 360 (o un ZIP/7z que la contenga) con el instalador oficial Beta 4.1 fijado, bajo Proton. Las imágenes de PS3 se rechazan antes de descargar. Incluye un perfil propuesto de 720p / 60 FPS, accesos directos de Steam y detección de ports instalados. La validación de juego sigue pendiente. [Guía](docs/PROJECT2099.md).
+El adaptador de Project-2099 prepara una ISO de Xbox 360 (o un ZIP/7z que la contenga) con el instalador oficial Beta 4.1 fijado, bajo Proton. Las imágenes de PS3 se rechazan antes de descargar. Incluye un perfil propuesto de 720p / 60 FPS, accesos directos de Steam y detección de ports instalados. La validación de juego sigue pendiente. [Guía](docs/PROJECT2099.md).
 
 ## Historial: novedades de la 0.4.0
 
@@ -160,7 +160,7 @@ La carátula elegida en Deck Library se copia al grid vertical de Steam al agreg
 
 ## Historial: cambios 0.11
 
-Interfaz adaptada a la pantalla de la Deck, lista con carátulas, vista por plataforma y aviso fijo de cambios pendientes de Steam. «Configurar juego» reúne las acciones de ajustes. «Conflictos» muestra las rutas coincidentes. Desde Ajustes se puede agregar Deck Library a Steam para abrirla en modo Juego. La comunidad opcional usa GitHub y un servicio propio con SQLite. Ver [interfaz](docs/DECK-INTERFACE.md) y [servicio comunitario](community/README.md).
+Interfaz adaptada a la pantalla de la Deck, lista con carátulas, vista por plataforma y aviso fijo de cambios pendientes de Steam. «Configurar juego» reúne las acciones de ajustes. «Conflictos» muestra las rutas coincidentes. Desde Ajustes se puede agregar Deck Library a Steam para abrirla en modo Juego. La comunidad opcional usa cuentas propias mediante Keycloak y un servicio con SQLite. Ver [interfaz](docs/DECK-INTERFACE.md) y [servicio comunitario](community/README.md).
 
 
 ## Historial: cambios 0.12
@@ -171,3 +171,12 @@ Nueva estructura de la ventana: biblioteca a ancho completo y navegación superi
 ## Cambios 0.13
 
 La ficha del juego se reemplazó por una vista con carátula, acción principal y tarjetas de ajustes. Se retiró la navegación por pestañas del juego. Aplicar y Deshacer permanecen visibles; los cambios y sus errores aparecen en la ficha. Las herramientas secundarias se agrupan por tarea y la selección de perfiles no aplica cambios automáticamente. La cabecera se compacta en ventanas bajas, el foco empieza en Jugar y Escape vuelve primero al juego. Se conserva la integración con Steam, EmuDeck, Quiver, Prism y los perfiles comunitarios.
+
+## Novedades de 0.14
+
+- **Catálogo de ports** reemplaza Explorar; abre el catálogo sin pasos intermedios.
+- Cada port muestra su descarga, porcentaje y tiempo estimado en su propia fila. Durante la compilación se indica la fase; no se estima un porcentaje sin datos.
+- Los ajustes de Eden se presentan como **Equilibrado**, **Rendimiento** y **Calidad**, con iconos y valoraciones reales. Los perfiles sin votos lo indican.
+- **Comunidad → Mi cuenta** permite crear una cuenta o iniciar sesión en el navegador. No necesitás GitHub. Para compartir: **Compartir mis ajustes → Revisar mis ajustes → Publicar perfil**. El aporte queda pendiente de revisión. Las estrellas y los comentarios requieren sesión.
+- En modo Juego: cruceta o stick para navegar, A para activar, B para volver y LB/RB para cambiar de sección. Trackpad derecho y R2 conservan puntero/clic. **Steam + X** abre el teclado. El soporte nativo de mandos usa SDL2, incluido en SteamOS.
+- Se conserva la biblioteca al cambiar de pestaña para evitar reconstruir todas las carátulas.

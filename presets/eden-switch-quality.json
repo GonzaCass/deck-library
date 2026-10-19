@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "id": "eden-switch-quality",
+  "name": "Switch — Calidad",
+  "game": {
+    "id": "switch-quality",
+    "name": "Base para juegos sin preset específico",
+    "platform": "Switch"
+  },
+  "adapter": {
+    "id": "eden",
+    "versions": [
+      "0.2.1"
+    ]
+  },
+  "hardware": [
+    "steam-deck-oled",
+    "steam-deck-lcd"
+  ],
+  "objective": "Mayor nitidez a costa de más carga gráfica",
+  "author": "Deck Library",
+  "license": "MIT",
+  "tested": {
+    "status": "proposal",
+    "date": "2026-10-17",
+    "notes": "Base derivada de los presets incluidos; sin validación de jugabilidad para cada título."
+  },
+  "settings": {
+    "Core": {
+      "use_multi_core": true,
+      "use_speed_limit": true,
+      "speed_limit": 100
+    },
+    "Cpu": {
+      "cpu_accuracy": 0
+    },
+    "System": {
+      "use_docked_mode": false
+    },
+    "Renderer": {
+      "backend": 1,
+      "resolution_setup": 5,
+      "anti_aliasing": 0,
+      "scaling_filter": 1,
+      "gpu_accuracy": 0,
+      "use_disk_shader_cache": true,
+      "use_asynchronous_gpu_emulation": true,
+      "use_asynchronous_shaders": false,
+      "async_presentation": false
+    }
+  },
+  "notes": "Resolución interna 1,5× en modo portátil. Propuesta para comparar imagen y rendimiento: puede reducir los FPS. Conserva la velocidad del juego al 100%. No instala ni activa mods.",
+  "sources": [
+    "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-010036b0034e4000-base.json",
+    "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-01006fe013472000-base.json",
+    "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-0100965017338000-base.json",
+    "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-mk8-ctgp.json",
+    "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-smash-sharp.json"
+  ]
+}

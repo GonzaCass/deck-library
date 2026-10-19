@@ -1,4 +1,4 @@
-"""Optional HTTPS community client; nothing is sent without an explicit action."""
+"""HTTPS community client. Public ratings queries use only game and adapter IDs."""
 import json,os,pathlib,urllib.parse,urllib.request,urllib.error
 from . import presets
 from .models import atomic_json
@@ -28,7 +28,14 @@ class Client:
             raise ValueError(message) from None
         if len(raw)>2*1024*1024:raise ValueError('Respuesta demasiado grande.')
         return json.loads(raw)
-    def start(self):return self.request('/v1/auth/start',{})
+    def providers(self):return self.request('/v1/auth/providers').get('providers',[])
+    def start(self,provider='keycloak'):
+        value=self.request('/v1/auth/start',{'provider':provider})
+        for key in ('verification_uri','verification_uri_complete'):
+            if key not in value:continue
+            url=urllib.parse.urlsplit(value[key])
+            if url.scheme!='https' or not url.netloc or url.username or url.password:raise ValueError('Dirección de autorización no permitida.')
+        return value
     def poll(self,key):
         value=self.request('/v1/auth/poll',{'wait_key':key})
         if value.get('state')=='connected':
@@ -46,8 +53,14 @@ class Client:
         return rows
     def download(self,row):
         value=presets.validate(row['preset']);value={**value,'id':'community-'+row['id']}
+        records=self.metadata();records[value['id']]={k:row[k] for k in ('id','rating','ratings','author') if k in row};atomic_json(self.store.root/'community-profiles.json',records)
         return self._save(value)
+    def metadata(self):
+        try:return json.loads((self.store.root/'community-profiles.json').read_text())
+        except (OSError,ValueError):return {}
     def _save(self,value):
         presets.validate(value);atomic_json(self.store.root/'presets'/(value['id']+'.json'),value);return value
     def publish(self,value):return self.request('/v1/presets',presets.validate(value))
     def feedback(self,row,result,notes=''):return self.request('/v1/presets/'+row['id']+'/feedback',{'result':result,'notes':notes})
+    def comments(self,row):return self.request('/v1/presets/'+row['id']+'/feedback').get('comments',[])
+    def rate(self,row,rating,notes):return self.request('/v1/presets/'+row['id']+'/feedback',{'rating':rating,'notes':notes})

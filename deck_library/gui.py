@@ -84,6 +84,7 @@ button,entry { transition:background 160ms ease-out,border-color 160ms ease-out,
 button.nav { border-radius:9px; padding:6px 12px; }
 button.nav.active { background:#292632; }
 button.nav.active label,button.nav.active image { color:#d6cbff; }
+label.rating { color:#f1d18e; font-size:13px; }
 label.game-title { font-size:29px; font-weight:800; letter-spacing:-0.5px; }
 .compact label.game-title { font-size:20px; }
 label.section-title { font-size:19px; font-weight:700; }
@@ -132,8 +133,8 @@ button.profile-card label.profile-spec { color:#d5caff; font-size:12px; font-wei
 .profile-feedback { padding:1px 2px; color:#c7bbeb; }
 .profile-feedback label { font-size:13px; }
 .change-details { background:#191b22; border:1px solid #333642; border-radius:10px; }
-button.disclosure { padding:2px; min-height:24px; background:transparent; border-color:transparent; }
-button.disclosure label { color:#c7bbeb; font-weight:500; font-size:13px; }
+button.disclosure { padding:6px; min-height:32px; background:transparent; border-color:transparent; }
+button.disclosure label { color:#e0d8ff; font-weight:600; font-size:15px; }
 button.disclosure:hover { background:#26222f; }
 .apply-dock { background:#20212a; border:1px solid #3b3b49; border-radius:13px; padding:13px 16px; }
 label.dock-title { font-weight:700; font-size:15px; }
@@ -185,8 +186,8 @@ class PageStack(Gtk.Stack):
         current=self.get_visible_child_name();old=self.ORDER.get(current,0);new=self.ORDER.get(name,0)
         if not motion.enabled():self.set_transition_type(Gtk.StackTransitionType.NONE);self.set_transition_duration(0)
         else:
-            self.set_transition_duration(260)
-            self.set_transition_type(Gtk.StackTransitionType.SLIDE_LEFT if new>old else Gtk.StackTransitionType.SLIDE_RIGHT if new<old else Gtk.StackTransitionType.CROSSFADE)
+            self.set_transition_duration(140)
+            self.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         super().set_visible_child_name(name)
 
 class Banner(Gtk.DrawingArea):
@@ -247,9 +248,11 @@ class Poster(Gtk.DrawingArea):
 from .gui_actions import ActionsMixin
 from .gui_shell import ShellMixin
 from .gui_game import GameMixin
+from .gui_progress import ProgressMixin
+from .gui_input import InputMixin
 from .gui_editor import EditorMixin
 
-class Window(GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,ActionsMixin,CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
+class Window(InputMixin,ProgressMixin,GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,ActionsMixin,CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self,title='Deck Library');self.init_shell()
 

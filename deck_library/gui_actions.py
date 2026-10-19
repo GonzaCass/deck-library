@@ -53,7 +53,9 @@ class ActionsMixin:
         self.discover_busy=False;self.entries=entries
         if self.selected:self.selected=next((e for e in entries if e.id==self.selected.id),None)
         self.checked&={e.id for e in entries}
-        self.refresh_platforms();self.render();self.set_status(f'{len(entries)} juegos encontrados.');self.wizard_detection_ready(found or report(preferences=self.preferences))
+        self.refresh_platforms();self.library_dirty=True
+        if self.pages.get_visible_child_name()=='library':self.render()
+        self.set_status(f'{len(entries)} juegos encontrados.');self.wizard_detection_ready(found or report(preferences=self.preferences))
         if self.pages.get_visible_child_name()=='detail':
             if self.selected:self.show_detail(self.selected)
             else:self.pages.set_visible_child_name('library')

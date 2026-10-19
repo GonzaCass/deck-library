@@ -135,6 +135,8 @@ def library_template(account):
     folder=templates_dir(account);text=(folder/'controller_neptune_wasd.vdf').read_text(encoding='utf-8-sig')
     keys={'SPACE':'RETURN','E':'ESCAPE','R':'TAB','F':'SPACE','W':'UP_ARROW','S':'DOWN_ARROW','D':'RIGHT_ARROW','A':'LEFT_ARROW'}
     text=re.sub(r'key_press (SPACE|E|R|F|W|S|D|A)(?=[",])',lambda m:'key_press '+keys[m[1]],text)
+    # The stock keyboard template uses the bumpers for scrolling; this app uses them for sections.
+    text=text.replace('mouse_wheel SCROLL_DOWN','key_press PAGE_UP').replace('mouse_wheel SCROLL_UP','key_press PAGE_DOWN')
     name='controller_neptune_deck_library_ui.vdf';target=folder/name
     if not target.exists() or target.read_text()!=text:target.write_text(text)
     return name

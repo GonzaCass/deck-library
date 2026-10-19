@@ -70,7 +70,7 @@ def find_image(entries):
             except ValueError:continue
     return ''
 
-def download(info,target,progress,opener=urllib.request.urlopen):
+def download(info,target,progress,opener=urllib.request.urlopen,transfer=None):
     import hashlib
     if not info['url'].startswith('https://'):raise ValueError('La descarga no usa HTTPS.')
     if not info['sha256']:raise ValueError('La versión publicada no incluye suma SHA-256; no se instala.')
@@ -80,12 +80,14 @@ def download(info,target,progress,opener=urllib.request.urlopen):
         while True:
             chunk=response.read(1<<20)
             if not chunk:break
-            out.write(chunk);digest.update(chunk);count+=len(chunk);progress(f'Descargando el setup: {count//1024**2} MiB'+(f' de {total//1024**2} MiB' if total else ''))
+            out.write(chunk);digest.update(chunk);count+=len(chunk)
+            if transfer:transfer({'phase':'download','done':count,'total':total})
+            else:progress(f'Descargando el setup: {count//1024**2} MiB'+(f' de {total//1024**2} MiB' if total else ''))
     if digest.hexdigest()!=info['sha256'].lower():raise ValueError('La suma SHA-256 del setup no coincide; no se instaló.')
     with open(target,'rb') as check_file:
         if check_file.read(4)!=b'\x7fELF':raise ValueError('La descarga no es un AppImage.')
 
-def update(item,info,image,progress=lambda text:None,run=None,opener=urllib.request.urlopen,cancel=None):
+def update(item,info,image,progress=lambda text:None,run=None,opener=urllib.request.urlopen,cancel=None,transfer=None):
     """Replace the setup tool and run `install --game IMAGE` again. Returns the installed tag."""
     from .setup_wii import run_logged,check_image
     import threading,tempfile
@@ -95,7 +97,7 @@ def update(item,info,image,progress=lambda text:None,run=None,opener=urllib.requ
     version_file=folder/'version.txt';old_version=version_file.read_text() if version_file.exists() else None;backup=tool.with_name(tool.name+'.previous')
     temporary=folder/(ASSET+'.download')
     try:
-        download(info,temporary,progress,opener);temporary.chmod(0o755)
+        download(info,temporary,progress,opener,transfer);temporary.chmod(0o755)
         if backup.exists():backup.unlink()
         tool.rename(backup);new_tool=folder/ASSET;temporary.replace(new_tool)
     except Exception:

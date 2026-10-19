@@ -38,9 +38,9 @@ class PresetTests(unittest.TestCase):
     def test_switch_base_is_bound_to_unknown_titles_without_changing_catalog(self):
         entry=Entry('Other',['/bin/true'],platform='Switch',game_id='0100abcdef120000')
         values=presets.recommended(entry,self.store)
-        self.assertEqual(len(values),3);value=values[0]
-        self.assertEqual(len({json.dumps(v['settings'],sort_keys=True) for v in values}),3)
-        self.assertEqual([v['name'] for v in values],['Switch — Equilibrado','Switch — Rendimiento','Switch — Compatibilidad'])
+        self.assertEqual(len(values),4);value=values[0]
+        self.assertEqual(len({json.dumps(v['settings'],sort_keys=True) for v in values}),4)
+        self.assertEqual([v['name'] for v in values],['Switch — Equilibrado','Switch — Rendimiento','Switch — Calidad','Switch — Compatibilidad'])
         for v in values:self.assertTrue(presets.compatible(entry,v));self.assertEqual(v['tested']['status'],'proposal')
         self.assertEqual(value['game'],{'id':'0100ABCDEF120000','name':'Other','platform':'Switch'})
         self.assertEqual(value['id'],'eden-0100abcdef120000-default')
@@ -55,11 +55,15 @@ class PresetTests(unittest.TestCase):
         for value in self.catalog:
             if value['adapter']['id']!='eden' or value['id'] in presets.SWITCH_BASES:continue
             entry=Entry(value['game']['name'],['/bin/true'],platform='Switch',game_id=value['game']['id'])
-            self.assertEqual(presets.recommended(entry,self.store),[value])
+            values=presets.recommended(entry,self.store)
+            self.assertEqual(values[0]['id'],value['id']);self.assertEqual(values[0]['settings'],value['settings'])
+            self.assertTrue(any(v['name'].endswith('Calidad') for v in values))
         entry=Entry('Other',['/bin/true'],platform='Switch',game_id='0100ABCDEF120000')
         value=presets.recommended(entry,self.store)[0];value['id']='community-other'
         path=self.root/'import.json';path.write_text(json.dumps(value));presets.import_preset(path,self.store)
-        self.assertEqual(presets.recommended(entry,self.store),[value])
+        values=presets.recommended(entry,self.store)
+        self.assertEqual(values[0]['id'],value['id']);self.assertEqual(values[0]['settings'],value['settings'])
+        self.assertTrue(any(v['name'].endswith('Calidad') for v in values))
     def test_switch_base_requires_title_id_and_eden_and_resolves_filename_ids(self):
         for entry in (Entry('Unknown',['/bin/true'],platform='Switch',source=str(self.root/'Unknown.nsp')),Entry('Other',['/bin/true'],platform='Linux',game_id='0100ABCDEF120000'),Entry('Other',['/bin/true'],platform='Switch',game_id='0100ABCDEF120000',metadata={'adapter':'dolphin'})):
             self.assertEqual(presets.recommended(entry,self.store),[])

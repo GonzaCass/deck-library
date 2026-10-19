@@ -39,7 +39,7 @@
     },
     "Renderer": {
       "backend": 1,
-      "resolution_setup": 3,
+      "resolution_setup": 2,
       "anti_aliasing": 0,
       "scaling_filter": 1,
       "gpu_accuracy": 0,
@@ -49,7 +49,7 @@
       "async_presentation": true
     }
   },
-  "notes": "Vulkan, resolución 1×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco presets de Switch incluidos. Precisión GPU normal; shaders y presentación asíncronos activados, como Smash, Mario Kart 8 y Mario Party Superstars. Puede reducir pausas de compilación; comprobar efectos gráficos y estabilidad. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
+  "notes": "Vulkan, resolución 0,75×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco presets de Switch incluidos. Precisión GPU normal; shaders y presentación asíncronos activados, como Smash, Mario Kart 8 y Mario Party Superstars. Puede reducir pausas de compilación; comprobar efectos gráficos y estabilidad. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
   "sources": [
     "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-010036b0034e4000-base.json",
     "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-01006fe013472000-base.json",

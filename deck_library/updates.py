@@ -100,8 +100,22 @@ def refresh_presets(preferences,store):
 def cache_path(store):return store.root/'updates.json'
 
 def cached(store):
-    try:return json.loads(cache_path(store).read_text())
+    try:state=json.loads(cache_path(store).read_text())
     except (OSError,ValueError):return {}
+    if not isinstance(state,dict):return {}
+    from .ports import records
+    installed=records(store)
+    previous=state.get('catalog') or []
+    current=[row for row in previous if not (installed.get(row.get('repository'),{}).get('tag') and not is_newer(row.get('latest'),installed[row['repository']]['tag']))]
+    if current!=previous:state['catalog']=current;atomic_json(cache_path(store),state)
+    return state
+
+def port_completed(store,repository,tag):
+    state=cached(store)
+    for key in ('catalog','ports'):
+        state[key]=[row for row in state.get(key) or [] if row.get('repository','').lower()!=repository.lower() or is_newer(row.get('latest'),tag)]
+    atomic_json(cache_path(store),state)
+    return state
 
 def check_all(store,preferences,entries,force=False,get=fetch_json):
     """Run the checks that are due. Failures of one source never hide the others."""

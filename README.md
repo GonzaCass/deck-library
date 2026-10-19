@@ -27,7 +27,7 @@ Requires Python 3.11+, PyGObject and GTK 3 (available on the Steam Deck used for
 3. If Steam is open, the app shows a persistent pending-changes banner. Finish your other changes, exit Steam once and wait for the banner to disappear. The background worker saves the shortcut and its Deck controls; no per-change restart dialog is shown.
 4. Return to Gaming Mode, find **Deck Library** in Steam's library and press **Play**. The shortcut launches the native Linux app fullscreen, with `--gaming` and its navigation template.
 
-Use the right trackpad and right trigger for pointer/click, the D-pad or stick for navigation, **A** to activate, **B** to go back and **X** for Tab. **Steam + X** opens Steam's on-screen keyboard. Physical controller validation in Gaming Mode is still pending; automated tests cover the shortcut, template and 1280×800 interface.
+Use the right trackpad and right trigger for pointer/click, the D-pad or stick for navigation, **A** to activate, **B** to go back and **LB/RB** to change sections (**X** focuses search with native controller input). **Steam + X** opens Steam's on-screen keyboard. Physical controller validation in Gaming Mode is still pending; automated tests cover the shortcut, template and 1280×800 interface.
 
 ### Add individual games to Steam
 
@@ -39,7 +39,7 @@ For a game already in Steam, **Jugar** uses its existing Steam shortcut and cont
 
 The first launch opens a four-step Spanish onboarding flow: welcome, installation/game detection, artwork provider and library handoff. Discovery runs in the background. Users can add a missing folder or configure an emulator instead of guessing where to start. Repeat onboarding from **Ajustes**.
 
-The library fills the window, with top navigation, 2:3 portrait cards, platform filters and search. Open a cover for the game overview: **Jugar** (green), **Agregar a Steam** (blue), selectable settings cards and a fixed **Aplicar ajustes** action. Selecting a card only previews the profile; changes are written, with a backup, after applying. Technical differences expand under **Ver cambios**. **Controles**, **Contenido** and **Ajustes manuales** open dedicated task pages with a return button. **Más opciones** contains import/export, artwork and shortcut tools. **Seleccionar** reveals batch controls only when needed. **Agregar juegos** offers discovery, manual addition and the Wii preparation wizard.
+The library fills the window, with top navigation, 2:3 portrait cards, platform filters and search. Open a cover for the game overview: **Jugar** (green), **Agregar a Steam** (blue), selectable settings cards and a fixed **Aplicar ajustes** action. Selecting a card only previews the profile; changes are written, with a backup, after applying. Technical differences expand under **Ver cambios**. **Controles**, **Contenido** and **Ajustes manuales** open dedicated task pages with a return button. **Más opciones** contains import/export, artwork and shortcut tools. **Seleccionar** reveals batch controls only when needed. **Catálogo de ports** opens the downloadable port catalog directly. Use **Ajustes → Instalaciones y carpetas** to add discovery folders.
 
 Steam changes accumulate in a persistent banner and are saved when Steam closes. No restart prompt interrupts each change. Settings → Add Deck Library to Steam prepares a fullscreen Gaming Mode shortcut with Deck navigation controls. The library also offers portrait cards, thumbnails in list view, platform groups and a read-only conflict report. See [Deck interface](docs/DECK-INTERFACE.md) and [optional community server](community/README.md). Physical Gaming Mode validation remains a separate check.
 
@@ -121,7 +121,7 @@ A Link to the Past in Spanish: `deck_library.patching.apply_ups` applies the fan
 
 Steam artwork: the game detail page has **Arte de Steam**, backed by `deck_library.steamart` (SteamGridDB API, vertical and horizontal covers, hero, logo with its position JSON, and icon, in the file layout Decky's SteamGridDB plugin writes). Existing files are kept unless a slot is explicitly replaced, replaced files are backed up, images are validated by magic bytes (PNG/JPEG/WebP, 20 MB limit) and written through the same Steam-closed queue as shortcuts. **Settings → Completar arte de todos los accesos de Steam** (`steamart.complete_missing`) fills only empty slots for every shortcut and reports per game. The app needs the user's own SteamGridDB key; the key embedded in Decky's plugin is reserved for it by its author.
 
-UI: left sidebar, overlay game cards, flat controls with one accent colour, visible focus, 150-300 ms ease-out transitions (`deck_library/motion.py`: fades, staggered card entrance, slide between library and detail, toasts), all disabled by the animations switch. The per-game settings dialog starts with the emulator's current values read from its own files. `deck_library/wiiupdate.py` updates a Quiver-managed WiiCompiled in place (SHA-256 from the GitHub digest, `install --game`, rollback of the previous setup tool).
+UI: top navigation, portrait game cards, distinct action colours, visible focus and finite transitions (`deck_library/motion.py`: fades, staggered card entrance, slide between library and detail, toasts), all disabled by the animations switch. The per-game settings dialog starts with the emulator's current values read from its own files. `deck_library/wiiupdate.py` updates a Quiver-managed WiiCompiled in place (SHA-256 from the GitHub digest, `install --game`, rollback of the previous setup tool).
 
 A per-game guide (requirements, what the app sets, limits, how to revert) is in [docs/PORTS.md](docs/PORTS.md) (Spanish). `ports.build_spanish_zelda3` applies a UPS translation patch found in Downloads or the SNES ROM folder when its result has the SHA-1 zelda3 expects.
 
@@ -149,7 +149,7 @@ The [DMC3 Crimson Steam launch notes](docs/DMC3-CRIMSON.md) document a separate,
 
 The [Spider-Man: Shattered Dimensions Steam Deck notes](docs/SPIDER-MAN-SHATTERED-DIMENSIONS.md) record the user-confirmed Windows/Proton setup for audio, voices and controls. It is a guide until Deck Library supports Windows/Proton presets.
 
-Game details expose recommended profiles, a change preview, apply/backup/restore, allowlisted export, JSON import and local feedback export. A user-provided HTTPS raw GitHub catalog can be downloaded without write credentials. No server, database or automatic upload is deployed. See [the portable preset format](docs/PRESETS.md).
+Game details expose recommended profiles, a change preview, apply/backup/restore, allowlisted export, JSON import and local feedback export. A user-provided HTTPS raw GitHub catalog can be downloaded without write credentials. An optional self-hosted SQLite service supports own accounts, real star ratings and comments. Sharing a profile is explicit and moderated. See [the portable preset format](docs/PRESETS.md).
 
 The initial catalog includes WiiCompiled, Eden profiles for Smash, Mario Kart 8 and three Mario Party games, plus a Prism instance preset with Steam Input recommendations. Profiles explicitly distinguish proposals, boot checks and user confirmations; hardware/version matching does not imply universal FPS or compatibility.
 
@@ -178,7 +178,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.13.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.14.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
@@ -186,4 +186,12 @@ Version **0.13.0**. Core tests cover binary Steam preservation, malformed/concur
 
 ## Project-2099
 
-**Agregar juegos → Preparar Project-2099** prepares a supplied Xbox 360 ISO (or a ZIP/7z containing one) using the pinned official Beta 4.1 installer under Proton. PS3 images are rejected before downloads. Includes a proposed 720p / 60 FPS profile, Steam shortcuts and installed-port discovery. Gameplay validation remains pending. [Guía en español](docs/PROJECT2099.md).
+The Project-2099 adapter prepares a supplied Xbox 360 ISO (or a ZIP/7z containing one) using the pinned official Beta 4.1 installer under Proton. PS3 images are rejected before downloads. Includes a proposed 720p / 60 FPS profile, Steam shortcuts and installed-port discovery. Gameplay validation remains pending. [Guía en español](docs/PROJECT2099.md).
+
+## Community accounts and update progress (0.14)
+
+**Comunidad → Mi cuenta → Crear cuenta / Iniciar sesión** opens the configured Keycloak device authorization page in the browser. The desktop app never asks for the account password. Anonymous browsing works without an account; writing requires a session. **Compartir mis ajustes → Revisar mis ajustes → Publicar perfil** exports only allowlisted values and submits the reviewed profile for moderation. Each user can leave one editable 1–5 star rating and comment per public profile. An unrated proposal is labelled **Sin valoraciones**. The server includes the packaged profiles as proposals, without inventing reviews or performance measurements.
+
+Eden cards offer **Equilibrado**, **Rendimiento** (0.75×) and **Calidad** (1.5×), plus compatibility profiles. Title-specific settings keep their original values in the balanced card. These are proposals, not universal performance guarantees. Known emulator-version checks still apply.
+
+Catalog and update rows show download progress, percentage and estimated time from measured bytes. Compilation shows its current phase without an invented completion percentage. Completed/error state stays in that port's row during the current session. Completed installs invalidate stale update notices. Tab changes reuse the existing library and catalog; native SDL2 input supplements Steam's navigation template in Gaming Mode.

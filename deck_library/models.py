@@ -65,6 +65,6 @@ class Store:
                 if not old.game_id:old.game_id=e.game_id
                 if not old.cover:old.cover=e.cover
                 old.metadata={**e.metadata,**old.metadata}
-                for key in ('emulator_version','version','build'):
+                for key in ('emulator_version','version','build','port_tag','configured'):
                     if e.metadata.get(key):old.metadata[key]=e.metadata[key]
         self.save(list(existing.values())); return list(existing.values())

@@ -10,7 +10,7 @@ class DeckUITests(unittest.TestCase):
         from deck_library.models import Store,Entry
         self.gui=gui;self.temp=tempfile.TemporaryDirectory();self.store=Store(self.temp.name)
         self.store.save([Entry('Juego de prueba',['/bin/true'],kind='emulated',platform='Switch',source='/tmp/test.nsp',game_id='0100000000000000')])
-        self.patches=[patch.object(gui_shell,'Store',return_value=self.store),patch.object(gui_shell,'settings',return_value={**DEFAULTS,'onboarding_complete':True,'check_updates':False,'artwork_provider':'off','animations':False,'eden_config':str(pathlib.Path(self.temp.name)/'eden')}),patch.object(gui.Window,'discover',return_value=False),patch.object(gui_shell,'find_accounts',return_value=[]),patch.object(gui_shell,'active_account',return_value=None)]
+        self.patches=[patch.object(gui_shell,'Store',return_value=self.store),patch.object(gui_shell,'settings',return_value={**DEFAULTS,'onboarding_complete':True,'check_updates':False,'artwork_provider':'off','animations':False,'community_ratings':False,'eden_config':str(pathlib.Path(self.temp.name)/'eden')}),patch.object(gui.Window,'discover',return_value=False),patch.object(gui.Window,'load_catalog',return_value=None),patch.object(gui_shell,'find_accounts',return_value=[]),patch.object(gui_shell,'active_account',return_value=None)]
         for p in self.patches:p.start()
         from gi.repository import Gtk,Gdk
         provider=Gtk.CssProvider();provider.load_from_data(gui.CSS);Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
@@ -203,3 +203,50 @@ class DeckUITests(unittest.TestCase):
                 for child in widget.get_children():result.extend(labels(child))
             return result
         self.assertIn('Agregar acceso: '+entry.name,labels(self.w.pending_box))
+
+    def test_tabs_reuse_cover_widgets_and_controller_navigation(self):
+        from gi.repository import Gtk
+        original_cards=list(self.w.covers.get_children())
+        self.w.pages.set_visible_child_name('settings');self.w.open_library()
+        self.assertEqual(original_cards,list(self.w.covers.get_children()))
+        self.w.controller_action('next_tab');self.assertEqual(self.w.pages.get_visible_child_name(),'catalog')
+        self.w.controller_action('back');self.assertEqual(self.w.pages.get_visible_child_name(),'library')
+        tile=self.w.covers.get_children()[0].get_child();button=next(c for c in tile.get_children() if isinstance(c,Gtk.Button))
+        button.grab_focus();self.w.last_controller_action=('',0);self.w.controller_action('activate')
+        self.assertEqual(self.w.pages.get_visible_child_name(),'detail')
+        # A held button / Steam keyboard echo cannot trigger the newly focused Play button.
+        with patch.object(self.w,'play',side_effect=AssertionError('Duplicate controller activation')):
+            self.w.controller_action('activate')
+        self.w.last_controller_action=('',0);self.w.controller_action('back');self.assertEqual(self.w.pages.get_visible_child_name(),'library')
+
+    def test_update_progress_is_measured_and_inline(self):
+        self.w.update_state={'catalog':[{'name':'Test port','repository':'example/test','installed':'v1','latest':'v2'}]}
+        self.w.updates_page();self.w.start_transfer('example/test');self.w.transfer_event('example/test',{'phase':'download','done':25,'total':100})
+        box,bar,status=self.w.transfer_views['example/test'][0]
+        self.assertTrue(box.get_visible());self.assertEqual(bar.get_fraction(),.25);self.assertIn('25%',status.get_text())
+        self.assertIs(box.get_toplevel(),self.w)
+        self.w.finish_transfer('example/test');self.assertEqual(bar.get_fraction(),1)
+
+    def test_community_dialog_bounds_and_guided_publication(self):
+        from gi.repository import Gtk,GLib
+        from deck_library.community import Client
+        original=Gtk.Dialog.run;sizes=[];labels=[]
+        def walk(widget):
+            if isinstance(widget,Gtk.Button):labels.append(widget.get_label())
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():walk(child)
+        def run(dialog):
+            def capture():
+                sizes.append(dialog.get_size());walk(dialog)
+                stacks=[]
+                def find(widget):
+                    if isinstance(widget,Gtk.Stack):stacks.append(widget)
+                    if isinstance(widget,Gtk.Container):
+                        for child in widget.get_children():find(child)
+                find(dialog)
+                stack=stacks[0];self.assertEqual(stack.get_visible_child_name(),'publish')
+                dialog.response(Gtk.ResponseType.CLOSE);return False
+            GLib.timeout_add(200,capture);return original(dialog)
+        with patch.object(Client,'search',return_value=[]),patch.object(Gtk.Dialog,'run',run):self.w.community_dialog(self.w.entries[0],mode='publish')
+        self.assertLessEqual(sizes[0].width,1232);self.assertLessEqual(sizes[0].height,696)
+        self.assertIn('Revisar mis ajustes',labels);self.assertIn('Publicar perfil',labels)

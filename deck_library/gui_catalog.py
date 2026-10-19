@@ -11,6 +11,8 @@ ICON_SIZE=56
 class CatalogMixin:
     def catalog_page(self):
         from .gui import label,button
+        if getattr(self,'catalog_ready',False):self.pages.set_visible_child_name('catalog');return
+        self.catalog_ready=True
         box=self.catalog_box;self.reset_page(box)
         head=Gtk.Box(spacing=12);titles=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
         titles.pack_start(label('Catálogo de ports','hero'),False,False,0)
@@ -77,6 +79,7 @@ class CatalogMixin:
             else:side.pack_start(button('Instalar',lambda _,i=item:self.install_port(i,False)),False,False,0)
             if 'Agregado' in item['source']:side.pack_start(button('Quitar de la lista',lambda _,i=item:self.remove_repository(i),tone='danger'),False,False,0)
             row.pack_end(side,False,False,0);self.catalog_rows.pack_start(row,False,False,0)
+            self.transfer_row(texts,item['repository'])
         self.catalog_rows.show_all();self.load_icons(images,generation);self.check_kits(kits,generation)
 
     def prepare_shaders(self):
@@ -163,15 +166,20 @@ class CatalogMixin:
         needs_sdk=item.get('kit') and not buildenv.installed()
         if needs_sdk and not self.confirm('Entorno de compilación','Este port compila el juego en la Deck a partir del disco propio. Para eso hace falta el SDK de KDE '+buildenv.BRANCH+' de Flatpak (descarga de Flathub, varios cientos de MB hasta unos GB). Se instala una sola vez para este usuario y no modifica SteamOS.','Instalar y continuar'):return
         self.port_busy=True;self.set_status('Instalando '+item['name']+'…')
+        self.start_transfer(item['repository']);progress=self.port_progress(item['repository'])
         def work():
             try:
                 if needs_sdk:buildenv.install(lambda text:GLib.idle_add(self.set_status,'SDK de KDE: '+text))
-                record=ports.install(item,self.store,progress=lambda text:GLib.idle_add(self.set_status,text),replace=replace);GLib.idle_add(self.port_installed,item,record)
+                record=ports.install(item,self.store,progress=progress,transfer=progress,replace=replace);GLib.idle_add(self.port_installed,item,record)
             except Exception as error:GLib.idle_add(self.port_failed,item,str(error))
         threading.Thread(target=work,daemon=True).start()
 
     def port_installed(self,item,record):
+        from . import updates
         self.port_busy=False
+        updates.port_completed(self.store,item['repository'],record.get('tag',''))
+        self.transfer_event(item['repository'],'Descarga verificada; configuración pendiente.' if record.get('setup') else 'Instalación completada.')
+        if not record.get('setup'):self.finish_transfer(item['repository'])
         if record.get('setup'):
             self.set_status(item['name']+' instalado. Preparando la configuración…');self.configure_port(item,automatic=True)
         elif record.get('sandbox'):self.message(item['name']+' instalado','Abrirlo desde la biblioteca inicia el asistente: pide el disco y la BIOS propios y compila el juego dentro del SDK de KDE (la primera vez tarda varios minutos). Después se agrega a Steam como cualquier otro juego.')
@@ -198,15 +206,17 @@ class CatalogMixin:
         question='Se va a configurar '+item['name']+' con lo que ya está en la Deck.\n\n'+'\n'.join(text for ok,text in lines)+'\n\n'+('Compila el juego dentro del SDK de KDE; el kit de Spider-Man tarda unos minutos. ' if record['setup'] in ('kit','openpete') else '')+('Antes se instalará el SDK de KDE de Flatpak (una sola vez). ' if needs_sdk else '')+'Los discos originales no se modifican.'
         if not self.confirm('Configurar '+item['name'],question,'Configurar'):return
         self.port_busy=True;self.set_status('Configurando '+item['name']+'…')
+        self.start_transfer(item['repository']);progress=self.port_progress(item['repository'])
         def work():
             try:
                 if needs_sdk:buildenv.install(lambda text:GLib.idle_add(self.set_status,'SDK de KDE: '+text))
-                done=ports.configure(item['repository'],self.store,games,lambda text:GLib.idle_add(self.set_status,item['name']+': '+text))
+                done=ports.configure(item['repository'],self.store,games,progress)
                 GLib.idle_add(self.port_configured,item,done)
             except Exception as error:GLib.idle_add(self.port_failed,item,str(error))
         threading.Thread(target=work,daemon=True).start()
 
     def port_configured(self,item,record):
+        self.finish_transfer(item['repository'])
         self.port_busy=False;self.set_status(item['name']+' configurado con «'+record.get('configured_with','')+'».');self.discover()
         notes={'ctr':'La primera vez, CTR pregunta por una fuente opcional (elegir «Use Luckiest Guy») y por un preset de gráficos.','openpete':'El juego ya está compilado. Se abre en pantalla completa.','kit':'El juego ya está compilado y listo para jugar.'}
         if notes.get(record.get('setup')):self.message(item['name']+' listo',notes[record['setup']]+' Se puede agregar a Steam desde la biblioteca.')
@@ -214,4 +224,5 @@ class CatalogMixin:
         return False
 
     def port_failed(self,item,text):
+        self.finish_transfer(item['repository'],text)
         self.port_busy=False;self.set_status('No se pudo instalar '+item['name']+'.');self.message('Instalación de '+item['name'],text);return False

@@ -32,8 +32,10 @@ class ShellMixin:
         else:GLib.idle_add(self.discover)
         if self.preferences.get('check_updates',True):self.ui_sources.append(GLib.timeout_add_seconds(5,self.check_updates))
         path=self.store.root/'last-sync.json';self.last_sync_seen=path.stat().st_mtime if path.exists() else 0;self.ui_sources.append(GLib.timeout_add_seconds(3,self.poll_sync));self.refresh_pending()
+        self.start_gamepad()
     def close_ui_sources(self,*_):
         self.ui_closed=True
+        if hasattr(self,'gamepad_driver'):self.gamepad_driver.close()
         for ident in self.ui_sources:
             if GLib.MainContext.default().find_source_by_id(ident):GLib.source_remove(ident)
         self.ui_sources.clear()
@@ -42,11 +44,11 @@ class ShellMixin:
         from .gui import label,button
         from .ui_components import Icon
         bar=Gtk.Box(spacing=8);bar.get_style_context().add_class('app-header');bar.set_border_width(12);root.pack_start(bar,False,False,0)
-        icon=Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(str(self.asset('icon.png')),32,32,True));bar.pack_start(icon,False,False,8);brand=label('Deck Library','brand');brand.set_margin_end(22);bar.pack_start(brand,False,False,0)
+        icon=Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(str(self.asset('icon.png')),32,32,True));bar.pack_start(icon,False,False,8);brand=label('Deck Library','brand');brand.set_margin_end(8);bar.pack_start(brand,False,False,0)
         self.nav_buttons={};self.update_badge=label('','badge');self.update_badge.set_no_show_all(True)
-        for name,callback in [('Biblioteca',lambda _:self.open_library()),('Explorar',lambda _:self.add_hub()),('Actualizaciones',lambda _:self.updates_page()),('Ajustes',lambda _:self.settings_page())]:
+        for name,callback in [('Biblioteca',lambda _:self.open_library()),('Catálogo de ports',lambda _:self.catalog_page()),('Actualizaciones',lambda _:self.updates_page()),('Ajustes',lambda _:self.settings_page())]:
             control=button(name,lambda w,action=callback:self.navigate_from_game(action,w));control.get_style_context().add_class('nav');bar.pack_start(control,False,False,0);self.nav_buttons[name]=control
-            caption=control.get_child();control.remove(caption);content=Gtk.Box(spacing=7);content.pack_start(Icon({'Biblioteca':'library','Explorar':'plus','Actualizaciones':'download','Ajustes':'sliders'}[name],18),False,False,0);content.pack_start(caption,False,False,0);control.add(content);control.get_accessible().set_name(name)
+            caption=control.get_child();control.remove(caption);content=Gtk.Box(spacing=7);content.pack_start(Icon({'Biblioteca':'library','Catálogo de ports':'plus','Actualizaciones':'download','Ajustes':'sliders'}[name],18),False,False,0);content.pack_start(caption,False,False,0);control.add(content);control.get_accessible().set_name(name)
             if name=='Actualizaciones':
                 content.pack_start(self.update_badge,False,False,0)
         version=label(__version__,'meta');bar.pack_end(version,False,False,12)
@@ -59,7 +61,7 @@ class ShellMixin:
         if title:box.pack_start(label(title,'title'),False,False,0)
         parent.pack_start(box,False,False,0);return box
     def page_changed(self,*_):
-        page=self.pages.get_visible_child_name();active={'library':'Biblioteca','detail':'Biblioteca','add':'Explorar','catalog':'Explorar','updates':'Actualizaciones','settings':'Ajustes','pending':'Actualizaciones'}.get(page)
+        page=self.pages.get_visible_child_name();active={'library':'Biblioteca','detail':'Biblioteca','add':'Catálogo de ports','catalog':'Catálogo de ports','updates':'Actualizaciones','settings':'Ajustes','pending':'Actualizaciones'}.get(page)
         for name,control in self.nav_buttons.items():
             style=control.get_style_context();style.add_class('active') if name==active else style.remove_class('active')
     def build_library_page(self):
@@ -96,6 +98,7 @@ class ShellMixin:
         text=self.search.get_text().casefold();entries,_=self.shown_entries()
         return sorted([e for e in entries if text in (e.name+' '+e.platform).casefold() and (self.platform_filter=='all' or self.platform_filter==e.platform) and (self.type_filter=='all' or self.type_filter==entry_type(e))],key=lambda e:e.name.casefold())
     def render(self):
+        self.library_dirty=False
         from .gui import label,Poster
         self.reset_page(self.list);self.reset_page(self.covers);self.reset_page(self.platform_groups);self.new_tiles=[];entries=self.visible();total=len(self.shown_entries()[0]);self.library_count.set_text(str(total)+' juegos'+(' · '+str(len(entries))+' visibles' if len(entries)!=total else ''))
         groups={}
@@ -122,7 +125,8 @@ class ShellMixin:
         tile.pack_start(action,False,False,0);name=label(e.name,'cover-title');name.set_line_wrap(False);name.set_ellipsize(Pango.EllipsizeMode.END);name.set_max_width_chars(19);name.set_tooltip_text(e.name);tile.pack_start(name,False,False,0);tile.pack_start(label(e.platform+(' · Steam' if self.in_steam(e) else ''),'meta'),False,False,0);(target if target is not None else self.covers).add(tile);self.new_tiles.append(tile)
     def open_library(self):
         if not self.discard_game_edits():return
-        self.pages.set_visible_child_name('library');self.render()
+        if getattr(self,'library_dirty',False):self.render()
+        self.pages.set_visible_child_name('library')
     def type_changed(self,key):self.type_filter=key;self.render()
     def change_view(self,picker):self.view=picker.get_active_id() or 'covers';self.preferences['view']=self.view;save_settings(self.preferences,self.store);self.render()
     def toggle_selection(self):
@@ -140,14 +144,7 @@ class ShellMixin:
             self.render();return
         if not self.discard_game_edits():return
         self.detail_game_id=None;self.selected=e;self.show_detail(e);self.pages.set_visible_child_name('detail');self.game_play_button.grab_focus()
-    def add_hub(self):
-        from .gui import label,button,wrap_row
-        self.reset_page(self.add_box);self.add_box.pack_start(label('Agregar juegos','hero'),False,False,0)
-        row=wrap_row();self.add_box.pack_start(row,False,False,0)
-        for title,detail,action in [('Buscar en esta Deck','Detectar juegos, EmuDeck, Quiver y Prism.',lambda _:self.discover()),('Elegir un archivo','Agregar una ROM, un port o una aplicación.',lambda _:self.manual()),('Catálogo de ports','Buscar e instalar ports disponibles.',lambda _:self.catalog_page())]:
-            box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);box.get_style_context().add_class('card');box.pack_start(label(title,'title'),False,False,0);description=label(detail,'muted');description.set_max_width_chars(28);box.pack_start(description,True,True,0);box.pack_start(button('Abrir',action,True),False,False,0);row.pack_start(box,True,True,0)
-        more=self.card(self.add_box,'Preparar un juego');more.pack_start(button('Mario Kart Wii',lambda _:self.setup_wii_dialog()),False,False,0);more.pack_start(button('Spider-Man: Edge of Time',lambda _:self.project2099_dialog()),False,False,0)
-        self.add_box.pack_start(button('Instalaciones y carpetas',lambda _:self.installation_dialog()),False,False,0);self.add_box.show_all();self.pages.set_visible_child_name('add')
+    def add_hub(self):self.catalog_page()
     def settings_page(self):
         from .gui import label,button
         self.reset_page(self.settings_box);self.settings_box.pack_start(label('Ajustes','hero'),False,False,0)

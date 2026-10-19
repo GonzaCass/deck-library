@@ -19,6 +19,8 @@ def intent(profile):
     ident = profile['id']
     if ident.endswith('-performance'):
         return 'speed', 'Compilación en segundo plano para reducir pausas.'
+    if ident.endswith('-quality'):
+        return 'monitor', 'Mayor resolución interna para una imagen más nítida.'
     if ident.endswith('-compatibility'):
         return 'shield', 'Mayor precisión gráfica; puede reducir el rendimiento.'
     if ident.endswith('-default'):

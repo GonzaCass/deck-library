@@ -1,7 +1,11 @@
 *
 !community/
 !community/**
+!presets/
+!presets/**
 !deck_library/
+!presets/
+!presets/**
 !deck_library/**
 **/__pycache__
 **/*.pyc

@@ -273,208 +273,62 @@
     },
     {
       "schema_version": 1,
-      "id": "prism-minecraft-deck",
-      "name": "Minecraft Java — memoria y pantalla Deck",
+      "id": "eden-switch-compatibility",
+      "name": "Switch — Compatibilidad",
       "game": {
-        "id": "minecraft-java",
-        "name": "Minecraft Java",
-        "platform": "Minecraft"
+        "id": "switch-compatibility",
+        "name": "Base para juegos sin preset específico",
+        "platform": "Switch"
       },
       "adapter": {
-        "id": "prism",
+        "id": "eden",
         "versions": [
-          "11.1.1"
+          "0.2.1"
         ]
       },
       "hardware": [
         "steam-deck-oled",
         "steam-deck-lcd"
       ],
-      "objective": "Nitidez y estabilidad",
+      "objective": "Compatibilidad para juegos sin preset específico",
       "author": "Deck Library",
       "license": "MIT",
       "tested": {
         "status": "proposal",
-        "date": "2026-10-01",
-        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+        "date": "2026-10-17",
+        "notes": "Base derivada de los presets incluidos; sin validación de jugabilidad para cada título."
       },
       "settings": {
-        "General": {
-          "OverrideMemory": true,
-          "MinMemAlloc": 1024,
-          "MaxMemAlloc": 6144,
-          "OverrideWindow": true,
-          "MinecraftWinWidth": 1280,
-          "MinecraftWinHeight": 800
-        }
-      },
-      "notes": "Base para probar: los modpacks pesados pueden necesitar otro límite. No cambia Java, mods, cuentas ni opciones del mundo. Para controles usar la plantilla Teclado (WASD) y ratón de Steam y adaptar según las teclas reales de la instancia.",
-      "sources": [],
-      "layout": {
-        "template": "keyboard-mouse",
-        "bindings": {
-          "Stick izquierdo": "WASD: movimiento",
-          "Trackpad derecho": "Ratón: cámara",
-          "RT": "Clic izquierdo: golpear/minar",
-          "LT": "Clic derecho: usar/colocar",
-          "A": "Espacio: saltar",
-          "B": "Shift: agacharse",
-          "X": "E: inventario",
-          "Y": "Q: soltar",
-          "Start": "Escape: menú",
-          "LB/RB": "Rueda del ratón: barra rápida"
+        "Core": {
+          "use_multi_core": true,
+          "use_speed_limit": true,
+          "speed_limit": 100
         },
-        "notes": "Es una recomendación visible; el usuario selecciona y ajusta el layout en Steam. Mods de controles pueden requerir gamepad en vez de teclado."
-      }
-    },
-    {
-      "schema_version": 1,
-      "id": "wiicompiled-rmcp01-sharp",
-      "name": "Mario Kart Wii — nitidez 1.5×",
-      "game": {
-        "id": "RMCP01",
-        "name": "Mario Kart Wii",
-        "platform": "WiiCompiled"
-      },
-      "adapter": {
-        "id": "wiicompiled",
-        "versions": [
-          "0.2.33"
-        ]
-      },
-      "hardware": [
-        "steam-deck-oled",
-        "steam-deck-lcd"
-      ],
-      "objective": "Nitidez y estabilidad",
-      "author": "Deck Library",
-      "license": "MIT",
-      "tested": {
-        "status": "user-confirmed",
-        "date": "2026-10-01",
-        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
-      },
-      "settings": {
-        "video": {
-          "resolution_multiplier": 1.5,
-          "disable_copy_filter": true,
-          "frame_interpolation_fps": 0,
-          "graphics_api": "vulkan",
-          "display_mode": "borderless",
-          "skip_unready_pipelines": true,
-          "show_fps": true
+        "Cpu": {
+          "cpu_accuracy": 0
         },
-        "audio": {
-          "mix_worker": true
+        "System": {
+          "use_docked_mode": false
+        },
+        "Renderer": {
+          "backend": 1,
+          "resolution_setup": 3,
+          "anti_aliasing": 0,
+          "scaling_filter": 1,
+          "gpu_accuracy": 1,
+          "use_disk_shader_cache": true,
+          "use_asynchronous_gpu_emulation": true,
+          "use_asynchronous_shaders": false,
+          "async_presentation": false
         }
       },
-      "notes": "El usuario confirmó buena imagen y rendimiento en Gaming Mode. El preset no cambia rutas ni controles; el ajuste de salida F12 pertenece al parche del ejecutable, aplicado por el asistente de recompilación compatible.",
-      "sources": []
-    },
-    {
-      "schema_version": 1,
-      "id": "project2099-deck-720p60",
-      "name": "Project 2099 — Steam Deck 720p / 60 FPS",
-      "game": {
-        "id": "415608B2",
-        "name": "Spider-Man: Edge of Time",
-        "platform": "Windows"
-      },
-      "adapter": {
-        "id": "project2099",
-        "versions": [
-          "2.0.0-beta.4.1"
-        ]
-      },
-      "hardware": [
-        "steam-deck-lcd",
-        "steam-deck-oled"
-      ],
-      "objective": "Nitidez nativa y objetivo de 60 FPS",
-      "author": "Deck Library",
-      "license": "MIT",
-      "tested": {
-        "status": "proposal",
-        "date": "2026-10-01",
-        "notes": "Configuración inicial; falta validar jugando en modo Juego."
-      },
-      "settings": {
-        "runtime": {
-          "window_width": 1280,
-          "window_height": 720,
-          "fullscreen": true,
-          "gpu_backend": "d3d12",
-          "resolution_scale": 1,
-          "eot_internal_scale": 1,
-          "genry_eot_target_fps": 60,
-          "d3d12_present_frame_limiter": true,
-          "d3d12_present_frame_limiter_fps": 60.0,
-          "vsync": false,
-          "anisotropic_override": 4,
-          "async_shader_compilation": true,
-          "store_shaders": true,
-          "input_backend": "xinput",
-          "mnk_mode": false
-        }
-      },
-      "notes": "Proton 11.0, DirectX 12 mediante VKD3D. Mantiene el antialiasing Native AA original y renderizado 1×; sin DLSS/ReShade ni generación de cuadros. 720p conserva 16:9. Usá el layout Gamepad de Steam; no el de Escritorio. En OLED, 60 FPS a 60 Hz para cadencia uniforme; 90 Hz no implica 90 FPS. El rendimiento durante transiciones debe probarse.",
+      "notes": "Vulkan, resolución 1×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco presets de Switch incluidos. Precisión GPU alta como Super Mario Party; shaders y presentación asíncronos desactivados como Super Mario Party y Jamboree. Puede reducir errores gráficos a costa de rendimiento. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
       "sources": [
-        "https://github.com/GenryTheFox0/Project-2099/blob/main/README.md"
-      ]
-    },
-    {
-      "schema_version": 1,
-      "id": "project2099-deck-1080p-performance",
-      "name": "Project 2099 — salida 1080p / FSR espacial",
-      "game": {
-        "id": "415608B2",
-        "name": "Spider-Man: Edge of Time",
-        "platform": "Windows"
-      },
-      "adapter": {
-        "id": "project2099",
-        "versions": [
-          "2.0.0-beta.4.1"
-        ]
-      },
-      "hardware": [
-        "steam-deck-lcd",
-        "steam-deck-oled"
-      ],
-      "objective": "Comparar rendimiento y texto original con salida 1080p",
-      "author": "Deck Library",
-      "license": "MIT",
-      "tested": {
-        "status": "proposal",
-        "date": "2026-10-02",
-        "notes": "El usuario reportó unos 30 FPS y letras acentuadas desplazadas con Native AA. Esta alternativa requiere una nueva prueba."
-      },
-      "settings": {
-        "runtime": {
-          "window_width": 1920,
-          "window_height": 1080,
-          "fullscreen": true,
-          "gpu_backend": "d3d12",
-          "resolution_scale": 1,
-          "eot_internal_scale": 1,
-          "genry_eot_target_fps": 60,
-          "d3d12_present_frame_limiter": true,
-          "d3d12_present_frame_limiter_fps": 60.0,
-          "vsync": false,
-          "anisotropic_override": 4,
-          "async_shader_compilation": true,
-          "store_shaders": true,
-          "input_backend": "xinput",
-          "mnk_mode": false,
-          "present_effect": "fsr",
-          "eot_pc_raster_glyphs": false,
-          "eot_pc_prompt_labels": false
-        }
-      },
-      "notes": "Salida 1080p, renderizado interno nativo 720p (1×) y objetivo de 60 FPS. FSR espacial sustituye la ruta temporal experimental Native AA: puede reducir coste y artefactos temporales, pero no equivale a antialiasing temporal y puede mostrar más serruchos. Desactiva la sustitución de glifos y textos de PC para probar las letras acentuadas y conservar los símbolos Xbox originales. No incorpora iconos PlayStation. No hay garantía de 60 FPS. Conserva idioma, partidas, mods y shaders.",
-      "sources": [
-        "https://github.com/GenryTheFox0/Project-2099/blob/main/README.md",
-        "https://github.com/rexglue/rexglue-sdk/blob/main/src/ui/presenter.cpp"
+        "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-010036b0034e4000-base.json",
+        "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-01006fe013472000-base.json",
+        "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-0100965017338000-base.json",
+        "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-mk8-ctgp.json",
+        "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-smash-sharp.json"
       ]
     },
     {
@@ -578,7 +432,7 @@
         },
         "Renderer": {
           "backend": 1,
-          "resolution_setup": 3,
+          "resolution_setup": 2,
           "anti_aliasing": 0,
           "scaling_filter": 1,
           "gpu_accuracy": 0,
@@ -588,7 +442,7 @@
           "async_presentation": true
         }
       },
-      "notes": "Vulkan, resolución 1×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco presets de Switch incluidos. Precisión GPU normal; shaders y presentación asíncronos activados, como Smash, Mario Kart 8 y Mario Party Superstars. Puede reducir pausas de compilación; comprobar efectos gráficos y estabilidad. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
+      "notes": "Vulkan, resolución 0,75×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco presets de Switch incluidos. Precisión GPU normal; shaders y presentación asíncronos activados, como Smash, Mario Kart 8 y Mario Party Superstars. Puede reducir pausas de compilación; comprobar efectos gráficos y estabilidad. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
       "sources": [
         "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-010036b0034e4000-base.json",
         "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-01006fe013472000-base.json",
@@ -599,10 +453,10 @@
     },
     {
       "schema_version": 1,
-      "id": "eden-switch-compatibility",
-      "name": "Switch — Compatibilidad",
+      "id": "eden-switch-quality",
+      "name": "Switch — Calidad",
       "game": {
-        "id": "switch-compatibility",
+        "id": "switch-quality",
         "name": "Base para juegos sin preset específico",
         "platform": "Switch"
       },
@@ -616,7 +470,7 @@
         "steam-deck-oled",
         "steam-deck-lcd"
       ],
-      "objective": "Compatibilidad para juegos sin preset específico",
+      "objective": "Mayor nitidez a costa de más carga gráfica",
       "author": "Deck Library",
       "license": "MIT",
       "tested": {
@@ -638,17 +492,17 @@
         },
         "Renderer": {
           "backend": 1,
-          "resolution_setup": 3,
+          "resolution_setup": 5,
           "anti_aliasing": 0,
           "scaling_filter": 1,
-          "gpu_accuracy": 1,
+          "gpu_accuracy": 0,
           "use_disk_shader_cache": true,
           "use_asynchronous_gpu_emulation": true,
           "use_asynchronous_shaders": false,
           "async_presentation": false
         }
       },
-      "notes": "Vulkan, resolución 1×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco presets de Switch incluidos. Precisión GPU alta como Super Mario Party; shaders y presentación asíncronos desactivados como Super Mario Party y Jamboree. Puede reducir errores gráficos a costa de rendimiento. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
+      "notes": "Resolución interna 1,5× en modo portátil. Propuesta para comparar imagen y rendimiento: puede reducir los FPS. Conserva la velocidad del juego al 100%. No instala ni activa mods.",
       "sources": [
         "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-010036b0034e4000-base.json",
         "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-01006fe013472000-base.json",
@@ -656,6 +510,212 @@
         "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-mk8-ctgp.json",
         "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-smash-sharp.json"
       ]
+    },
+    {
+      "schema_version": 1,
+      "id": "prism-minecraft-deck",
+      "name": "Minecraft Java — memoria y pantalla Deck",
+      "game": {
+        "id": "minecraft-java",
+        "name": "Minecraft Java",
+        "platform": "Minecraft"
+      },
+      "adapter": {
+        "id": "prism",
+        "versions": [
+          "11.1.1"
+        ]
+      },
+      "hardware": [
+        "steam-deck-oled",
+        "steam-deck-lcd"
+      ],
+      "objective": "Nitidez y estabilidad",
+      "author": "Deck Library",
+      "license": "MIT",
+      "tested": {
+        "status": "proposal",
+        "date": "2026-10-01",
+        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+      },
+      "settings": {
+        "General": {
+          "OverrideMemory": true,
+          "MinMemAlloc": 1024,
+          "MaxMemAlloc": 6144,
+          "OverrideWindow": true,
+          "MinecraftWinWidth": 1280,
+          "MinecraftWinHeight": 800
+        }
+      },
+      "notes": "Base para probar: los modpacks pesados pueden necesitar otro límite. No cambia Java, mods, cuentas ni opciones del mundo. Para controles usar la plantilla Teclado (WASD) y ratón de Steam y adaptar según las teclas reales de la instancia.",
+      "sources": [],
+      "layout": {
+        "template": "keyboard-mouse",
+        "bindings": {
+          "Stick izquierdo": "WASD: movimiento",
+          "Trackpad derecho": "Ratón: cámara",
+          "RT": "Clic izquierdo: golpear/minar",
+          "LT": "Clic derecho: usar/colocar",
+          "A": "Espacio: saltar",
+          "B": "Shift: agacharse",
+          "X": "E: inventario",
+          "Y": "Q: soltar",
+          "Start": "Escape: menú",
+          "LB/RB": "Rueda del ratón: barra rápida"
+        },
+        "notes": "Es una recomendación visible; el usuario selecciona y ajusta el layout en Steam. Mods de controles pueden requerir gamepad en vez de teclado."
+      }
+    },
+    {
+      "schema_version": 1,
+      "id": "project2099-deck-1080p-performance",
+      "name": "Project 2099 — salida 1080p / FSR espacial",
+      "game": {
+        "id": "415608B2",
+        "name": "Spider-Man: Edge of Time",
+        "platform": "Windows"
+      },
+      "adapter": {
+        "id": "project2099",
+        "versions": [
+          "2.0.0-beta.4.1"
+        ]
+      },
+      "hardware": [
+        "steam-deck-lcd",
+        "steam-deck-oled"
+      ],
+      "objective": "Comparar rendimiento y texto original con salida 1080p",
+      "author": "Deck Library",
+      "license": "MIT",
+      "tested": {
+        "status": "proposal",
+        "date": "2026-10-02",
+        "notes": "El usuario reportó unos 30 FPS y letras acentuadas desplazadas con Native AA. Esta alternativa requiere una nueva prueba."
+      },
+      "settings": {
+        "runtime": {
+          "window_width": 1920,
+          "window_height": 1080,
+          "fullscreen": true,
+          "gpu_backend": "d3d12",
+          "resolution_scale": 1,
+          "eot_internal_scale": 1,
+          "genry_eot_target_fps": 60,
+          "d3d12_present_frame_limiter": true,
+          "d3d12_present_frame_limiter_fps": 60.0,
+          "vsync": false,
+          "anisotropic_override": 4,
+          "async_shader_compilation": true,
+          "store_shaders": true,
+          "input_backend": "xinput",
+          "mnk_mode": false,
+          "present_effect": "fsr",
+          "eot_pc_raster_glyphs": false,
+          "eot_pc_prompt_labels": false
+        }
+      },
+      "notes": "Salida 1080p, renderizado interno nativo 720p (1×) y objetivo de 60 FPS. FSR espacial sustituye la ruta temporal experimental Native AA: puede reducir coste y artefactos temporales, pero no equivale a antialiasing temporal y puede mostrar más serruchos. Desactiva la sustitución de glifos y textos de PC para probar las letras acentuadas y conservar los símbolos Xbox originales. No incorpora iconos PlayStation. No hay garantía de 60 FPS. Conserva idioma, partidas, mods y shaders.",
+      "sources": [
+        "https://github.com/GenryTheFox0/Project-2099/blob/main/README.md",
+        "https://github.com/rexglue/rexglue-sdk/blob/main/src/ui/presenter.cpp"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "id": "project2099-deck-720p60",
+      "name": "Project 2099 — Steam Deck 720p / 60 FPS",
+      "game": {
+        "id": "415608B2",
+        "name": "Spider-Man: Edge of Time",
+        "platform": "Windows"
+      },
+      "adapter": {
+        "id": "project2099",
+        "versions": [
+          "2.0.0-beta.4.1"
+        ]
+      },
+      "hardware": [
+        "steam-deck-lcd",
+        "steam-deck-oled"
+      ],
+      "objective": "Nitidez nativa y objetivo de 60 FPS",
+      "author": "Deck Library",
+      "license": "MIT",
+      "tested": {
+        "status": "proposal",
+        "date": "2026-10-01",
+        "notes": "Configuración inicial; falta validar jugando en modo Juego."
+      },
+      "settings": {
+        "runtime": {
+          "window_width": 1280,
+          "window_height": 720,
+          "fullscreen": true,
+          "gpu_backend": "d3d12",
+          "resolution_scale": 1,
+          "eot_internal_scale": 1,
+          "genry_eot_target_fps": 60,
+          "d3d12_present_frame_limiter": true,
+          "d3d12_present_frame_limiter_fps": 60.0,
+          "vsync": false,
+          "anisotropic_override": 4,
+          "async_shader_compilation": true,
+          "store_shaders": true,
+          "input_backend": "xinput",
+          "mnk_mode": false
+        }
+      },
+      "notes": "Proton 11.0, DirectX 12 mediante VKD3D. Mantiene el antialiasing Native AA original y renderizado 1×; sin DLSS/ReShade ni generación de cuadros. 720p conserva 16:9. Usá el layout Gamepad de Steam; no el de Escritorio. En OLED, 60 FPS a 60 Hz para cadencia uniforme; 90 Hz no implica 90 FPS. El rendimiento durante transiciones debe probarse.",
+      "sources": [
+        "https://github.com/GenryTheFox0/Project-2099/blob/main/README.md"
+      ]
+    },
+    {
+      "schema_version": 1,
+      "id": "wiicompiled-rmcp01-sharp",
+      "name": "Mario Kart Wii — nitidez 1.5×",
+      "game": {
+        "id": "RMCP01",
+        "name": "Mario Kart Wii",
+        "platform": "WiiCompiled"
+      },
+      "adapter": {
+        "id": "wiicompiled",
+        "versions": [
+          "0.2.33"
+        ]
+      },
+      "hardware": [
+        "steam-deck-oled",
+        "steam-deck-lcd"
+      ],
+      "objective": "Nitidez y estabilidad",
+      "author": "Deck Library",
+      "license": "MIT",
+      "tested": {
+        "status": "user-confirmed",
+        "date": "2026-10-01",
+        "notes": "La prueba declarada corresponde a la Deck OLED utilizada; otras instalaciones requieren feedback."
+      },
+      "settings": {
+        "video": {
+          "resolution_multiplier": 1.5,
+          "disable_copy_filter": true,
+          "frame_interpolation_fps": 0,
+          "graphics_api": "vulkan",
+          "display_mode": "borderless",
+          "skip_unready_pipelines": true,
+          "show_fps": true
+        },
+        "audio": {
+          "mix_worker": true
+        }
+      },
+      "notes": "El usuario confirmó buena imagen y rendimiento en Gaming Mode. El preset no cambia rutas ni controles; el ajuste de salida F12 pertenece al parche del ejecutable, aplicado por el asistente de recompilación compatible.",
+      "sources": []
     }
   ]
 }

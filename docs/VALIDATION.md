@@ -1,4 +1,16 @@
-# Validación — 2026-10-01
+# Validación
+
+## Versión 0.14 — 2026-10-19
+
+Se superaron 621 pruebas, incluidas 20 de GTK. Cubren autorización de cuenta propia con proveedor simulado, migración de SQLite conservando sesiones, estrellas reales y un voto editable por usuario, restricciones de los endpoints de autenticación, perfiles por Title ID, ETA medida, invalidación de actualizaciones completadas, repetición del mando, navegación sin reconstruir carátulas y límites de la ventana comunitaria. Las capturas públicas a 1280×800 contienen juegos e imágenes ficticios.
+
+El servicio público respondió a health y a la lista de proveedores. La autorización real de Keycloak emitió un código de dispositivo y devolvió espera antes de la autorización del usuario. La finalización de ese acceso desde el navegador y la navegación física con mando en modo Juego requieren prueba del usuario; las pruebas automatizadas no equivalen a esas comprobaciones.
+
+Wind Waker HD se verificó instalado en v0.3.0, con SHA-256 coincidente con el asset publicado, binario compilado y preparación de shaders finalizada. Se corrigió el metadato anterior y la caché de actualizaciones. No se volvió a lanzar el juego ni se midió su rendimiento durante esta revisión.
+
+La auditoría del contenido de Git, el paquete nuevo y los 29 lanzamientos anteriores no encontró credenciales, rutas personales ni correos personales. La autoría de commits históricos contenía un correo personal; su sustitución por el alias y la dirección noreply de GitHub fue autorizada por el propietario. El respaldo de la historia original se conserva fuera del repositorio.
+
+
 
 ## Switch: tres propuestas y prueba directa — 0.10.2, 2026-10-17
 

@@ -161,7 +161,8 @@ class ExperienceMixin:
     def cover_received(self,id_,path,row):
         entry=next((e for e in self.entries if e.id==id_),None)
         if entry and (not entry.cover or not pathlib.Path(entry.cover).is_file()):
-            entry.cover=path;entry.metadata['artwork']={'provider':row['provider'],'page':row.get('page','')};self.store.save(self.entries);self.render()
+            entry.cover=path;entry.metadata['artwork']={'provider':row['provider'],'page':row.get('page','')};self.store.save(self.entries);self.library_dirty=True
+            if self.pages.get_visible_child_name()=='library':self.render()
             if self.selected and self.selected.id==id_ and self.pages.get_visible_child_name()=='detail':self.show_detail(entry)
         return False
     def covers_finished(self,count,total):

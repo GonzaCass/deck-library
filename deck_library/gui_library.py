@@ -26,8 +26,12 @@ class LibraryToolsMixin:
         self.pending_label=label('Reinicio de Steam pendiente para aplicar los cambios.');self.pending_label.set_hexpand(True);self.pending_bar.pack_start(self.pending_label,True,True,0)
         self.pending_bar.pack_end(button('Ver cambios',lambda _:self.pending_details()),False,False,0);parent.pack_start(self.pending_bar,False,False,0)
     def library_key(self,widget,event):
-        if event.keyval==Gdk.KEY_Escape and self.pages.get_visible_child_name()=='detail':self.back_from_game();return True
-        if event.keyval==Gdk.KEY_Escape and self.pages.get_visible_child_name()!='library':self.open_library();return True
+        if event.keyval in (Gdk.KEY_Return,Gdk.KEY_KP_Enter) and isinstance(self.get_focus(),Gtk.Button):return self.controller_action('activate')
+        keys={Gdk.KEY_Up:'up',Gdk.KEY_Down:'down',Gdk.KEY_Left:'left',Gdk.KEY_Right:'right',Gdk.KEY_Page_Up:'previous_tab',Gdk.KEY_Page_Down:'next_tab'}
+        focus=self.get_focus()
+        if event.keyval in keys and not isinstance(focus,(Gtk.Entry,Gtk.TextView,Gtk.SpinButton,Gtk.ComboBox)):
+            return self.controller_action(keys[event.keyval])
+        if event.keyval==Gdk.KEY_Escape:return self.controller_action('back')
         return False
     def conflicts_page(self):
         from .gui import label,button

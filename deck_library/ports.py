@@ -388,7 +388,7 @@ def find_executable(folder,repository=''):
     named=[p for p in binaries if key and key in re.sub(r'[^a-z0-9]','',p.name.lower())]
     return named[0] if len(named)==1 else ''
 
-def install(item,store=None,root=None,progress=print,get=fetch_json,replace=False,web=None,runner=None):
+def install(item,store=None,root=None,progress=print,get=fetch_json,replace=False,web=None,runner=None,transfer=None):
     """Install or update one catalog port. Returns the stored record."""
     store=store or Store();root=pathlib.Path(root or ports_root());item=clean(item)
     if item is None:raise ValueError('Entrada de catálogo inválida.')
@@ -406,7 +406,10 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
     root.mkdir(parents=True,exist_ok=True)
     with tempfile.TemporaryDirectory(prefix='port-',dir=root) as temp:
         temp=pathlib.Path(temp);archive=temp/asset['name'].replace('/','_');progress('Descargando '+asset['name'])
-        download(asset['browser_download_url'],archive,progress=lambda d,t:progress(f'Descargando {asset["name"]}: {d//(1<<20)} de {t//(1<<20)} MB' if t else f'Descargando {asset["name"]}: {d//(1<<20)} MB'))
+        def downloaded(done,total):
+            if transfer:transfer({'phase':'download','done':done,'total':total})
+            else:progress(f'Descargando {asset["name"]}: {done//(1<<20)} de {total//(1<<20)} MB' if total else f'Descargando {asset["name"]}: {done//(1<<20)} MB')
+        download(asset['browser_download_url'],archive,progress=downloaded)
         digest=str(asset.get('digest') or '')
         if asset.get('size') and archive.stat().st_size!=asset['size']:raise ValueError('El tamaño descargado no coincide con el publicado; no se instaló.')
         if digest.startswith('sha256:') and sha256_file(archive)!=digest[7:].lower():raise ValueError('La suma SHA-256 no coincide con la publicada; no se instaló.')

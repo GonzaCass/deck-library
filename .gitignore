@@ -29,3 +29,8 @@ wii-setup/
 .env
 *.sqlite3*
 community-session.json
+community-profiles.json
+updates.json
+ports.json
+*.db
+*.db-*

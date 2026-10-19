@@ -109,13 +109,13 @@ def catalog(store=None):
             except (OSError,ValueError,TypeError,KeyError):continue
     return list(by_id.values())
 
-SWITCH_BASES=('eden-switch-default','eden-switch-performance','eden-switch-compatibility')
+SWITCH_BASES=('eden-switch-default','eden-switch-performance','eden-switch-quality','eden-switch-compatibility')
 
 def recommended(entry,store=None):
     """Prefer title-specific profiles; bind the Switch base to a real Title ID only."""
     values=catalog(store)
     matches=[value for value in values if compatible(entry,value)]
-    if matches or entry.platform!='Switch' or adapter_for(entry)!='eden':return matches
+    if entry.platform!='Switch' or adapter_for(entry)!='eden':return matches
     tid=public_game_id(entry)
     if not re.fullmatch(r'010[0-9A-Fa-f]{13}',tid):return []
     profiles=[]
@@ -125,7 +125,11 @@ def recommended(entry,store=None):
         value=copy.deepcopy(template)
         value['id']='eden-'+tid.lower()+'-'+template_id.removeprefix('eden-switch-')
         value['game']={'id':tid.upper(),'name':entry.name,'platform':'Switch'}
+        if template_id=='eden-switch-performance':value['settings']['Renderer']['resolution_setup']=2
         profiles.append(validate(value))
+    if matches:
+        balanced=copy.deepcopy(matches[0]);balanced['name']=entry.name+' — Equilibrado'
+        profiles=[balanced,*[p for p in profiles if not p['id'].endswith('-default')],*matches[1:]]
     return profiles
 
 def mark_best(entry,value,store=None):
