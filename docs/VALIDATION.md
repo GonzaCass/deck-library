@@ -1,5 +1,12 @@
 # Validación
 
+## Versión 0.17.1 — 2026-10-19
+
+Se superaron 661 pruebas, incluidas 38 de GTK. Se verifican foco lógico visible en acciones de la ficha, perfiles, menús y ventanas; navegación entre controles de tamaños distintos; restauración del perfil enfocado al reconstruir una ficha; regreso por niveles con B/Círculo y cierre de popovers antes de salir del juego. Las leyendas muestran nombres de Deck y PlayStation y adaptan las acciones al contexto. Se comprobaron 1280×760 y 840×640 sin desbordar la ventana.
+
+El mando virtual real de SDL también inyecta A y B: abre la ficha, mantiene marcado Jugar y vuelve al mismo juego de la biblioteca. Un test impide activar un botón Jugar de una página oculta. Se corrigió el orden de visualización inicial de Gtk.Stack para respetar la vista configurada antes del primer recorrido. No se abrieron juegos ni se modificaron configuraciones de juegos. La validación física de estas pantallas queda para el usuario.
+
+
 ## Versión 0.17 — 2026-10-19
 
 Se superaron 654 pruebas, incluidas 32 de interfaz GTK.

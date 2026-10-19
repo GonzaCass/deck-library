@@ -13,6 +13,128 @@ class InputMixin:
             GLib.idle_add(self.focus_library)
         except OSError as error:self.set_status('Mando: '+str(error))
 
+    def mark_controller_focus(self,window,focus):
+        previous=getattr(window,'_deck_focus_widget',None)
+        if previous is not None and previous is not focus:previous.get_style_context().remove_class('controller-focus')
+        window._deck_focus_widget=focus
+        if focus is not None:
+            focus.get_style_context().add_class('controller-focus')
+            if isinstance(focus,Gtk.ListBoxRow):
+                parent=focus.get_parent()
+                if isinstance(parent,Gtk.ListBox) and parent.get_selection_mode()!=Gtk.SelectionMode.NONE and parent.get_selected_row() is not focus:parent.select_row(focus)
+        self.update_controller_hints(window)
+
+    def update_controller_hints(self,window):
+        hint=getattr(window,'_deck_controller_hints',None) if window is not self else getattr(self,'controller_hint',None)
+        if hint is None:return
+        focus=window.get_focus();activate='Seleccionar';back='Volver'
+        if window is not self:back='Cerrar'
+        elif self.pages.get_visible_child_name()=='detail':back='Biblioteca' if self.game_tab=='profiles' else 'Volver al juego'
+        elif self.pages.get_visible_child_name()!='library':back='Biblioteca'
+        if self.current_popover(window) or isinstance(Gtk.grab_get_current(),Gtk.MenuShell):back='Cerrar menú'
+        if window is self and focus is not None:
+            if getattr(focus,'library_entry_id',None):activate='Abrir ficha'
+            elif getattr(focus,'profile_id',None):activate='Ver perfil'
+            elif isinstance(focus,Gtk.MenuButton):activate='Abrir menú'
+            elif isinstance(focus,(Gtk.CheckButton,Gtk.Switch)):activate='Cambiar'
+            elif isinstance(focus,Gtk.Button):
+                caption=focus.get_label()
+                if caption and len(caption)<=16:activate=caption
+        hint.update(activate,back,window.get_size().width)
+
+    def prepare_controller_window(self,window):
+        if getattr(window,'_deck_focus_tracked',False):return
+        window._deck_focus_tracked=True
+        if window is not self:
+            window.connect('set-focus',self.mark_controller_focus)
+            if isinstance(window,Gtk.Dialog):
+                from .controller_hints import ControllerHints
+                hint=ControllerHints(compact=True);area=window.get_action_area();area.pack_start(hint,False,False,0);area.set_child_secondary(hint,True);area.set_child_non_homogeneous(hint,True);window._deck_controller_hints=hint
+        self.mark_controller_focus(window,window.get_focus())
+
+    def control_is_shown(self,widget):
+        if widget is None or not widget.is_sensitive():return False
+        child=widget
+        while child is not None:
+            if not child.get_visible():return False
+            parent=child.get_parent()
+            if isinstance(parent,Gtk.Stack) and parent.get_visible_child() is not child:return False
+            if isinstance(parent,Gtk.Revealer) and not parent.get_reveal_child():return False
+            child=parent
+        return True
+
+    def control_targets(self,root):
+        if not root.get_mapped() or not root.is_sensitive():return []
+        if isinstance(root,Gtk.Revealer) and not root.get_reveal_child():return []
+        if isinstance(root,Gtk.ListBoxRow):
+            children=[]
+            for child in root.get_children():children.extend(self.control_targets(child))
+            if children:return children
+        kinds=(Gtk.Button,Gtk.ComboBox,Gtk.Entry,Gtk.TextView,Gtk.Switch,Gtk.Scale,Gtk.TreeView,Gtk.ListBoxRow,Gtk.Socket)
+        if isinstance(root,kinds) and root.get_can_focus():return [root]
+        result=[]
+        if isinstance(root,Gtk.Container):
+            for child in root.get_children():result.extend(self.control_targets(child))
+        return result
+
+    def current_popover(self,window):
+        focus=window.get_focus();popover=focus.get_ancestor(Gtk.Popover) if focus else None
+        if popover and popover.get_mapped():return popover
+        def find(widget):
+            if not widget.get_mapped():return None
+            if isinstance(widget,Gtk.MenuButton):
+                value=widget.get_popover()
+                if value and value.get_mapped():return value
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():
+                    value=find(child)
+                    if value:return value
+            return None
+        return find(window)
+
+    def ensure_controller_focus(self,window):
+        if self.ui_closed:return False
+        focus=window.get_focus()
+        if focus is not None and focus.get_mapped() and focus.is_sensitive():
+            self.mark_controller_focus(window,focus);return False
+        if window is self and self.pages.get_visible_child_name()=='library':
+            self.focus_library()
+            if self.get_focus() is not None and self.get_focus().get_mapped():return False
+        targets=self.control_targets(self.current_popover(window) or window)
+        preferred=None
+        if window is self and self.pages.get_visible_child_name()=='detail':
+            preferred=getattr(self,'game_play_button',None) if self.game_tab=='profiles' else getattr(self.game_pages.get_visible_child(),'back_control',None)
+        target=preferred if preferred in targets else next(iter(targets),None)
+        if target:target.grab_focus();self.mark_controller_focus(window,target);self.reveal_focus(target)
+        return False
+
+    def move_control_focus(self,window,direction):
+        from .navigation import control_neighbour
+        popover=self.current_popover(window);targets=self.control_targets(popover or window);focus=window.get_focus();rectangles={}
+        for index,widget in enumerate(targets):
+            point=widget.translate_coordinates(window,0,0)
+            if point:rectangles[index]=(*point,widget.get_allocated_width(),widget.get_allocated_height())
+        current=targets.index(focus) if focus in targets else None
+        target=control_neighbour(rectangles,current,direction)
+        if target is not None:
+            control=targets[target];control.grab_focus();self.mark_controller_focus(window,control);self.reveal_focus(control)
+        return bool(targets)
+
+    def control_focus_token(self):
+        focus=self.get_focus()
+        if focus is None:return None
+        if getattr(focus,'profile_id',None):return ('profile',focus.profile_id)
+        name=focus.get_accessible().get_name()
+        return ('name',name) if name else None
+
+    def restore_control_focus(self,token):
+        if self.ui_closed or self.pages.get_visible_child_name()!='detail':return False
+        if token:
+            for widget in self.control_targets(self):
+                match=getattr(widget,'profile_id',None) if token[0]=='profile' else widget.get_accessible().get_name()
+                if match==token[1]:widget.grab_focus();self.mark_controller_focus(self,widget);self.reveal_focus(widget);return False
+        return self.ensure_controller_focus(self)
+
     def bind_library_focus(self,widget,entry,card=None):
         widget.library_entry_id=entry.id
         widget.get_accessible().set_name(entry.name)
@@ -25,6 +147,7 @@ class InputMixin:
         widget.connect('focus-in-event',entered);widget.connect('focus-out-event',left)
 
     def library_focus_changed(self,window,focus):
+        self.mark_controller_focus(window,focus)
         identifier=getattr(focus,'library_entry_id',None)
         if identifier:self.library_focus_id=identifier
         for target in getattr(self,'library_targets',{}).values():
@@ -66,6 +189,24 @@ class InputMixin:
             elif start+size+padding>value+page:value=start+size+padding-page
             adjustment.set_value(max(adjustment.get_lower(),min(value,adjustment.get_upper()-page)))
 
+    def keep_scroll_focus(self,scroll,focus,vertical):
+        # Native text/tree views scroll their contents inside a fixed widget.
+        child=scroll.get_child()
+        if focus is None or not isinstance(child,Gtk.Viewport):return
+        point=focus.translate_coordinates(child,0,0)
+        if not point:return
+        axis=1 if vertical else 0;adjustment=scroll.get_vadjustment() if vertical else scroll.get_hadjustment();value=adjustment.get_value();page=adjustment.get_page_size()
+        size=focus.get_allocated_height() if vertical else focus.get_allocated_width()
+        if point[axis]+size>value and point[axis]<value+page:return
+        candidates=[]
+        for index,widget in enumerate(self.control_targets(scroll)):
+            pos=widget.translate_coordinates(child,0,0)
+            length=widget.get_allocated_height() if vertical else widget.get_allocated_width()
+            if pos and value<=pos[axis] and pos[axis]+length<=value+page:
+                candidates.append((abs(pos[1-axis]-point[1-axis]),pos[axis],index,widget))
+        if candidates:
+            target=min(candidates,key=lambda row:row[:3])[3];target.grab_focus();self.mark_controller_focus(target.get_toplevel(),target)
+
     def scroll_controller(self,action,window):
         focus=window.get_focus();scroll=focus.get_ancestor(Gtk.ScrolledWindow) if focus else None
         if not scroll:
@@ -83,6 +224,7 @@ class InputMixin:
             if upper>lower:
                 sign=-1 if action in ('scroll_up','scroll_left') else 1
                 adjustment.set_value(max(lower,min(upper,adjustment.get_value()+sign*min(96,max(32,adjustment.get_page_size()*.16)))))
+                self.keep_scroll_focus(scroll,focus,vertical)
                 return True
             scroll=scroll.get_ancestor(Gtk.ScrolledWindow)
         return True
@@ -95,6 +237,7 @@ class InputMixin:
         self.controller_mode=True
         if hasattr(self,'controller_hint'):self.controller_hint.show()
         window=window or self
+        self.prepare_controller_window(window)
         handler=getattr(window,'account_controller',None)
         if handler and handler(action):return True
         grab=Gtk.grab_get_current()
@@ -108,10 +251,19 @@ class InputMixin:
         if action in ('previous_tab','next_tab') and window is self:
             names=list(self.nav_buttons);active={'library':0,'detail':0,'catalog':1,'updates':2,'settings':3}.get(self.pages.get_visible_child_name(),0);self.nav_buttons[names[(active+(-1 if action=='previous_tab' else 1))%len(names)]].clicked();return True
         if action=='back':
+            popover=self.current_popover(window)
+            if popover:
+                anchor=popover.get_relative_to();popover.popdown()
+                if anchor:anchor.grab_focus();self.mark_controller_focus(window,anchor)
+                return True
             if isinstance(window,Gtk.Dialog):window.response(Gtk.ResponseType.CANCEL)
             elif window is self:
                 if self.pages.get_visible_child_name()=='detail':self.back_from_game()
                 elif self.pages.get_visible_child_name()!='library':self.open_library()
+                else:
+                    if self.selection_mode:self.toggle_selection()
+                    elif self.search.get_text():self.search.set_text('')
+                    GLib.idle_add(self.focus_library)
             return True
         if action.startswith('scroll_'):return self.scroll_controller(action,window)
         if action=='search' and window is self:
@@ -120,16 +272,18 @@ class InputMixin:
         if window is self and self.move_library_focus(action):return True
         focus=window.get_focus()
         if action=='activate':
+            if not self.control_is_shown(focus):self.ensure_controller_focus(window);return True
             if isinstance(focus,Gtk.ComboBox):focus.popup()
             elif isinstance(focus,Gtk.Switch):focus.set_active(not focus.get_active())
             elif isinstance(focus,Gtk.Button):focus.clicked()
             elif isinstance(focus,Gtk.ListBoxRow):focus.activate()
             elif not window.activate_focus():window.activate_default()
             return True
-        directions={'up':Gtk.DirectionType.UP,'down':Gtk.DirectionType.DOWN,'left':Gtk.DirectionType.LEFT,'right':Gtk.DirectionType.RIGHT}
-        if action in directions:
-            if not window.child_focus(directions[action]):window.child_focus(Gtk.DirectionType.TAB_BACKWARD if action in ('up','left') else Gtk.DirectionType.TAB_FORWARD)
-            focus=window.get_focus()
-            if focus:self.reveal_focus(focus)
-            return True
+        if action in ('up','down','left','right'):
+            if isinstance(focus,Gtk.SpinButton) and action in ('left','right'):
+                focus.spin(Gtk.SpinType.STEP_BACKWARD if action=='left' else Gtk.SpinType.STEP_FORWARD,1);return True
+            if isinstance(focus,Gtk.Scale) and action in ('left','right'):
+                adjustment=focus.get_adjustment();focus.set_value(focus.get_value()+(-1 if action=='left' else 1)*adjustment.get_step_increment());return True
+            return self.move_control_focus(window,action)
+
         return False

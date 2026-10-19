@@ -20,3 +20,11 @@ class NavigationTests(unittest.TestCase):
     def test_list_navigation_and_platform_section_gaps(self):
         rows={'a':(0,0,400,80),'b':(0,100,400,80),'c':(0,350,400,80)}
         self.assertEqual(neighbour(rows,'b','down'),'c');self.assertEqual(neighbour(rows,'b','up'),'a');self.assertIsNone(neighbour(rows,'b','right'))
+
+class MixedControlNavigationTests(unittest.TestCase):
+    def test_vertical_movement_prefers_controls_in_the_same_column(self):
+        from deck_library.navigation import control_neighbour
+        controls={0:(300,100,140,46),1:(850,180,240,80),2:(280,260,250,220),3:(550,260,250,220)}
+        self.assertEqual(control_neighbour(controls,0,'down'),2)
+        self.assertEqual(control_neighbour(controls,2,'right'),3)
+        self.assertEqual(control_neighbour(controls,2,'up'),0)

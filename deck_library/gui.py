@@ -159,6 +159,18 @@ popover button { padding:8px; }
 menu { background:@surface; color:@text; border:1px solid @line; padding:4px; }
 menuitem { background:transparent; color:@text; padding:6px 10px; }
 menuitem:hover { background:@raised; }
+/* Logical focus stays visible on every control, including coloured actions. */
+.controller-focus, button.controller-focus, button.action.controller-focus,
+button.action.play.controller-focus, button.task.controller-focus,
+button.profile-card.controller-focus, button.poster.controller-focus,
+entry.controller-focus, switch.controller-focus, scale.controller-focus {
+  outline:3px solid #eee5ff; outline-offset:2px;
+  box-shadow:inset 0 0 0 2px #b7a7ff,0 0 0 2px #8d75ca;
+}
+menuitem:selected, menuitem:selected label { background:#3b3151; color:#eee5ff; }
+label.control-glyph { background:#292b37; border:1px solid #66617a; border-radius:6px; padding:3px 7px; color:#eee5ff; font-size:12px; font-weight:700; }
+label.control-stick { border-radius:14px; min-width:16px; padding:3px 5px; }
+label.control-caption { color:#c9c5d6; font-size:12px; }
 '''
 
 TONES={'play':'play','danger':'danger','presets':'violet','steam':'steam','controls':'amber'}

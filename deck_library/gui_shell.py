@@ -14,7 +14,7 @@ class ShellMixin:
         self.set_wmclass('deck-library','deck-library');self.set_icon_from_file(str(self.asset('icon.png')));self.set_default_size(1240,760);self.set_size_request(840,520)
         self.store=Store();self.preferences=settings(self.store);self.view=self.preferences.get('view','covers');self.checked=set();self.selected=None;self.selection_mode=False;self.platform_filter='all';self.type_filter='all';self.artwork_attempted=set();self.artwork_busy=False;self.discover_busy=False;self.wizard_step=0;self.game_tab='profiles';self.detail_game_id=None;self.profile_choice={}
         self.ui_closed=False;self.ui_sources=[];self.library_focus_id=None;self.library_targets={};self.controller_mode=False
-        self.connect('destroy',Gtk.main_quit);self.connect('destroy',self.close_ui_sources);self.connect('delete-event',lambda *_:not self.discard_game_edits());self.connect('key-press-event',self.library_key);self.connect('set-focus',self.library_focus_changed);self.connect('map',self.fit_window);self.connect('size-allocate',self.update_game_size)
+        self.connect('destroy',Gtk.main_quit);self.connect('destroy',self.close_ui_sources);self.connect('delete-event',lambda *_:not self.discard_game_edits());self.connect('key-press-event',self.library_key);self.connect('set-focus',self.library_focus_changed);self.connect('map',self.fit_window);self.connect('size-allocate',self.update_game_size);self.connect('size-allocate',lambda *_:self.update_controller_hints(self))
         root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.add(root);self.build_navigation(root)
         overlay=Gtk.Overlay();root.pack_start(overlay,True,True,0);self.pages=PageStack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);overlay.add(self.pages);self.toast_widget=motion.Toast();overlay.add_overlay(self.toast_widget)
         self.build_library_page();self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.detail.set_border_width(20);self.pages.add_named(self.detail,'detail');self.settings_box=self.scrolled_page('settings');self.updates_box=self.scrolled_page('updates');self.catalog_box=self.scrolled_page('catalog');self.add_box=self.scrolled_page('add');self.pending_box=self.scrolled_page('pending')
@@ -22,7 +22,8 @@ class ShellMixin:
         footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);footer.set_margin_start(24);footer.set_margin_end(24);footer.set_margin_bottom(8);root.pack_end(footer,False,False,0)
         self.build_pending_banner(footer)
         self.artwork_bar=Gtk.Box(spacing=8);self.artwork_bar.set_no_show_all(True);self.artwork_spinner=Gtk.Spinner();self.artwork_label=label('','meta');self.artwork_bar.pack_start(self.artwork_spinner,False,False,0);self.artwork_bar.pack_start(self.artwork_label,True,True,0);footer.pack_start(self.artwork_bar,False,False,0)
-        self.controller_hint=label('A Seleccionar · B Volver · X Buscar · LB/RB Pestañas · Palanca derecha Desplazar','meta');self.controller_hint.set_max_width_chars(70);self.controller_hint.set_ellipsize(Pango.EllipsizeMode.END);self.controller_hint.set_no_show_all(True);footer.pack_start(self.controller_hint,False,False,0)
+        from .controller_hints import ControllerHints
+        self.controller_hint=ControllerHints();self.controller_hint.hide();self.controller_hint.set_no_show_all(True);footer.pack_start(self.controller_hint,False,False,0)
         self.status=label('','status');self.status.set_line_wrap(False);self.status.set_ellipsize(Pango.EllipsizeMode.END);footer.pack_start(self.status,False,False,0)
         try:self.entries=self.store.load()
         except Exception as error:self.entries=[];self.set_status('No se pudo leer la biblioteca: '+str(error))
@@ -129,7 +130,7 @@ class ShellMixin:
             for e in values:self.add_cover_card(e,grid)
         if not entries and total:
             for container in (self.covers,self.list,self.platform_groups):container.add(label('No hay juegos con esos filtros.','muted'))
-        self.library_stack.set_visible_child_name(self.view if total else 'empty');self.library_stack.show_all();self.update_selection()
+        self.library_stack.show_all();self.library_stack.set_visible_child_name(self.view if total else 'empty');self.update_selection()
         if previous_focus:GLib.idle_add(self.focus_library,previous_focus)
         if getattr(self,'animate_next',False):self.animate_next=False;motion.stagger(self.new_tiles,rise=0)
     def add_cover_card(self,e,target=None):

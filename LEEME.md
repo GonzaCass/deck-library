@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.17.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.17.1.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -111,7 +111,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.17.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.17.1**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
@@ -206,3 +206,7 @@ Cerrar el acceso cancela la espera y cierra su navegador interno. **Cerrar sesi�
 El juego enfocado se resalta con un borde claro y el fondo de la tarjeta. **Palanca izquierda / cruceta:** recorrer juegos. **A:** abrir la ficha. **B:** volver al mismo juego. **X:** buscar. **LB/RB:** cambiar pestaña. **Palanca derecha:** desplazar la vista. El foco se mantiene visible al recorrer la cuadrícula y se conserva al actualizar carátulas. Moverse por los juegos no los marca para agregarlos a Steam.
 
 El perfil propio de Deck Library ahora usa las dos palancas como mando y conserva el ratón en el trackpad derecho. El instalador actualiza esa plantilla con respaldo; conserva los perfiles elegidos por el usuario y los controles de otros juegos. Cerrá y volvé a abrir Deck Library desde Steam para recargarla. Si elegiste un perfil personalizado, seguirá seleccionado. El recorrido se comprobó con un mando virtual de SDL; falta confirmar las palancas físicas en modo Juego.
+
+### Selector e indicadores (0.17.1)
+
+El resaltado también aparece en Jugar, perfiles, opciones, menús y ventanas, y se recupera al actualizar una ficha. **B / ○** cierra primero el menú o la ventana actual; dentro de un juego vuelve de los ajustes a la ficha y después a la biblioteca. **A / ✕** selecciona el control resaltado. Al pie se muestran los botones y su acción actual; las ventanas tienen sus propios indicadores de selección y regreso.

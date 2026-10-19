@@ -20,6 +20,7 @@ class GameMixin:
 
     def show_detail(self, entry):
         opening = self.detail_game_id != entry.id
+        focus_token=self.control_focus_token() if not opening and self.pages.get_visible_child_name()=='detail' else None
         if opening:
             self.game_tab = 'profiles'
             self.detail_game_id = entry.id
@@ -61,6 +62,7 @@ class GameMixin:
         self.detail.show_all()
         self.game_compact = None
         self.update_game_size()
+        if not opening:GLib.idle_add(self.restore_control_focus,focus_token)
         if opening:
             motion.fade_in(self.game_header, duration=320)
             motion.stagger(getattr(self, 'profile_cards', []), step=50, duration=260, rise=0)

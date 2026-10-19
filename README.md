@@ -178,7 +178,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.17.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.17.1**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
@@ -217,3 +217,7 @@ On Steam Deck the embedded view reuses an installed GNOME Flatpak runtime when a
 The focused game has a bright border and a highlighted title/card. The left stick and D-pad navigate the actual rows and columns; A opens the game, B returns to the same card, X focuses search and LB/RB change tabs. The right stick scrolls the current view. Moving through the library keeps the focused card visible and does not check games for batch operations. Focus survives artwork refreshes.
 
 Deck Library’s Steam Deck layout now uses native gamepad input on both sticks, with mouse control on the right trackpad. Upgrading refreshes only Deck Library’s existing template, with a backup; it does not change Steam configsets or other games’ layouts. Close and reopen Deck Library from Steam to reload its layout. A custom layout remains selected if you chose one. The physical controls still require confirmation on the Deck; automated coverage includes a real SDL virtual controller driving the GTK interface.
+
+### Focus and button indicators (0.17.1)
+
+The focus marker now follows every control: Play, profiles, settings, menus and dialogs. It is restored when the game view refreshes. **B / Circle** closes the current menu or dialog, returns from a game section to its overview and then returns to the library. Button badges show both Deck and PlayStation names (**A / Cross**, **B / Circle**) with contextual actions. Secondary hints adapt to compact windows; dialogs keep Select and Back visible. The marker follows logical focus, so it does not depend on the desktop theme’s button focus style.

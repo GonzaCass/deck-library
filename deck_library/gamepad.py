@@ -75,8 +75,16 @@ class Driver:
         active=next((w for w in Gtk.Window.list_toplevels() if w.get_visible() and (w.is_active() or w.has_toplevel_focus())),None)
         own=active
         while own is not None and own is not self.window:own=own.get_transient_for()
+        if own is not self.window:
+            grab=Gtk.grab_get_current()
+            anchor=grab.get_attach_widget() if isinstance(grab,Gtk.Menu) else None
+            candidate=anchor.get_toplevel() if anchor else None;owner=candidate
+            while owner is not None and owner is not self.window:owner=owner.get_transient_for()
+            if owner is self.window:active=candidate;own=owner
         pressed=self.sdl.read()
         if own is not self.window:self.repeat.events(pressed);return True
+        self.window.prepare_controller_window(active)
+        self.window.ensure_controller_focus(active)
         for event in self.repeat.events(pressed):self.window.controller_action(event,active)
         return True
     def close(self):

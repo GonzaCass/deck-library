@@ -340,6 +340,8 @@ class DeckUITests(unittest.TestCase):
     def test_right_stick_scrolls_without_changing_focus(self):
         self.populate_games(30);first=self.w.get_focus();scroll=self.w.library_stack.get_visible_child();adjustment=scroll.get_vadjustment();before=adjustment.get_value()
         self.w.controller_action('scroll_down');self.settle();self.assertGreater(adjustment.get_value(),before);self.assertIs(self.w.get_focus(),first)
+        for _ in range(7):self.w.last_controller_action=('',0);self.w.controller_action('scroll_down');self.settle()
+        focus=self.w.get_focus();point=focus.translate_coordinates(scroll.get_child(),0,0);self.assertGreater(point[1]+focus.get_allocated_height(),adjustment.get_value());self.assertLess(point[1],adjustment.get_value()+adjustment.get_page_size())
 
     def test_controller_list_focus_is_visible_and_survives_filters(self):
         self.w.view='list';self.populate_games(10);first=self.w.entries[0].id
@@ -355,7 +357,7 @@ class DeckUITests(unittest.TestCase):
         try:driver=SDL()
         except OSError as error:self.skipTest(str(error))
         lib=driver.lib;joystick=None;index=-1
-        signatures=[('SDL_JoystickAttachVirtual',[C.c_int,C.c_int,C.c_int,C.c_int],C.c_int),('SDL_JoystickOpen',[C.c_int],C.c_void_p),('SDL_JoystickSetVirtualAxis',[C.c_void_p,C.c_int,C.c_int16],C.c_int),('SDL_JoystickDetachVirtual',[C.c_int],C.c_int),('SDL_JoystickClose',[C.c_void_p],None)]
+        signatures=[('SDL_JoystickAttachVirtual',[C.c_int,C.c_int,C.c_int,C.c_int],C.c_int),('SDL_JoystickOpen',[C.c_int],C.c_void_p),('SDL_JoystickSetVirtualAxis',[C.c_void_p,C.c_int,C.c_int16],C.c_int),('SDL_JoystickSetVirtualButton',[C.c_void_p,C.c_int,C.c_uint8],C.c_int),('SDL_JoystickDetachVirtual',[C.c_int],C.c_int),('SDL_JoystickClose',[C.c_void_p],None)]
         try:
             for name,args,result in signatures:
                 if not hasattr(lib,name):self.skipTest('SDL virtual-controller support unavailable')
@@ -376,7 +378,54 @@ class DeckUITests(unittest.TestCase):
             actions=read();self.assertIn('scroll_down',actions)
             for action in repeat.events(actions,.2):self.w.controller_action(action)
             self.settle();self.assertIs(self.w.get_focus(),focused);self.assertGreater(self.w.library_stack.get_visible_child().get_vadjustment().get_value(),0)
+            chosen=focused.library_entry_id;lib.SDL_JoystickSetVirtualAxis(joystick,3,0);repeat.events(read(),.3)
+            lib.SDL_JoystickSetVirtualButton(joystick,0,1)
+            for action in repeat.events(read(),.4):self.w.controller_action(action)
+            self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'detail');self.assertTrue(self.w.game_play_button.get_style_context().has_class('controller-focus'))
+            lib.SDL_JoystickSetVirtualButton(joystick,0,0);repeat.events(read(),.5);lib.SDL_JoystickSetVirtualButton(joystick,1,1)
+            for action in repeat.events(read(),.6):self.w.controller_action(action)
+            self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertEqual(self.w.get_focus().library_entry_id,chosen)
         finally:
             if joystick:lib.SDL_JoystickClose(joystick)
             if index>=0:lib.SDL_JoystickDetachVirtual(index)
             driver.close()
+
+    def test_detail_controls_keep_the_focus_marker_and_circle_goes_back(self):
+        self.populate_games(5);chosen=self.w.entries[1].id;self.w.focus_library(chosen)
+        self.w.controller_action('activate');self.settle()
+        play=self.w.game_play_button;self.assertTrue(play.get_style_context().has_class('controller-focus'))
+        self.w.controller_action('right');self.settle();focus=self.w.get_focus()
+        self.assertIsNot(focus,play);self.assertTrue(focus.get_style_context().has_class('controller-focus'));self.assertFalse(play.get_style_context().has_class('controller-focus'))
+        self.assertIn('B / ○',[item.get_children()[0].get_text() for item,_ in self.w.controller_hint.items.values()])
+        self.w.controller_action('back');self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertEqual(self.w.get_focus().library_entry_id,chosen)
+
+    def test_profile_focus_survives_detail_refresh_and_section_back(self):
+        self.w.controller_mode=True;entry=self.w.entries[0];self.w.select_game(entry);self.settle();self.assertTrue(self.w.profile_cards)
+        profile=self.w.profile_cards[1];identifier=profile.profile_id;profile.grab_focus();self.settle();self.assertTrue(profile.get_style_context().has_class('controller-focus'))
+        self.w.show_detail(entry);self.settle();self.assertEqual(self.w.get_focus().profile_id,identifier);self.assertTrue(self.w.get_focus().get_style_context().has_class('controller-focus'))
+        self.w.open_game_section('files');self.settle();self.assertTrue(self.w.get_focus().get_style_context().has_class('controller-focus'))
+        self.w.controller_action('back');self.settle();self.assertEqual(self.w.game_tab,'profiles');self.assertIs(self.w.get_focus(),self.w.game_play_button);self.assertTrue(self.w.get_focus().get_style_context().has_class('controller-focus'))
+
+    def test_circle_closes_popover_before_leaving_game(self):
+        from gi.repository import Gtk
+        self.w.select_game(self.w.entries[0]);self.settle()
+        controls=self.w.control_targets(self.w);menu=next(c for c in controls if isinstance(c,Gtk.MenuButton))
+        menu.grab_focus();menu.clicked();self.settle();popover=menu.get_popover();self.assertTrue(popover.get_mapped())
+        items=self.w.control_targets(popover);self.assertGreater(len(items),1);items[0].grab_focus();self.w.controller_action('down');self.settle();self.assertIs(self.w.get_focus(),items[1]);self.assertTrue(items[1].get_style_context().has_class('controller-focus'))
+        self.w.controller_action('back');self.settle();self.assertFalse(popover.get_mapped());self.assertEqual(self.w.pages.get_visible_child_name(),'detail');self.assertIs(self.w.get_focus(),menu)
+
+    def test_modal_controller_focus_badges_and_circle_cancel(self):
+        from gi.repository import Gtk,GLib
+        dialog=Gtk.Dialog(title='Prueba',transient_for=self.w,modal=True);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);button=Gtk.Button(label='Acción');dialog.get_content_area().pack_start(button,True,True,0)
+        self.w.prepare_controller_window(dialog);dialog.show_all();button.grab_focus();self.settle()
+        self.assertTrue(button.get_style_context().has_class('controller-focus'));self.assertTrue(dialog._deck_controller_hints.get_visible())
+        GLib.idle_add(lambda:(self.w.controller_action('back',dialog),False)[1]);self.assertEqual(dialog.run(),Gtk.ResponseType.CANCEL);dialog.destroy()
+
+    def test_initial_library_shows_the_configured_view(self):
+        self.assertEqual(self.w.library_stack.get_visible_child_name(),self.w.view)
+
+    def test_controller_cannot_activate_hidden_play_after_returning(self):
+        self.w.select_game(self.w.entries[0]);self.settle();play=self.w.game_play_button
+        self.w.open_library();play.grab_focus();self.w.last_controller_action=('',0)
+        with patch.object(self.w,'play',side_effect=AssertionError('Hidden play activated')):self.w.controller_action('activate')
+        self.assertEqual(self.w.pages.get_visible_child_name(),'library')
