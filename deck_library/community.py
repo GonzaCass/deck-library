@@ -12,8 +12,8 @@ class Client:
         try:
             value=json.loads(self.path.read_text());return value if value.get('server')==self.url else {}
         except (OSError,ValueError):return {}
-    def request(self,path,body=None):
-        headers={'User-Agent':'DeckLibrary-Community','Accept':'application/json'};token=self.session().get('token')
+    def request(self,path,body=None,token=None):
+        headers={'User-Agent':'DeckLibrary-Community','Accept':'application/json'};token=self.session().get('token') if token is None else token
         if token:headers['Authorization']='Bearer '+token
         if body is not None:headers['Content-Type']='application/json'
         req=urllib.request.Request(self.url+path,data=json.dumps(body).encode() if body is not None else None,headers=headers)
@@ -25,6 +25,7 @@ class Client:
         except urllib.error.HTTPError as error:
             try:message=json.loads(error.read(8192)).get('error','Solicitud rechazada.')
             except (ValueError,AttributeError):message='Solicitud rechazada por el servicio.'
+            if error.code==401 and token==self.session().get('token'):self.path.unlink(missing_ok=True)
             raise ValueError(message) from None
         if len(raw)>2*1024*1024:raise ValueError('Respuesta demasiado grande.')
         return json.loads(raw)
@@ -36,11 +37,13 @@ class Client:
             url=urllib.parse.urlsplit(value[key])
             if url.scheme!='https' or not url.netloc or url.username or url.password:raise ValueError('Dirección de autorización no permitida.')
         return value
-    def poll(self,key):
+    def poll(self,key,persist=True):
         value=self.request('/v1/auth/poll',{'wait_key':key})
-        if value.get('state')=='connected':
-            atomic_json(self.path,{'server':self.url,'token':value['token'],'login':value['login']});self.path.chmod(0o600)
+        if value.get('state')=='connected' and persist:self.remember(value)
         return value
+    def remember(self,value):
+        atomic_json(self.path,{'server':self.url,'token':value['token'],'login':value['login']});self.path.chmod(0o600)
+    def me(self):return self.request('/v1/me')
     def logout(self):
         try:self.request('/v1/logout',{})
         finally:self.path.unlink(missing_ok=True)

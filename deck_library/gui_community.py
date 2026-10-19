@@ -1,5 +1,5 @@
 """Public profiles, real ratings/comments and guided publication with a private account."""
-import threading,subprocess
+import threading
 from gi.repository import Gtk,GLib
 from .community import Client
 from . import presets,profile_display
@@ -11,7 +11,7 @@ class CommunityMixin:
         width,height=self.get_size();dialog.set_default_size(min(1040,width-48),min(700,height-64));dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(18);box.set_spacing(12)
         client=Client(self.store,self.preferences.get('community_url','https://presets.jokerlan.xyz'))
-        alive=[True];busy=[False];selected=[None];wait=[None];timer=[None];prepared=[None]
+        alive=[True];busy=[False];selected=[None];prepared=[None]
         header=Gtk.Box(spacing=12);header.pack_start(text('Ajustes comunitarios','section-title'),True,True,0);account=text('','meta');header.pack_end(account,False,False,0);box.pack_start(header,False,False,0)
         tabs=Gtk.Box(spacing=8);box.pack_start(tabs,False,False,0)
         stack=Gtk.Stack();stack.set_homogeneous(False);stack.set_vexpand(True);stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE);stack.set_transition_duration(120);box.pack_start(stack,True,True,0)
@@ -39,10 +39,7 @@ class CommunityMixin:
         description=Gtk.Entry();description.set_placeholder_text('Qué probaste y cómo funcionó');publish_page.pack_start(text('Descripción'),False,False,0);publish_page.pack_start(description,False,False,0)
         review=text('','muted',100);review_scroll=self.new_scroll();review_scroll.add(review);publish_page.pack_start(review_scroll,True,True,0)
         publication=Gtk.Box(spacing=10);publish_page.pack_start(publication,False,False,0)
-        account_page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);add_page(account_page,'account')
-        account_page.pack_start(text('Cuenta propia','section-title'),False,False,0);account_page.pack_start(text('La consulta de perfiles y comentarios es pública. Para publicar o valorar, iniciá sesión o creá una cuenta en la página que se abre en el navegador.','muted',100),False,False,0)
-        account_actions=Gtk.Box(spacing=10);account_page.pack_start(account_actions,False,False,0);code_label=text('','title',85);code_label.set_selectable(True);account_page.pack_start(code_label,False,False,0)
-
+        from .gui_account import AccountPane
         def refresh_account():account.set_text('Sesión: '+client.session()['login'] if client.session().get('login') else 'Sin sesión')
         def run(job,done):
             if busy[0] or not alive[0]:return
@@ -110,25 +107,13 @@ class CommunityMixin:
         def changed(*_):prepared[0]=None;submit.set_sensitive(False)
         publication.pack_start(ActionButton('Revisar mis ajustes','sliders',review_profile,'violet-outline'),False,False,0);submit=ActionButton('Publicar perfil','upload',submit_profile,'violet');submit.set_sensitive(False);publication.pack_start(submit,False,False,0)
         title.connect('changed',changed);objective.connect('changed',changed);description.connect('changed',changed)
-        def poll():
-            timer[0]=None
-            if not alive[0] or not wait[0]:return False
-            if busy[0]:timer[0]=GLib.timeout_add_seconds(1,poll);return False
-            def done(value):
-                if value.get('state')=='connected':refresh_account();code_label.set_text('Sesión iniciada.');status.set_text('Podés publicar o valorar perfiles.');wait[0]=None
-                else:timer[0]=GLib.timeout_add_seconds(max(5,int(value.get('interval',5))),poll)
-            run(lambda:client.poll(wait[0]),done);return False
-        def signin(_,register=False):
-            def started(value):
-                wait[0]=value['wait_key'];uri=value.get('verification_uri_complete') or value['verification_uri'];code_label.set_text('Código: '+value['user_code']+'\n'+value['verification_uri']);subprocess.Popen(['xdg-open',uri],start_new_session=True);status.set_text('Elegí Registrarse en la página abierta.' if register else 'Completá el inicio de sesión en el navegador.');timer[0]=GLib.timeout_add_seconds(max(5,int(value.get('interval',5))),poll)
-            run(lambda:client.start('keycloak'),started)
-        account_actions.pack_start(ActionButton('Iniciar sesión','community',signin,'steam'),False,False,0);account_actions.pack_start(ActionButton('Crear cuenta','plus',lambda w:signin(w,True),'violet-outline'),False,False,0)
-        account_actions.pack_start(ActionButton('Cerrar sesión','undo',lambda _:run(client.logout,lambda _:refresh_account())),False,False,0)
+        account_page=AccountPane(client,refresh_account);add_page(account_page,'account')
+        dialog.account_controller=lambda action:account_page.handle_controller(action,dialog) if stack.get_visible_child_name()=='account' else False
         for caption,page,icon in [('Perfiles','browse','community'),('Compartir mis ajustes','publish','upload'),('Mi cuenta','account','controller')]:tabs.pack_start(ActionButton(caption,icon,lambda _,p=page:stack.set_visible_child_name(p),'violet-outline' if page=='publish' else 'quiet'),False,False,0)
         browse_actions=Gtk.Box(spacing=10);browse.pack_end(browse_actions,False,False,0);browse_actions.pack_start(ActionButton('Usar este perfil','download',download,'violet'),False,False,0);browse_actions.pack_start(ActionButton('Actualizar','refresh',search),False,False,0);browse_actions.pack_start(ActionButton('Mis aportes','upload',lambda w:search(w,True)),False,False,0)
         post.pack_start(ActionButton('Publicar opinión','community',rate,'violet-outline'),False,False,0)
         refresh_account();dialog.show_all();stack.set_visible_child_name(mode);search(None);dialog.run();alive[0]=False
-        if timer[0]:GLib.source_remove(timer[0])
+        account_page.close()
         dialog.destroy()
 
 

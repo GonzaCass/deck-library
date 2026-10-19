@@ -111,6 +111,7 @@ class API:
                 with self.db() as db:
                     db.execute('DELETE FROM tokens WHERE expires<?',(now,));db.execute('DELETE FROM devices WHERE hash=?',(key,));db.execute('INSERT INTO tokens VALUES(?,?,?,?)',(digest(session),uid,login,now+30*86400))
                 return {'state':'connected','token':session,'login':login}
+        if method=='GET' and path=='/v1/me':return {'login':self.session(token)['login']}
         if method=='POST' and path=='/v1/logout':
             with self.db() as db:db.execute('DELETE FROM tokens WHERE hash=?',(digest(token),))
             return {'ok':True}

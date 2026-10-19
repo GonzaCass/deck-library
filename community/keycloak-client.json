@@ -9,7 +9,13 @@
   "directAccessGrantsEnabled": false,
   "serviceAccountsEnabled": false,
   "fullScopeAllowed": false,
-  "attributes": {"oauth2.device.authorization.grant.enabled": "true"},
-  "defaultClientScopes": ["profile", "email"],
+  "attributes": {
+    "oauth2.device.authorization.grant.enabled": "true",
+    "login_theme": "deck-library"
+  },
+  "defaultClientScopes": [
+    "profile",
+    "email"
+  ],
   "optionalClientScopes": []
 }

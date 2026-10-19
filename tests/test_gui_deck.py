@@ -287,3 +287,27 @@ class DeckUITests(unittest.TestCase):
         poster=self.gui.Poster(self.w.entries[0],'');poster.pixbuf=GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB,False,8,200,100);poster.pixbuf.fill(0xff0000ff)
         surface=cairo.ImageSurface(cairo.FORMAT_ARGB32,160,240);poster.draw_poster(Mock(get_allocated_width=lambda:160,get_allocated_height=lambda:240),cairo.Context(surface));surface.flush()
         self.assertEqual(bytes(surface.get_data()[:4]),b'\x00\x00\xff\xff')
+
+    def test_account_panel_is_native_and_does_not_start_access_automatically(self):
+        from deck_library.gui_account import AccountPane
+        from deck_library.community import Client
+        client=Client(self.store,'https://presets.example.org')
+        with patch.object(client,'start') as start:
+            pane=AccountPane(client);pane.show_all();self.settle()
+            self.assertTrue(pane.login.get_visible());self.assertTrue(pane.login.caption.get_visible());self.assertTrue(pane.register.get_visible());self.assertTrue(pane.register.caption.get_visible());self.assertFalse(pane.logout.get_visible());self.assertFalse(pane.cancel_button.get_visible());self.assertEqual(pane.stack.get_visible_child_name(),'intro');start.assert_not_called();pane.destroy()
+
+    def test_account_pending_access_is_cancelled_with_controller(self):
+        from deck_library.gui_account import AccountPane
+        from deck_library.community import Client
+        pane=AccountPane(Client(self.store,'https://presets.example.org'));pane.wait='pending';generation=pane.generation
+        self.assertTrue(pane.handle_controller('back',self.w));self.assertIsNone(pane.wait);self.assertGreater(pane.generation,generation);self.assertIsNone(pane.timer);pane.destroy()
+
+    def test_account_dialog_fits_small_deck_window(self):
+        from deck_library.gui_account import account_dialog
+        from gi.repository import Gtk,GLib
+        self.w.resize(840,640);self.settle();sizes=[];original=Gtk.Dialog.run
+        def run(dialog):
+            def capture():sizes.append(dialog.get_size());dialog.response(Gtk.ResponseType.CLOSE);return False
+            GLib.timeout_add(200,capture);return original(dialog)
+        with patch.object(Gtk.Dialog,'run',run):account_dialog(self.w)
+        self.assertLessEqual(sizes[0].width,840);self.assertLessEqual(sizes[0].height,640)

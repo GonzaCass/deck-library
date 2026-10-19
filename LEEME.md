@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.15.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.16.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -111,7 +111,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.15.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.16.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
@@ -177,7 +177,7 @@ La ficha del juego se reemplazó por una vista con carátula, acción principal 
 - **Catálogo de ports** reemplaza Explorar; abre el catálogo sin pasos intermedios.
 - Cada port muestra su descarga, porcentaje y tiempo estimado en su propia fila. Durante la compilación se indica la fase; no se estima un porcentaje sin datos.
 - Los ajustes de Eden se presentan como **Equilibrado**, **Rendimiento** y **Calidad**, con iconos y valoraciones reales. Los perfiles sin votos lo indican.
-- **Comunidad → Mi cuenta** permite crear una cuenta o iniciar sesión en el navegador. No necesitás GitHub. Para compartir: **Compartir mis ajustes → Revisar mis ajustes → Publicar perfil**. El aporte queda pendiente de revisión. Las estrellas y los comentarios requieren sesión.
+- **Comunidad → Mi cuenta** permite crear una cuenta o iniciar sesión (integrado en la app desde 0.16). No necesitás GitHub. Para compartir: **Compartir mis ajustes → Revisar mis ajustes → Publicar perfil**. El aporte queda pendiente de revisión. Las estrellas y los comentarios requieren sesión.
 - En modo Juego: cruceta o stick para navegar, A para activar, B para volver y LB/RB para cambiar de sección. Trackpad derecho y R2 conservan puntero/clic. **Steam + X** abre el teclado. El soporte nativo de mandos usa SDL2, incluido en SteamOS.
 - Se conserva la biblioteca al cambiar de pestaña para evitar reconstruir todas las carátulas.
 
@@ -192,3 +192,11 @@ Un port detectado desde otra instalación aparece como instalado. Si hay otra va
 **Actualizaciones → Project-2099 → Actualizar** localiza la copia de Xbox 360 disponible o permite elegirla; verifica el SHA-256 del instalador y del paquete, instala en una carpeta temporal y conserva la versión anterior completa. Se preserva UserData. Beta 5 cambia de motor: los mods y ajustes gráficos antiguos quedan en el respaldo. Se mantiene el Proton elegido en el acceso del juego; el instalador utiliza su entorno de instalación. La actualización no abre el juego. También se incluye en la cola al habilitar actualizaciones automáticas de ports.
 
 Los perfiles incluidos y probados aparecen entre los principales con **✓ Comprobado · usuario**. Una prueba de arranque se distingue con **✓ Comprobado · arranque**; no implica validación de rendimiento. Las propuestas nuevas conservan ese estado y los perfiles propios aparecen en las opciones adicionales. Las carátulas llenan el espacio vertical, recortando el excedente si tienen otra proporción.
+
+### Iniciar sesión y registrarse
+
+Abrí **Cuenta** con el icono de personas de la barra superior, o **Comunidad → Mi cuenta** desde un juego. **Iniciar sesión** y **Crear cuenta** abren los formularios dentro de Deck Library. Para registrarte en el servicio público necesitás verificar tu correo. Desde el inicio de sesión también podés recuperar la contraseña. Consultar perfiles no requiere una cuenta ni GitHub.
+
+En la Steam Deck se reutiliza el componente web de GNOME si está instalado. Si falta, la app ofrece instalarlo desde Flathub o seguir en el navegador. En modo Juego: cruceta/stick para moverte, A para seleccionar, B para cancelar el acceso y **Steam + X** para escribir. La navegación física con mando queda pendiente de confirmación.
+
+Cerrar el acceso cancela la espera y cierra su navegador interno. **Cerrar sesión** revoca el acceso comunitario. Las contraseñas las valida Keycloak; Deck Library guarda únicamente su sesión con permisos privados.

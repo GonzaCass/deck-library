@@ -1,0 +1,38 @@
+/* Client-specific Deck Library theme. Inherits Keycloak validation and forms. */
+:root { color-scheme: dark; --pf-v5-global--Color--100: #f5f3ff; --pf-v5-global--Color--200: #b4b2c7; --pf-v5-global--BackgroundColor--100: #171921; --pf-v5-global--primary-color--100: #ab8cff; }
+html, body, #keycloak-bg { background: #111216 !important; color: #f5f3ff !important; font-family: Inter, "Noto Sans", sans-serif; }
+.pf-v5-c-login { background: none; min-height: 100vh; padding: 24px 16px; }
+.pf-v5-c-login__container { width: min(100%, 520px); margin: auto; grid-template-columns: 1fr; gap: 16px; }
+#kc-header { margin: 0; padding: 0; }
+#kc-header-wrapper { display: flex; align-items: center; gap: 12px; color: #f5f3ff; font-size: 19px; font-weight: 750; }
+#kc-header-wrapper::before { content: ""; width: 34px; height: 34px; background: url('../img/deck-library.png') center / contain no-repeat; }
+.pf-v5-c-login__main { background: #1a1b24; border: 1px solid #32323f; border-radius: 20px; box-shadow: 0 12px 40px #0003; color: #f5f3ff; animation: enter .18s ease-out; }
+.pf-v5-c-login__main-header, .pf-v5-c-login__main-body, .pf-v5-c-login__main-footer { padding: 20px 24px; }
+#kc-page-title { color: #f5f3ff; font-size: 26px; font-weight: 750; }
+.pf-v5-c-form__label, .pf-v5-c-check__label, .pf-v5-c-helper-text, .pf-v5-c-login__main-footer-band { color: #d5d2e4; }
+.pf-v5-c-form-control { background: #111218; color: #f5f3ff; border: 1px solid #444454; border-radius: 10px; min-height: 46px; }
+input, select { color: #f5f3ff !important; caret-color: #c4adff; }
+.pf-v5-c-button { border-radius: 10px; min-height: 44px; transition: background .12s, box-shadow .12s; }
+.pf-v5-c-button.pf-m-primary, input[type=submit].pf-m-primary { background: #956bf4; color: white !important; font-weight: 700; }
+.pf-v5-c-button.pf-m-primary:hover { background: #a680ff; }
+.pf-v5-c-button.pf-m-control { background: #292b37; color: #f5f3ff; }
+a { color: #bea5ff !important; text-decoration-thickness: 1px; text-underline-offset: 3px; }
+:focus-visible { outline: 3px solid #bb9bff !important; outline-offset: 3px; }
+.pf-v5-c-login__main-footer-band { background: #20212d; border-radius: 0 0 20px 20px; }
+.pf-v5-c-alert { background: #302334; color: #ffd8eb; border-radius: 10px; }
+.pf-v5-c-form__helper-text .pf-m-error { color: #ffa5b8; }
+@keyframes enter { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+@media (prefers-reduced-motion: reduce) { *, *::before { animation: none !important; transition: none !important; } }
+@media (max-height: 650px) { .pf-v5-c-login { padding: 12px; } .pf-v5-c-login__main-header, .pf-v5-c-login__main-body, .pf-v5-c-login__main-footer { padding: 14px 20px; } }
+
+#kc-header-wrapper { letter-spacing: 0; text-transform: none; }
+.pf-v5-c-login__main::before { background: none; border: 0; }
+.pf-v5-c-form-control::before, .pf-v5-c-form-control::after { border-radius: 10px; border-color: #444454; }
+input[type=submit], button { font-family: inherit; }
+@media (max-height: 650px) {
+  .pf-v5-c-login__container { gap: 10px; }
+  #kc-header-wrapper { font-size: 17px; }
+  #kc-header-wrapper::before { width: 28px; height: 28px; }
+  .pf-v5-c-form { row-gap: 14px; }
+  #kc-page-title { font-size: 23px; }
+}

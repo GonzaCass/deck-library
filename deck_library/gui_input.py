@@ -16,6 +16,8 @@ class InputMixin:
         if previous[0]==action and now-previous[1]<.09:return True
         self.last_controller_action=(action,now)
         window=window or self
+        handler=getattr(window,'account_controller',None)
+        if handler and handler(action):return True
         grab=Gtk.grab_get_current()
         if isinstance(grab,Gtk.MenuShell):
             if action=='back':grab.cancel();return True

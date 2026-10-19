@@ -21,7 +21,7 @@ Para preparar la imagen sin publicar el servicio: `docker compose --env-file com
 
 Configurar `OIDC_ISSUER=https://auth.example.org/realms/REALM` y `OIDC_CLIENT_ID=deck-library`. Importar `keycloak-client.json` en el realm elegido: cliente público, Device Authorization habilitado, sin Client Secret, sin password grant ni service accounts y sin acceso a todos los scopes. Habilitar registro de usuarios en el realm si se quiere ofrecer Crear cuenta. El ejemplo usa el dominio público del servicio; para otro despliegue se reemplazan los valores en `.env`.
 
-La app abre el navegador, muestra el código y consulta automáticamente hasta completar la autorización. Las contraseñas quedan en Keycloak. El servidor verifica `userinfo`, descarta el token del proveedor y emite una sesión propia de 30 días. El cliente guarda esa sesión con permisos 0600; Cerrar sesión la revoca. No registrar cuerpos ni cabeceras de autenticación.
+La app integra los formularios en un proceso WebKit aislado y consulta automáticamente hasta completar la autorización. El navegador externo queda como alternativa explícita si no está disponible el componente integrado. Las contraseñas quedan en Keycloak. El servidor verifica `userinfo`, descarta el token del proveedor y emite una sesión propia de 30 días. El cliente guarda esa sesión con permisos 0600; Cerrar sesión la revoca. No registrar cuerpos ni cabeceras de autenticación.
 
 El esquema SQLite se migra sin perder sesiones ni reportes. Hacer un backup antes de actualizar. La base y `.env` quedan fuera de Git y del paquete.
 
@@ -46,6 +46,19 @@ Exportar el backup fuera del volumen y restaurarlo solo con el servicio parado. 
 
 «Mis aportes» consulta solo los perfiles del usuario autenticado, incluidos pendientes y rechazados.
 
-API: `GET /v1/auth/providers`, `GET /v1/presets/ID/feedback`, `GET /v1/me/presets`, `GET /health`, `GET /v1/presets?game=ID&adapter=eden`, `POST /v1/auth/start`, `POST /v1/auth/poll`, `POST /v1/logout`, `POST /v1/presets`, `POST /v1/presets/ID/feedback`. JSON limitado a 128 KiB. El cliente descarga y valida un perfil antes de ofrecer su aplicación con vista previa y respaldo. Nada se publica automáticamente.
+API: `GET /v1/me`, `GET /v1/auth/providers`, `GET /v1/presets/ID/feedback`, `GET /v1/me/presets`, `GET /health`, `GET /v1/presets?game=ID&adapter=eden`, `POST /v1/auth/start`, `POST /v1/auth/poll`, `POST /v1/logout`, `POST /v1/presets`, `POST /v1/presets/ID/feedback`. JSON limitado a 128 KiB. El cliente descarga y valida un perfil antes de ofrecer su aplicación con vista previa y respaldo. Nada se publica automáticamente.
 
 Fuentes del protocolo: [GitHub Device Flow](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow), [Traefik Docker](https://doc.traefik.io/traefik/reference/routing-configuration/other-providers/docker/).
+
+## Tema de acceso integrado
+
+`keycloak-theme/deck-library` contiene el tema de acceso, que hereda las plantillas y validaciones de `keycloak.v2` (probado con Keycloak 26.3.4). Copiar o montar esa carpeta en `/opt/keycloak/themes/deck-library:ro` del contenedor de Keycloak. Por ejemplo, desde la carpeta de despliegue de Keycloak:
+
+```yaml
+volumes:
+  - /ruta/deck-library/community/keycloak-theme/deck-library:/opt/keycloak/themes/deck-library:ro
+```
+
+Conservar los otros volúmenes existentes. Recrear solo el contenedor de Keycloak para activar el montaje. El cliente importable selecciona el tema mediante `attributes.login_theme=deck-library`; para un cliente ya existente, elegir **Login theme → deck-library** en sus ajustes. No cambiar el tema global del realm ni el de otros clientes. El tema ofrece textos de Deck Library en español incluso si el realm no tiene internacionalización habilitada. No modificar las políticas de verificación de correo, doble factor ni contraseña para integrar la interfaz.
+
+La vista usa memoria temporal para cookies y almacenamiento, deniega permisos y ventanas emergentes y limita la navegación al origen HTTPS del proveedor. El servidor no incorpora un endpoint de contraseñas ni permisos administrativos. `GET /v1/me` valida la sesión propia; un 401 elimina la sesión local vencida.

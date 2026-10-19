@@ -10,6 +10,7 @@ for folder in ('deck_library','tests'):
 files.extend(sorted((ROOT/'presets').glob('*.json')))
 files.extend([ROOT/'.dockerignore',ROOT/'docs/DECK-INTERFACE.md'])
 files.extend(sorted(p for p in (ROOT/'community').iterdir() if p.is_file() and p.name in ('__init__.py','server.py','oidc.py','keycloak-client.json','Dockerfile','compose.yaml','.env.example','README.md')))
+files.extend(sorted(p for p in (ROOT/'community/keycloak-theme').rglob('*') if p.is_file() and p.suffix in ('.properties','.css','.png')))
 output=ROOT.parent/f'DeckLibrary-{VERSION}.tar.gz'
 with tarfile.open(output,'w:gz') as archive:
     for path in files:

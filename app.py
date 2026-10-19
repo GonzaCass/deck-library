@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-import argparse,json,sys
+import argparse,json,os,sys
 from deck_library.models import Store
 
 def main():
@@ -13,6 +13,8 @@ def main():
         if name=='sync':p.add_argument('--no-wait',action='store_true')
     args=parser.parse_args()
     if not args.action:
+        # Steam shortcuts can call app.py directly instead of launch.sh.
+        if os.environ.get('DISPLAY'):os.environ.setdefault('GDK_BACKEND','x11')
         from deck_library.gui import run
         run();return 0
     store=Store(args.data_dir)

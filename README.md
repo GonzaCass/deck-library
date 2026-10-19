@@ -178,7 +178,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.15.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.16.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
@@ -203,3 +203,11 @@ Discovery identifies installed variants before offering another installation. Th
 Project-2099 updates download verified installer/payload assets from the official release, install in a temporary folder, preserve UserData and retain the complete old installation. Beta 5 changes engines; old renderer settings and mods stay in that backup. Game shortcut Proton arguments are preserved. The update button does not launch the game. Live Beta 5 gameplay validation is pending; automated tests exercise staging, backup, preservation and failure recovery using a simulated installer.
 
 Included playtested profiles are labelled with their actual test level and take precedence over custom imports in the primary cards. Portrait artwork fills its canvas without side bands.
+
+### Accounts inside the app
+
+Open **Account** (the account icon in the top bar), or **Community → My account** from a game. **Sign in** and **Create account** open Deck Library’s account forms inside the app. Registration requires email verification on the public service. Password recovery is available from the sign-in form. Browsing profiles does not require an account.
+
+Keycloak handles passwords, registration requirements and recovery. Its forms run in a separate, ephemeral WebKit process; the application receives only its own revocable community session. Sessions are checked when opening Account; expired sessions are cleared. Closing the access panel cancels polling and closes the embedded browser.
+
+On Steam Deck the embedded view reuses an installed GNOME Flatpak runtime when available. Otherwise the app offers to install the component from Flathub, or continue in the browser. The app selects X11 when available for GTK embedding; an explicit Wayland override uses the browser fallback. In Gaming Mode, use the D-pad/stick to move, A to select, B to cancel access and **Steam + X** for the keyboard. Physical controller navigation still needs confirmation on the Deck.

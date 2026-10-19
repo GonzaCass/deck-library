@@ -1,5 +1,14 @@
 # Validación
 
+## Versión 0.16 — 2026-10-19
+
+Se superaron 645 pruebas, incluidas 27 de interfaz GTK. Las nuevas pruebas cubren el origen HTTPS permitido, reutilización del componente web, ausencia de instalaciones automáticas, descarte de accesos cancelados, permisos privados de sesión, identidad autenticada, revocación y limpieza de sesiones vencidas. Se comprobaron los botones del panel, cancelación con el controlador lógico y límites de la ventana de cuenta a 840×640.
+
+La vista WebKit se incrustó realmente en un Gtk.Socket nativo usando GNOME Platform 50 ya instalado. Cargó el formulario con el tema propio en español y se verificó el cierre del proceso al cancelar. La ventana mantuvo 840×680 durante la carga real. La recuperación abrió el formulario correspondiente con el tema propio, sin enviar solicitudes de correo. Una cuenta temporal se creó a través del formulario real de registro y llegó al paso obligatorio de verificación de correo. Para probar el inicio de sesión sin depender de un buzón, se marcó verificado únicamente ese usuario temporal mediante administración. Luego se rechazó una contraseña incorrecta, se autorizó el acceso real con contraseña correcta, `/v1/me` confirmó la identidad y cerrar sesión revocó el token. Se eliminaron las cuentas temporales. No se publicó contenido ni se alteraron cuentas existentes.
+
+La recepción del correo de verificación y la recuperación por correo requieren una prueba con un buzón real. No se presentan como validadas por el test de registro. La navegación física con mando y el teclado de Steam en modo Juego siguen pendientes de confirmación del usuario. No se abrieron juegos. El tema se selecciona solo para el cliente deck-library y el montaje se conserva en el despliegue de Keycloak.
+
+
 ## Versión 0.15 — 2026-10-19
 
 Se superaron 636 pruebas, incluidas 24 de interfaz GTK. Se comprobaron el catálogo vivo (503 repositorios combinados; 453 con fecha de incorporación de Quiver), su paginación y una fuente independiente. El índice incluido es una copia de metadatos públicos, sin juegos ni instaladores. La revisión local encontró seis parejas de original/port y detectó que CTR Turbocharged ya está instalado. Los tests cubren esas asociaciones, pistas CUE compartidas y referencias externas, ocultación, cancelación, limpieza del estado de errores, orden de fechas, perfiles propios después de los principales y carátulas sin bandas.
