@@ -150,6 +150,9 @@ button.task.cyan:hover { background:#22343c; border-color:#5a8896; }
 .surface-panel { padding:20px; background:@surface; border:1px solid @line; border-radius:14px; }
 popover { background:#20212a; color:@text; border:1px solid @line; border-radius:12px; }
 popover button { padding:8px; }
+menu { background:@surface; color:@text; border:1px solid @line; padding:4px; }
+menuitem { background:transparent; color:@text; padding:6px 10px; }
+menuitem:hover { background:@raised; }
 '''
 
 TONES={'play':'play','danger':'danger','presets':'violet','steam':'steam','controls':'amber'}
@@ -253,6 +256,7 @@ class Window(GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,A
 
 def run():
     GLib.set_prgname('deck-library');GLib.set_application_name('Deck Library')
-    Gtk.Window.set_default_icon_from_file(str(pathlib.Path(__file__).resolve().parent.parent/'assets/icon.svg'))
+    Gtk.Settings.get_default().set_property('gtk-application-prefer-dark-theme',True)
+    Gtk.Window.set_default_icon_from_file(str(pathlib.Path(__file__).resolve().parent.parent/'assets/icon.png'))
     provider=Gtk.CssProvider();provider.load_from_data(CSS);Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
     window=Window();window.show_all();Gtk.main()

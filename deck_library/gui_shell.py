@@ -11,7 +11,7 @@ from . import motion,__version__,presets
 class ShellMixin:
     def init_shell(self):
         from .gui import label,button,PageStack
-        self.set_wmclass('deck-library','deck-library');self.set_icon_from_file(str(self.asset('icon.svg')));self.set_default_size(1240,760);self.set_size_request(840,520)
+        self.set_wmclass('deck-library','deck-library');self.set_icon_from_file(str(self.asset('icon.png')));self.set_default_size(1240,760);self.set_size_request(840,520)
         self.store=Store();self.preferences=settings(self.store);self.view=self.preferences.get('view','covers');self.checked=set();self.selected=None;self.selection_mode=False;self.platform_filter='all';self.type_filter='all';self.artwork_attempted=set();self.artwork_busy=False;self.discover_busy=False;self.wizard_step=0;self.game_tab='profiles';self.detail_game_id=None;self.profile_choice={}
         self.ui_closed=False;self.ui_sources=[]
         self.connect('destroy',Gtk.main_quit);self.connect('destroy',self.close_ui_sources);self.connect('delete-event',lambda *_:not self.discard_game_edits());self.connect('key-press-event',self.library_key);self.connect('map',self.fit_window);self.connect('size-allocate',self.update_game_size)
@@ -42,7 +42,7 @@ class ShellMixin:
         from .gui import label,button
         from .ui_components import Icon
         bar=Gtk.Box(spacing=8);bar.get_style_context().add_class('app-header');bar.set_border_width(12);root.pack_start(bar,False,False,0)
-        icon=Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(str(self.asset('icon.svg')),32,32,True));bar.pack_start(icon,False,False,8);brand=label('Deck Library','brand');brand.set_margin_end(22);bar.pack_start(brand,False,False,0)
+        icon=Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(str(self.asset('icon.png')),32,32,True));bar.pack_start(icon,False,False,8);brand=label('Deck Library','brand');brand.set_margin_end(22);bar.pack_start(brand,False,False,0)
         self.nav_buttons={};self.update_badge=label('','badge');self.update_badge.set_no_show_all(True)
         for name,callback in [('Biblioteca',lambda _:self.open_library()),('Explorar',lambda _:self.add_hub()),('Actualizaciones',lambda _:self.updates_page()),('Ajustes',lambda _:self.settings_page())]:
             control=button(name,lambda w,action=callback:self.navigate_from_game(action,w));control.get_style_context().add_class('nav');bar.pack_start(control,False,False,0);self.nav_buttons[name]=control
