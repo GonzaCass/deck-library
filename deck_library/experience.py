@@ -38,23 +38,24 @@ class ExperienceMixin:
         return combo,key
 
     def settings_page(self):
-        from .gui import label,button
+        from .gui import label,button,wrap_row
         self.reset_page(self.settings_box)
         self.settings_box.pack_start(label('Ajustes','hero'),False,False,0)
         self.settings_box.pack_start(label('Carátulas, rutas y apariencia.','subtitle'),False,False,0)
         panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14);panel.get_style_context().add_class('card');self.settings_box.pack_start(panel,False,False,0)
-        combo,key=self.provider_fields(panel)
+        advanced=Gtk.Expander(label='Proveedor de carátulas y clave API');provider_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);advanced.add(provider_box);panel.pack_start(advanced,False,False,0);combo,key=self.provider_fields(provider_box)
         animations=Gtk.Switch();animations.set_active(self.preferences.get('animations',True));row=Gtk.Box(spacing=12);row.pack_start(label('Animaciones y transiciones'),True,True,0);row.pack_end(animations,False,False,0);panel.pack_start(row,False,False,0)
         def save(_):
             if combo.get_active_id()=='steamgriddb' and not key.get_text().strip():self.message('Falta la clave','Ingresar la clave o elegir Automático o Wikipedia.');return
             self.preferences.update(artwork_provider=combo.get_active_id(),steamgriddb_key=key.get_text().strip(),animations=animations.get_active());save_settings(self.preferences,self.store);self.apply_motion();self.artwork_attempted.clear();self.set_status('Ajustes guardados.');self.fetch_covers()
         panel.pack_start(button('Guardar y buscar carátulas',save,True),False,False,0)
-        row=Gtk.Box(spacing=12)
+        row=wrap_row()
+        row.pack_start(button('Agregar Deck Library a Steam',self.add_library_to_steam),False,False,0)
         row.pack_start(button('Instalaciones y carpetas',lambda _:self.installation_dialog()),False,False,0)
         row.pack_start(button('Repetir configuración inicial',lambda _:self.start_wizard()),False,False,0)
         row.pack_start(button('Aplicar ajustes máximos para Steam Deck',lambda _:self.apply_deck_max()),False,False,0)
         row.pack_start(button('Completar arte de todos los accesos de Steam',lambda _:self.complete_all_art()),False,False,0)
-        self.settings_box.pack_start(row,False,False,0);self.settings_box.show_all();self.pages.set_visible_child_name('settings')
+        self.settings_box.pack_start(row,False,False,0);self.settings_box.reorder_child(row,2);self.settings_box.show_all();self.pages.set_visible_child_name('settings')
 
     def apply_deck_max(self):
         from . import deckmax
@@ -64,7 +65,7 @@ class ExperienceMixin:
     def start_wizard(self):
         self.wizard_step=0;self.wizard_found=None;self.wizard_checks={};self.checked.clear();self.selection_mode=False;self.draw_wizard();self.wizard_box.show();self.pages.set_visible_child_name('welcome');return False
     def draw_wizard(self):
-        from .gui import label,button
+        from .gui import label,button,wrap_row
         stack=self.wizard_box;box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);stack.add(box)
         steps=['Inicio','Detección','Carátulas','Final'];progress=Gtk.Box(spacing=12)
         for index,title in enumerate(steps):
@@ -83,7 +84,7 @@ class ExperienceMixin:
             body.pack_start(label('Juegos detectados','hero'),False,False,0)
             body.pack_start(label('Marcar los juegos que se agregarán a Steam. Si falta alguno, añadir su carpeta.','subtitle'),False,False,0)
             self.wizard_report_label=label('Buscando EmuDeck, emuladores, ports y Prism…','pill');body.pack_start(self.wizard_report_label,False,False,0)
-            scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.wizard_results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);scroll.add(self.wizard_results);body.pack_start(scroll,True,True,0)
+            scroll=self.new_scroll();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.wizard_results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);scroll.add(self.wizard_results);body.pack_start(scroll,True,True,0)
             controls=Gtk.Box(spacing=10);controls.pack_start(button('Añadir carpeta',lambda _:self.wizard_folder()),False,False,0);controls.pack_start(button('Rutas y emuladores',lambda _:self.installation_dialog()),False,False,0);body.pack_start(controls,False,False,0)
             footer.pack_start(button('Atrás',lambda _:self.wizard_back()),False,False,0)
             self.wizard_continue=button('Continuar',lambda _:self.wizard_next(),True);footer.pack_end(self.wizard_continue,False,False,0);self.wizard_continue.set_sensitive(self.wizard_found is not None)
@@ -166,12 +167,12 @@ class ExperienceMixin:
     def covers_finished(self,count,total):
         self.artwork_busy=False;self.artwork_spinner.stop();self.artwork_bar.hide();self.set_status(f'{count} carátulas encontradas.'+(' Las faltantes se pueden buscar desde la ficha de cada juego.' if count<total else ''));return False
     def artwork_dialog(self,e):
-        from .gui import label,button
+        from .gui import label,button,wrap_row
         dialog=Gtk.Dialog(title='Carátula · '+e.name,transient_for=self,modal=True);dialog.set_default_size(820,600);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(12)
         query=Gtk.Entry();query.set_text(cover_provider.title_for(e));row=Gtk.Box(spacing=10);row.pack_start(query,True,True,0);box.pack_start(row,False,False,0)
         status=label('Buscar una carátula en línea o elegir una imagen local.','muted');box.pack_start(status,False,False,0)
-        scroll=Gtk.ScrolledWindow();results=Gtk.FlowBox();results.set_selection_mode(Gtk.SelectionMode.NONE);results.set_max_children_per_line(4);scroll.add(results);box.pack_start(scroll,True,True,0)
+        scroll=self.new_scroll();results=Gtk.FlowBox();results.set_selection_mode(Gtk.SelectionMode.NONE);results.set_max_children_per_line(4);scroll.add(results);box.pack_start(scroll,True,True,0)
         alive={'value':True}
         def begin():
             search_button.set_sensitive(False);self.reset_page(results);status.set_text('Buscando…');return False
@@ -207,10 +208,10 @@ class ExperienceMixin:
         def local(_):self.choose_cover(e);self.show_detail(e);dialog.response(Gtk.ResponseType.CLOSE)
         box.pack_start(button('Elegir imagen local',local),False,False,0)
         if e.metadata.get('artwork',{}).get('page'):box.pack_start(Gtk.LinkButton.new_with_label(e.metadata['artwork']['page'],'Ver origen de la carátula actual'),False,False,0)
-        dialog.show_all();lookup(None);dialog.run();alive['value']=False;dialog.destroy()
+        self.fit_dialog(dialog);dialog.show_all();lookup(None);dialog.run();alive['value']=False;dialog.destroy()
     def steam_art_dialog(self,e):
         """Choose the five Steam artwork slots of a shortcut from SteamGridDB; chosen images are written when Steam is closed."""
-        from .gui import label,button
+        from .gui import label,button,wrap_row
         from . import steamart
         from .service import queue_art
         key=self.preferences.get('steamgriddb_key','')
@@ -226,7 +227,7 @@ class ExperienceMixin:
         def refresh_summary():
             parts=[f'{steamart.SLOTS[s][1]}: '+('elegido' if s in chosen else 'ya en Steam' if present[s] else 'falta') for s in steamart.SLOTS];summary.set_text(' · '.join(parts));save.set_sensitive(bool(chosen))
         for slot,(_,title,_,_) in steamart.SLOTS.items():
-            scroll=Gtk.ScrolledWindow();flow=Gtk.FlowBox();flow.set_selection_mode(Gtk.SelectionMode.NONE);flow.set_max_children_per_line(6 if slot in ('portrait','icon','logo') else 3);scroll.add(flow);lists[slot]=flow;notebook.append_page(scroll,Gtk.Label(label=title+(' ✓' if present[slot] else '')))
+            scroll=self.new_scroll();flow=Gtk.FlowBox();flow.set_selection_mode(Gtk.SelectionMode.NONE);flow.set_max_children_per_line(6 if slot in ('portrait','icon','logo') else 3);scroll.add(flow);lists[slot]=flow;notebook.append_page(scroll,Gtk.Label(label=title+(' ✓' if present[slot] else '')))
         def add_tile(slot,row,path):
             if not state['alive']:return False
             width,height={'portrait':(120,180),'banner':(220,103),'hero':(300,97),'logo':(160,90),'icon':(96,96)}[slot]
@@ -288,7 +289,7 @@ class ExperienceMixin:
             items=[{'appid':appid,'slot':s,'file':f} for s,f in chosen.items()]
             self.store.save(self.entries);dialog.response(Gtk.ResponseType.CLOSE)
             self.run_queue(lambda:queue_art(items,account,self.store),'Preparando el arte de Steam…')
-        refresh_summary();dialog.show_all();look();dialog.run();state['alive']=False;dialog.destroy()
+        refresh_summary();self.fit_dialog(dialog);dialog.show_all();look();dialog.run();state['alive']=False;dialog.destroy()
     def complete_all_art(self):
         """Fill every empty Steam artwork slot of every shortcut from SteamGridDB, keeping what exists."""
         from . import steamart
@@ -323,7 +324,7 @@ class ExperienceMixin:
         fields={}
         for key,title in [('name','Nombre'),('exe','Ejecutable'),('startdir','Carpeta de inicio'),('options','Opciones de lanzamiento')]:
             box.pack_start(label(title,'muted'),False,False,0);field=Gtk.Entry();field.set_text(item[key]);fields[key]=field;box.pack_start(field,False,False,0)
-        box.pack_start(label('Se conservan el identificador del acceso, Steam Input y Proton. La carátula elegida también se guarda en Steam.','muted'),False,False,0);dialog.show_all()
+        box.pack_start(label('Se conservan el identificador del acceso, Steam Input y Proton. La carátula elegida también se guarda en Steam.','muted'),False,False,0);self.fit_dialog(dialog);dialog.show_all()
         if dialog.run()==Gtk.ResponseType.OK:
             updated={**item,**{key:field.get_text().strip() for key,field in fields.items()}}
             if not updated['name'] or not updated['exe']:self.message('Datos incompletos','Nombre y ejecutable son obligatorios.')

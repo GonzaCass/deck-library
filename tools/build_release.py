@@ -4,10 +4,12 @@ import hashlib,pathlib,tarfile
 ROOT=pathlib.Path(__file__).resolve().parent.parent
 import sys;sys.path.insert(0,str(ROOT))
 from deck_library import __version__ as VERSION
-files=[ROOT/name for name in ('app.py','install.py','launch.sh','Instalar.sh','README.md','LEEME.md','LICENSE','.gitignore','.github/workflows/test.yml','assets/icon.svg','assets/screenshot.png','assets/welcome.png','docs/VALIDATION.md','docs/PRESETS.md','docs/COMMUNITY-PRESETS.md','docs/GTAIV.md','docs/PROJECT2099.md','docs/DMC3-CRIMSON.md','docs/SPIDER-MAN-SHATTERED-DIMENSIONS.md','docs/PORTS.md','tools/build_release.py')]
+files=[ROOT/name for name in ('app.py','install.py','launch.sh','Instalar.sh','README.md','LEEME.md','LICENSE','.gitignore','.github/workflows/test.yml','assets/icon.svg','assets/icon.png','assets/screenshot.png','assets/screenshot-game.png','assets/welcome.png','docs/VALIDATION.md','docs/PRESETS.md','docs/COMMUNITY-PRESETS.md','docs/GTAIV.md','docs/PROJECT2099.md','docs/DMC3-CRIMSON.md','docs/SPIDER-MAN-SHATTERED-DIMENSIONS.md','docs/PORTS.md','tools/build_release.py')]
 for folder in ('deck_library','tests'):
     files.extend(sorted((ROOT/folder).glob('*.py')))
 files.extend(sorted((ROOT/'presets').glob('*.json')))
+files.extend([ROOT/'.dockerignore',ROOT/'docs/DECK-INTERFACE.md'])
+files.extend(sorted(p for p in (ROOT/'community').iterdir() if p.is_file() and p.name in ('__init__.py','server.py','Dockerfile','compose.yaml','.env.example','README.md')))
 output=ROOT.parent/f'DeckLibrary-{VERSION}.tar.gz'
 with tarfile.open(output,'w:gz') as archive:
     for path in files:

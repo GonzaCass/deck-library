@@ -16,6 +16,7 @@ SYSTEMS={
  'n3ds':('Nintendo 3DS','azahar',('-f',),{'.3ds','.cci','.cxi'}),
  'wiiu':('Wii U','cemu',('-f','-g'),{'.wua','.wud','.wux','.rpx'}),
 }
+EMULATOR_FLATPAKS={'eden':'dev.eden_emu.eden','dolphin-emu':'org.DolphinEmu.dolphin-emu','duckstation':'org.duckstation.DuckStation','pcsx2-qt':'net.pcsx2.PCSX2','ppsspp':'org.ppsspp.PPSSPP','azahar':'org.azahar_emu.Azahar','cemu':'info.cemu.Cemu'}
 REJECT_PARTS={'updates','update','dlc','mods','duplicates','firmware','keys','sistemas','systems','bios'}
 
 def nice_name(path):
@@ -29,7 +30,7 @@ def is_base_rom(path):
 
 def available_emulators(home=None,preferences=None):
     home=pathlib.Path(home or pathlib.Path.home());preferences=preferences or {};result={};emudeck=emudeck_paths(home)
-    flatpaks={'eden':'dev.eden_emu.eden','dolphin-emu':'org.DolphinEmu.dolphin-emu','duckstation':'org.duckstation.DuckStation','pcsx2-qt':'net.pcsx2.PCSX2','ppsspp':'org.ppsspp.PPSSPP','azahar':'org.azahar_emu.Azahar','cemu':'info.cemu.Cemu'}
+    flatpaks=EMULATOR_FLATPAKS
     for label,slug,flags,_ in SYSTEMS.values():
         if slug in result:continue
         configured=preferences.get('emulators',{}).get(slug)

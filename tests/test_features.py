@@ -902,7 +902,7 @@ class WiiUpdateTests(unittest.TestCase):
         from deck_library import wiiupdate
         with patch('deck_library.updates.quiver_apps',return_value=self.apps):
             found=wiiupdate.installations(None,self.home);self.assertEqual(found[0]['command'][:2],['flatpak','run']);self.assertEqual(found[0]['data_home'],self.home/'.var/app/io.example.Wheel/data')
-            self.assertEqual(wiiupdate.check(None,lambda url:self.release(),self.home),{'name':'Mario Kart Wii','installed':'v0.2.33','latest':'v0.2.34','page':'https://x/r'})
+            self.assertEqual(wiiupdate.check(None,lambda url:self.release(),self.home),{'name':'Mario Kart Wii','installed':'v0.2.33','latest':'v0.2.34','page':'https://x/r','repository':wiiupdate.REPOSITORY,'notes':'n'})
             self.assertEqual(updates.check_quiver(None,lambda url:self.release(),self.home),[])
         with patch('deck_library.updates.quiver_apps',return_value=[{**self.apps[0],'installed':'v0.2.34'}]):self.assertIsNone(wiiupdate.check(None,lambda url:self.release(),self.home))
     def test_a_download_whose_hash_differs_is_refused_and_the_old_tool_stays(self):

@@ -209,3 +209,34 @@ Se compiló una variante de depuración de cada kit (con el servidor TCP de depu
 ### 0.10.1 - Correcciones tras la prueba en la Deck
 
 Resultado de jugar en la Deck: Spider-Man 1 y 2 con el 60 real se sentían muy acelerados y los sticks eran incontrolables, de modo que parte de la lógica depende de los cuadros (la medición con variables de posición no lo detectó). Smooth 60 queda apagado por defecto (`SMOOTH60_DEFAULT=False`); `maintain` retira el entorno de los accesos que lo tenían. Breath of the Wild no arrancaba: el registro de Eden muestra más de 900 000 lecturas y escrituras en memoria sin asignar a los 13 s, justo después de abrir el audio, con el mod de interfaz DS4 instalado; la última ejecución que llegó a compilar pipelines (sin ese mod) no tenía errores, así que el mod se movió a `~/Emulation/storage/eden/mods-desactivados` (no se pudo comprobar el arranque aquí, sin GPU). A Link Between Worlds pasa de una sola pantalla a la disposición «pantalla grande» con la otra pequeña, para que las dos se vean sin depender de F9/F10 de Steam Input. Wind Waker HD: la pantalla del GamePad «queda a un costado» al pulsar Select; no se pudo reproducir sin una sesión con Vulkan y no se cambió nada.
+
+
+### 0.11.0 — Interfaz de Deck y comunidad (2026-10-18)
+
+Base: main 5f8d0ec (0.10.2), traída con git pull --ff-only. Pruebas completas: 591 casos correctos, incluidos cuatro GTK optativos con DECK_LIBRARY_UI_TESTS=1. Se comprobaron las vistas carátulas/lista/plataformas, miniaturas, ausencia de diálogo modal al acumular cambios de Steam y tamaño del informe de conflictos con 50 resultados asíncronos y una confirmación con 80 líneas. Capturas con biblioteca ficticia a 1280×760: biblioteca, ficha, ajustes, alta y asistente; seis diálogos mantuvieron tamaños de 660–880 × 480–640. La navegación física con Steam Input y el teclado de Steam requiere prueba del usuario en modo Juego.
+
+Se instaló localmente 0.11.0 conservando una copia de la instalación 0.10.1. Se preparó el acceso de Deck Library con la cola segura de Steam; no se cerró Steam automáticamente. No se cambiaron juegos ni sus ajustes durante esta tarea.
+
+Servidor opcional en jokerlan.xyz: imagen construida y probada primero con red deshabilitada, servicio independiente desplegado con red traefik-net y TLS. GET /health y GET /v1/presets respondieron por HTTPS desde la Deck; GitHub Device Flow emitió un código real y respondió pending sin autenticar a ningún usuario. El inicio de sesión completo y la publicación autenticada están cubiertos con respuestas GitHub simuladas en tests; falta la autorización real del usuario en la app. SQLite persistente en volumen propio, token de sesión por hash, aportes pendientes hasta revisión, consulta privada de aportes y un feedback por usuario/perfil. No se subió ninguna configuración personal.
+
+
+### 0.12.0 — Sustitución de la estructura de interfaz
+
+Se reemplazó la ventana anterior por navegación superior y biblioteca a ancho completo. Las acciones de biblioteca se separaron en gui_actions.py, las vistas en gui_shell.py y el editor integrado en gui_editor.py. Se retiraron el selector intermedio y los diálogos antiguos de perfiles/opciones. La captura de README usa una biblioteca ficticia con arte geométrico propio, sin rutas ni cuentas personales.
+
+El pendiente de la Deck era el acceso de Deck Library preparado en la instalación anterior, no una operación iniciada al abrir la app. Se añadió detalle por operación y cancelación segura de la cola. La revisión real de esta Deck no reporta instalaciones alternativas de emuladores tras excluir scripts y deduplicar rutas/inodos. Se descargaron a caché las notas oficiales de las versiones que mostraba el programa para Wind Waker HD y Project-2099; no se actualizaron juegos.
+
+Pruebas GTK: navegación y tres vistas a 1280×760, perfil aplicado desde su ficha sin selector modal, edición de opciones integrada, visibilidad de ambas versiones port/emulador, detalle nominal de pendientes, miniaturas y límites de diálogos. Las pruebas de servicio cubren el trabajador al cancelar la cola, alias AppImage/script/enlace, y changelog de la versión exacta. Falta la prueba física en modo Juego.
+
+Resultado final 0.12.0: **601 pruebas correctas**, incluidas siete pruebas GTK optativas. No se modificaron juegos ni se actualizaron ports durante esta revisión.
+
+
+### 0.13.0 — Ficha visual, tareas y ejecución desde Steam (2026-10-19)
+
+Se inspeccionó el frontend de SpotiFLAC de escritorio (React, Radix UI y motion) como referencia de jerarquía y comportamiento. La ficha de Deck Library se implementó con componentes nativos propios: cabecera con carátula y fondo, acciones de colores, tarjetas de perfiles y barra fija de aplicación. Se retiró el selector de pestañas del juego; controles, contenido y edición manual son tareas con regreso explícito.
+
+**611 pruebas correctas**, incluidas **17 comprobaciones GTK**. El recorrido verificado con datos aislados cubre selección sin escrituras, aplicación real a un INI temporal, creación de respaldo, restauración, rechazo con el emulador abierto, estado de reintento, diferencias de valores heredados de Eden, cambio de juego durante una aplicación diferida, botones de Steam pendientes y conservación de ediciones manuales durante refrescos. Se verificó que abrir una ficha empieza en el resumen y da foco a Jugar.
+
+Se renderizaron biblioteca, juego, opciones y controles a **1280×800** y **840×520**. La cabecera se compacta en la ventana baja y los perfiles pasan a una columna en la estrecha; aplicar y guardar permanecen dentro de la ventana. Se comprobaron mediante reloj de cuadros la entrada de la cabecera, el despliegue de detalles, el estado final y la desactivación de animaciones. Las capturas públicas contienen juegos ficticios y arte geométrico propio.
+
+La guía en español y el README explican cómo agregar Deck Library desde Ajustes, guardar una sola vez la cola al cerrar Steam y abrir la app desde la biblioteca en modo Juego. También distinguen los accesos individuales de cada juego. Se añadió un trabajo de CI con GTK/Xvfb para mantener estas comprobaciones. La navegación con los controles físicos y las transiciones entre la app y juegos en modo Juego quedan para prueba en la Deck; no se ejecutaron juegos ni se cambiaron sus ajustes en esta revisión.

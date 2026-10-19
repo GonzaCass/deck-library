@@ -4,7 +4,26 @@
 
 Agregá ports, aplicaciones y juegos emulados a Steam desde una sola ventana.
 
-**GTA IV:** buscar lo instalado, abrir la ficha del juego y elegir **Ver arreglo → Aplicar arreglo de GTA IV**. Instala FusionFix 4.0.5 y los ajustes de DXVK confirmados en esta Deck, con respaldo y restauración. No abre el juego. [Instructivo y detalles](docs/GTAIV.md).
+## Usar Deck Library directamente desde Steam
+
+1. Instalá la app en modo Escritorio: descargá y extraé [la última versión](https://github.com/GonzaCass/deck-library/releases/latest), abrí la carpeta y ejecutá **Instalar.sh**. Completá el asistente inicial.
+2. Dentro de Deck Library, abrí **Ajustes → Deck Library en Steam** y pulsá **Agregar a Steam**.
+3. Si Steam está abierto, el acceso queda preparado y aparece el aviso de cambios pendientes. Terminá de agregar o editar lo que necesites, cerrá Steam una vez y esperá que desaparezca el aviso. El proceso en segundo plano guarda el acceso y los controles.
+4. Volvé al modo Juego. Buscá **Deck Library** en la biblioteca de Steam y pulsá **Jugar**. Se abre directamente a pantalla completa, con la biblioteca, las carátulas y los ajustes.
+
+La primera instalación se hace desde Escritorio; después podés abrir la app desde Steam. El acceso usa la versión nativa de Linux. Para navegar: trackpad derecho y gatillo derecho para puntero/clic; cruceta o stick para moverte; **A** para activar; **B** para volver; **X** para Tab. **Steam + X** abre el teclado en pantalla. La plantilla y la interfaz se comprobaron con pruebas automáticas; la navegación con el mando físico en modo Juego sigue pendiente de prueba.
+
+### Agregar cada juego a Steam
+
+Abrí la carátula del juego y pulsá el botón azul **Agregar a Steam**. Verás **Acceso pendiente** hasta que se guarde al cerrar Steam; después aparecerá **En Steam**. Para varios juegos, pulsá **Seleccionar**, marcá sus carátulas y usá **Agregar a Steam** en la barra inferior.
+
+Después de guardar los accesos, cada juego se puede abrir directamente desde su propia ficha de Steam. Abrir Deck Library antes es opcional. También podés pulsar **Jugar** dentro de Deck Library: si ese juego ya tiene acceso, la app utiliza el de Steam y su configuración de mando.
+
+Los cambios se acumulan: basta con cerrar Steam una vez al terminar. **Ver cambios** detalla las operaciones pendientes y permite descartarlas. La app y los juegos tienen accesos separados.
+
+![Ficha del juego con biblioteca de ejemplo](assets/screenshot-game.png)
+
+**GTA IV:** buscar lo instalado, abrir la ficha del juego y elegir **Mejoras para GTA IV → Aplicar arreglo de GTA IV**. Instala FusionFix 4.0.5 y los ajustes de DXVK confirmados en esta Deck, con respaldo y restauración. No abre el juego. [Instructivo y detalles](docs/GTAIV.md).
 
 **DMC3 Crimson:** el [arreglo de arranque desde Steam](docs/DMC3-CRIMSON.md) está documentado con su wrapper, compatibilidad de la DLL, respaldo y requisitos para un futuro botón. Se comprobó el arranque local; aún no hay instalador de Crimson integrado en la app.
 
@@ -36,21 +55,21 @@ A Link Between Worlds, Breath of the Wild y Skyward Sword no tienen port nativo 
 
 ### Arte de Steam
 
-En la ficha de un juego con acceso en Steam, **Arte de Steam** busca en SteamGridDB (con la misma clave API de **Ajustes**) la portada vertical, la horizontal, el fondo, el logotipo y el ícono, con las mismas rutas de archivo que usa el plugin SteamGridDB de Decky. Lo que ya existe se muestra marcado y no se reemplaza salvo que se elija otra imagen; cada archivo reemplazado deja una copia en `grid/.deck-library-backups`. **Completar lo que falta** elige automáticamente la primera imagen de cada espacio vacío. Las imágenes elegidas se guardan al cerrar Steam, junto con el resto de los cambios pendientes.
+En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acceso de Steam → Carátulas de Steam** busca en SteamGridDB (con la misma clave API de **Ajustes**) la portada vertical, la horizontal, el fondo, el logotipo y el ícono, con las mismas rutas de archivo que usa el plugin SteamGridDB de Decky. Lo que ya existe se muestra marcado y no se reemplaza salvo que se elija otra imagen; cada archivo reemplazado deja una copia en `grid/.deck-library-backups`. **Completar lo que falta** elige automáticamente la primera imagen de cada espacio vacío. Las imágenes elegidas se guardan al cerrar Steam, junto con el resto de los cambios pendientes.
 
-**Ajustes → Completar arte de todos los accesos de Steam** hace lo mismo para toda la biblioteca de una vez: solo llena los espacios vacíos, informa por juego qué se agregó y qué no se encontró, y ofrece reiniciar Steam para guardar. Hace falta una clave API propia de SteamGridDB: la clave del plugin de Decky va embebida en ese plugin y su autor advierte que usarla en otros proyectos provoca el bloqueo.
+**Ajustes → Completar arte de todos los accesos de Steam** hace lo mismo para toda la biblioteca de una vez: solo llena los espacios vacíos, informa por juego qué se agregó y qué no se encontró, y deja los cambios preparados para guardarse al cerrar Steam. Hace falta una clave API propia de SteamGridDB: la clave del plugin de Decky va embebida en ese plugin y su autor advierte que usarla en otros proyectos provoca el bloqueo.
 
 ### Diseño, movimiento y actualizaciones propias
 
-- **Interfaz:** rediseño «grafito y brasa»: superficies neutras cálidas, un único color de acento naranja, barra lateral con íconos e indicador de sección, título de página con contador, filtros como pestañas de texto, controles rectangulares (esquinas de 4 px) y tarjetas de juego con el título y la plataforma debajo (marca «EN STEAM» cuando ya tienen acceso). Foco visible en todos los controles (para usar el mando con Steam Input) y objetivos táctiles de al menos 36 px. La carátula de cada juego usa el arte que Steam ya tiene para su acceso, por ejemplo el elegido con el plugin SteamGridDB de Decky, y la ficha muestra su fondo y su logotipo como banner.
-- **Movimiento:** transiciones de 150–300 ms con salida suave, aparición escalonada de las tarjetas al abrir la biblioteca o cambiar de filtro, deslizamiento entre la biblioteca y la ficha de un juego, y avisos breves al guardar cambios. **Ajustes → Animaciones y transiciones** lo desactiva por completo.
-- **Ajustes detectados:** el diálogo de ajustes de cada juego empieza con **Ajustes actuales**, leídos del archivo propio del emulador (con fecha de modificación) o de los valores globales si el juego no tiene uno, antes de los perfiles recomendados del catálogo.
+- **Interfaz:** navegación superior, carátulas verticales y una ficha con Jugar en verde, Steam en azul y ajustes en violeta. Elegí una tarjeta y pulsá **Aplicar ajustes**; seleccionar no escribe cambios. **Ver cambios** despliega los detalles técnicos. **Controles**, **Contenido** y **Ajustes manuales** abren pantallas con un botón para volver al juego. Importar, exportar, carátulas y archivos están en **Más opciones**.
+- **Movimiento:** entrada de la ficha y de las tarjetas, transiciones entre tareas, despliegue de detalles, estados de botones y confirmaciones al guardar. Se desactiva desde **Ajustes → Carátulas y apariencia → Animaciones**.
+- **Ajustes:** la vista previa compara valores del archivo del juego y distingue los perfiles pendientes de los que ya coinciden. Aplicar guarda un respaldo y **Deshacer** restaura la configuración anterior. La edición manual conserva los cambios sin guardar durante una actualización de carátulas o detección.
 - **Clave de SteamGridDB:** Ajustes explica cómo conseguirla (iniciar sesión en steamgriddb.com, Perfil → Preferencias → API), permite mostrarla u ocultarla y tiene un botón **Probar clave**.
 - **Mario Kart Wii (WiiCompiled):** la pestaña **Actualizaciones** ofrece **Actualizar aquí** cuando hay una versión nueva del setup oficial. Descarga el AppImage, verifica su SHA-256 con el valor que publica GitHub, vuelve a instalar el juego con la imagen PAL de la biblioteca (necesita unos 20 GB libres) y restaura el setup anterior si algo falla. No hace falta abrir Quiver.
 
 ## Instalación
 
-1. Copiar y extraer `DeckLibrary-0.4.0.tar.gz` en modo Escritorio.
+1. Descargar `DeckLibrary-0.13.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -64,9 +83,9 @@ Se abre un asistente de cuatro pasos: **Bienvenida → Detectar → Carátulas �
 
 ## Tu biblioteca
 
-Las carátulas tienen formato vertical 2:3. Tocá una para abrir su ficha: **Jugar** y **Agregar a Steam** son las acciones principales. Debajo están los presets, el contenido de Switch y los controles de Minecraft cuando corresponden. Rutas, comandos y el interruptor de mods quedan en **Opciones avanzadas**.
+Las carátulas tienen formato vertical 2:3. Tocá una para abrir su ficha: **Jugar** y **Agregar a Steam** son las acciones principales. Debajo están las tarjetas de ajustes. **Controles**, **Contenido** y **Ajustes manuales** abren cada tarea; **Más opciones → Archivos y acceso de Steam** muestra rutas y comandos.
 
-Para agregar varios juegos, tocar **Seleccionar**, marcar las carátulas y usar **Agregar a Steam** en la barra inferior. Si Steam está abierto, elegir **Reiniciar Steam y guardar** después de cerrar el juego en uso. Los accesos aparecen en **No Steam** en modo Juego.
+Para agregar varios juegos, tocar **Seleccionar**, marcar las carátulas y usar **Agregar a Steam** en la barra inferior. Si Steam está abierto, los cambios quedan preparados hasta que lo cierres una vez al terminar. Los accesos aparecen en **No Steam** en modo Juego.
 
 **Agregar juegos** ofrece tres caminos: buscar lo instalado, elegir una ROM/app o preparar Mario Kart Wii. En **Ajustes → Instalaciones y carpetas** se pueden corregir las rutas de emuladores, ports, Prism y bibliotecas en microSD. Los ejecutables Windows necesitan un launcher de Wine/Proton configurado.
 
@@ -82,7 +101,7 @@ Hay transiciones entre pantallas y pasos del asistente, respuesta visual al pasa
 
 ## Mods y partidas
 
-En Switch, **Opciones avanzadas** permite activar **Usar mods instalados en Eden**. Desactivarlo prepara un perfil sin mods que conserva la ubicación de partidas, NAND y controles. No borra mods ni cambia la configuración principal. Los nuevos juegos de Switch usan los mods instalados por defecto; se pueden desactivar para comparar el arranque. Las actualizaciones y los DLC instalados siguen disponibles.
+En Switch, **Contenido** permite activar **Usar los mods instalados**. Desactivarlo prepara un perfil sin mods que conserva la ubicación de partidas, NAND y controles. No borra mods ni cambia la configuración principal. Los nuevos juegos de Switch usan los mods instalados por defecto; se pueden desactivar para comparar el arranque. Las actualizaciones y los DLC instalados siguen disponibles.
 
 ## Qué se comparte
 
@@ -92,7 +111,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.10.2**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.13.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
@@ -100,7 +119,7 @@ Código y versiones descargables: [GonzaCass/deck-library](https://github.com/Go
 
 Los juegos de Switch sin un preset específico incluido o importado ofrecen tres opciones en **Ajustes recomendados**: **Switch — Equilibrado**, **Switch — Rendimiento** y **Switch — Compatibilidad**. Toman como referencia los cinco perfiles existentes: Vulkan, modo portátil, resolución 1×, varios núcleos, velocidad al 100% y caché de shaders. Equilibrado usa precisión GPU normal sin shaders/presentación asíncronos; Rendimiento activa ambos; Compatibilidad usa precisión alta y desactiva ambos. Requieren un Title ID detectado o completado en **Editar juego** y declaran Eden 0.2.1. Son propuestas **Para probar**, sin garantía de FPS.
 
-**Aplicar y probar** muestra los cambios, guarda respaldo, aplica la opción y abre el juego. Cerrar Eden antes de probar otra. **Marcar como mejor** guarda la preferencia local de ese juego y la selecciona al volver a abrir el diálogo; no cambia los ajustes ni publica datos. El perfil permanece aplicado hasta cambiarlo o restaurarlo. **Restaurar anterior** recupera la configuración anterior a la última aplicación. Los presets específicos tienen prioridad.
+Elegí una tarjeta, desplegá **Ver cambios** y pulsá **Aplicar ajustes** para escribir el perfil con respaldo. El juego se abre por separado con **Jugar**. Cerrá el emulador antes de aplicar otra configuración. **Deshacer** recupera el estado anterior a la última aplicación. Los perfiles específicos tienen prioridad y cada tarjeta muestra el estado de prueba declarado por su autor.
 
 - **Carátulas** como vista inicial; se puede cambiar a lista y elegir una imagen local. Se aprovechan imágenes existentes de Steam/Quiver/Prism cuando se encuentran; donde falta arte se muestra una tarjeta de título.
 - **Ajustes → Instalaciones y carpetas** detecta EmuDeck y permite agregar carpetas de ROMs/ports, instalaciones de Quiver, Prism y WiiCompiled, y elegir programas de emuladores que no se detectaron.
@@ -109,7 +128,7 @@ Los juegos de Switch sin un preset específico incluido o importado ofrecen tres
 - En Switch, **Base, updates y mods** muestra contenido, versión detectada por Eden y qué NSP está registrado en NAND. Permite elegir una base faltante, instalar updates/DLC propios y mods ZIP LayeredFS. Que un archivo esté disponible en una carpeta no significa que esté instalado en NAND. La versión base puede necesitar consultarse en Eden si no se identifica.
 - **Ajustes recomendados** permite aplicar, respaldar, restaurar, importar/exportar JSON y guardar feedback para compartir. Hay siete perfiles iniciales con su estado de prueba. Algunos son propuestas; no todos están validados jugando.
 
-Para probar presets con otra persona: compartir este paquete; esa persona abre el juego, elige **Ajustes recomendados**, aplica el perfil y usa **Exportar comentarios**. Puede enviar el JSON de comentarios y, si cambió algo, exportar sus ajustes. También se puede apuntar al mismo catálogo JSON de GitHub. Todavía no hay cuentas, sitio, base de datos ni subida automática de aportes.
+Para compartir ajustes, usá **Más opciones → Exportar mis ajustes** y enviá el JSON; la otra persona lo carga con **Importar ajustes de un archivo**. **Comunidad** ofrece el servicio opcional de perfiles y feedback con inicio de sesión mediante GitHub. La biblioteca local funciona sin cuenta. Ver [servicio comunitario](docs/COMMUNITY-PRESETS.md).
 
 El formato y sus límites están explicados en [docs/PRESETS.md](docs/PRESETS.md).
 
@@ -117,7 +136,7 @@ El formato y sus límites están explicados en [docs/PRESETS.md](docs/PRESETS.md
 
 **Actualizar** vuelve a buscar los ports instalados por Quiver, incluidas sus carpetas personalizadas, y los accesos **No Steam** de la cuenta activa. Si una instancia de Prism ya tiene un acceso, se vincula con él. La detección no incluye toda la biblioteca de juegos comprados en Steam.
 
-En la ficha de un acceso existente, **Editar acceso de Steam** permite cambiar nombre, ejecutable, carpeta de inicio y opciones de lanzamiento. Se conserva su identificador, que mantiene asociados los controles, Proton y el arte. Para guardar estos cambios, Steam debe estar cerrado; la app ofrece guardar más tarde o reiniciarlo desde Escritorio.
+En la ficha de un acceso existente, **Editar acceso de Steam** permite cambiar nombre, ejecutable, carpeta de inicio y opciones de lanzamiento. Se conserva su identificador, que mantiene asociados los controles, Proton y el arte. Para guardar estos cambios, Steam debe estar cerrado; la app acumula los cambios y los guarda cuando Steam se cierra.
 
 La carátula elegida en Deck Library se copia al grid vertical de Steam al agregar o actualizar ese acceso, con copia de seguridad de la anterior. Elegir una nueva imagen no cambia Steam inmediatamente: usar **Agregar a Steam** para guardar también allí. No se generan automáticamente imágenes horizontales, fondos ni logotipos.
 
@@ -127,7 +146,7 @@ La carátula elegida en Deck Library se copia al grid vertical de Steam al agreg
 
 **Agregar juegos → Preparar Project-2099** prepara una ISO de Xbox 360 (o un ZIP/7z que la contenga) con el instalador oficial Beta 4.1 fijado, bajo Proton. Las imágenes de PS3 se rechazan antes de descargar. Incluye un perfil propuesto de 720p / 60 FPS, accesos directos de Steam y detección de ports instalados. La validación de juego sigue pendiente. [Guía](docs/PROJECT2099.md).
 
-## Novedades de la 0.4.0
+## Historial: novedades de la 0.4.0
 
 - **Quitar de Steam:** en la ficha de cada juego y en la barra de selección. No toca juegos ni partidas; guarda un respaldo de la lista de accesos.
 - **Mando:** los accesos nuevos reciben el layout de gamepad de Steam para DualSense, DualShock, Xbox y Switch Pro. Para un acceso existente, usar **Mando → Asignar layout** con Steam cerrado.
@@ -138,3 +157,17 @@ La carátula elegida en Deck Library se copia al grid vertical de Steam al agreg
 - **Ports que compilan en la Deck (por ejemplo Spider-Man 1 y 2 de PSX):** se ejecutan dentro del SDK de KDE de Flatpak, que Deck Library instala una vez con confirmación. No hace falta root ni tocar SteamOS. Hay que aportar el disco USA y la BIOS que pide cada kit.
 - **Configuración automática de ports:** el botón **Configurar** del catálogo busca el disco en la biblioteca (por el serial interno) y la BIOS (por hash), y prepara Spider-Man 1 y 2, Spyro (OpenPete) y Crash Team Racing Turbocharged.
 - **Biblioteca sin duplicados:** nuevo filtro por tipo (ports, emulador, instancias de Minecraft…) y la opción **Preferir ports**, que oculta la versión por emulador de un juego que ya tiene port.
+
+## Historial: cambios 0.11
+
+Interfaz adaptada a la pantalla de la Deck, lista con carátulas, vista por plataforma y aviso fijo de cambios pendientes de Steam. «Configurar juego» reúne las acciones de ajustes. «Conflictos» muestra las rutas coincidentes. Desde Ajustes se puede agregar Deck Library a Steam para abrirla en modo Juego. La comunidad opcional usa GitHub y un servicio propio con SQLite. Ver [interfaz](docs/DECK-INTERFACE.md) y [servicio comunitario](community/README.md).
+
+
+## Historial: cambios 0.12
+
+Nueva estructura de la ventana: biblioteca a ancho completo y navegación superior. Cada juego tiene pestañas **Perfiles**, **Opciones**, **Controles**, **Archivos** y, en Switch, **Contenido**. Aplicar y guardar quedan visibles mientras se desplazan las opciones. Los cambios de Steam muestran cada operación por nombre y se pueden descartar. «Preferir ports» se retiró: se muestran tanto el port como la copia emulada. Los scripts de EmuDeck no se cuentan como instalaciones adicionales. Las actualizaciones muestran las notas que publicó el autor para esa versión.
+
+
+## Cambios 0.13
+
+La ficha del juego se reemplazó por una vista con carátula, acción principal y tarjetas de ajustes. Se retiró la navegación por pestañas del juego. Aplicar y Deshacer permanecen visibles; los cambios y sus errores aparecen en la ficha. Las herramientas secundarias se agrupan por tarea y la selección de perfiles no aplica cambios automáticamente. La cabecera se compacta en ventanas bajas, el foco empieza en Jugar y Escape vuelve primero al juego. Se conserva la integración con Steam, EmuDeck, Quiver, Prism y los perfiles comunitarios.

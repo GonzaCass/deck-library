@@ -446,7 +446,7 @@ def installed_updates(store,get=fetch_json):
         try:release=release_for(repo,get)
         except (OSError,ValueError):continue
         tag=str(release.get('tag_name',''))
-        if tag and tag!=record.get('tag') and pick_asset(release.get('assets',[])):result.append({'name':record.get('name',repo),'repository':repo,'installed':record.get('tag',''),'latest':tag,'page':release.get('html_url','')})
+        if tag and tag!=record.get('tag') and pick_asset(release.get('assets',[])):result.append({'name':record.get('name',repo),'repository':repo,'installed':record.get('tag',''),'latest':tag,'page':release.get('html_url',''),'notes':(release.get('body') or '')[:8000]})
     return result
 
 def port_id(repository):

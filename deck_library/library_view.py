@@ -30,5 +30,6 @@ def duplicate_emulator_entries(entries):
 
 def visible_entries(entries,prefer_ports=True):
     """Entries to show; with `prefer_ports` the emulator version of a game that has a port is left out."""
+    entries=[e for e in entries if not e.metadata.get('library_app')]
     hidden={e.id for e in duplicate_emulator_entries(entries)} if prefer_ports else set()
     return [e for e in entries if e.id not in hidden],len(hidden)

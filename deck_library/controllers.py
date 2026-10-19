@@ -81,19 +81,20 @@ def write_configset(path,pairs,old_text=None):
         if os.path.exists(temp):os.unlink(temp)
     return backup
 
-def apply(account,appids,force=False,families=None,is_running=None,special=()):
+def apply(account,appids,force=False,families=None,is_running=None,special=(),library=()):
     """Assign the gamepad template to each shortcut. Existing choices are kept unless `force`."""
     is_running=is_running or steam_running
     if is_running():raise SteamRunningError('Steam debe estar cerrado para guardar los controles.')
     folder=config_dir(account);available=families_available(account)
     families=[f for f in (families or FAMILIES) if f in available]
-    special={int(a)&0xffffffff for a in special};changed=[];backups=[]
+    special={int(a)&0xffffffff for a in special};library={int(a)&0xffffffff for a in library};changed=[];backups=[]
     for family in families:
         path=folder/f'configset_controller_{family}.vdf'
         pairs=read_configset(path);present={key:index for index,(key,_) in enumerate(pairs)};dirty=False
         for appid in appids:
             for key in keys_for(appid):
-                entry=[('template',screens_template(account) if family=='neptune' and int(appid)&0xffffffff in special else TEMPLATE.format(family))]
+                chosen=library_template(account) if family=='neptune' and int(appid)&0xffffffff in library else screens_template(account) if family=='neptune' and int(appid)&0xffffffff in special else TEMPLATE.format(family)
+                entry=[('template',chosen)]
                 if key in present:
                     index=present[key]
                     if not force or dict(pairs[index][1]).get('template')==entry[0][1]:continue
@@ -127,3 +128,13 @@ def status(account,appid):
         entry=next((pairs[k] for k in keys_for(appid) if k in pairs),None)
         result[family]=None if entry is None else (dict(entry).get('template') or 'other') if isinstance(entry,list) else 'other'
     return result
+
+
+def library_template(account):
+    """Keyboard/mouse navigation for GTK, derived from Steam's installed Deck template."""
+    folder=templates_dir(account);text=(folder/'controller_neptune_wasd.vdf').read_text(encoding='utf-8-sig')
+    keys={'SPACE':'RETURN','E':'ESCAPE','R':'TAB','F':'SPACE','W':'UP_ARROW','S':'DOWN_ARROW','D':'RIGHT_ARROW','A':'LEFT_ARROW'}
+    text=re.sub(r'key_press (SPACE|E|R|F|W|S|D|A)(?=[",])',lambda m:'key_press '+keys[m[1]],text)
+    name='controller_neptune_deck_library_ui.vdf';target=folder/name
+    if not target.exists() or target.read_text()!=text:target.write_text(text)
+    return name

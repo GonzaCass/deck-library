@@ -98,46 +98,48 @@ class UpdatesMixin:
         self.update_installing=False;self.set_status('No se pudo instalar la actualización.');self.message('Actualización',text);return False
 
     def updates_page(self):
-        from .gui import label,button
-        box=self.updates_box;self.reset_page(box)
-        state=getattr(self,'update_state',None) or updates.cached(self.store)
-        if not hasattr(self,'update_state'):self.update_state=state
-        head=Gtk.Box(spacing=12);titles=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
-        titles.pack_start(label('Actualizaciones','hero'),False,False,0)
-        checked=state.get('checked');titles.pack_start(label('Última búsqueda: '+(datetime.datetime.fromtimestamp(checked).strftime('%d/%m/%Y %H:%M') if checked else 'nunca'),'subtitle'),False,False,0)
-        head.pack_start(titles,True,True,0);head.pack_end(button('Buscar ahora',lambda _:self.check_updates(True),True),False,False,0);box.pack_start(head,False,False,0)
-        card=self.card(box,'Deck Library')
-        installed=getattr(self,'update_installed',None);info=state.get('app')
-        if installed:
-            card.pack_start(label(f'Versión {installed} instalada. Reiniciar para usarla.'),False,False,0);card.pack_start(button('Reiniciar',lambda _:self.restart_app(),True),False,False,0)
-        elif info:
-            card.pack_start(label(f'Versión instalada {__version__} · disponible {info["version"]}'),False,False,0)
-            if info['notes']:
-                notes=label(info['notes'],'muted');notes.set_selectable(True);card.pack_start(notes,False,False,0)
-            row=Gtk.Box(spacing=10)
-            if info.get('archive') and info.get('checksum'):row.pack_start(button('Instalar actualización',lambda _:self.install_app_update(),True),False,False,0)
-            else:card.pack_start(label('La publicación no incluye un paquete verificable; instalar manualmente.','muted'),False,False,0)
-            if info.get('page'):row.pack_start(Gtk.LinkButton.new_with_label(info['page'],'Ver novedades'),False,False,0)
-            card.pack_start(row,False,False,0)
-        else:card.pack_start(label(f'Versión {__version__}. Sin actualizaciones pendientes.','muted'),False,False,0)
-        card=self.card(box,'Ajustes recomendados')
-        presets=state.get('presets')
-        card.pack_start(label(f'{presets["count"]} perfiles en el catálogo · {presets["new"]} nuevos · {presets["changed"]} modificados en la última revisión' if presets else 'Catálogo sin revisar.','muted'),False,False,0)
-        card=self.card(box,'Ports')
-        ports=[item for item in self.pending_updates() if item[0] in ('port','catalog','wii')]
-        if ports:
-            for kind,text,data in ports:
-                row=Gtk.Box(spacing=10);row.pack_start(label(text),True,True,0)
-                if data.get('page'):row.pack_end(Gtk.LinkButton.new_with_label(data['page'],'Ver versión'),False,False,0)
-                if kind=='catalog':row.pack_end(button('Actualizar',lambda _,d=data:self.update_catalog_port(d),True),False,False,0)
-                if kind=='wii':row.pack_end(button('Actualizar aquí',lambda _:self.update_wiicompiled(),True),False,False,0)
-                if kind=='port' and data.get('repository'):row.pack_end(button('Instalar la nueva versión aquí',lambda _,d=data:self.update_catalog_port(d),True),False,False,0)
-                card.pack_start(row,False,False,0)
-        else:card.pack_start(label('Los ports instalados están al día.','muted'),False,False,0)
-        for error in state.get('errors') or []:card.pack_start(label('No se pudo consultar '+error,'status'),False,False,0)
-        card=self.card(box,'Opciones')
-        for key,text,default in (('check_updates','Buscar actualizaciones al abrir',True),('auto_update','Instalar automáticamente las actualizaciones de Deck Library',True),('catalog_auto','Actualizar los ajustes recomendados desde el catálogo',True),('auto_update_ports','Actualizar automáticamente los ports instalados desde el catálogo',False)):
-            row=Gtk.Box(spacing=12);switch=Gtk.Switch();switch.set_active(self.preferences.get(key,default));switch.set_valign(Gtk.Align.CENTER)
-            def changed(widget,_,key=key):self.preferences[key]=widget.get_active();save_settings(self.preferences,self.store)
-            switch.connect('notify::active',changed);row.pack_start(label(text),True,True,0);row.pack_end(switch,False,False,0);card.pack_start(row,False,False,0)
+        from .gui import label,button,wrap_row,Poster
+        from .artwork import find_cover,normalized
+        box=self.updates_box;self.reset_page(box);state=getattr(self,'update_state',None) or updates.cached(self.store)
+        head=Gtk.Box(spacing=14);head.pack_start(label('Actualizaciones','hero'),True,True,0);head.pack_end(button('Buscar actualizaciones',lambda _:self.check_updates(True),True),False,False,0);box.pack_start(head,False,False,0)
+        checked=state.get('checked');box.pack_start(label('Última búsqueda: '+(datetime.datetime.fromtimestamp(checked).strftime('%d/%m/%Y %H:%M') if checked else 'sin revisar'),'meta'),False,False,0)
+        from .service import pending_changes
+        waiting=pending_changes(self.store)
+        if waiting:
+            row=Gtk.Box(spacing=12);row.get_style_context().add_class('banner');row.pack_start(label(waiting[0]['description'] if len(waiting)==1 else str(len(waiting))+' cambios de Steam pendientes'),True,True,0);row.pack_end(button('Ver detalle',lambda _:self.pending_details()),False,False,0);box.pack_start(row,False,False,0)
+        info=state.get('app')
+        if info:
+            card=self.card(box,'Deck Library '+info['version']);card.pack_start(label(info.get('notes') or 'No hay notas disponibles para esta versión.','muted'),False,False,0)
+            if info.get('archive') and info.get('checksum'):card.pack_start(button('Actualizar Deck Library',lambda _:self.install_app_update(),True),False,False,0)
+        items=[item for item in self.pending_updates() if item[0] in ('port','catalog','wii')];seen=set();unique=[]
+        for item in items:
+            key=(item[2].get('repository') or item[2]['name']).lower()
+            if key not in seen:seen.add(key);unique.append(item)
+        box.pack_start(label('Ports · '+str(len(unique))+' actualizaciones','title'),False,False,0)
+        if not unique:box.pack_start(label('No hay actualizaciones de ports en la última revisión.','muted'),False,False,0)
+        for kind,text,data in unique:
+            card=self.card(box);row=Gtk.Box(spacing=16);card.pack_start(row,False,False,0);entry=next((e for e in self.entries if normalized(e.name)==normalized(data['name'])),None)
+            if entry:row.pack_start(Poster(entry,find_cover(entry),44,66),False,False,0)
+            title=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5);title.pack_start(label(data['name'],'title'),False,False,0);title.pack_start(label(str(data['installed'])+' → '+str(data['latest']),'meta'),False,False,0);row.pack_start(title,True,True,0)
+            if kind=='wii':row.pack_end(button('Actualizar',lambda _:self.update_wiicompiled(),True),False,False,0)
+            elif data.get('repository') and data['repository']!=updates.PROJECT2099_REPO:row.pack_end(button('Actualizar',lambda _,d=data:self.update_catalog_port(d),True),False,False,0)
+            if data.get('page'):row.pack_end(Gtk.LinkButton.new_with_label(data['page'],'Publicación original'),False,False,0)
+            expander=Gtk.Expander(label='Novedades de '+str(data['latest']));notes=label(updates.notes_text(data.get('notes','')) or 'Abrir para consultar las notas del autor.','muted');notes.set_selectable(True);notes.set_max_width_chars(95);notes.set_margin_top(12);expander.add(notes);card.pack_start(expander,False,False,0)
+            loaded=['notes' in data]
+            if loaded[0] and not data.get('notes'):notes.set_text('Esta fuente no incluye notas para la versión. Podés consultar la publicación original.')
+            def expanded(widget,_,data=data,target=notes,loaded=loaded):
+                if not widget.get_expanded() or loaded[0]:return
+                loaded[0]=True;target.set_text('Consultando las notas…')
+                def work():
+                    try:body=updates.notes_text(updates.release_notes(data)) or 'No se encontraron notas para esta versión. Consultá la publicación original.'
+                    except Exception as error:body='No se pudieron descargar las notas: '+str(error)
+                    GLib.idle_add(target.set_text,body)
+                threading.Thread(target=work,daemon=True).start()
+            expander.connect('notify::expanded',expanded)
+        options=Gtk.Expander(label='Opciones de actualización');settings_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);options.add(settings_box);box.pack_start(options,False,False,0)
+        for key,text,default in (('check_updates','Buscar al abrir',True),('auto_update','Actualizar Deck Library automáticamente',True),('catalog_auto','Mantener el catálogo de ajustes actualizado',True),('auto_update_ports','Actualizar ports automáticamente',False)):
+            check=Gtk.CheckButton(label=text);check.set_active(self.preferences.get(key,default))
+            def changed(widget,key=key):self.preferences[key]=widget.get_active();save_settings(self.preferences,self.store)
+            check.connect('toggled',changed);settings_box.pack_start(check,False,False,0)
+        for error in state.get('errors') or []:box.pack_start(label('No se pudo consultar '+error,'status'),False,False,0)
         box.show_all();self.pages.set_visible_child_name('updates')

@@ -6,6 +6,8 @@ Native Linux app that gathers ports, applications and emulated games in one libr
 
 ![Deck Library with a fictional demo library](assets/screenshot.png)
 
+![Game overview with fictional artwork](assets/screenshot-game.png)
+
 ## Install
 
 In Steam Deck Desktop Mode, extract the archive and double-click **Instalar.sh**, choosing **Run / Ejecutar**. This installs the app and opens it. Alternatively, open a terminal in the extracted folder:
@@ -18,19 +20,34 @@ Open **Deck Library** from the applications menu or desktop shortcut. No sudo, R
 
 Requires Python 3.11+, PyGObject and GTK 3 (available on the Steam Deck used for validation). On other distributions install their `python3-gi`/GTK 3 packages. The core and its tests use only Python's standard library; no pip packages or network service needed.
 
+## Open Deck Library directly from Steam
+
+1. Install and open Deck Library in Desktop Mode. Finish the first-run assistant.
+2. Open **Ajustes → Deck Library en Steam → Agregar a Steam**.
+3. If Steam is open, the app shows a persistent pending-changes banner. Finish your other changes, exit Steam once and wait for the banner to disappear. The background worker saves the shortcut and its Deck controls; no per-change restart dialog is shown.
+4. Return to Gaming Mode, find **Deck Library** in Steam's library and press **Play**. The shortcut launches the native Linux app fullscreen, with `--gaming` and its navigation template.
+
+Use the right trackpad and right trigger for pointer/click, the D-pad or stick for navigation, **A** to activate, **B** to go back and **X** for Tab. **Steam + X** opens Steam's on-screen keyboard. Physical controller validation in Gaming Mode is still pending; automated tests cover the shortcut, template and 1280×800 interface.
+
+### Add individual games to Steam
+
+Open a game's cover and click the blue **Agregar a Steam** button. It changes to **Acceso pendiente** while queued and **En Steam** after the shortcut is saved. Add several by clicking **Seleccionar**, marking covers and using the batch action. Save the queue by exiting Steam once after finishing, then reopen Steam or return to Gaming Mode. Each game gets its own shortcut and can be launched directly from Steam; opening Deck Library first is optional. The game files stay in their current locations.
+
+For a game already in Steam, **Jugar** uses its existing Steam shortcut and controller identity. **Más opciones → Archivos y acceso de Steam** provides editing, artwork and removal tools.
+
 ## Use
 
 The first launch opens a four-step Spanish onboarding flow: welcome, installation/game detection, artwork provider and library handoff. Discovery runs in the background. Users can add a missing folder or configure an emulator instead of guessing where to start. Repeat onboarding from **Ajustes**.
 
-The default library uses 2:3 portrait cards, platform filters and search. Click a card for a focused game page with **Jugar** and **Agregar a Steam**. Presets, Switch content and Minecraft controls appear as contextual actions; paths and commands are under advanced options. **Seleccionar** reveals batch controls only when needed. **Agregar juegos** offers discovery, manual addition and the Wii preparation wizard.
+The library fills the window, with top navigation, 2:3 portrait cards, platform filters and search. Open a cover for the game overview: **Jugar** (green), **Agregar a Steam** (blue), selectable settings cards and a fixed **Aplicar ajustes** action. Selecting a card only previews the profile; changes are written, with a backup, after applying. Technical differences expand under **Ver cambios**. **Controles**, **Contenido** and **Ajustes manuales** open dedicated task pages with a return button. **Más opciones** contains import/export, artwork and shortcut tools. **Seleccionar** reveals batch controls only when needed. **Agregar juegos** offers discovery, manual addition and the Wii preparation wizard.
 
-If Steam is open, the user can restart it after closing any running game, or save later after exiting Steam. Existing shortcut preservation and deferred writes are unchanged. Desktop/Gaming Mode launch verification remains separate.
+Steam changes accumulate in a persistent banner and are saved when Steam closes. No restart prompt interrupts each change. Settings → Add Deck Library to Steam prepares a fullscreen Gaming Mode shortcut with Deck navigation controls. The library also offers portrait cards, thumbnails in list view, platform groups and a read-only conflict report. See [Deck interface](docs/DECK-INTERFACE.md) and [optional community server](community/README.md). Physical Gaming Mode validation remains a separate check.
 
 ### Artwork providers and motion
 
 Automatic artwork uses a personal SteamGridDB API key when configured, then Libretro for supported retro systems and Wikipedia PageImages as a fallback. No account is required for the fallback providers. Only exact normalized matches or explicitly documented edition aliases are auto-selected. A game page offers online search, result selection, a source link and a local file alternative. Wikipedia images may represent a shared article rather than the exact edition's box. SteamGridDB requests static 600x900 community grids; a valid personal API key is required.
 
-All image requests run off the GTK thread and download into private local storage. Remote responses and image sizes are bounded. Failed lookups leave readable placeholder cards. API keys, downloaded images and personal libraries are excluded from public releases and preset/feedback exports. Only game names are sent to artwork search providers. Offline use remains available with cached artwork. Transitions between pages and onboarding steps, card hover feedback and loading spinners can be disabled through the animation preference.
+All image requests run off the GTK thread and download into private local storage. Remote responses and image sizes are bounded. Failed lookups leave readable placeholder cards. API keys, downloaded images and personal libraries are excluded from public releases and preset/feedback exports. Only game names are sent to artwork search providers. Offline use remains available with cached artwork. Game-page entrances, profile-card states, expanding change previews, task navigation, icon hover feedback and inline save confirmations have bounded animations. They respect the animation preference; no motion loop runs while the app is idle.
 
 References: [SteamGridDB API v2](https://www.steamgriddb.com/api/v2), [Libretro thumbnail service](https://thumbnails.libretro.com/), [MediaWiki PageImages API](https://www.mediawiki.org/wiki/Extension:PageImages#API).
 
@@ -136,7 +153,7 @@ Game details expose recommended profiles, a change preview, apply/backup/restore
 
 The initial catalog includes WiiCompiled, Eden profiles for Smash, Mario Kart 8 and three Mario Party games, plus a Prism instance preset with Steam Input recommendations. Profiles explicitly distinguish proposals, boot checks and user confirmations; hardware/version matching does not imply universal FPS or compatibility.
 
-Switch games without a bundled or imported title-specific profile offer three proposals under **Ajustes recomendados**: **Switch — Equilibrado**, **Switch — Rendimiento** and **Switch — Compatibilidad**. They use the five existing Switch presets as references: Vulkan, handheld mode, native resolution, multicore, normal speed and shader cache, with different GPU accuracy and asynchronous shader/presentation settings. A detected or manually entered Title ID is required; declared compatibility is Eden 0.2.1. **Aplicar y probar** previews and backs up the changes, applies the profile and opens the game through its usual launcher. Close Eden before trying another option. **Marcar como mejor** remembers the preferred profile per game locally and selects it when the dialog is reopened; it does not apply settings automatically or publish feedback. Profiles remain applied until changed or restored; **Restaurar anterior** restores the configuration before the latest application. Performance still needs validation per game; existing title-specific presets keep priority.
+Switch games without a bundled or imported title-specific profile offer three proposals: **Equilibrado**, **Rendimiento** and **Compatibilidad**. They use the included profiles as references and require a Title ID; declared compatibility is Eden 0.2.1. Choose a card, expand **Ver cambios** if needed and press **Aplicar ajustes**. This saves a backup and writes the profile without opening the game. **Jugar** is a separate action. **Deshacer** restores the configuration before the latest application. Existing title-specific profiles keep priority, and each card displays its author's declared testing status. Performance still needs validation per game.
 
 ## Discovery, covers and setup
 
@@ -161,7 +178,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.10.2**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.13.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 

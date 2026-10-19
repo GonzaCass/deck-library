@@ -57,7 +57,7 @@ def check(preferences=None,get=updates.fetch_json,home=None):
     if not info:return None
     for item in installed:
         if info['tag']!=item['version'] and updates.is_newer(info['tag'],item['version']):
-            return {'name':item['name'],'installed':item['version'],'latest':info['tag'],'page':info['page']}
+            return {'name':item['name'],'installed':item['version'],'latest':info['tag'],'page':info['page'],'repository':REPOSITORY,'notes':info.get('notes','')}
     return None
 
 def find_image(entries):

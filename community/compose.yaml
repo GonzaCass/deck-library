@@ -1,0 +1,43 @@
+name: deck-library-community
+services:
+  api:
+    image: deck-library-community:0.11.0
+    build:
+      context: ..
+      dockerfile: community/Dockerfile
+    restart: unless-stopped
+    init: true
+    environment:
+      COMMUNITY_DB: /data/community.sqlite3
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
+    volumes:
+      - community-data:/data
+    networks:
+      - traefik
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=32m
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    mem_limit: 256m
+    cpus: 0.75
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: ${TRAEFIK_NETWORK:-traefik-net}
+      traefik.http.routers.deck-presets.rule: Host(`${COMMUNITY_HOST:-presets.jokerlan.xyz}`)
+      traefik.http.routers.deck-presets.entrypoints: websecure
+      traefik.http.routers.deck-presets.tls: "true"
+      traefik.http.routers.deck-presets.tls.certresolver: ${TRAEFIK_RESOLVER:-mytlschallenge}
+      traefik.http.routers.deck-presets.middlewares: deck-presets-limit,deck-presets-size
+      traefik.http.middlewares.deck-presets-limit.ratelimit.average: "10"
+      traefik.http.middlewares.deck-presets-limit.ratelimit.burst: "30"
+      traefik.http.middlewares.deck-presets-size.buffering.maxRequestBodyBytes: "131072"
+      traefik.http.services.deck-presets.loadbalancer.server.port: "8080"
+volumes:
+  community-data:
+networks:
+  traefik:
+    external: true
+    name: ${TRAEFIK_NETWORK:-traefik-net}

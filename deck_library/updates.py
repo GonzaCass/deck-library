@@ -3,7 +3,7 @@
 Every request is HTTPS with a size cap. Nothing is installed without a matching SHA-256 published
 next to the release asset. Ports found in Quiver's folder are reported and, for WiiCompiled and for ports with a GitHub release, updated from Deck Library itself.
 """
-import hashlib,json,os,pathlib,re,subprocess,sys,tarfile,tempfile,time,urllib.error,urllib.request
+import hashlib,json,os,pathlib,re,subprocess,sys,tarfile,tempfile,time,urllib.error,urllib.request,urllib.parse
 from . import __version__
 from .models import Store,atomic_json
 
@@ -79,7 +79,7 @@ def check_quiver(preferences=None,get=fetch_json,home=None):
         try:release=latest_release(app['repository'],get)
         except (OSError,ValueError):break
         if release and release.get('tag_name') not in (app['installed'],app['skipped']) and is_newer(release['tag_name'],app['installed']):
-            updates.append({'name':app['name'],'installed':app['installed'],'latest':release['tag_name'],'page':release.get('html_url',''),'repository':app['repository']})
+            updates.append({'name':app['name'],'installed':app['installed'],'latest':release['tag_name'],'page':release.get('html_url',''),'repository':app['repository'],'notes':(release.get('body') or '')[:8000]})
     return updates
 
 def check_project2099(entries,get=fetch_json):
@@ -87,7 +87,7 @@ def check_project2099(entries,get=fetch_json):
     if not any(e.metadata.get('adapter')=='project2099' for e in entries):return None
     release=latest_release(PROJECT2099_REPO,get)
     if release and release.get('tag_name','').lstrip('v')!=VERSION and is_newer(release['tag_name'],VERSION):
-        return {'name':'Project-2099','installed':VERSION,'latest':release['tag_name'].lstrip('v'),'page':release.get('html_url','')}
+        return {'name':'Project-2099','installed':VERSION,'latest':release['tag_name'].lstrip('v'),'page':release.get('html_url',''),'repository':PROJECT2099_REPO,'notes':(release.get('body') or '')[:8000]}
     return None
 
 def refresh_presets(preferences,store):
@@ -158,3 +158,40 @@ def summary(state):
     if state.get('wiicompiled'):w=state['wiicompiled'];items.append(('wii',f'{w["name"]}: {w["installed"]} → {w["latest"]}',w))
     if state.get('project2099'):p=state['project2099'];items.append(('port',f'{p["name"]}: {p["installed"]} → {p["latest"]}',p))
     return items
+
+
+def release_notes(data,get=fetch_json):
+    """Notes for the displayed release, never unrelated commits or an unverified newer tag."""
+    if 'notes' in data:return data['notes']
+    repository=data.get('repository','');tag=str(data.get('latest',''))
+    if not repository:
+        page=urllib.parse.urlsplit(data.get('page',''));parts=page.path.strip('/').split('/')
+        if page.scheme=='https' and page.netloc=='github.com' and len(parts)>=2:repository='/'.join(parts[:2])
+        elif data.get('name')=='Project-2099':repository=PROJECT2099_REPO
+    if not re.fullmatch(r'[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+',repository) or not tag:return ''
+    release=None
+    for candidate in dict.fromkeys([tag,tag[1:] if tag.startswith('v') else 'v'+tag]):
+        try:release=get('https://api.github.com/repos/'+repository+'/releases/tags/'+urllib.parse.quote(candidate,safe=''));break
+        except urllib.error.HTTPError as error:
+            if error.code!=404:raise
+    if release is None:release=latest_release(repository,get)
+    if not release or release.get('tag_name','').lstrip('v')!=tag.lstrip('v'):return ''
+    return (release.get('body') or '')[:8000]
+
+def notes_text(body):
+    """Readable release Markdown without loading images or rendering active HTML."""
+    from html.parser import HTMLParser
+    text=re.sub(r'<!--.*?-->','',str(body),flags=re.S)
+    text=re.sub(r'!\[([^\]]*)\]\([^)]*\)','',text)
+    text=re.sub(r'\[([^\]]+)\]\([^)]*\)',r'\1',text)
+    text=re.sub(r'(?m)^\s*#{1,6}\s*','',text)
+    text=re.sub(r'(?m)^\s*[-*]\s+', '• ',text).replace('**','').replace('`','')
+    class Plain(HTMLParser):
+        def __init__(self):super().__init__();self.parts=[]
+        def handle_data(self,data):self.parts.append(data)
+        def handle_starttag(self,tag,attrs):
+            if tag in ('br','p','div','summary','details','li'):self.parts.append('\n')
+        def handle_endtag(self,tag):
+            if tag in ('p','div','summary','details','li'):self.parts.append('\n')
+    parser=Plain();parser.feed(text)
+    return re.sub(r'\n{3,}','\n\n',''.join(parser.parts)).strip()

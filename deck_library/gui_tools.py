@@ -44,7 +44,7 @@ SETTING_LABELS={
 
 SECTION_LABELS.update({'eden':{'Core':'Núcleo','Cpu':'Procesador','System':'Sistema','Renderer':'Gráficos'},'wiicompiled':{'video':'Video','audio':'Audio'},'prism':{'General':'Memoria y ventana'},'project2099':{'runtime':'Ejecución'}})
 SETTING_LABELS.setdefault('eden',{}).update({
- 'use_multi_core':('Varios núcleos de CPU',''),'use_speed_limit':('Limitar la velocidad',''),'speed_limit':('Límite de velocidad (%)','100 es la velocidad original'),'sync_core_speed':('Sincronizar la velocidad de los núcleos',''),
+ 'language_index':('Idioma del juego','5 español de España; 14 español latinoamericano. La ROM debe incluirlo.'),'use_multi_core':('Varios núcleos de CPU',''),'use_speed_limit':('Limitar la velocidad',''),'speed_limit':('Límite de velocidad (%)','100 es la velocidad original'),'sync_core_speed':('Sincronizar la velocidad de los núcleos',''),
  'cpu_accuracy':('Precisión de la CPU','0 automática, 1 precisa, 2 insegura'),'use_custom_cpu_ticks':('Ciclos de CPU personalizados',''),'use_docked_mode':('Modo base (TV)','Desactivado equivale al modo portátil'),
  'backend':('API gráfica','0 OpenGL, 1 Vulkan'),'resolution_setup':('Resolución interna','Escala sobre la resolución original de la consola'),'aspect_ratio':('Relación de aspecto',''),'anti_aliasing':('Suavizado de bordes','0 sin suavizado'),
  'scaling_filter':('Filtro de escalado','5 es FSR'),'gpu_accuracy':('Precisión de la GPU','0 normal, 1 alta, 2 extrema'),'dma_accuracy':('Precisión de DMA',''),'vram_usage_mode':('Uso de memoria de video',''),
@@ -55,7 +55,7 @@ SETTING_LABELS.setdefault('prism',{}).update({'OverrideMemory':('Personalizar la
 
 class ToolsMixin:
     def gtaiv_dialog(self,e):
-        from .gui import label,button
+        from .gui import label,button,wrap_row
         from . import gtaiv
         dialog=Gtk.Dialog(title='Arreglo de GTA IV',transient_for=self,modal=True)
         dialog.set_default_size(760,520);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
@@ -93,7 +93,7 @@ class ToolsMixin:
             threading.Thread(target=work,daemon=True).start()
         for title,action in [('Aplicar arreglo de GTA IV','apply'),('Restaurar respaldo','restore')]:
             control=button(title,lambda _,a=action:run(a),tone='presets');buttons.append(control);row.pack_start(control,True,True,0)
-        dialog.show_all()
+        self.fit_dialog(dialog);dialog.show_all()
         while True:
             dialog.run()
             if not active[0]:break
@@ -113,9 +113,9 @@ class ToolsMixin:
                 e.cover=path;e.metadata.pop('artwork',None);self.store.save(self.entries);self.render();self.set_status('Carátula guardada para '+e.name+'.')
             except GLib.Error:self.message('Carátula','Elegir un archivo de imagen compatible.')
     def installation_dialog(self):
-        from .gui import label,button
+        from .gui import label,button,wrap_row
         dialog=Gtk.Dialog(title='Instalaciones y rutas',transient_for=self,modal=True);dialog.set_default_size(850,650);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL);dialog.add_button('Guardar y buscar',Gtk.ResponseType.OK)
-        scroll=Gtk.ScrolledWindow();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);box.set_border_width(20);scroll.add(box);dialog.get_content_area().pack_start(scroll,True,True,0)
+        scroll=self.new_scroll();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);box.set_border_width(20);scroll.add(box);dialog.get_content_area().pack_start(scroll,True,True,0)
         found=report(preferences=self.preferences);deck=found['emudeck']
         box.pack_start(label(('EmuDeck detectado' if deck['installed'] else 'EmuDeck no detectado. Elegir carpetas y emuladores instalados.')+'\nBiblioteca: '+deck['roms'],'title'),False,False,0)
         box.pack_start(label('Rutas adicionales para microSD, otra carpeta de Quiver o instalaciones portátiles. Una carpeta por línea.','muted'),False,False,0)
@@ -140,170 +140,15 @@ class ToolsMixin:
                 path=self.pick_file('Elegir programa de '+title)
                 if path:emulator_commands[key]=[path];widget.set_text(title+' — '+path)
             row.pack_end(button('Elegir programa',choose),False,False,0);box.pack_start(row,False,False,0)
-        dialog.show_all()
+        self.fit_dialog(dialog);dialog.show_all()
         if dialog.run()==Gtk.ResponseType.OK:
             for key,buffer in buffers.items():self.preferences[key]=list(dict.fromkeys(str(pathlib.Path(p.strip()).expanduser()) for p in buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),True).splitlines() if p.strip()))
             self.preferences['emulators']=emulator_commands;self.preferences['eden_config']=config.get_text().strip();save_settings(self.preferences,self.store);self.discover()
         dialog.destroy()
-    def preset_dialog(self,e):
-        if e.metadata.get('gtaiv_root'):return self.gtaiv_dialog(e)
-        from .gui import label,button
-        dialog=Gtk.Dialog(title='Ajustes recomendados · '+e.name,transient_for=self,modal=True);dialog.set_default_size(880,640);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
-        box=dialog.get_content_area();box.set_border_width(18);box.set_spacing(12)
-        box.pack_start(label(e.name,'title'),False,False,0)
-        box.pack_start(label('Los cambios se muestran antes de aplicar y se guarda una copia de seguridad. Cada perfil indica su estado de validación.','muted'),False,False,0)
-        toolbar=Gtk.Box(spacing=8);box.pack_start(toolbar,False,False,0)
-        panes=Gtk.Box(spacing=16);box.pack_start(panes,True,True,0)
-        list_=Gtk.ListBox();scroll=Gtk.ScrolledWindow();scroll.set_size_request(300,-1);scroll.add(list_);panes.pack_start(scroll,False,False,0)
-        detail_scroll=Gtk.ScrolledWindow();detail_scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);detail_scroll.get_style_context().add_class('preset-detail');detail=label('Seleccionar un perfil','subtitle');detail.set_valign(Gtk.Align.START);detail.set_max_width_chars(43);detail_scroll.add(detail);panes.pack_start(detail_scroll,True,True,0)
-        def detected():
-            """What the emulator has right now for this game, read from its own files (never from stored profiles)."""
-            config=self.preferences.get('eden_config') or None
-            try:path=presets.target_for(e,config);values=presets.current_values(e,config)
-            except Exception as error:return {'detected':True,'name':'Ajustes actuales','note':'No se pudieron leer: '+str(error),'text':'No se pudieron leer: '+str(error)}
-            adapter=presets.adapter_for(e);names=SETTING_LABELS.get(adapter,{});sections=SECTION_LABELS.get(adapter,{})
-            own=path.is_file();lines=[('Archivo propio del juego: '+str(path)+' (modificado el '+datetime.datetime.fromtimestamp(path.stat().st_mtime).strftime('%d/%m/%Y %H:%M')+')') if own else 'Este juego no tiene archivo propio: se usan los valores globales del emulador.','']
-            for section,options in values.items():
-                lines.append(sections.get(section,section))
-                for key,value in options.items():lines.append('   '+names.get(key,(key,''))[0]+': '+('sí' if value is True else 'no' if value is False else str(value)))
-            if not values:lines.append('No hay valores reconocidos todavía.')
-            return {'detected':True,'name':'Ajustes actuales','note':'Archivo propio del juego' if own else 'Valores globales del emulador','text':'\n'.join(lines)}
-        def everything():return [detected()]+presets.recommended(e,self.store)
-        selected=[None];items=everything();best=[presets.best_for(e,self.store)]
-        def fill():
-            for row in list_.get_children():list_.remove(row)
-            for value in items:
-                if value.get('detected'):
-                    row=Gtk.ListBoxRow();row.value=value;card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5);card.set_border_width(12);card.pack_start(label('Ajustes actuales (detectados)','title'),False,False,0);card.pack_start(label(value['note'],'muted'),False,False,0);row.add(card);list_.add(row);continue
-                row=Gtk.ListBoxRow();row.value=value;card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=5);card.set_border_width(12);name=label(value['name']+(' · Mejor opción' if value['id']==best[0] else ''),'title');name.set_max_width_chars(25);card.pack_start(name,False,False,0)
-                status={'proposal':'Para probar','boot-tested':'Arranque comprobado','user-confirmed':'Confirmado por usuario'}[value['tested']['status']]
-                meta=label(value['author']+' · '+status+' · '+', '.join(value['adapter']['versions']),'muted');meta.set_max_width_chars(30);card.pack_start(meta,False,False,0);row.add(card);list_.add(row)
-            if len(items)<2:list_.add(label('No hay perfiles recomendados para este juego. Completar el Title ID en Editar juego para ofrecer la base de Switch, o importar un perfil.' if e.platform=='Switch' and not presets.public_game_id(e) else 'No hay perfiles recomendados para este juego. Importar uno o exportar los ajustes actuales.','muted'))
-            list_.show_all()
-            if items:list_.select_row(list_.get_row_at_index(next((i for i,v in enumerate(items) if v.get('id')==best[0]),0)))
-        def chosen(_,row):
-            selected[0]=getattr(row,'value',None)
-            value=selected[0]
-            detail.set_text(value['text'] if value and value.get('detected') else (value['objective']+'\n'+value.get('notes','')) if value else '')
-        list_.connect('row-selected',chosen)
-        def import_(_):
-            path=self.pick_file('Importar preset JSON')
-            if path:
-                try:
-                    value=presets.import_preset(path,self.store)
-                    if not presets.compatible(e,value):raise ValueError('El perfil se importó, pero corresponde a otro juego o programa.')
-                    items[:]=everything();fill()
-                except Exception as error:self.message('Preset',str(error))
-        def export_(_):
-            form=Gtk.Dialog(title='Exportar mis ajustes',transient_for=dialog,modal=True);form.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Exportar',Gtk.ResponseType.OK);body=form.get_content_area();body.set_border_width(18);body.set_spacing(10)
-            name=Gtk.Entry();name.set_text(e.name+' — mis ajustes');author=Gtk.Entry();author.set_placeholder_text('Alias público (sin cuenta ni correo)');body.pack_start(name,False,False,0);body.pack_start(author,False,False,0);body.pack_start(label('Solo se exportan las opciones permitidas, como propuesta con licencia MIT. Revisar el contenido antes de compartirlo.','muted'),False,False,0);form.show_all()
-            if form.run()==Gtk.ResponseType.OK:
-                try:
-                    value=presets.export_current(e,name.get_text().strip(),author.get_text().strip(),self.store,self.preferences.get('eden_config') or None);path=self.pick_file('Guardar preset portable',save=True)
-                    if path:atomic_json(path,value);presets.import_preset(path,self.store);items[:]=everything();fill();detail.set_text('JSON exportado. Se puede compartir o añadir al catálogo del repositorio.')
-                except Exception as error:self.message('No se pudo exportar',str(error))
-            form.destroy()
-        def refresh(_):
-            form=Gtk.Dialog(title='Catálogo de GitHub',transient_for=dialog,modal=True);form.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Descargar catálogo',Gtk.ResponseType.OK);entry=Gtk.Entry();entry.set_placeholder_text('https://raw.githubusercontent.com/usuario/repo/main/presets/catalog.json');entry.set_text(self.preferences.get('catalog_url',''));form.get_content_area().pack_start(entry,False,False,15);form.set_default_size(700,130);form.show_all()
-            response=form.run();url=entry.get_text().strip();form.destroy()
-            if response==Gtk.ResponseType.OK:
-                self.preferences['catalog_url']=url;save_settings(self.preferences,self.store);detail.set_text('Descargando catálogo…')
-                def work():
-                    try:
-                        count=presets.refresh_catalog(url,self.store)
-                        def done():items[:]=everything();fill();detail.set_text(str(count)+' presets descargados y validados.');return False
-                        GLib.idle_add(done)
-                    except Exception as error:GLib.idle_add(self.message,'No se pudo descargar',str(error))
-                threading.Thread(target=work,daemon=True).start()
-        toolbar.pack_start(button('Importar JSON',import_),False,False,0);toolbar.pack_start(button('Exportar mis ajustes',export_),False,False,0);toolbar.pack_start(button('Catálogo GitHub',refresh),False,False,0)
-        actions=Gtk.Box(spacing=8);box.pack_start(actions,False,False,0)
-        def apply_(_,play=False):
-            value=selected[0]
-            if not value:self.message('Sin perfil','Seleccionar un perfil de la lista.');return
-            if value.get('detected'):self.message('Ajustes actuales','Estos son los valores que el emulador usa ahora. Elegir un perfil recomendado para cambiarlos, o editarlos uno por uno en Ajustes del juego.');return
-            try:
-                path,changes=presets.preview(e,value,self.preferences.get('eden_config') or None)
-                confirm=Gtk.MessageDialog(transient_for=dialog,modal=True,buttons=Gtk.ButtonsType.OK_CANCEL,text=('Aplicar y probar ' if play else 'Aplicar ')+value['name']);confirm.format_secondary_text('\n'.join(f'{key}: {old} → {new}' for key,old,new in changes)+'\n\nPrograma: '+value['adapter']['id']+' · versiones declaradas: '+', '.join(value['adapter']['versions'])+'\nSe guarda una copia de seguridad. No instala actualizaciones ni mods.'+('\nEl juego se abrirá con este perfil. Cerrar Eden antes de probar otra opción. El perfil permanece aplicado hasta cambiarlo o restaurarlo.' if play else ''));response=confirm.run();confirm.destroy()
-                if response==Gtk.ResponseType.OK:
-                    result=presets.apply(e,value,self.store,self.preferences.get('eden_config') or None);detail.set_text(str(result['changes'])+' ajustes aplicados.')
-                    if play:
-                        try:self.play(e);detail.set_text('Perfil aplicado. Abriendo el juego… Cerrar Eden antes de probar otra opción. Después se puede marcar la mejor.')
-                        except Exception as error:self.message('No se pudo abrir el juego','El perfil quedó aplicado y puede restaurarse. '+str(error))
-            except Exception as error:self.message('No se pudo aplicar',str(error))
-        def restore_(_):
-            try:presets.restore(e,self.store);detail.set_text('Ajuste anterior restaurado.')
-            except Exception as error:self.message('Restaurar ajuste',str(error))
-        def feedback_(_):
-            value=selected[0]
-            if not value or value.get('detected'):return
-            form=Gtk.Dialog(title='Comentarios',transient_for=dialog,modal=True);form.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar comentarios',Gtk.ResponseType.OK);body=form.get_content_area();body.set_border_width(18);body.set_spacing(10);choice=Gtk.ComboBoxText()
-            for key,title in [('works','Funcionó'),('issues','Con problemas'),('not-tested','Sin probar')]:choice.append(key,title)
-            choice.set_active(0);notes=Gtk.Entry();notes.set_placeholder_text('Juego probado y resultado (sin datos privados)');body.pack_start(choice,False,False,0);body.pack_start(notes,False,False,0);form.set_default_size(650,180);form.show_all()
-            if form.run()==Gtk.ResponseType.OK:
-                report=presets.feedback(e,value,choice.get_active_id(),notes.get_text(),self.store);destination=self.pick_file('Exportar comentarios',save=True)
-                if destination:atomic_json(destination,report)
-                detail.set_text('Comentarios guardados localmente.')
-            form.destroy()
-        def mark_best_(_):
-            value=selected[0]
-            if not value or value.get('detected'):self.message('Sin perfil','Seleccionar el perfil que funcionó mejor.');return
-            try:
-                presets.mark_best(e,value,self.store);best[0]=value['id'];fill();detail.set_text('Mejor opción guardada para este juego en esta biblioteca. No cambia el perfil aplicado.')
-            except Exception as error:self.message('No se pudo guardar',str(error))
-        actions.pack_start(button('Aplicar perfil',apply_,tone='play'),False,False,0)
-        if e.platform=='Switch':actions.pack_start(button('Aplicar y probar',lambda w:apply_(w,True),tone='play'),False,False,0)
-        actions.pack_start(button('Restaurar anterior',restore_,tone='content'),False,False,0)
-        feedback_actions=Gtk.Box(spacing=8);box.pack_start(feedback_actions,False,False,0)
-        if e.platform=='Switch':feedback_actions.pack_start(button('Marcar como mejor',mark_best_,tone='controls'),False,False,0)
-        feedback_actions.pack_start(button('Exportar comentarios',feedback_,tone='controls'),False,False,0)
-        fill();dialog.show_all();dialog.run();dialog.destroy()
-    def game_settings_dialog(self,e):
-        """Manual per-game editor generated from the adapter's allowlist; saved through the shared apply/restore path."""
-        from .gui import label,button
-        adapter=presets.adapter_for(e)
-        try:current=presets.current_values(e,self.preferences.get('eden_config') or None);presets.target_for(e,self.preferences.get('eden_config') or None)
-        except Exception as error:self.message('Ajustes del juego',str(error));return
-        dialog=Gtk.Dialog(title='Ajustes del juego · '+e.name,transient_for=self,modal=True);dialog.set_default_size(820,640);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
-        box=dialog.get_content_area();box.set_border_width(18);box.set_spacing(10)
-        box.pack_start(label('Solo se escriben las opciones modificadas. Se guarda un respaldo y el emulador debe estar cerrado.','muted'),False,False,0)
-        scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14);scroll.add(page);box.pack_start(scroll,True,True,0)
-        names=SETTING_LABELS.get(adapter,{});sections=SECTION_LABELS.get(adapter,{});controls={};touched=set()
-        for section,options in presets.REGISTRY[adapter].items():
-            card=self.card(page,sections.get(section,section))
-            for key,rule in options.items():
-                title,hint=names.get(key,(key,''));initial=current.get(section,{}).get(key);row=Gtk.Box(spacing=12);text=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2);text.pack_start(label(title),False,False,0)
-                if hint:text.pack_start(label(hint,'status'),False,False,0)
-                row.pack_start(text,True,True,0);ident=(section,key)
-                if rule is bool:
-                    widget=Gtk.Switch();widget.set_active(bool(initial));widget.set_valign(Gtk.Align.CENTER);widget.connect('notify::active',lambda w,_,i=ident:touched.add(i));read=lambda w:w.get_active()
-                elif isinstance(rule[0],str):
-                    widget=Gtk.ComboBoxText()
-                    for choice in rule:widget.append(choice,choice)
-                    widget.set_active_id(initial if initial in rule else rule[0]);widget.connect('changed',lambda w,i=ident:touched.add(i));read=lambda w:w.get_active_id()
-                else:
-                    is_float=type(rule[0]) is float;widget=Gtk.SpinButton.new_with_range(rule[0],rule[1],5.0 if is_float else 1);widget.set_digits(1 if is_float else 0);widget.set_value(initial if initial is not None else rule[0]);widget.connect('value-changed',lambda w,i=ident:touched.add(i));read=(lambda w:float(w.get_value())) if is_float else (lambda w:int(w.get_value()))
-                row.pack_end(widget,False,False,0);card.pack_start(row,False,False,0);controls[ident]=(widget,read,initial)
-        status=label('','status');box.pack_start(status,False,False,0);actions=Gtk.Box(spacing=10);box.pack_start(actions,False,False,0)
-        def save(_):
-            changes={}
-            for (section,key),(widget,read,initial) in controls.items():
-                value=read(widget)
-                if (section,key) in touched and value!=initial:changes.setdefault(section,{})[key]=value
-            if not changes:status.set_text('No hay cambios para guardar.');return
-            try:
-                profile=presets.manual_profile(e,changes);result=presets.apply(e,profile,self.store,self.preferences.get('eden_config') or None)
-                for (section,key),(widget,read,initial) in controls.items():controls[(section,key)]=(widget,read,read(widget))
-                touched.clear();status.set_text(f'{result["changes"]} ajustes guardados. Respaldo en {result["backup"]}')
-            except Exception as error:self.message('No se pudo guardar',str(error))
-        def restore(_):
-            try:presets.restore(e,self.store);status.set_text('Ajustes anteriores restaurados. Reabrir esta ventana para ver los valores.')
-            except Exception as error:self.message('Restaurar ajustes',str(error))
-        actions.pack_start(button('Guardar ajustes',save,True),False,False,0);actions.pack_start(button('Restaurar anteriores',restore),False,False,0)
-        dialog.show_all();dialog.run();dialog.destroy()
     def content_dialog(self,e):
-        from .gui import label,button
+        from .gui import label,button,wrap_row
         dialog=Gtk.Dialog(title='Contenido de Switch · '+e.name,transient_for=self,modal=True);dialog.set_default_size(870,620);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
-        box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(12);status=label('Leyendo contenido…','muted');box.pack_start(status,False,False,0);scroll=Gtk.ScrolledWindow();rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);scroll.add(rows);box.pack_start(scroll,True,True,0)
+        box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(12);status=label('Leyendo contenido…','muted');box.pack_start(status,False,False,0);scroll=self.new_scroll();rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);scroll.add(rows);box.pack_start(scroll,True,True,0)
         def fill():
             inventory=switch_inventory(e,config_dir=self.preferences.get('eden_config') or None)
             for child in rows.get_children():rows.remove(child)
@@ -348,7 +193,7 @@ class ToolsMixin:
                     except Exception as error:GLib.idle_add(self.message,'No se pudo instalar el mod',str(error))
                 threading.Thread(target=work,daemon=True).start()
         controls.add(button('Elegir mod ZIP',mod_))
-        fill();dialog.show_all();dialog.run();dialog.destroy()
+        fill();self.fit_dialog(dialog);dialog.show_all();dialog.run();dialog.destroy()
     def install_content_job(self,paths,status,done,entry=None):
         if not paths:status.set_text('No hay contenido pendiente.');return
         status.set_text('Preparando instalación…')
@@ -363,13 +208,13 @@ class ToolsMixin:
             except Exception as error:GLib.idle_add(self.message,'Contenido de Eden',str(error));GLib.idle_add(status.set_text,'La instalación no se completó.')
         threading.Thread(target=work,daemon=True).start()
     def layout_dialog(self,e):
-        from .gui import label,button
+        from .gui import label,button,wrap_row
         dialog=Gtk.Dialog(title='Controles recomendados · Minecraft',transient_for=self,modal=True);dialog.set_default_size(700,570);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(12)
         from .steam_input import local_profiles
         profiles=local_profiles(e)
         if profiles:
             profile=profiles[0];box.pack_start(label('Perfil guardado: '+profile['title'],'title'),False,False,0)
-            summary=Gtk.ScrolledWindow();summary.set_size_request(-1,210);text=Gtk.TextView();text.set_editable(False);text.set_wrap_mode(Gtk.WrapMode.WORD_CHAR);text.get_buffer().set_text('\n'.join(control+' → '+action for control,action in profile['bindings'])+'\nModos: '+', '.join(profile['modes']));summary.add(text);box.pack_start(summary,True,True,0)
+            summary=self.new_scroll();summary.set_size_request(-1,210);text=Gtk.TextView();text.set_editable(False);text.set_wrap_mode(Gtk.WrapMode.WORD_CHAR);text.get_buffer().set_text('\n'.join(control+' → '+action for control,action in profile['bindings'])+'\nModos: '+', '.join(profile['modes']));summary.add(text);box.pack_start(summary,True,True,0)
             box.pack_start(label('Steam conserva este perfil. El botón inferior abre sus controles; los cambios se hacen allí.','muted'),False,False,0)
         layout=next((p['layout'] for p in presets.catalog(self.store) if presets.compatible(e,p) and p.get('layout')),None)
         if layout and not profiles:
@@ -383,9 +228,9 @@ class ToolsMixin:
                 item=next(v[1] for v in shortcuts.values() if get(v[1],'appid')==e.metadata.get('steam_appid') or get(v[1],'appname')==e.name);appid=get(item,'appid');subprocess.Popen(['steam','steam://controllerconfig/'+str(appid)])
                 self.set_status('Controles abiertos en Steam.')
             except (OSError,ValueError,StopIteration):self.message('Instancia sin acceso','Guardar primero su acceso en Steam para abrir la configuración de controles.')
-        box.pack_start(button('Abrir controles en Steam',open_,True),False,False,0);dialog.show_all();dialog.run();dialog.destroy()
+        box.pack_start(button('Abrir controles en Steam',open_,True),False,False,0);self.fit_dialog(dialog);dialog.show_all();dialog.run();dialog.destroy()
     def setup_wii_dialog(self):
-        from .gui import label,button
+        from .gui import label,button,wrap_row
         from .setup_wii import install,check_image
         dialog=Gtk.Dialog(title='Preparar Mario Kart WiiCompiled',transient_for=self,modal=True);dialog.set_default_size(780,590);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(15)
         box.pack_start(label('Imagen → recompilación → optimización → Steam','title'),False,False,0)
@@ -407,14 +252,14 @@ class ToolsMixin:
                 finally:busy[0]=False;GLib.idle_add(start_button.set_sensitive,True);GLib.idle_add(stop.set_sensitive,False)
             threading.Thread(target=work,daemon=True).start()
         actions=Gtk.Box(spacing=10);start_button=button('Preparar y optimizar',start,True);stop=button('Cancelar proceso',lambda _:cancel.set());stop.set_sensitive(False);actions.pack_start(start_button,False,False,0);actions.pack_start(stop,False,False,0);box.pack_start(actions,False,False,0)
-        dialog.show_all();dialog.run()
+        self.fit_dialog(dialog);dialog.show_all();dialog.run()
         if busy[0]:cancel.set()
         dialog.destroy()
     def finish_wii_setup(self,status):
         self.preferences=settings(self.store);self.entries=self.store.load();self.refresh_platforms();self.render();status.set_text('Listo. Mario Kart Wii ya está en la biblioteca y puede agregarse a Steam.');return False
 
     def project2099_dialog(self):
-        from .gui import label,button
+        from .gui import label,button,wrap_row
         from . import project2099
         dialog=Gtk.Dialog(title='Preparar Project-2099',transient_for=self,modal=True)
         dialog.set_default_size(660,360);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
@@ -445,4 +290,4 @@ class ToolsMixin:
                 except Exception as error:GLib.idle_add(done,None,str(error))
             threading.Thread(target=work,daemon=True).start()
         start=button('Instalar',begin,True);box.pack_start(start,False,False,0)
-        dialog.connect('delete-event',lambda *_:busy[0]);dialog.show_all();dialog.run();dialog.destroy()
+        dialog.connect('delete-event',lambda *_:busy[0]);self.fit_dialog(dialog);dialog.show_all();dialog.run();dialog.destroy()

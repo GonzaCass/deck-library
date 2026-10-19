@@ -1,6 +1,6 @@
-# Ajustes de la comunidad — diseño propuesto
+# Ajustes de la comunidad
 
-Estado: la versión 0.2.0 implementa catálogo local/JSON, importación desde una URL HTTPS de GitHub, aplicación/restauración y exportación de ajustes/feedback. El servicio, publicación autenticada, votos y moderación siguen siendo diseño; no se despliega nada en jokerlan.xyz. La app no sube configuraciones automáticamente.
+Estado 0.11: catálogo local/GitHub, importación y exportación, servicio opcional SQLite con acceso GitHub, aportes moderados y feedback por usuario. El servidor necesita su OAuth Client ID antes de habilitar la publicación. No hay votos de popularidad ni panel web. La app no sube configuraciones automáticamente. Ver [instalación del servicio](../community/README.md). Las secciones siguientes conservan el diseño a largo plazo; no todas describen funciones ya implementadas.
 
 ## Experiencia
 

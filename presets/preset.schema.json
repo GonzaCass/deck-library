@@ -225,6 +225,11 @@
                 "properties": {
                   "use_docked_mode": {
                     "type": "boolean"
+                  },
+                  "language_index": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 19
                   }
                 },
                 "additionalProperties": false,

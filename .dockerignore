@@ -1,0 +1,8 @@
+*
+!community/
+!community/**
+!deck_library/
+!deck_library/**
+**/__pycache__
+**/*.pyc
+**/.env

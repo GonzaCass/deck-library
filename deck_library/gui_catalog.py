@@ -134,7 +134,7 @@ class CatalogMixin:
         for value in ('PlayStation','PlayStation 2','Nintendo 64','GameCube','Wii','Xbox 360','Otros'):category.append_text(value)
         category.get_child().set_placeholder_text('Plataforma o categoría');box.pack_start(category,False,False,0)
         note=Gtk.Entry();note.set_placeholder_text('Nota (opcional), por ejemplo: necesita el disco original');box.pack_start(note,False,False,0)
-        status=label('','status');box.pack_start(status,False,False,0);dialog.show_all()
+        status=label('','status');box.pack_start(status,False,False,0);self.fit_dialog(dialog);dialog.show_all()
         while dialog.run()==Gtk.ResponseType.OK:
             parsed=ports.parse_repository(repo.get_text())
             if not parsed:status.set_text('Dirección no válida. Usar https://github.com/usuario/proyecto o usuario/repositorio.');continue

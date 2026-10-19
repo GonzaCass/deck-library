@@ -16,18 +16,22 @@ def ease_out(t):return 1-(1-t)**3
 
 def fade_in(widget,duration=260,delay=0,rise=0):
     """Animate opacity 0 -> 1 (and an optional upward slide through the top margin) on the widget's frame clock."""
+    previous=getattr(widget,'_deck_fade_tick',None)
+    if previous:widget.remove_tick_callback(previous);widget._deck_fade_tick=None
     if not enabled():widget.set_opacity(1);return
     widget.set_opacity(0);base=widget.get_margin_top();state={'start':None}
     if rise:widget.set_margin_top(base+rise)
     def tick(w,clock):
+        if not enabled():w.set_opacity(1);w.set_margin_top(base);w._deck_fade_tick=None;return False
         now=clock.get_frame_time()/1000
         if state['start'] is None:state['start']=now+delay
         t=(now-state['start'])/duration
         if t<=0:return True
         t=min(1,t);eased=ease_out(t);w.set_opacity(eased)
         if rise:w.set_margin_top(int(base+rise*(1-eased)))
+        if t>=1:w._deck_fade_tick=None
         return t<1
-    widget.add_tick_callback(tick)
+    widget._deck_fade_tick=widget.add_tick_callback(tick)
 
 def stagger(widgets,step=35,limit=16,duration=280,rise=10):
     """Fade a list of widgets in one after another; only the first `limit` animate, the rest appear at once."""

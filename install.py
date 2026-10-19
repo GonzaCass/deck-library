@@ -12,8 +12,9 @@ dest.mkdir(parents=True,exist_ok=True)
 # copied with the current time and old caches are removed; otherwise a same-length edit (a version number) would keep running the old code.
 for name in ('app.py','launch.sh','README.md','LEEME.md','LICENSE'):
  if source!=dest:shutil.copy(source/name,dest/name)
-for name in ('deck_library','assets','docs','presets'):
- if source!=dest:shutil.copytree(source/name,dest/name,dirs_exist_ok=True,copy_function=shutil.copy,ignore=shutil.ignore_patterns('__pycache__','*.pyc'))
+for name in ('deck_library','assets','docs','presets','community'):
+ if name=='community' and not (source/name).is_dir():continue
+ if source!=dest:shutil.copytree(source/name,dest/name,dirs_exist_ok=True,copy_function=shutil.copy,ignore=shutil.ignore_patterns('__pycache__','*.pyc','.env','*.sqlite3*'))
 for cache in dest.rglob('__pycache__'):shutil.rmtree(cache,ignore_errors=True)
 (dest/'launch.sh').chmod(0o755)
 def quoted(value):return '"'+str(value).replace('\\','\\\\').replace('"','\\"').replace('$','\\$').replace('`','\\`').replace('%','%%')+'"'

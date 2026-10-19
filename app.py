@@ -4,6 +4,7 @@ from deck_library.models import Store
 
 def main():
     parser=argparse.ArgumentParser(description='Deck Library — ports y juegos emulados, juntos en Steam')
+    parser.add_argument('--gaming',action='store_true',help='Abrir a pantalla completa desde Steam')
     sub=parser.add_subparsers(dest='action')
     for name in ('scan','sync','launch','check'):
         p=sub.add_parser(name)

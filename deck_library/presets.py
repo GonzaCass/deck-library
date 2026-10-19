@@ -8,7 +8,7 @@ REGISTRY={
  'eden':{
   'Core':{'use_multi_core':bool,'use_speed_limit':bool,'speed_limit':(100,100),'sync_core_speed':bool},
   'Cpu':{'cpu_accuracy':(0,2),'use_custom_cpu_ticks':bool},
-  'System':{'use_docked_mode':bool},
+  'System':{'use_docked_mode':bool,'language_index':(0,19)},
   'Renderer':{'backend':(0,1),'resolution_setup':(1,6),'aspect_ratio':(0,4),'anti_aliasing':(0,2),'scaling_filter':(0,5),'gpu_accuracy':(0,2),'dma_accuracy':(0,2),'vram_usage_mode':(0,2),'use_disk_shader_cache':bool,'use_vulkan_driver_pipeline_cache':bool,'use_asynchronous_gpu_emulation':bool,'use_asynchronous_shaders':bool,'async_presentation':bool,'use_vsync':(0,3),'force_max_clock':bool,'max_anisotropy':(0,5)}},
  'wiicompiled':{'video':{'resolution_multiplier':(1.0,3.0),'disable_copy_filter':bool,'frame_interpolation_fps':(0,0),'graphics_api':('vulkan','opengl'),'display_mode':('borderless','windowed','fullscreen'),'skip_unready_pipelines':bool,'show_fps':bool},'audio':{'mix_worker':bool}},
  'dolphin':{'Video_Settings':{'InternalResolution':(1,4),'MSAA':(0,8),'SSAA':bool,'MaxAnisotropy':(0,4)},'Video_Hacks':{'EFBScaledCopy':bool,'EFBAccessEnable':bool,'EFBToTextureEnable':bool}},

@@ -24,3 +24,8 @@ artwork/
 feedback/
 wiicompiled-runtime/
 wii-setup/
+
+# Community credentials and databases
+.env
+*.sqlite3*
+community-session.json
