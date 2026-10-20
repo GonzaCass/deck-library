@@ -4,6 +4,21 @@ from deck_library import ports,originals,catalog_sources,project2099_update,proj
 from deck_library.models import Entry,Store
 
 class PortImprovements(unittest.TestCase):
+    def test_confirmed_profiles_are_primary_and_keep_their_original_settings(self):
+        from deck_library import profile_display
+        with tempfile.TemporaryDirectory() as tmp:
+            e=Entry('Mario Kart Wii',['/bin/true'],platform='WiiCompiled',game_id='RMCP01');rows=presets.recommended(e,Store(tmp))
+            self.assertEqual([profile_display.title(p) for p in rows[:3]],['Equilibrado','Rendimiento','Calidad'])
+            quality=rows[2];self.assertEqual(quality['id'],'wiicompiled-rmcp01-sharp');self.assertEqual(quality['settings']['video']['resolution_multiplier'],1.5)
+            self.assertIn('Verificado',profile_display.verification(quality));self.assertTrue(all(p['tested']['status']=='proposal' for p in rows[:2]))
+
+    def test_custom_claims_do_not_inherit_integrated_verification(self):
+        import copy
+        from deck_library import profile_display
+        with tempfile.TemporaryDirectory() as tmp:
+            e=Entry('Smash',['/bin/true'],platform='Switch',game_id='01006A800016E000');profile=copy.deepcopy(presets.recommended(e,Store(tmp))[0]);profile['settings']['Renderer']['resolution_setup']=6
+            self.assertFalse(presets.is_bundled(profile));self.assertNotIn('Verificado',profile_display.verification(profile))
+
     def test_independent_list_keeps_game_headings_descriptions_and_platforms(self):
         document='''## 🎮 Nintendo
 <details>

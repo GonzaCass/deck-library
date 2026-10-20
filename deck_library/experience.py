@@ -184,7 +184,7 @@ class ExperienceMixin:
             try:pick.add(Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path,140,210,True)))
             except GLib.Error:return False
             def selected(_,data=data,path=path):
-                e.cover=path;e.metadata['artwork']={'provider':data['provider'],'page':data.get('page','')};self.store.save(self.entries);self.render();self.show_detail(e);dialog.response(Gtk.ResponseType.CLOSE)
+                e.cover=path;e.metadata['artwork']={'provider':data['provider'],'page':data.get('page','')};self.store.save(self.entries);self.render();self.show_detail(e);self.toast('Carátula actualizada');dialog.response(Gtk.ResponseType.CLOSE)
             pick.connect('clicked',selected);tile.pack_start(pick,False,False,0);name=label(data['title'],'muted');name.set_max_width_chars(16);tile.pack_start(name,False,False,0);tile.pack_start(Gtk.LinkButton.new_with_label(data['page'],data['provider']),False,False,0);results.add(tile);results.show_all();return False
         def finished(count,error):
             if not alive['value']:return False

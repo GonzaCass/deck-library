@@ -2,10 +2,15 @@
 from . import presets
 
 TEST_STATES = {
-    'proposal': 'Sin probar en este juego',
-    'boot-tested': '✓ Comprobado · arranque',
-    'user-confirmed': '✓ Comprobado · usuario',
+    'proposal': 'Sin verificar',
+    'boot-tested': '✓ Verificado · arranque',
+    'user-confirmed': '✓ Verificado · usuario',
 }
+
+
+def verification(profile):
+    if presets.is_bundled(profile):return TEST_STATES[profile['tested']['status']]
+    return 'Prueba declarada por el autor' if profile['tested']['status']!='proposal' else 'Sin verificar'
 
 
 def title(profile):

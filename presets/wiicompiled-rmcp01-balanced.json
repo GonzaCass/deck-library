@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "id": "wiicompiled-rmcp01-balanced",
+  "name": "Mario Kart Wii — Equilibrado",
+  "game": {
+    "id": "RMCP01",
+    "name": "Mario Kart Wii",
+    "platform": "WiiCompiled"
+  },
+  "adapter": {
+    "id": "wiicompiled",
+    "versions": [
+      "0.2.33"
+    ]
+  },
+  "hardware": [
+    "steam-deck-oled",
+    "steam-deck-lcd"
+  ],
+  "objective": "Resolución 1,25× con la base de configuración de WiiCompiled",
+  "author": "Deck Library",
+  "license": "MIT",
+  "tested": {
+    "status": "proposal",
+    "date": "2026-10-19",
+    "notes": "Variante de menor resolución derivada del perfil de calidad; no se probó por separado."
+  },
+  "settings": {
+    "video": {
+      "resolution_multiplier": 1.25,
+      "disable_copy_filter": true,
+      "frame_interpolation_fps": 0,
+      "graphics_api": "vulkan",
+      "display_mode": "borderless",
+      "skip_unready_pipelines": true,
+      "show_fps": true
+    },
+    "audio": {
+      "mix_worker": true
+    }
+  },
+  "notes": "El perfil de Calidad conserva la configuración confirmada por el usuario. Esta variante reduce únicamente la resolución y requiere validación propia.",
+  "sources": []
+}

@@ -39,13 +39,21 @@ def stagger(widgets,step=35,limit=16,duration=280,rise=10):
         if index<limit:fade_in(widget,duration,delay=index*step,rise=rise)
 
 class Toast(Gtk.Revealer):
-    """A short confirmation that slides up, waits and slides away."""
+    """A readable, dismissible notice inside the existing application surface."""
     def __init__(self):
-        super().__init__();self.set_transition_type(Gtk.RevealerTransitionType.SLIDE_UP);self.set_halign(Gtk.Align.CENTER);self.set_valign(Gtk.Align.END);self.set_margin_bottom(28)
-        self.text=Gtk.Label();self.text.get_style_context().add_class('toast-text');box=Gtk.Box();box.get_style_context().add_class('toast');box.add(self.text);self.add(box);self.timer=None
-    def show_text(self,text,seconds=3.2):
-        self.text.set_text(text);self.set_transition_duration(220 if enabled() else 0);self.show_all();self.set_reveal_child(True)
+        super().__init__();self.set_transition_type(Gtk.RevealerTransitionType.SLIDE_DOWN);self.set_halign(Gtk.Align.CENTER);self.set_valign(Gtk.Align.START);self.set_margin_top(18);self.set_margin_start(24);self.set_margin_end(24)
+        self.text=Gtk.Label(xalign=0);self.text.set_line_wrap(True);self.text.set_max_width_chars(54);self.text.get_style_context().add_class('toast-text')
+        self.box=Gtk.Box(spacing=16);self.box.get_style_context().add_class('toast');self.icon=Gtk.Image.new_from_icon_name('emblem-ok-symbolic',Gtk.IconSize.LARGE_TOOLBAR);self.box.pack_start(self.icon,False,False,0);self.box.pack_start(self.text,True,True,0)
+        close=Gtk.Button(label='×');close.set_can_focus(False);close.set_tooltip_text('Cerrar aviso');close.get_accessible().set_name('Cerrar aviso');close.connect('clicked',lambda _:self.hide_text());self.box.pack_end(close,False,False,0)
+        self.add(self.box);self.timer=None;self.last_text=''
+    def show_text(self,text,seconds=8):
+        self.last_text=text;self.text.set_text(text);error=any(word in text.casefold() for word in ('no se pudo','error','falló','no se pudieron'))
+        style=self.box.get_style_context();style.add_class('error') if error else style.remove_class('error');self.icon.set_from_icon_name('dialog-error-symbolic' if error else 'emblem-ok-symbolic',Gtk.IconSize.LARGE_TOOLBAR)
+        self.set_transition_duration(180 if enabled() else 0);self.show_all();self.set_reveal_child(True)
         if self.timer:GLib.source_remove(self.timer)
         self.timer=GLib.timeout_add(int(seconds*1000),self.hide_text)
     def hide_text(self):
+        if self.timer and GLib.MainContext.default().find_source_by_id(self.timer):GLib.source_remove(self.timer)
         self.timer=None;self.set_reveal_child(False);return False
+    def do_destroy(self):
+        self.hide_text();Gtk.Revealer.do_destroy(self)

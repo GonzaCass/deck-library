@@ -1,7 +1,7 @@
 name: deck-library-community
 services:
   api:
-    image: deck-library-community:0.18.1
+    image: deck-library-community:0.18.2
     build:
       context: ..
       dockerfile: community/Dockerfile

@@ -199,26 +199,15 @@ class Reveal(Gtk.Box):
 
 
 class GameBackdrop(Gtk.DrawingArea):
-    """An ambient cover backdrop. A tiny intermediate image gives a cheap, static blur."""
+    """Flat workspace surface, independent of the cover artwork."""
     def __init__(self, path):
         super().__init__()
-        self.pixbuf = None
-        if path:
-            try:self.pixbuf = GdkPixbuf.Pixbuf.new_from_file_at_scale(path,30,40,False)
-            except (GLib.Error,OSError):pass
         self.connect('draw',self.draw_backdrop)
 
     def draw_backdrop(self,widget,cr):
-        import cairo
-        cr.save()
-        w,h = widget.get_allocated_width(),widget.get_allocated_height()
-        radius=18
-        cr.new_path()
+        # Keep the workspace on the same flat charcoal surface as its controls.
+        w,h=widget.get_allocated_width(),widget.get_allocated_height();radius=6
+        cr.save();cr.new_path()
         for x,y,a,b in [(w-radius,radius,-math.pi/2,0),(w-radius,h-radius,0,math.pi/2),(radius,h-radius,math.pi/2,math.pi),(radius,radius,math.pi,math.pi*1.5)]:cr.arc(x,y,radius,a,b)
-        cr.close_path();cr.clip()
-        cr.set_source_rgb(.104,.11,.135);cr.paint()
-        if self.pixbuf:
-            cr.save();scale=max(w/self.pixbuf.get_width(),h/self.pixbuf.get_height());cr.translate(w*.2,-h*.5);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,self.pixbuf,0,0);cr.paint_with_alpha(.32);cr.restore()
-        shade=cairo.LinearGradient(0,0,w,0);shade.add_color_stop_rgba(0,.10,.11,.13,.97);shade.add_color_stop_rgba(.35,.10,.11,.13,.8);shade.add_color_stop_rgba(1,.10,.11,.13,.15);cr.set_source(shade);cr.paint()
-        cr.restore()
+        cr.close_path();cr.clip();cr.set_source_rgb(0.149,0.149,0.149);cr.paint();cr.restore()
         return False

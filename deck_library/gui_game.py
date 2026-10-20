@@ -285,7 +285,9 @@ class GameMixin:
         values = display.highlights(profile)
         summary = ' · '.join(value for _,value in values)
         body.pack_start(text(summary or profile['author'], 'profile-spec', 40), False, False, 0)
-        state = display.TEST_STATES[profile['tested']['status']]+(' · Favorito' if favourite else '')
+        state = display.verification(profile)+(' · Favorito' if favourite else '')
+        source='Integrado en Deck Library' if presets.is_bundled(profile) else 'Comunidad' if profile['id'].startswith('community-') else 'Base de Deck Library' if profile['id'].endswith(('-default','-performance','-quality','-compatibility')) and profile['id'].startswith('eden-') else 'Perfil local'
+        body.pack_start(text(source,'meta',40),False,False,0)
         body.pack_start(text(state, 'good' if profile['tested']['status']!='proposal' else 'meta', 40), False, False, 0)
         card.rating_label=text('★ Sin valoraciones','rating',40)
         body.pack_start(card.rating_label,False,False,0)
@@ -297,12 +299,12 @@ class GameMixin:
         return card
 
     def build_profile_picker(self, entry, content, parent):
+        self.community_profile_box=None
         profiles = presets.recommended(entry, self.store)
-        best = presets.best_for(entry, self.store)
+        best = presets.best_for(entry, self.store) or next((p['id'] for p in profiles[:3] if presets.is_bundled(p) and p['tested']['status']=='user-confirmed'),next((p['id'] for p in profiles[:3] if presets.is_bundled(p) and p['tested']['status']=='boot-tested'),''))
         heading = Gtk.Box(spacing=12)
         heading.pack_start(text('Ajustes del juego','section-title'), True, True, 0)
-        heading.pack_end(ActionButton('Comunidad','community',lambda _:self.community_dialog(entry),'violet-outline'), False, False, 0)
-        heading.pack_end(ActionButton('Compartir mis ajustes','upload',lambda _:self.community_dialog(entry,mode='publish')),False,False,0)
+        heading.pack_end(ActionButton('Comunidad','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0)
         content.pack_start(heading, False, False, 0)
         self.profile_selection = None
         details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
@@ -337,7 +339,6 @@ class GameMixin:
         dock.pack_end(self.profile_restore,False,False,0)
         parent.pack_end(dock,False,False,0)
         self.profile_dock = dock
-        self.fetch_game_ratings(entry)
 
         def choose(profile):
             self.profile_selection = profile
@@ -350,7 +351,7 @@ class GameMixin:
                 card.selection_icon.queue_draw()
                 card.get_accessible().set_description('Seleccionado' if active else 'Seleccionar perfil')
             self.profile_dock_title.set_text(display.title(profile))
-            provenance.set_text(profile['author']+' · '+display.TEST_STATES[profile['tested']['status']]+' · '+', '.join(profile['adapter']['versions']))
+            provenance.set_text(profile['author']+' · '+display.verification(profile)+' · '+', '.join(profile['adapter']['versions']))
             notes.set_text(profile.get('notes',''))
             notes.set_visible(bool(profile.get('notes')))
             self.reset_page(changes)
@@ -391,12 +392,18 @@ class GameMixin:
             for profile in profiles[:3]:
                 cards.pack_start(self.profile_card(profile,choose,profile['id']==best),True,True,0)
             content.pack_start(cards,False,False,0)
+            content.pack_start(self.profile_feedback,False,False,0)
+            content.pack_start(self.profile_disclosure,False,False,0)
+            self.community_profile_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
+            community_head=Gtk.Box(spacing=10);community_head.pack_start(text('Ajustes de la comunidad','section-title'),True,True,0);community_head.pack_end(ActionButton('Ver todos','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0);content.pack_start(community_head,False,False,10)
+            content.pack_start(self.community_profile_box,False,False,0)
+            content.pack_start(ActionButton('Compartir mis ajustes','upload',lambda _:self.community_dialog(entry,mode='publish'),'violet-outline'),False,False,0)
+            self.community_profile_box.pack_start(text('Consultar perfiles, valoraciones y comentarios.','muted'),False,False,0)
             if len(profiles)>3:
                 extra = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
                 for profile in profiles[3:]:extra.pack_start(self.profile_card(profile,choose,profile['id']==best),False,False,0)
-                content.pack_start(Reveal('Personalizados y otras opciones ('+str(len(profiles)-3)+')',extra),False,False,0)
-            content.pack_start(self.profile_feedback,False,False,0)
-            content.pack_start(self.profile_disclosure,False,False,0)
+                content.pack_start(text('Otros perfiles · '+str(len(profiles)-3),'section-title'),False,False,10)
+                content.pack_start(extra,False,False,0)
             selected = self.profile_choice.get(entry.id,best)
             choose(next((value for value in profiles if value['id']==selected),profiles[0]))
         else:
@@ -412,13 +419,24 @@ class GameMixin:
             self.profile_dock_title.set_text('Sin perfil seleccionado')
             self.profile_dock_note.set_text('Podés importar uno o editar las opciones disponibles.')
 
+        self.fetch_game_ratings(entry)
+
     def fetch_game_ratings(self,entry):
         import threading,time
         from .community import Client
         from .gui_community import rating_caption
         if not hasattr(self,'community_rating_cache'):self.community_rating_cache={};self.community_rating_fetching=set()
-        def paint(values):
+        def paint(values,error=''):
             if self.ui_closed or not self.selected or self.selected.id!=entry.id:return False
+            panel=getattr(self,'community_profile_box',None)
+            if panel:
+                self.reset_page(panel)
+                if error:panel.pack_start(text('No se pudo consultar la comunidad. Usá Ver todos para reintentar.','muted'),False,False,0)
+                elif not values:panel.pack_start(text('Todavía no hay perfiles publicados para este juego.','muted'),False,False,0)
+                for value in values[:3]:
+                    caption=display.title(value['preset'])+' · '+rating_caption(value)
+                    card=TaskButton(caption,'Por '+value.get('author','Usuario')+' · Ver ajustes y comentarios','community',lambda _,v=value:self.community_dialog(entry,'community-'+v['id']),'violet-outline');panel.pack_start(card,False,False,0)
+                panel.show_all()
             for card in self.profile_cards:
                 value=next((v for v in values if v['preset']['id']==card.profile_id or 'community-'+v['id']==card.profile_id),None)
                 if value:card.rating_label.set_text(rating_caption(value))
@@ -429,9 +447,10 @@ class GameMixin:
         if entry.id in self.community_rating_fetching or self.preferences.get('community_ratings',True) is False:return
         self.community_rating_fetching.add(entry.id)
         def work():
+            error=''
             try:values=Client(self.store,self.preferences.get('community_url','https://presets.jokerlan.xyz')).search(entry)
-            except Exception:values=[]
-            self.community_rating_cache[entry.id]=(time.monotonic(),values);self.community_rating_fetching.discard(entry.id);GLib.idle_add(paint,values)
+            except Exception as exc:values=[];error=str(exc)
+            self.community_rating_cache[entry.id]=(time.monotonic(),values);self.community_rating_fetching.discard(entry.id);GLib.idle_add(paint,values,error)
         threading.Thread(target=work,daemon=True).start()
 
     def apply_game_profile(self, entry):

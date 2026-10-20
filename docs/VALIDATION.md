@@ -1,5 +1,11 @@
 # Validación
 
+## Versión 0.18.2 — 2026-10-19
+
+Se superaron 687 pruebas, incluidas 54 de GTK. Se verifica contraste superior a 4,5:1 del contador de Actualizaciones en ambas variantes de la pestaña, su espacio y su ocultación cuando no hay actualizaciones. Se comprueban apertura del teclado únicamente por acción explícita, indicación X en el buscador e inhibición de teclado automático; captura del arrastre tras superar el umbral y conservación de toques cortos; visibilidad de la tarjeta completa y su título en la última fila; avisos grandes y descartables dentro de la ventana principal. Las solicitudes del teclado de Steam se simulan en las pruebas para no abrirlo en la Deck remota. También se verifica la integración del perfil confirmado de Mario Kart Wii en Calidad sin alterar sus ajustes, que las otras variantes no hereden su verificación, que una modificación local no conserve la marca y que comunidad/perfiles adicionales sean visibles sin desplegables y dentro de 840 píxeles.
+
+Se revisó visualmente la ficha a 1280×760. Falta confirmar en la Deck física el teclado de SteamOS y los gestos táctiles, que pueden presentarse como eventos de ratón en modo Juego. No se ejecutaron juegos ni se cambiaron sus ajustes.
+
 ## Versión 0.18.1 — 2026-10-19
 
 Se superaron 679 pruebas, incluidas 48 de GTK. Se verifican los encabezados de juego de la lista independiente, entidades HTML, separación de descripciones por proyecto, clasificación de herramientas, enriquecimiento de imágenes únicamente por identidad exacta y reintento manual de imágenes. En GTK se comprueba que pulsar una tarjeta abre una ficha interna sin iniciar la instalación, que la ficha identifica juego y port por separado y que se muestran imágenes descargadas.

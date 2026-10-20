@@ -111,19 +111,25 @@ def catalog(store=None):
             except (OSError,ValueError,TypeError,KeyError):continue
     return list(by_id.values())
 
+def is_bundled(value):
+    """Only exact game/adapter/settings matches inherit the bundled verification."""
+    try:
+        canonical=json.loads((pathlib.Path(__file__).resolve().parent.parent/'presets'/(value['id']+'.json')).read_text())
+        return all(canonical[key]==value[key] for key in ('game','adapter','settings','tested'))
+    except (OSError,ValueError,KeyError,TypeError):return False
+
 SWITCH_BASES=('eden-switch-default','eden-switch-performance','eden-switch-quality','eden-switch-compatibility')
 
 def recommended(entry,store=None):
     """Prefer title-specific profiles; bind the Switch base to a real Title ID only."""
     values=catalog(store)
     matches=[value for value in values if compatible(entry,value)]
-    folder=pathlib.Path(__file__).resolve().parent.parent/'presets'
-    def official(value):
-        try:return json.loads((folder/(value['id']+'.json')).read_text())['settings']==value['settings']
-        except (OSError,ValueError,KeyError):return False
-    official_matches=sorted([v for v in matches if official(v)],key=lambda v:(v['tested']['status']!='user-confirmed',v['tested']['status']!='boot-tested'))
-    custom=[v for v in matches if not official(v)]
-    if entry.platform!='Switch' or adapter_for(entry)!='eden':return [*official_matches,*custom]
+    official_matches=sorted([v for v in matches if is_bundled(v)],key=lambda v:(v['tested']['status']!='user-confirmed',v['tested']['status']!='boot-tested'))
+    custom=[v for v in matches if not is_bundled(v)]
+    modes={'Equilibrado':0,'Rendimiento':1,'Calidad':2}
+    if entry.platform!='Switch' or adapter_for(entry)!='eden':
+        official_matches.sort(key=lambda p:modes.get(p['name'].rsplit(' — ',1)[-1],3))
+        return [*official_matches,*custom]
     tid=public_game_id(entry)
     if not re.fullmatch(r'010[0-9A-Fa-f]{13}',tid):return []
     profiles=[]
@@ -135,9 +141,14 @@ def recommended(entry,store=None):
         value['game']={'id':tid.upper(),'name':entry.name,'platform':'Switch'}
         if template_id=='eden-switch-performance':value['settings']['Renderer']['resolution_setup']=2
         profiles.append(validate(value))
-    if official_matches:
-        balanced=copy.deepcopy(official_matches[0]);balanced['name']=entry.name+' — Equilibrado'
-        profiles=[balanced,*[p for p in profiles if not p['id'].endswith('-default')],*official_matches[1:]]
+    used=set();extras=[]
+    for value in official_matches:
+        mode=value['name'].rsplit(' — ',1)[-1];slot=modes.get(mode,0)
+        if slot in used:extras.append(value);continue
+        replacement=copy.deepcopy(value)
+        if mode not in modes:replacement['name']=entry.name+' — Equilibrado'
+        profiles[slot]=replacement;used.add(slot)
+    profiles.extend(extras)
     return [*profiles,*custom]
 
 def mark_best(entry,value,store=None):

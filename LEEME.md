@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.18.1.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.18.2.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -111,7 +111,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.18.1**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.18.2**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
@@ -226,3 +226,17 @@ El botón **Añadir Deck Library a Steam** está junto a las pestañas y utiliza
 Pulsar la imagen o el texto de un port abre su ficha dentro de la app: juego original, nombre del port, descripción, plataforma, requisitos y versión cuando la fuente la informa. Instalar y actualizar son acciones separadas.
 
 También se leen los nombres de los juegos en los encabezados de la lista independiente, y se buscan sus imágenes por coincidencia exacta con el catálogo de juegos. Por ejemplo, GSRecomp aparece como Golden Sun y Project-2099 como Spider-Man: Edge of Time. Las herramientas se mantienen como herramientas; no se les asigna un juego. Si una fuente no tiene carátula, la ficha permite reintentar sin esperar a que venza la caché del error.
+
+### Apariencia y manejo en Steam Deck (0.18.2)
+
+La interfaz usa superficies carbón, bordes suavemente redondeados, menos contornos y sombras, y una línea azul para la pestaña activa. El contador de Actualizaciones tiene texto blanco sobre azul tanto con la pestaña activa como inactiva.
+
+El buscador indica **X: teclado**. X / □, el icono de teclado o A sobre un campo de texto abren el teclado de Steam. Los campos inhiben su apertura automática al recibir el foco; se conserva el teclado físico.
+
+Las vistas admiten desplazamiento táctil y arrastre cuando Steam presenta el toque como un ratón. Al navegar con el mando, la tarjeta completa y su título se mantienen dentro de la vista, también en la última fila.
+
+Los cambios guardados, ajustes aplicados, actualizaciones y errores muestran un aviso grande dentro de la app durante ocho segundos, con un botón para cerrarlo. Los estados de descarga siguen mostrando el progreso en su lugar. No se crean ventanas separadas.
+
+Los perfiles integrados se identifican como **Integrado en Deck Library**. La marca **Verificado · usuario** corresponde a ajustes confirmados jugando; **Verificado · arranque** indica una prueba limitada al inicio. Las variantes sin prueba permanecen **Sin verificar**. En Mario Kart Wii, Calidad conserva el perfil confirmado y se selecciona de forma predeterminada; Equilibrado y Rendimiento son variantes de menor resolución pendientes de prueba.
+
+**Ajustes de la comunidad** aparece como sección propia con una vista previa de perfiles, valoraciones y acceso a comentarios. Los perfiles adicionales están en **Otros perfiles**, visibles sin desplegar un acordeón. Los perfiles locales y las pruebas del autor no heredan la verificación de los integrados.

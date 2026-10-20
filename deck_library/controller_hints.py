@@ -6,7 +6,7 @@ class ControllerHints(Gtk.Box):
         super().__init__(spacing=14)
         self.set_valign(Gtk.Align.CENTER);self.items={};self.compact=compact;self._state=None
         groups=[('activate','A / ✕','Seleccionar'),('back','B / ○','Volver')]
-        if not compact:groups += [('move','L','Mover'),('scroll','R','Desplazar'),('tabs','LB/RB · L1/R1','Pestañas'),('search','X / □','Buscar')]
+        if not compact:groups += [('move','L','Mover'),('scroll','R','Desplazar'),('tabs','LB/RB · L1/R1','Pestañas'),('search','X / □','Teclado')]
         for name,glyph,caption in groups:
             item=Gtk.Box(spacing=6);badge=Gtk.Label(label=glyph);badge.get_style_context().add_class('control-glyph')
             if name in ('move','scroll'):badge.get_style_context().add_class('control-stick');badge.set_tooltip_text('Palanca izquierda / cruceta' if name=='move' else 'Palanca derecha')

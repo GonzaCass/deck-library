@@ -22,13 +22,13 @@ from .experience import ExperienceMixin
 from .artwork import find_cover
 
 CSS=b'''
-@define-color bg #111216;
-@define-color surface #1a1c22;
-@define-color raised #252831;
-@define-color text #f2f3f7;
-@define-color dim #a7acbc;
-@define-color accent #b7a7ff;
-@define-color line #343742;
+@define-color bg #161616;
+@define-color surface #262626;
+@define-color raised #393939;
+@define-color text #f4f4f4;
+@define-color dim #c6c6c6;
+@define-color accent #78a9ff;
+@define-color line #393939;
 window, dialog { background:@bg; color:@text; font-family:"Noto Sans",Sans; font-size:14px; }
 label { color:@text; }
 label.muted,label.meta,label.status { color:@dim; }
@@ -38,65 +38,66 @@ label.title { font-size:16px; font-weight:600; }
 label.brand { font-size:17px; font-weight:700; }
 label.eyebrow,label.pill { color:@accent; font-size:12px; font-weight:600; }
 .app-header { background:@surface; border-bottom:1px solid @line; }
-button { background:@raised; color:@text; border:1px solid @line; border-radius:10px; padding:8px 16px; min-height:28px; background-image:none; box-shadow:none; text-shadow:none; }
+button { background:@raised; color:@text; border:1px solid transparent; border-radius:6px; padding:8px 16px; min-height:28px; background-image:none; box-shadow:none; text-shadow:none; }
 button label { color:@text; font-weight:600; }
-button:hover { background:#30333e; border-color:#74798e; }
-button:active { background:#3a3e4b; }
+button:hover { background:#4c4c4c; border-color:#74798e; }
+button:active { background:#525252; }
 button:focus { outline:2px solid @accent; outline-offset:2px; }
 button:disabled { opacity:0.42; }
-button.primary { background:@accent; border-color:@accent; }
-button.primary label { color:#1b1532; font-weight:700; }
-button.primary:hover { background:#c9bdff; }
+button.primary { background:#0f62fe; border-color:transparent; }
+button.primary label { color:white; font-weight:700; }
+button.primary:hover { background:#0353e9; }
 button.danger { background:transparent; border-color:#935b68; }
 button.danger label { color:#ffb3bd; }
 button.flat,button.nav { background:transparent; border-color:transparent; }
 button.nav label { color:@dim; }
 button.nav.active { background:@raised; }
 button.nav.active label { color:@text; }
-button.poster { padding:0; border:2px solid transparent; border-radius:10px; background:@surface; }
-button.poster:hover,button.poster.selected { border-color:@accent; box-shadow:0 0 0 2px alpha(@accent,0.18); }
-button.poster:focus { border-color:#d7caff; outline:0; box-shadow:0 0 0 3px #b7a7ff; }
-.library-game { border:1px solid transparent; border-radius:14px; padding:4px; transition:background 120ms ease-out,border-color 120ms ease-out; }
-.library-game.game-focused { background:#302a40; border-color:#b7a7ff; }
-.library-game.game-focused .cover-title { color:#e5dcff; }
-list row:focus,list row.game-focused { background:#302a40; border:2px solid #b7a7ff; outline:0; }
+button.poster { padding:0; border:2px solid transparent; border-radius:6px; background:@surface; }
+button.poster:hover,button.poster.selected { border-color:@accent; box-shadow:none; }
+button.poster:focus { border-color:#ffffff; outline:0; box-shadow:none; }
+.library-game { border:1px solid transparent; border-radius:6px; padding:4px; transition:background 120ms ease-out,border-color 120ms ease-out; }
+.library-game.game-focused { background:#24344d; border-color:#78a9ff; }
+.library-game.game-focused .cover-title { color:#d0e2ff; }
+list row:focus,list row.game-focused { background:#24344d; border:2px solid #78a9ff; outline:0; }
 .cover-title { font-size:14px; font-weight:600; }
-entry,combobox button { background:@surface; color:@text; border:1px solid @line; border-radius:9px; padding:8px 12px; min-height:32px; }
+entry,combobox button { background:@surface; color:@text; border:0; border-bottom:1px solid #8d8d8d; border-radius:6px; padding:8px 12px; min-height:32px; }
 entry:focus { border-color:@accent; }
-.card,.selection-bar,.preset-detail { background:@surface; border:1px solid @line; border-radius:12px; padding:16px; }
+.card,.selection-bar,.preset-detail { background:@surface; border:0; border-radius:6px; padding:16px; }
 .settings-row { padding:14px 4px; border-bottom:1px solid @line; }
-.banner { background:#1d2f46; border:1px solid #365577; border-radius:9px; padding:9px 14px; }
-label.badge { background:@accent; color:#10233e; border-radius:10px; padding:2px 7px; font-size:12px; font-weight:700; }
+.banner { background:#262626; border:0; border-left:3px solid #4589ff; border-radius:6px; padding:9px 14px; }
+button.nav label.badge,button.nav.active label.badge { background:#0f62fe; color:#ffffff; border-radius:4px; padding:2px 6px; min-width:14px; min-height:16px; font-size:12px; font-weight:700; }
 list,viewport,scrolledwindow { background:transparent; }
-list row { padding:6px; border-radius:8px; border:1px solid transparent; }
+list row { padding:6px; border-radius:6px; border:1px solid transparent; }
 list row:hover { background:@surface; }
-list row:selected { background:#353047; border-color:#8275aa; }
-check { min-width:20px; min-height:20px; border:1px solid #70849e; border-radius:5px; background:@surface; }
+list row:selected { background:#24344d; border-color:#4589ff; }
+check { min-width:20px; min-height:20px; border:1px solid #70849e; border-radius:6px; background:@surface; }
 check:checked { background:@accent; color:#10233e; }
-switch { background:@line; border-radius:14px; }
+switch { background:@line; border-radius:6px; }
 switch:checked { background:@accent; }
 scrollbar { background:transparent; min-width:12px; min-height:12px; }
-scrollbar slider { background:#627692; border:3px solid @bg; border-radius:8px; }
+scrollbar slider { background:#6f6f6f; border:3px solid @bg; border-radius:6px; }
 scrollbar.vertical slider { min-width:7px; min-height:36px; }
 scrollbar.horizontal slider { min-width:36px; min-height:7px; }
 textview text { background:@bg; color:@text; }
-progressbar trough { background:@raised; min-height:5px; border-radius:3px; }
+progressbar trough { background:@raised; min-height:5px; border-radius:6px; }
 progressbar progress { background:@accent; }
-.toast { background:@raised; border:1px solid #6688b3; border-radius:10px; padding:12px 20px; }
-label.toast-text { color:@text; font-weight:600; }
+.toast { background:@raised; border:0; border-left:3px solid #4589ff; border-radius:6px; padding:12px 20px; }
+label.toast-text { color:@text; font-size:16px; font-weight:600; }
+.toast.error { border-left-color:#ff8389; }
 button,entry { transition:background 160ms ease-out,border-color 160ms ease-out,box-shadow 160ms ease-out; }
-.app-header { background:@bg; padding:0 6px; border-bottom:1px solid #282a32; }
-button.nav { border-radius:9px; padding:6px 12px; }
-button.nav.active { background:#292632; }
-button.nav.active label,button.nav.active image { color:#d6cbff; }
+.app-header { background:@bg; padding:0 6px; border-bottom:1px solid #393939; }
+button.nav { border-radius:6px; padding:6px 12px; }
+button.nav.active { background:#262626; border-bottom:2px solid #4589ff; border-radius:0; }
+button.nav.active label,button.nav.active image { color:#f4f4f4; }
 label.rating { color:#f1d18e; font-size:13px; }
 label.game-title { font-size:29px; font-weight:800; letter-spacing:-0.5px; }
 .compact label.game-title { font-size:20px; }
 label.section-title { font-size:19px; font-weight:700; }
 label.rail-heading { font-size:12px; color:@dim; font-weight:600; }
-label.platform-chip { font-size:11px; font-weight:700; color:#d0c4ff; background:#383145; border-radius:5px; padding:3px 9px; }
-button.hero-cover { padding:0; border-radius:9px; border:2px solid alpha(white,0.14); box-shadow:0 5px 15px alpha(black,0.3); }
-button.hero-cover:hover { border-color:@accent; box-shadow:0 4px 16px alpha(@accent,0.2); }
+label.platform-chip { font-size:11px; font-weight:700; color:#c6c6c6; background:#393939; border-radius:6px; padding:3px 9px; }
+button.hero-cover { padding:0; border-radius:6px; border:2px solid transparent; box-shadow:none; }
+button.hero-cover:hover { border-color:@accent; box-shadow:none; }
 button.action { min-height:28px; padding:8px 14px; }
 button.quiet,button.game-menu { background:transparent; border-color:transparent; }
 button.quiet:hover,button.game-menu:hover { background:@raised; border-color:@line; }
@@ -105,74 +106,74 @@ button.breadcrumb { padding:2px 4px; min-height:24px; }
 button.breadcrumb label { color:@dim; font-size:13px; }
 button.play { color:#10251c; background:#7de1b1; border-color:#7de1b1; }
 button.play label { color:#10251c; font-weight:800; }
-button.play:hover { background:#a4efcd; border-color:#c3ffe3; box-shadow:0 3px 15px alpha(#7de1b1,0.18); }
+button.play:hover { background:#a4efcd; border-color:#c3ffe3; box-shadow:none; }
 button.play:active { background:#5ccf98; }
-button.steam { color:white; background:#316de0; border-color:#568af2; }
+button.steam { color:white; background:#316de0; border-color:transparent; }
 button.steam label { color:white; }
 button.steam:hover { background:#4480f2; border-color:#83abff; }
-button.steam-outline { color:#9cc5ff; background:#1b2b42; border-color:#354f75; }
+button.steam-outline { color:#9cc5ff; background:#1b2b42; border-color:transparent; }
 button.steam-outline label { color:#b0d1ff; }
 button.steam-outline:hover { background:#243b5d; border-color:#729bd0; }
-button.violet { color:#211737; background:#b7a7ff; border-color:#b7a7ff; }
+button.violet { color:#211737; background:#78a9ff; border-color:transparent; }
 button.violet label { color:#211737; font-weight:700; }
-button.violet:hover { background:#d0c5ff; border-color:#e5ddff; box-shadow:0 2px 14px alpha(@accent,0.18); }
-button.violet-outline { color:#c4b5ff; background:#2a243b; border-color:#4d4269; }
+button.violet:hover { background:#d0c5ff; border-color:#e5ddff; box-shadow:none; }
+button.violet-outline { color:#c4b5ff; background:#2a243b; border-color:transparent; }
 button.violet-outline label { color:#d1c5ff; }
 button.violet-outline:hover { background:#39304c; border-color:#8b79b6; }
-button.amber { color:#ffd49e; background:#3b2e22; border-color:#68503a; }
+button.amber { color:#ffd49e; background:#3b2e22; border-color:transparent; }
 button.amber label { color:#ffd49e; }
 button.amber:hover { background:#4a3826; border-color:#ad8150; }
-button.cyan { color:#8dd9e6; background:#1c3036; border-color:#35555d; }
+button.cyan { color:#8dd9e6; background:#1c3036; border-color:transparent; }
 button.cyan label { color:#a0e0eb; }
 button.cyan:hover { background:#25414a; border-color:#609ba6; }
-button.profile-card { background:#1c1e26; border:1px solid #393c49; border-radius:14px; padding:15px; }
-button.profile-card:hover { background:#26252f; border-color:#8b80aa; box-shadow:0 3px 12px alpha(black,0.2); }
-button.profile-card.chosen { background:#2b263b; border-color:#b7a7ff; box-shadow:inset 0 0 0 1px alpha(@accent,0.3); }
-button.profile-card:active { background:#383047; }
+button.profile-card { background:#262626; border:1px solid transparent; border-radius:6px; padding:15px; }
+button.profile-card:hover { background:#333333; border-color:#4589ff; box-shadow:none; }
+button.profile-card.chosen { background:#24344d; border-color:#78a9ff; box-shadow:none; }
+button.profile-card:active { background:#334966; }
 button.profile-card label { font-weight:400; }
 button.profile-card label.profile-title { color:@text; font-size:17px; font-weight:700; }
-button.profile-card label.muted { color:#bdc0ce; font-size:13px; }
-button.profile-card label.meta { color:#a7acbc; font-size:11px; }
-button.profile-card label.profile-spec { color:#d5caff; font-size:12px; font-weight:600; }
-.violet-icon { color:#c9bbff; }
-.profile-feedback { padding:1px 2px; color:#c7bbeb; }
+button.profile-card label.muted { color:#c6c6c6; font-size:13px; }
+button.profile-card label.meta { color:#c6c6c6; font-size:11px; }
+button.profile-card label.profile-spec { color:#a6c8ff; font-size:12px; font-weight:600; }
+.violet-icon { color:#a6c8ff; }
+.profile-feedback { padding:1px 2px; color:#a6c8ff; }
 .profile-feedback label { font-size:13px; }
-.change-details { background:#191b22; border:1px solid #333642; border-radius:10px; }
+.change-details { background:#262626; border:1px solid transparent; border-radius:6px; }
 button.disclosure { padding:6px; min-height:32px; background:transparent; border-color:transparent; }
 button.disclosure label { color:#e0d8ff; font-weight:600; font-size:15px; }
 button.disclosure:hover { background:#26222f; }
-.apply-dock { background:#20212a; border:1px solid #3b3b49; border-radius:13px; padding:13px 16px; }
+.apply-dock { background:#262626; border:0; border-top:1px solid #525252; border-radius:6px; padding:13px 16px; }
 label.dock-title { font-weight:700; font-size:15px; }
 button.applied { background:#203d31; color:#a4e9c5; border-color:#365f4c; }
 button.applied label { color:#a4e9c5; }
 button.applied:disabled { opacity:1; }
-button.task { padding:14px 16px; border-radius:12px; }
+button.task { padding:14px 16px; border-radius:6px; }
 button.task label.task-title { color:@text; font-size:14px; font-weight:600; }
 button.task label.meta { color:@dim; font-size:12px; font-weight:400; }
-button.task.amber { background:#25201c; border-color:#4a3c30; }
+button.task.amber { background:#25201c; border-color:transparent; }
 button.task.amber:hover { background:#352a20; border-color:#94714a; }
-button.task.cyan { background:#1b2429; border-color:#31454d; }
+button.task.cyan { background:#1b2429; border-color:transparent; }
 button.task.cyan:hover { background:#22343c; border-color:#5a8896; }
-.surface-panel { padding:20px; background:@surface; border:1px solid @line; border-radius:14px; }
-popover { background:#20212a; color:@text; border:1px solid @line; border-radius:12px; }
+.surface-panel { padding:20px; background:@surface; border:0; border-radius:6px; }
+popover { background:#262626; color:@text; border:1px solid @line; border-radius:6px; }
 popover button { padding:8px; }
 menu { background:@surface; color:@text; border:1px solid @line; padding:4px; }
 menuitem { background:transparent; color:@text; padding:6px 10px; }
 menuitem:hover { background:@raised; }
 button.catalog-open { background:transparent; border:0; padding:0; box-shadow:none; }
-button.catalog-open:hover { background:#232530; }
+button.catalog-open:hover { background:#333333; }
 /* Logical focus stays visible on every control, including coloured actions. */
 .controller-focus, button.controller-focus, button.action.controller-focus,
 button.action.play.controller-focus, button.task.controller-focus,
 button.profile-card.controller-focus, button.poster.controller-focus,
 entry.controller-focus, switch.controller-focus, scale.controller-focus {
-  outline:3px solid #eee5ff; outline-offset:2px;
-  box-shadow:inset 0 0 0 2px #b7a7ff,0 0 0 2px #8d75ca;
+  outline:3px solid #ffffff; outline-offset:2px;
+  box-shadow:inset 0 0 0 1px #4589ff;
 }
-menuitem:selected, menuitem:selected label { background:#3b3151; color:#eee5ff; }
-label.control-glyph { background:#292b37; border:1px solid #66617a; border-radius:6px; padding:3px 7px; color:#eee5ff; font-size:12px; font-weight:700; }
+menuitem:selected, menuitem:selected label { background:#24344d; color:#ffffff; }
+label.control-glyph { background:#393939; border:1px solid #6f6f6f; border-radius:6px; padding:3px 7px; color:#ffffff; font-size:12px; font-weight:700; }
 label.control-stick { border-radius:14px; min-width:16px; padding:3px 5px; }
-label.control-caption { color:#c9c5d6; font-size:12px; }
+label.control-caption { color:#c6c6c6; font-size:12px; }
 '''
 
 TONES={'play':'play','danger':'danger','presets':'violet','steam':'steam','controls':'amber'}

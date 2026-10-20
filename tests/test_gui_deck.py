@@ -27,6 +27,51 @@ class DeckUITests(unittest.TestCase):
         self.settle()
         for p in reversed(self.patches):p.stop()
         self.temp.cleanup()
+    def test_update_count_stays_legible_in_active_and_inactive_tabs(self):
+        from gi.repository import Gtk
+        def luminance(color):
+            values=[v/12.92 if v<=.04045 else ((v+.055)/1.055)**2.4 for v in (color.red,color.green,color.blue)]
+            return .2126*values[0]+.7152*values[1]+.0722*values[2]
+        control=self.w.nav_buttons['Actualizaciones'];context=control.get_style_context()
+        with patch.object(self.w,'pending_updates',return_value=[{}]*12):self.w.refresh_update_badges()
+        for active in (False,True):
+            if active:context.add_class('active')
+            else:context.remove_class('active')
+            self.settle();badge=self.w.update_badge;style=badge.get_style_context();fg=style.get_color(Gtk.StateFlags.NORMAL);bg=style.get_background_color(Gtk.StateFlags.NORMAL)
+            bright,dark=sorted((luminance(fg),luminance(bg)),reverse=True)
+            self.assertGreaterEqual((bright+.05)/(dark+.05),4.5);self.assertGreater(bg.alpha,.99)
+            self.assertTrue(badge.get_mapped());self.assertEqual(badge.get_text(),'12');self.assertGreaterEqual(badge.get_allocated_width(),badge.get_layout().get_pixel_size().width)
+        with patch.object(self.w,'pending_updates',return_value=[]):self.w.refresh_update_badges()
+        self.assertFalse(self.w.update_badge.get_visible())
+
+    def test_search_opens_keyboard_only_after_an_explicit_action(self):
+        from gi.repository import Gtk
+        self.assertTrue(self.w.search.get_input_hints()&Gtk.InputHints.INHIBIT_OSK);self.assertIn('X: teclado',self.w.search.get_placeholder_text())
+        with patch('shutil.which',return_value='/usr/bin/steam'),patch('subprocess.Popen') as launch:
+            self.w.search.grab_focus();self.settle();launch.assert_not_called()
+            self.w.controller_action('search');launch.assert_called_once();self.assertIn('steam://open/keyboard',launch.call_args.args[0][1])
+            self.assertIs(self.w.get_focus(),self.w.search)
+            self.w.last_keyboard_request=0;self.w.search.emit('icon-press',Gtk.EntryIconPosition.PRIMARY,None);self.assertEqual(launch.call_count,2)
+
+    def test_touch_drag_fallback_scrolls_and_leaves_short_taps_unclaimed(self):
+        from gi.repository import Gtk
+        from unittest.mock import Mock
+        self.populate_games(40);scroll=self.w.library_stack.get_visible_child();adjustment=scroll.get_vadjustment();gesture=Mock()
+        self.assertTrue(scroll.get_kinetic_scrolling());self.assertEqual(scroll._deck_drag.get_propagation_phase(),Gtk.PropagationPhase.CAPTURE)
+        scroll._deck_drag_begin(gesture,50,200);scroll._deck_drag_update(gesture,2,-4);gesture.set_state.assert_not_called()
+        scroll._deck_drag_update(gesture,0,-120);self.assertGreaterEqual(adjustment.get_value(),100);gesture.set_state.assert_called_once_with(Gtk.EventSequenceState.CLAIMED)
+
+    def test_last_focused_cover_includes_its_caption_inside_the_viewport(self):
+        self.populate_games(45);target=self.w.entries[-1].id;self.w.focus_library(target);self.settle()
+        scroll=self.w.library_stack.get_visible_child();adjustment=scroll.get_vadjustment();visual=self.w.library_targets[target].library_focus_visual;point=visual.translate_coordinates(scroll.get_child().get_child(),0,0)
+        self.assertGreaterEqual(point[1],adjustment.get_value()-1);self.assertLessEqual(point[1]+visual.get_allocated_height(),adjustment.get_value()+adjustment.get_page_size()+1)
+
+    def test_completed_changes_show_a_readable_dismissible_notice(self):
+        windows=self.application_windows();self.w.set_status('Descargando port…');self.assertFalse(self.w.toast_widget.get_reveal_child())
+        self.w.set_status('Carátula guardada.');self.settle();notice=self.w.toast_widget
+        self.assertTrue(notice.get_reveal_child());self.assertEqual(notice.text.get_text(),'Carátula guardada.');self.assertEqual(self.application_windows(),windows)
+        notice.hide_text();self.assertFalse(notice.get_reveal_child())
+
     def test_pages_stay_inside_deck_window_and_list_has_thumbnail(self):
         for page in ('covers','list','platforms'):
             self.w.view=page;self.w.render();self.settle();self.assertLessEqual(self.w.get_size().width,1280);self.assertLessEqual(self.w.get_size().height,760)
@@ -221,7 +266,7 @@ class DeckUITests(unittest.TestCase):
         # A held button / Steam keyboard echo cannot trigger the newly focused Play button.
         with patch.object(self.w,'play',side_effect=AssertionError('Duplicate controller activation')):
             self.w.controller_action('activate')
-        self.w.last_controller_action=('',0);self.w.controller_action('back');self.assertEqual(self.w.pages.get_visible_child_name(),'library')
+        self.w.last_controller_action=('',0);self.w.controller_action('back');self.assertEqual(self.w.pages.get_visible_child_name(),'library',str((self.w.inline_workflows,self.w.game_tab,self.w.current_popover(self.w),Gtk.grab_get_current())))
 
     def test_update_progress_is_measured_and_inline(self):
         self.w.update_state={'catalog':[{'name':'Test port','repository':'example/test','installed':'v1','latest':'v2'}]}
@@ -309,6 +354,17 @@ class DeckUITests(unittest.TestCase):
         self.w.catalog_generation=1;path=pathlib.Path(self.temp.name)/'cover.png';pixbuf=GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB,False,8,60,90);pixbuf.fill(0xff0000ff);pixbuf.savev(str(path),'png',[],[])
         image=Gtk.Image();self.w.show_icon(image,str(path),1);self.assertEqual(image.get_storage_type(),Gtk.ImageType.PIXBUF);self.assertGreater(image.get_pixbuf().get_height(),0)
 
+    def test_community_profiles_are_visible_without_a_disclosure(self):
+        import time
+        from deck_library import presets
+        from gi.repository import Gtk
+        entry=self.w.entries[0];profile=presets.recommended(entry,self.store)[0];self.w.community_rating_cache={entry.id:(time.monotonic(),[{'id':'shared-1','preset':profile,'author':'Player','rating':4.5,'ratings':2}])}
+        self.w.select_game(entry);self.settle();panel=self.w.community_profile_box
+        self.assertTrue(panel.get_mapped());self.assertEqual(len(panel.get_children()),1);self.assertIsNone(panel.get_ancestor(Gtk.Revealer))
+        self.assertGreater(len(self.w.profile_cards),3)
+        self.assertIsNone(self.w.profile_cards[-1].get_ancestor(Gtk.Revealer))
+        self.w.resize(840,640);self.settle();self.assertLessEqual(self.w.get_size().width,840)
+
     def test_transfer_cancel_and_error_dismiss_are_inline(self):
         import threading
         key='test/game';self.w.update_state={'catalog':[{'name':'Game','repository':key,'installed':'v1','latest':'v2'}]};self.w.updates_page();event=threading.Event();self.w.port_jobs={key:event};self.w.start_transfer(key)
@@ -380,14 +436,14 @@ class DeckUITests(unittest.TestCase):
         self.assertGreater(y,y0);self.assertLess(abs(x-x0),3)
         last=self.w.entries[-1].id;self.w.focus_library(last);self.settle();scroll=self.w.library_stack.get_visible_child();adjustment=scroll.get_vadjustment()
         self.assertGreater(adjustment.get_value(),0)
-        point=self.w.library_targets[last].translate_coordinates(scroll.get_child(),0,0)
+        point=self.w.library_targets[last].translate_coordinates(scroll.get_child().get_child(),0,0)
         self.assertLessEqual(point[1]+self.w.library_targets[last].get_allocated_height(),adjustment.get_value()+adjustment.get_page_size()+1)
 
     def test_right_stick_scrolls_without_changing_focus(self):
         self.populate_games(30);first=self.w.get_focus();scroll=self.w.library_stack.get_visible_child();adjustment=scroll.get_vadjustment();before=adjustment.get_value()
         self.w.controller_action('scroll_down');self.settle();self.assertGreater(adjustment.get_value(),before);self.assertIs(self.w.get_focus(),first)
         for _ in range(7):self.w.last_controller_action=('',0);self.w.controller_action('scroll_down');self.settle()
-        focus=self.w.get_focus();point=focus.translate_coordinates(scroll.get_child(),0,0);self.assertGreater(point[1]+focus.get_allocated_height(),adjustment.get_value());self.assertLess(point[1],adjustment.get_value()+adjustment.get_page_size())
+        focus=self.w.get_focus();point=focus.translate_coordinates(scroll.get_child().get_child(),0,0);self.assertGreater(point[1]+focus.get_allocated_height(),adjustment.get_value());self.assertLess(point[1],adjustment.get_value()+adjustment.get_page_size())
 
     def test_controller_list_focus_is_visible_and_survives_filters(self):
         self.w.view='list';self.populate_games(10);first=self.w.entries[0].id

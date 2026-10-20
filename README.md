@@ -178,7 +178,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.18.1**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.18.2**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
@@ -237,3 +237,17 @@ The header includes **Añadir Deck Library a Steam**, using the existing pending
 Catalog cards open an internal detail page rather than starting installation. The page identifies the original game separately from the port, shows source descriptions, requirements and available release metadata, and exposes installation/update as explicit actions. Transfer controls remain outside the clickable card body.
 
 The [independent list](https://github.com/Sebastrion/awesome-unofficial-pc-ports) stores game identities in HTML summary headings. The parser now retains them and each project description, without leaking one heading into another. Exact identities can reuse artwork and console metadata from Quiver’s public games endpoint. Platform artwork lookup also supports GBA, Nintendo 64, Super Nintendo and Xbox. Tools and unknown games are not matched by project-name guesses. The catalog cache refreshes once after upgrading.
+
+### Charcoal styling and Deck interactions (0.18.2)
+
+Panels use neutral charcoal surfaces, softly rounded corners, fewer permanent borders and no decorative shadows. Primary action colors and explicit controller focus remain visible. The update badge has independent active/inactive tab styles and tested text contrast above 4.5:1.
+
+Search fields advertise X / Square for the keyboard. GTK text entries use INHIBIT_OSK; the Steam keyboard is requested explicitly through the same keyboard URI used by SDL, from X, the search icon or A on a text field. Physical text input remains available. [GTK input hints](https://docs.gtk.org/gtk3/flags.InputHints.html), [SDL keyboard implementation](https://github.com/libsdl-org/SDL/blob/SDL2/src/video/x11/SDL_x11keyboard.c).
+
+GTK kinetic touch scrolling is enabled, with a capture-phase drag fallback for touches exposed as mouse events by Steam. The fallback claims a gesture only after a movement threshold, so short taps remain available to buttons. Focus scrolling uses content coordinates and the full card bounds, including its caption, instead of the already-scrolled viewport coordinates.
+
+Completed changes and errors use a larger, dismissible eight-second notice inside the main window. Transient progress remains inline. Physical validation of SteamOS keyboard hints and touch translation is still required.
+
+Integrated profiles occupy the relevant Equilibrado/Rendimiento/Calidad slots and retain their original settings. WiiCompiled’s confirmed Quality profile remains the default selection; two lower-resolution variants are explicit untested proposals. Verification requires an exact match of the bundled game, adapter, settings and test metadata. An imported author's claim is shown separately and cannot inherit the integrated verification label.
+
+Community profiles have a dedicated, always-expanded preview with ratings and links to details/comments. Additional local and compatibility profiles are visible in a separate section. Profile changes remain close to the three primary cards. Community browsing stacks its panes on compact displays.

@@ -13,6 +13,21 @@ class InputMixin:
             GLib.idle_add(self.focus_library)
         except OSError as error:self.set_status('Mando: '+str(error))
 
+    def bind_search_keyboard(self,entry):
+        from .interactions import manual_text_input
+        manual_text_input(entry);entry.set_icon_from_icon_name(Gtk.EntryIconPosition.PRIMARY,'input-keyboard-symbolic');entry.set_icon_activatable(Gtk.EntryIconPosition.PRIMARY,True);entry.set_icon_tooltip_text(Gtk.EntryIconPosition.PRIMARY,'Abrir teclado · X / □');entry.connect('icon-press',lambda widget,position,event:self.open_keyboard(widget) if position==Gtk.EntryIconPosition.PRIMARY else None)
+
+    def open_keyboard(self,entry=None):
+        import subprocess,shutil,time
+        from .runtime import clean_environment
+        target=entry or self.get_focus()
+        if isinstance(target,Gtk.Entry):target.grab_focus()
+        if time.monotonic()-getattr(self,'last_keyboard_request',0)<.6:return
+        self.last_keyboard_request=time.monotonic()
+        if not shutil.which('steam'):self.toast('Steam no está disponible para abrir el teclado.');return
+        try:subprocess.Popen(['steam','steam://open/keyboard?XPosition=0&YPosition=0&Width=0&Height=0&Mode=0'],env=clean_environment(),start_new_session=True)
+        except OSError:self.toast('No se pudo abrir el teclado de Steam.')
+
     def mark_controller_focus(self,window,focus):
         previous=getattr(window,'_deck_focus_widget',None)
         if previous is not None and previous is not focus:previous.get_style_context().remove_class('controller-focus')
@@ -22,6 +37,7 @@ class InputMixin:
             if isinstance(focus,Gtk.ListBoxRow):
                 parent=focus.get_parent()
                 if isinstance(parent,Gtk.ListBox) and parent.get_selection_mode()!=Gtk.SelectionMode.NONE and parent.get_selected_row() is not focus:parent.select_row(focus)
+        if isinstance(focus,Gtk.Entry) and not focus.get_input_hints()&Gtk.InputHints.INHIBIT_OSK:focus.set_input_hints(focus.get_input_hints()|Gtk.InputHints.INHIBIT_OSK)
         self.update_controller_hints(window)
 
     def update_controller_hints(self,window):
@@ -36,6 +52,7 @@ class InputMixin:
         if window is self and focus is not None:
             if getattr(focus,'library_entry_id',None):activate='Abrir ficha'
             elif getattr(focus,'profile_id',None):activate='Ver perfil'
+            elif isinstance(focus,Gtk.Entry):activate='Abrir teclado'
             elif isinstance(focus,Gtk.MenuButton):activate='Abrir menú'
             elif isinstance(focus,(Gtk.CheckButton,Gtk.Switch)):activate='Cambiar'
             elif isinstance(focus,Gtk.Button):
@@ -80,9 +97,9 @@ class InputMixin:
 
     def current_popover(self,window):
         focus=window.get_focus();popover=focus.get_ancestor(Gtk.Popover) if focus else None
-        if popover and popover.get_mapped():return popover
+        if popover and popover.get_mapped() and self.control_is_shown(popover.get_relative_to()):return popover
         def find(widget):
-            if not widget.get_mapped():return None
+            if not widget.get_mapped() or not self.control_is_shown(widget):return None
             if isinstance(widget,Gtk.MenuButton):
                 value=widget.get_popover()
                 if value and value.get_mapped():return value
@@ -158,6 +175,7 @@ class InputMixin:
 
     def focus_library(self,identifier=None):
         if self.ui_closed or self.pages.get_visible_child_name()!='library':return False
+        self._scroll_focus_hold=(None,0)
         targets=getattr(self,'library_targets',{})
         target=targets.get(identifier or getattr(self,'library_focus_id',None)) or next(iter(targets.values()),None)
         if target:target.grab_focus();self.library_focus_changed(self,target);self.reveal_focus(target)
@@ -181,35 +199,56 @@ class InputMixin:
         return True
 
     def reveal_focus(self,focus):
-        scroll=focus.get_ancestor(Gtk.ScrolledWindow)
-        if not scroll:return
-        point=focus.translate_coordinates(scroll.get_child(),0,0)
-        if not point:return
-        for axis,size,adjustment in ((0,focus.get_allocated_width(),scroll.get_hadjustment()),(1,focus.get_allocated_height(),scroll.get_vadjustment())):
-            start=point[axis];value=adjustment.get_value();page=adjustment.get_page_size();padding=10
-            if start-padding<value:value=start-padding
-            elif start+size+padding>value+page:value=start+size+padding-page
-            adjustment.set_value(max(adjustment.get_lower(),min(value,adjustment.get_upper()-page)))
+        import time
+        held,until=getattr(self,'_scroll_focus_hold',(None,0))
+        if focus is held and time.monotonic()<until:return
+        self.reveal_bounds(focus)
+        self._pending_reveal=focus
+        if getattr(self,'_reveal_scheduled',False):return
+        self._reveal_scheduled=True
+        def after_layout():
+            self._reveal_scheduled=False
+            if not self.ui_closed and self.get_focus() is self._pending_reveal:self.reveal_bounds(self._pending_reveal)
+            return False
+        GLib.idle_add(after_layout)
+
+    def reveal_bounds(self,focus):
+        if focus is None or not focus.get_mapped():return
+        visual=getattr(focus,'library_focus_visual',focus);scroll=focus.get_ancestor(Gtk.ScrolledWindow)
+        while scroll:
+            child=scroll.get_child();content=child.get_child() if isinstance(child,Gtk.Viewport) else child
+            point=visual.translate_coordinates(content,0,0) if content else None
+            if point:
+                for axis,size,adjustment in ((0,visual.get_allocated_width(),scroll.get_hadjustment()),(1,visual.get_allocated_height(),scroll.get_vadjustment())):
+                    start=point[axis];value=adjustment.get_value();page=adjustment.get_page_size();padding=12
+                    if start-padding<value:value=start-padding
+                    elif start+size+padding>value+page:value=start+size+padding-page
+                    adjustment.set_value(max(adjustment.get_lower(),min(value,adjustment.get_upper()-page)))
+            parent=scroll.get_parent();scroll=parent.get_ancestor(Gtk.ScrolledWindow) if parent else None
 
     def keep_scroll_focus(self,scroll,focus,vertical):
         # Native text/tree views scroll their contents inside a fixed widget.
         child=scroll.get_child()
         if focus is None or not isinstance(child,Gtk.Viewport):return
-        point=focus.translate_coordinates(child,0,0)
+        content=child.get_child();visual=getattr(focus,'library_focus_visual',focus)
+        point=visual.translate_coordinates(content,0,0)
         if not point:return
         axis=1 if vertical else 0;adjustment=scroll.get_vadjustment() if vertical else scroll.get_hadjustment();value=adjustment.get_value();page=adjustment.get_page_size()
-        size=focus.get_allocated_height() if vertical else focus.get_allocated_width()
+        size=visual.get_allocated_height() if vertical else visual.get_allocated_width()
         if point[axis]+size>value and point[axis]<value+page:return
         candidates=[]
         for index,widget in enumerate(self.control_targets(scroll)):
-            pos=widget.translate_coordinates(child,0,0)
-            length=widget.get_allocated_height() if vertical else widget.get_allocated_width()
-            if pos and value<=pos[axis] and pos[axis]+length<=value+page:
-                candidates.append((abs(pos[1-axis]-point[1-axis]),pos[axis],index,widget))
+            view=getattr(widget,'library_focus_visual',widget);pos=view.translate_coordinates(content,0,0)
+            length=view.get_allocated_height() if vertical else view.get_allocated_width()
+            if pos and pos[axis]+length>value and pos[axis]<value+page:
+                full=value<=pos[axis] and pos[axis]+length<=value+page
+                candidates.append((not full,abs(pos[1-axis]-point[1-axis]),abs(pos[axis]-value),index,widget))
         if candidates:
-            target=min(candidates,key=lambda row:row[:3])[3];target.grab_focus();self.mark_controller_focus(target.get_toplevel(),target)
+            target=min(candidates,key=lambda row:row[:4])[4];target.grab_focus();self.mark_controller_focus(target.get_toplevel(),target)
 
     def scroll_controller(self,action,window):
+        import time
+        self._pending_reveal=None;self._scroll_focus_hold=(window.get_focus(),time.monotonic()+.4)
         focus=window.get_focus();scroll=focus.get_ancestor(Gtk.ScrolledWindow) if focus else None
         if not scroll:
             def find(widget):
@@ -228,7 +267,7 @@ class InputMixin:
                 adjustment.set_value(max(lower,min(upper,adjustment.get_value()+sign*min(96,max(32,adjustment.get_page_size()*.16)))))
                 self.keep_scroll_focus(scroll,focus,vertical)
                 return True
-            scroll=scroll.get_ancestor(Gtk.ScrolledWindow)
+            parent=scroll.get_parent();scroll=parent.get_ancestor(Gtk.ScrolledWindow) if parent else None
         return True
 
     def controller_action(self,action,window=None):
@@ -244,14 +283,21 @@ class InputMixin:
         handler=getattr(workflow or window,'account_controller',None)
         if handler and handler(action):return True
         grab=Gtk.grab_get_current()
-        if isinstance(grab,Gtk.MenuShell):
+        if isinstance(grab,Gtk.Menu):
+            anchor=grab.get_attach_widget()
+            if anchor is not None and not self.control_is_shown(anchor):grab.cancel();grab=None
+        if isinstance(grab,Gtk.MenuShell) and grab.get_mapped():
             if action=='back':grab.cancel();return True
             items=[c for c in grab.get_children() if c.get_sensitive() and c.get_visible()]
             current=grab.get_selected_item()
             if action=='activate' and current:grab.activate_item(current,True);return True
             if action in ('up','down') and items:
                 index=items.index(current) if current in items else -1;grab.select_item(items[(index+(1 if action=='down' else -1))%len(items)]);return True
-        if workflow and action in ('previous_tab','next_tab','search'):return True
+        if workflow and action=='search':
+            focus=self.get_focus();entries=[w for w in self.control_targets(workflow) if isinstance(w,Gtk.Entry)]
+            if entries or isinstance(focus,Gtk.Socket):self.open_keyboard(focus if isinstance(focus,(Gtk.Entry,Gtk.Socket)) else entries[0])
+            return True
+        if workflow and action in ('previous_tab','next_tab'):return True
         if action in ('previous_tab','next_tab') and window is self:
             names=list(self.nav_buttons);active={'library':0,'detail':0,'catalog':1,'updates':2,'settings':3}.get(self.pages.get_visible_child_name(),0);self.nav_buttons[names[(active+(-1 if action=='previous_tab' else 1))%len(names)]].clicked();return True
         if action=='back':
@@ -273,12 +319,13 @@ class InputMixin:
         if action.startswith('scroll_'):return self.scroll_controller(action,window)
         if action=='search' and window is self:
             entry=self.catalog_search if self.pages.get_visible_child_name()=='catalog' and hasattr(self,'catalog_search') else self.search
-            entry.grab_focus();return True
+            self.open_keyboard(entry);return True
         if not workflow and window is self and self.move_library_focus(action):return True
         focus=window.get_focus()
         if action=='activate':
             if not self.control_is_shown(focus):self.ensure_controller_focus(window);return True
-            if isinstance(focus,Gtk.ComboBox):focus.popup()
+            if isinstance(focus,Gtk.Entry):self.open_keyboard(focus)
+            elif isinstance(focus,Gtk.ComboBox):focus.popup()
             elif isinstance(focus,Gtk.Switch):focus.set_active(not focus.get_active())
             elif isinstance(focus,Gtk.Button):focus.clicked()
             elif isinstance(focus,Gtk.ListBoxRow):focus.activate()

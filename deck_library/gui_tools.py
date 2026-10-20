@@ -144,7 +144,7 @@ class ToolsMixin:
         self.fit_dialog(dialog);dialog.show_all()
         if dialog.run()==Gtk.ResponseType.OK:
             for key,buffer in buffers.items():self.preferences[key]=list(dict.fromkeys(str(pathlib.Path(p.strip()).expanduser()) for p in buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),True).splitlines() if p.strip()))
-            self.preferences['emulators']=emulator_commands;self.preferences['eden_config']=config.get_text().strip();save_settings(self.preferences,self.store);self.discover()
+            self.preferences['emulators']=emulator_commands;self.preferences['eden_config']=config.get_text().strip();save_settings(self.preferences,self.store);self.toast('Carpetas y rutas guardadas');self.discover()
         dialog.destroy()
     def content_dialog(self,e):
         from .gui import label,button,wrap_row
@@ -257,7 +257,7 @@ class ToolsMixin:
         if busy[0]:cancel.set()
         dialog.destroy()
     def finish_wii_setup(self,status):
-        self.preferences=settings(self.store);self.entries=self.store.load();self.refresh_platforms();self.render();status.set_text('Listo. Mario Kart Wii ya está en la biblioteca y puede agregarse a Steam.');return False
+        self.preferences=settings(self.store);self.entries=self.store.load();self.refresh_platforms();self.render();status.set_text('Listo. Mario Kart Wii ya está en la biblioteca y puede agregarse a Steam.');self.toast('Mario Kart Wii preparado');return False
 
     def project2099_dialog(self):
         from .gui import label,button,wrap_row

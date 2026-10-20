@@ -14,7 +14,7 @@ class InlineDialog(Gtk.Box):
         self.set_border_width(20);self.set_hexpand(True);self.set_vexpand(True)
         heading=Gtk.Label(label=title,xalign=0);heading.set_line_wrap(True);heading.get_style_context().add_class('hero');self.pack_start(heading,False,False,0)
         self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
-        self.scroll=Gtk.ScrolledWindow();self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC);self.scroll.set_overlay_scrolling(False);self.scroll.set_vexpand(True);self.scroll.add(self.content);self.pack_start(self.scroll,True,True,0)
+        self.scroll=self.owner.new_scroll();self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC);self.scroll.set_overlay_scrolling(False);self.scroll.set_vexpand(True);self.scroll.add(self.content);self.pack_start(self.scroll,True,True,0)
         self.actions=Gtk.ButtonBox(orientation=Gtk.Orientation.HORIZONTAL);self.actions.set_layout(Gtk.ButtonBoxStyle.END);self.actions.set_spacing(10);self.pack_end(self.actions,False,False,0)
         self.connect('destroy',self._destroyed)
 
@@ -46,6 +46,8 @@ class InlineDialog(Gtk.Box):
         self._mounted=True;owner=self.owner;self._previous_focus=owner.get_focus();self._previous=owner.workflow_stack.get_visible_child()
         owner.inline_workflows.append(self);owner.workflow_stack.add(self);owner.workflow_stack.show();owner.workflow_stack.set_visible_child(self)
         for control in owner.navigation_controls:control.set_sensitive(False)
+        from .interactions import manual_text_input
+        manual_text_input(self)
         Gtk.Box.show_all(self);owner.workflow_stack.set_visible_child(self)
         GLib.idle_add(self._focus_first)
     def _focus_first(self):
@@ -91,7 +93,7 @@ class InlineFileChooser(InlineDialog):
         self.content.pack_start(bar,False,False,0)
         self.status=Gtk.Label(xalign=0);self.status.set_line_wrap(True);self.content.pack_start(self.status,False,False,0)
         self.files=Gtk.ListBox();self.files.set_selection_mode(Gtk.SelectionMode.SINGLE);self.files.connect('row-selected',self.select);self.files.connect('row-activated',self.open_row)
-        scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);scroll.set_min_content_height(140);scroll.set_vexpand(True);scroll.add(self.files);self.content.pack_start(scroll,True,True,0)
+        scroll=self.owner.new_scroll();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);scroll.set_min_content_height(140);scroll.set_vexpand(True);scroll.add(self.files);self.content.pack_start(scroll,True,True,0)
         self.filename=Gtk.Entry();self.filename.set_placeholder_text('Nombre del archivo');self.filename.set_no_show_all(action!=Gtk.FileChooserAction.SAVE);self.filename.set_visible(action==Gtk.FileChooserAction.SAVE);self.content.pack_start(self.filename,False,False,0)
         self.load(self.folder)
     def load(self,folder):
