@@ -1,4 +1,4 @@
-"""Project-2099 preparation using the pinned official installer, under Proton."""
+"""Project-2099 discovery, current official installation and Proton launch."""
 import hashlib,json,os,pathlib,shutil,subprocess,sys,tempfile,urllib.request,zipfile
 from .models import Entry,Store
 from .runtime import clean_environment
@@ -71,8 +71,28 @@ def proton_env(store=None,preferred=None):
     env['STEAM_COMPAT_CLIENT_INSTALL_PATH']=str(pathlib.Path.home()/'.local/share/Steam')
     env['WINEDEBUG']='-all';return env
 
+def installer_environment(store):
+    """The installer uses current CLR support, independently of the game's Proton."""
+    proton=None
+    for name in ('Proton 11.0','Proton - Experimental','Proton 10.0'):
+        try:proton=proton_path(preferred=name);break
+        except ValueError:pass
+    if proton is None:raise ValueError('El instalador necesita Proton 11.0, 10.0 o Experimental. Instalalo desde Steam → Biblioteca → Herramientas; el Proton elegido para jugar se conserva.')
+    env=proton_env(store)
+    prefix=store.root/'runtimes/project2099-installer'
+    prefix.mkdir(parents=True,exist_ok=True);env['STEAM_COMPAT_DATA_PATH']=str(prefix)
+    return proton,env
+
+def installation_files(folder):
+    folder=pathlib.Path(folder)
+    if all((folder/n).is_file() for n in ('Project 2099.exe','Engine/Project2099.exe','Engine/rexruntime.dll')):
+        return folder/'Project 2099.exe','reeot'
+    if all((folder/n).is_file() for n in ('SpiderManEOT.exe','rexruntime.dll')):
+        return folder/'SpiderManEOT.exe','legacy'
+    return None,''
+
 def entry_for(folder,build=None):
-    folder=pathlib.Path(folder);exe=folder/'SpiderManEOT.exe'
+    folder=pathlib.Path(folder);exe,engine=installation_files(folder);exe=exe or folder/'SpiderManEOT.exe'
     if build is None:
         try:build=json.loads((folder/'deck-library-project2099.json').read_text())['version']
         except (OSError,ValueError,KeyError):pass
@@ -81,64 +101,31 @@ def entry_for(folder,build=None):
             receipt=json.loads((folder/'Support/Install/INSTALL_RECEIPT.json').read_text())
             build=VERSION if 'BETA 4.1' in receipt.get('PortBuild','') else 'unknown'
         except (OSError,ValueError):build='unknown'
-    return Entry('Spider-Man: Edge of Time',[sys.executable,'-m','deck_library.project2099','run',str(exe)],'port','Windows',str(exe),str(pathlib.Path(__file__).resolve().parent.parent),game_id='415608B2',metadata={'adapter':'project2099','build':build,'manual_command':True})
+    # Keep the launch target stable across the engine migration, including existing Steam shortcuts.
+    return Entry('Spider-Man: Edge of Time',[sys.executable,'-m','deck_library.project2099','run',str(folder/'SpiderManEOT.exe')],'port','Windows',str(exe),str(pathlib.Path(__file__).resolve().parent.parent),game_id='415608B2',metadata={'adapter':'project2099','engine':engine,'build':build,'manual_command':True})
 
 def discover(home,preferences):
     roots=[pathlib.Path(home)/'ports',*map(pathlib.Path,preferences.get('port_roots',[]))];result=[]
     for root in dict.fromkeys(roots):
         if root.is_dir():
             for folder in root.iterdir():
-                if folder.is_dir() and all((folder/n).is_file() for n in ('SpiderManEOT.exe','rexruntime.dll')) and ((folder/'spider_man_edge_of_time.toml').is_file() or (folder/'deck-library-project2099.json').is_file()):
+                if not folder.name.startswith('.') and folder.is_dir() and installation_files(folder)[0] and ((folder/'spider_man_edge_of_time.toml').is_file() or (folder/'deck-library-project2099.json').is_file()):
                     result.append(entry_for(folder))
     return result
 
-def prepare(source,destination,store=None,progress=print):
-    store=store or Store();source=pathlib.Path(source).resolve();destination=pathlib.Path(destination).expanduser().resolve()
-    iso_size=validate_source(source) # No downloads or writes for a PS3 source.
-    proton=proton_path()
-    if destination==destination.parent or destination.is_symlink() or (destination.exists() and any(destination.iterdir())):
-        raise ValueError('La carpeta de destino debe estar vacía.')
+def prepare(source,destination,store=None,progress=print,cancel=None):
+    from . import project2099_update,ports
+    store=store or Store();source=pathlib.Path(source).resolve();destination=pathlib.Path(destination).expanduser()
+    if destination.is_symlink():raise ValueError('La carpeta de destino es un enlace simbólico.')
+    destination=destination.resolve()
+    if source.is_dir():
+        if not all((source/n).is_file() for n in ('Default.xex','Data/Main.pkz','Data/BaseGameplay.pkz')):raise ValueError('Faltan los datos originales de Xbox 360.')
+    else:validate_source(source)
+    if destination==destination.parent or (destination.exists() and any(destination.iterdir())):raise ValueError('La carpeta de destino debe estar vacía.')
     destination.parent.mkdir(parents=True,exist_ok=True)
-    if shutil.disk_usage(destination.parent).free<iso_size+18*1024**3:
-        raise ValueError('Se necesitan 18 GB libres, más el tamaño de la ISO si está dentro de un ZIP o 7z.')
-    cache=store.root/'downloads/project2099';cache.mkdir(parents=True,exist_ok=True)
-    for name,digest in ASSETS.items():
-        p=cache/name
-        if not p.exists() or hashlib.file_digest(p.open('rb'),'sha256').hexdigest()!=digest:
-            progress('Descargando '+name)
-            temporary=p.with_suffix(p.suffix+'.part')
-            urllib.request.urlretrieve('https://github.com/GenryTheFox0/Project-2099/releases/download/v'+VERSION+'/'+name,temporary)
-            if hashlib.file_digest(temporary.open('rb'),'sha256').hexdigest()!=digest:raise ValueError('SHA-256 incorrecto: '+name)
-            temporary.replace(p)
-    with tempfile.TemporaryDirectory(prefix='project2099-',dir=destination.parent) as tmp:
-        tmp=pathlib.Path(tmp);image=source
-        if iso_size:
-            progress('Extrayendo ISO')
-            image=tmp/'source.iso'
-            if source.suffix.lower()=='.7z':
-                tool,name,size=sevenzip_image(source)
-                with image.open('wb') as out:
-                    result=subprocess.run([tool,'e','-so',str(source),name],stdout=out,stderr=subprocess.PIPE)
-                if result.returncode or image.stat().st_size!=size:raise ValueError('Error de integridad al extraer la ISO del 7z.')
-            else:
-                with zipfile.ZipFile(source) as z, z.open(next(i for i in z.infolist() if i.filename.lower().endswith('.iso'))) as inp,image.open('wb') as out:shutil.copyfileobj(inp,out,1024*1024)
-            with image.open('rb') as inp:check_image(inp)
-        progress('Verificando componentes')
-        with zipfile.ZipFile(cache/('EOT-PC-Payload-v'+VERSION+'.zip')) as z:
-            for i in z.infolist():
-                if not (tmp/i.filename).resolve().is_relative_to(tmp):raise ValueError('Ruta insegura en payload.')
-            z.extractall(tmp)
-        win=lambda p:'Z:'+str(p).replace('/','\\')
-        command=[str(proton),'run',str(cache/('EOTInstaller-v'+VERSION+'.exe')),'--install-test',win(image),win(destination),win(tmp/'payload'),'5']
-        progress('Instalando y verificando archivos del juego')
-        log=cache/'install.log'
-        with log.open('w') as out:result=subprocess.run(command,env=proton_env(store),stdout=out,stderr=subprocess.STDOUT)
-        if result.returncode or not (destination/'SpiderManEOT.exe').is_file():
-            raise RuntimeError('El instalador rechazó el origen o no terminó. Registro: '+str(log)+'\n'+log.read_text(errors='replace')[-2500:])
-    entry=entry_for(destination,VERSION);entry.metadata['original_source']=str(source)
-    from . import presets
-    profile=next(p for p in presets.catalog(store) if p['id']=='project2099-deck-720p60')
-    presets.apply(entry,profile,store);store.merge([entry]);progress('Instalación completa');return entry
+    entry=entry_for(destination, 'unknown');entry.metadata['original_source']=str(source)
+    project2099_update.update(entry,source,ports.release_for('GenryTheFox0/Project-2099'),store,progress,cancel,fresh=True)
+    progress('Instalación completa');return entry
 
 def main():
     import argparse
@@ -146,11 +133,15 @@ def main():
     parser.add_argument('action',choices=['run']);parser.add_argument('executable');parser.add_argument('--proton',choices=['Proton 11.0','Proton - Experimental','Proton 10.0','Proton 9.0 (Beta)','Proton 8.0']);parser.add_argument('--single-queue',action='store_true')
     args=parser.parse_args()
     exe=pathlib.Path(args.executable).resolve()
+    actual,engine=installation_files(exe.parent)
+    if actual:exe=actual
     if not exe.is_file():raise ValueError('No se encuentra el juego instalado.')
-    env=proton_env(preferred=args.proton)
+    # Beta 5's .NET launcher needs newer Mono too; legacy gameplay keeps its tested runtime.
+    preferred=None if engine=='reeot' else args.proton
+    env=proton_env(preferred=preferred)
     if args.single_queue:
         options=[v for v in env.get('VKD3D_CONFIG','').replace(';',',').split(',') if v]
         env['VKD3D_CONFIG']=','.join(dict.fromkeys(options+['single_queue']))
-    return subprocess.call([str(proton_path(preferred=args.proton)),'run',str(exe)],cwd=exe.parent,env=env)
+    return subprocess.call([str(proton_path(preferred=preferred)),'run',str(exe)],cwd=exe.parent,env=env)
 
 if __name__=='__main__':sys.exit(main())

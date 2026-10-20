@@ -140,6 +140,7 @@ class CatalogMixin:
             threading.Thread(target=work,daemon=True).start()
         retry=button('Reintentar imagen',lambda _:artwork(True));box.pack_start(retry,False,False,0)
         checks=label('Comprobando requisitos…','status');box.pack_start(checks,False,False,0)
+        package=label('Comprobando el paquete de instalación…','meta');box.pack_start(package,False,False,0)
         games=[(e.name,e.source) for e in self.entries if e.source]
         def requirements():
             try:lines=ports.requirements(item,games)
@@ -149,6 +150,20 @@ class CatalogMixin:
                 return False
             GLib.idle_add(show)
         threading.Thread(target=requirements,daemon=True).start()
+        def package_info():
+            from . import port_packages
+            try:
+                if item['repository']=='GenryTheFox0/Project-2099':info='Instalador integrado · Xbox 360 → Project 2099 · respaldo completo al actualizar.'
+                elif item.get('web'):info='Instalador integrado · '+item['web']['kind']
+                else:
+                    release=ports.release_for(item['repository']);plan=port_packages.select(release.get('assets',[]));info=port_packages.summary(plan)
+                    if plan:info+='\n'+plan['asset']['name']+' · '+release.get('tag_name','')
+            except Exception:info='No se pudo comprobar el paquete. Se volverá a consultar al instalar.'
+            def show():
+                if not page._closed:package.set_text(info)
+                return False
+            GLib.idle_add(show)
+        threading.Thread(target=package_info,daemon=True).start()
         repository=label(item['repository'],'muted');repository.set_selectable(True);box.pack_start(repository,False,False,0)
         if ports.valid_repository(item['repository']) and not item.get('web'):
             box.pack_start(button('Abrir proyecto en GitHub',lambda _:subprocess.Popen(['xdg-open','https://github.com/'+item['repository']],start_new_session=True)),False,False,0)
@@ -216,7 +231,7 @@ class CatalogMixin:
         from .gui import label
         dialog=InlineDialog(title='Agregar repositorio',transient_for=self,modal=True);dialog.set_default_size(640,360);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL);save=dialog.add_button('Agregar',Gtk.ResponseType.OK);save.get_style_context().add_class('primary')
         box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(10)
-        box.pack_start(label('Cualquier proyecto de GitHub con releases para Linux: dirección completa o «usuario/repositorio».','muted'),False,False,0)
+        box.pack_start(label('Proyectos de GitHub con paquetes para Linux o Windows portable: dirección completa o «usuario/repositorio».','muted'),False,False,0)
         repo=Gtk.Entry();repo.set_placeholder_text('https://github.com/usuario/proyecto');box.pack_start(repo,False,False,0)
         name=Gtk.Entry();name.set_placeholder_text('Nombre (opcional)');box.pack_start(name,False,False,0)
         category=Gtk.ComboBoxText.new_with_entry()
@@ -230,10 +245,11 @@ class CatalogMixin:
             status.set_text('Consultando GitHub…')
             while Gtk.events_pending():Gtk.main_iteration()
             try:
-                release=ports.release_for(parsed);asset=ports.pick_asset(release.get('assets',[]))
+                from .port_packages import select
+                release=ports.release_for(parsed);asset=select(release.get('assets',[]))
             except Exception as error:
                 status.set_text('No se pudo consultar el repositorio: '+str(error));continue
-            if asset is None and not self.confirm('Sin archivo para Linux','La última versión de '+parsed+' no incluye un archivo para Linux x86_64 reconocible. Se puede agregar igual, pero no se podrá instalar desde aquí hasta que lo publique.','Agregar igual'):continue
+            if asset is None and not self.confirm('Sin paquete compatible','La última versión de '+parsed+' no incluye un paquete de Linux x86_64 ni Windows portable reconocible. Se puede agregar al catálogo, pero necesita una integración específica para instalarlo.','Agregar igual'):continue
             item={'repository':parsed,'name':name.get_text().strip() or parsed.split('/')[1],'category':(category.get_active_text() or '').strip(),'note':note.get_text().strip()}
             clean=ports.clean(item,'','Agregado')
             custom=[c for c in self.preferences.get('custom_ports',[]) if str(c.get('repository','')).lower()!=parsed.lower()]
@@ -259,6 +275,10 @@ class CatalogMixin:
     def install_port(self,item,replace):
         from . import buildenv
         if getattr(self,'port_busy',False):self.set_status('Ya hay una instalación en curso.');return
+        if item['repository']=='GenryTheFox0/Project-2099':
+            if any(e.metadata.get('adapter')=='project2099' for e in self.entries):self.update_project2099()
+            else:self.project2099_dialog()
+            return
         existing=self.catalog_installation(item)
         if existing and existing.get('external') and not replace and not self.confirm('Ya hay un port instalado',existing['entry'].name+' ya está en tu biblioteca. ¿Instalar también '+item['name']+' como alternativa?','Instalar alternativa'):return
         needs_sdk=item.get('kit') and not buildenv.installed()

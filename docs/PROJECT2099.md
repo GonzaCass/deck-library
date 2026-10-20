@@ -2,11 +2,11 @@
 
 **Agregar juegos → Preparar Project-2099** instala Spider-Man: Edge of Time desde una ISO propia de Xbox 360, o un ZIP/7z con una sola ISO. No acepta la versión PS3. La comprobación de cabecera detecta ese caso antes de descargar componentes; el instalador oficial comprueba además la revisión, tamaños y hashes de los archivos del juego.
 
-Instalá Proton 11.0 desde las Herramientas de Steam. Elegí el archivo y una carpeta de destino vacía. El asistente exige 18 GB libres para los datos temporales, más el tamaño descomprimido de la ISO cuando se selecciona ZIP/7z. Los 7z requieren `7z` o `7zz`. Deck Library descarga el instalador y payload oficiales **v2.0.0-beta.4.1**, verifica SHA-256, los ejecuta mediante Proton en un entorno propio y selecciona español. No cambia la ISO original ni instala sobre una carpeta ocupada. Los registros quedan en la carpeta privada de Deck Library, dentro de `downloads/project2099/install.log`.
+Instalá Proton 11.0 desde las Herramientas de Steam. Elegí el archivo y una carpeta de destino vacía. El asistente exige 18 GB libres para los datos temporales, más el tamaño descomprimido de la ISO cuando se selecciona ZIP/7z. Los 7z requieren `7z` o `7zz`. Deck Library consulta la última release y descarga el instalador y payload oficiales, verifica SHA-256, los ejecuta mediante Proton en un entorno de instalación propio y selecciona español. No cambia la ISO original ni instala sobre una carpeta ocupada. Los registros quedan en la carpeta privada de Deck Library, dentro de `downloads/project2099/<versión>/update.log`.
 
-Al terminar, el juego aparece en la biblioteca. Usá **Agregar a Steam** desde su ficha; con Steam abierto, el guardado queda pendiente hasta cerrarlo. El acceso ejecuta el juego directamente, sin volver a mostrar el launcher de Windows. Los ports ya preparados se detectan en `~/ports` y las carpetas de ports configuradas cuando contienen `SpiderManEOT.exe`, `rexruntime.dll` y su TOML.
+Al terminar, el juego aparece en la biblioteca. Usá **Agregar a Steam** desde su ficha; con Steam abierto, el guardado queda pendiente hasta cerrarlo. El acceso ejecuta el juego directamente, sin volver a mostrar el launcher de Windows. Los ports ya preparados se detectan en `~/ports` y las carpetas de ports configuradas. Se reconoce tanto la estructura de Beta 4.1 como la de Beta 5.
 
-## Perfil inicial
+## Perfil de Beta 4.1
 
 El preset **Project 2099 — Steam Deck 720p / 60 FPS** usa salida 1280×720, renderizado interno 1×, DirectX 12 mediante VKD3D, objetivo/límite de 60 FPS, anisotropía 8×, caché y compilación asíncrona originales, mando XInput y modo teclado/ratón desactivado. Conserva Native AA del paquete oficial; no instala DLSS, ReShade ni generación de cuadros. Resolución interna superior a nativa y Vulkan no son rutas recomendadas por el proyecto en esta beta.
 
@@ -56,6 +56,14 @@ Steam en modo Juego había elegido controller_neptune_webbrowser.vdf y registrab
 
 ## Actualización desde Deck Library (0.15)
 
-El botón Actualizar verifica los assets oficiales de la versión, conserva la instalación anterior hasta que termine la nueva y guarda un respaldo completo antes de reemplazarla. Requiere la copia propia de Xbox 360; se busca en las rutas conocidas y, si falta, se puede elegir. Se conservan las partidas en UserData. Beta 5 cambia de motor y sus mods y opciones gráficas pueden ser incompatibles con Beta 4.1: los archivos anteriores se conservan en el respaldo, no se mezclan con el motor nuevo. Los argumentos del acceso de Steam y el Proton elegido siguen vigentes. El juego no se abre al terminar.
+El botón Actualizar verifica los assets oficiales de la versión, conserva la instalación anterior hasta que termine la nueva y guarda un respaldo completo antes de reemplazarla. Requiere la copia propia de Xbox 360; se busca en las rutas conocidas y, si falta, se puede elegir. Se conservan las partidas en UserData. Beta 5 cambia de motor y sus mods y opciones gráficas pueden ser incompatibles con Beta 4.1: los archivos anteriores se conservan en el respaldo, no se mezclan con el motor nuevo. Se conserva el identificador del acceso de Steam; la migración a Beta 5 requiere Proton actual para su lanzador .NET. El juego no se abre al terminar.
 
 Referencia: [release Beta 5](https://github.com/GenryTheFox0/Project-2099/releases/tag/v2.0.0-beta.5), [instalador oficial](https://github.com/GenryTheFox0/Project-2099/blob/v2.0.0-beta.5/src/Program.cs). La prueba de juego de Beta 5 en Steam Deck está pendiente.
+
+## Beta 5 y bloqueo del instalador (0.19)
+
+La instalación inicial consulta ahora la última release oficial y comparte el mismo proceso verificado que las actualizaciones. Beta 5 se reconoce por `Project 2099.exe` y `Engine/Project2099.exe`, junto con la DLL del runtime. El comando de Deck Library sigue resolviendo el juego desde la biblioteca para mantener el acceso de Steam existente.
+
+El instalador corre con Proton 11, Experimental o 10 en un entorno `project2099-installer` independiente. Usar el Proton 9 de Beta 4.1 provocó un bloqueo real del instalador Beta 5. El mensaje `wine: using kernel write watches` es diagnóstico; el progreso muestra las escrituras reales del juego, conserva el registro y detiene la operación tras cinco minutos sin actividad. La cancelación solo cierra el entorno del instalador.
+
+Beta 5 se inicia mediante su lanzador oficial con Proton actual, ya que también usa .NET. Los argumentos de Proton 9 de la versión anterior y los perfiles gráficos de Beta 4.1 no se trasladan al motor nuevo. Las partidas se conservan; los mods y ajustes anteriores siguen en el respaldo completo. Instalación real terminada con salida 0 y español confirmado en el recibo; arranque, rendimiento y compatibilidad de partidas de Beta 5 pendientes de prueba en la Deck.

@@ -250,8 +250,8 @@ class PortCatalogTests(unittest.TestCase):
         self.install({'Uno':b'\x7fELF1'})
         with self.assertRaises(ValueError):self.install({'Uno':b'\x7fELF2'})
         self.install({'Uno':b'\x7fELF2'},replace=True);self.assertEqual((self.install_root/'Uno/Uno').read_bytes(),b'\x7fELF2');self.assertEqual(len(list((self.install_root/'.deck-library-replaced').iterdir())),1)
-    def test_release_without_linux_build_gives_a_clear_error(self):
-        with self.assertRaisesRegex(ValueError,'Linux'):self.install({'a':b'x'},assets=[{'name':'Uno-win64.zip','browser_download_url':'https://github.com/x'}])
+    def test_windows_archive_without_a_game_gives_a_clear_error(self):
+        with patch('deck_library.project2099.proton_path',return_value=pathlib.Path('/fake/proton')),self.assertRaisesRegex(ValueError,'portable identificable'):self.install({'a':b'x'},assets=[{'name':'Uno-win64.zip','browser_download_url':'https://github.com/x'}])
     def test_ambiguous_executable_is_left_unset(self):
         record=self.install({'one':b'\x7fELFa','two':b'\x7fELFb'});self.assertEqual(record['executable'],'');self.assertIsNone(self.ports.entry_for(self.install_root/'Uno'))
     def test_updates_compare_recorded_tag(self):

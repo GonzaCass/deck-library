@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.18.2.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.19.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -111,7 +111,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.18.2**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.19.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
@@ -240,3 +240,9 @@ Los cambios guardados, ajustes aplicados, actualizaciones y errores muestran un 
 Los perfiles integrados se identifican como **Integrado en Deck Library**. La marca **Verificado · usuario** corresponde a ajustes confirmados jugando; **Verificado · arranque** indica una prueba limitada al inicio. Las variantes sin prueba permanecen **Sin verificar**. En Mario Kart Wii, Calidad conserva el perfil confirmado y se selecciona de forma predeterminada; Equilibrado y Rendimiento son variantes de menor resolución pendientes de prueba.
 
 **Ajustes de la comunidad** aparece como sección propia con una vista previa de perfiles, valoraciones y acceso a comentarios. Los perfiles adicionales están en **Otros perfiles**, visibles sin desplegar un acordeón. Los perfiles locales y las pruebas del autor no heredan la verificación de los integrados.
+
+### Instalación y actualización de ports (0.19)
+
+La ficha del catálogo muestra qué paquete se instalará. Se admiten AppImage, binarios y archivos comprimidos de Linux; también ports portables de Windows mediante Proton. Los instaladores que necesitan convertir un disco o compilar una ROM usan una integración específica. Los proyectos sin un paquete compatible lo indican al consultar sus detalles.
+
+Project 2099 instala la última versión oficial. Beta 5 usa un motor nuevo y un acceso distinto: Deck Library los reconoce y conserva la versión anterior como respaldo. El instalador tiene su propio entorno de Proton, progreso por archivos escritos, cancelación y detección de bloqueos. Los perfiles verificados de Beta 4.1 no se aplican a Beta 5.

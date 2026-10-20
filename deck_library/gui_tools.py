@@ -266,14 +266,15 @@ class ToolsMixin:
         dialog.set_default_size(660,360);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_spacing(12);box.set_border_width(20)
         box.pack_start(label('Spider-Man: Edge of Time','title'),False,False,0)
-        box.pack_start(label('Requiere la versión de Xbox 360; la de PS3 no es compatible. Instala la Beta 4.1 en español con Proton y un perfil inicial de 720p y 60 FPS.','muted'),False,False,0)
+        box.pack_start(label('Requiere la versión de Xbox 360; la de PS3 no es compatible. Descarga la última versión oficial, verifica sus archivos y la instala en español con Proton.','muted'),False,False,0)
         source=InlineFileButton(title='Elegir ISO, ZIP o 7z de Xbox 360',action=Gtk.FileChooserAction.OPEN)
         box.pack_start(source,False,False,0)
         destination=Gtk.Entry();destination.set_text(str(pathlib.Path.home()/'ports/project2099'))
         box.pack_start(label('Carpeta de destino vacía'),False,False,0);box.pack_start(destination,False,False,0)
         status=label('El juego se agrega a la biblioteca al terminar.');box.pack_start(status,False,False,0)
-        busy=[False]
+        busy=[False];key='GenryTheFox0/Project-2099';cancel=threading.Event();self.transfer_row(box,key)
         def done(entry,error):
+            self.port_busy=False;getattr(self,'port_jobs',{}).pop(key,None);self.finish_transfer(key,error)
             busy[0]=False;start.set_sensitive(True);source.set_sensitive(True);destination.set_sensitive(True)
             dialog.set_response_sensitive(Gtk.ResponseType.CLOSE,True)
             if error:status.set_text(error)
@@ -283,10 +284,14 @@ class ToolsMixin:
         def begin(_):
             if not source.get_filename():status.set_text('Elegir una ISO, ZIP o 7z de Xbox 360.');return
             selected=source.get_filename();target=destination.get_text();busy[0]=True
+            if getattr(self,'port_busy',False):busy[0]=False;status.set_text('Ya hay una instalación en curso.');return
+            self.port_busy=True;cancel.clear()
+            if not hasattr(self,'port_jobs'):self.port_jobs={}
+            self.port_jobs[key]=cancel;self.start_transfer(key);progress=self.port_progress(key)
             start.set_sensitive(False);source.set_sensitive(False);destination.set_sensitive(False);dialog.set_response_sensitive(Gtk.ResponseType.CLOSE,False)
             def work():
                 try:
-                    entry=project2099.prepare(selected,target,self.store,lambda text:GLib.idle_add(status.set_text,text))
+                    entry=project2099.prepare(selected,target,self.store,progress,cancel)
                     GLib.idle_add(done,entry,None)
                 except Exception as error:GLib.idle_add(done,None,str(error))
             threading.Thread(target=work,daemon=True).start()

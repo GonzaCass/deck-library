@@ -62,3 +62,21 @@ Cada cambio de ajustes deja una copia fechada junto al archivo original (`*.deck
 ## Fuentes vigentes (0.15)
 
 El antiguo repositorio de listas de Quiver quedó obsoleto; la app consulta también su API paginada actual (apps y release-status) y une los registros por repositorio. La fecha de incorporación al catálogo y la fecha de release son campos distintos. La lista independiente de Sebastrion aporta otros enlaces a proyectos y el índice incluido con Deck Library conserva una copia factual como respaldo. Los assets se consultan directamente en la release del proyecto al instalar. No se ejecutan scripts obtenidos de los catálogos para descubrir instalaciones.
+
+## Paquetes e instalación automática (0.19)
+
+La instalación identifica familias de paquetes en la publicación oficial, sin ejecutar comandos recibidos del catálogo:
+
+| Familia | Proceso |
+| --- | --- |
+| AppImage o binario Linux x86_64 | Descargar, verificar, registrar y ejecutar. Se prefiere una build SteamOS cuando existe. |
+| ZIP, tar.gz, tar.xz, tar.bz2 o tar.zst de Linux | Extraer con validación de rutas y enlaces; identificar el ejecutable. tar.zst requiere zstd. |
+| Windows portable, ZIP o EXE x64 | Identificar un ejecutable PE; usar Proton con un entorno persistente separado por port. Se prefiere Linux si está disponible. |
+| ROM/disco + extracción o compilación conocida | Usar la integración específica: WiiCompiled, Project 2099, kits de PS1, OpenPete, CTR, zelda3, Minish Cap y Wind Waker HD. |
+| Setup/MSI desconocido, Flatpak empaquetado o solo código fuente | Mostrar que requiere una integración específica. No tratarlo como un juego portable ni ejecutar pasos inventados. |
+
+En la ficha del catálogo se muestra el tipo de instalación y el archivo de la release. La elección genérica se probó también contra nombres reales publicados por Zelda64Recomp, Shipwright, sm64coopdx, 2Ship y EdgeOfTimeRecomp; eso valida la selección del paquete, no el arranque de todos esos juegos. No hay una medición de cobertura que permita afirmar que todos o la mayoría del catálogo están probados.
+
+Al actualizar se conserva una copia completa de la carpeta anterior y se transfieren las carpetas habituales `UserData`, `saves` y `savegames` (con sus variantes de mayúsculas). Los datos guardados por el propio juego en XDG o en su entorno de Proton mantienen su ubicación. Los mods, ROMs generadas, configuraciones y carpetas con otros nombres siguen en el respaldo: cada port que necesite migrarlos requiere una regla específica. Un fallo al mover la nueva versión restaura la carpeta anterior.
+
+Project 2099 tiene su propio proceso: el instalador usa un entorno de Proton actual separado del usado para jugar; se muestran los bytes y archivos escritos durante la instalación y se detectan cinco minutos sin actividad. Los diagnósticos de Wine se guardan en el registro y no reemplazan el estado de progreso. Se puede cancelar el instalador sin cerrar otros entornos de Wine.

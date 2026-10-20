@@ -409,6 +409,7 @@ class GameMixin:
         else:
             empty = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10),'surface-panel')
             empty.pack_start(text('Todavía no hay un perfil para este juego.','title'),False,False,0)
+            if entry.metadata.get('engine')=='reeot':empty.pack_start(text('Project 2099 Beta 5 cambió de motor. Los perfiles verificados de Beta 4.1 se conservan para esa versión; no se aplican a la nueva.','muted'),False,False,0)
             row = Gtk.Box(spacing=10)
             row.pack_start(ActionButton('Buscar en la comunidad','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0)
             row.pack_start(ActionButton('Importar archivo','download',lambda _:self.import_game_profile(entry)),False,False,0)

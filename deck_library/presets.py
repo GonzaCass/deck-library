@@ -39,7 +39,7 @@ def ps1_serial(path):
     match=SERIAL.search(data)
     return (match[1]+b'-'+match[2]+match[3]).decode().upper() if match else ''
 
-PROCESSES={'eden':('eden',),'wiicompiled':('WiiCompiled',),'dolphin':('dolphin-emu',),'prism':('java',),'project2099':('SpiderManEOT.exe','SpiderManEOT.ex'),'duckstation':('duckstation-qt','duckstation-nogui')}
+PROCESSES={'eden':('eden',),'wiicompiled':('WiiCompiled',),'dolphin':('dolphin-emu',),'prism':('java',),'project2099':('SpiderManEOT.exe','SpiderManEOT.ex','Project2099.exe','Project 2099.exe'),'duckstation':('duckstation-qt','duckstation-nogui')}
 
 def busy(adapter):return any(emulator_busy(name) for name in PROCESSES.get(adapter,('unknown',)))
 
@@ -97,6 +97,7 @@ def validate(value):
 
 def compatible(entry,value):
     validate(value)
+    if entry.metadata.get('adapter')=='project2099' and entry.metadata.get('engine')=='reeot':return False
     return adapter_for(entry)==value['adapter']['id'] and public_game_id(entry).lower()==value['game']['id'].lower()
 
 def catalog(store=None):

@@ -33,6 +33,7 @@ BUILTIN=[
  {'name':'Crash Team Racing: Turbocharged','repository':'web/ctr-turbocharged','folderName':'CTRTurbocharged','category':'PlayStation','setup':'ctr','web':{'kind':'ctr'},'cover_title':'CTR - Crash Team Racing','disc':{'serial':'SCUS-94426','match':'crashteamracing','exclude':''},'note':'Descarga de ctr.cmzi.uk (el sitio no publica hash; se comprueba el tamaño). Necesita el BIN crudo MODE2/2352 del disco NTSC-U SCUS-94426, que se copia como ctr-u.bin en ~/.local/share/ctr-turbocharged.'},
 ]
 BUILTIN+=[
+ {'name':'Spider-Man: Edge of Time (Project 2099)','repository':'GenryTheFox0/Project-2099','folderName':'project2099','category':'Xbox 360','setup':'project2099','cover_title':'Spider-Man - Edge of Time','note':'Instala o actualiza con el instalador y los datos oficiales. Requiere una copia propia de Xbox 360. La versión PS3 no es compatible.'},
  {'name':'The Legend of Zelda: The Minish Cap','repository':'999sian/tmc','folderName':'TheLegendOfZeldaTheMinishCap-ProjectPicori','category':'Game Boy Advance','setup':'rom','cover_title':'Legend of Zelda, The - The Minish Cap',
   'rom':{'systems':['gba'],'sizes':[16777216],'sha1':{'cff199b36ff173fb6faf152653d1bccf87c26fb7':'baserom_eu.gba','b4bd50e4131b027c334547b4524e2dbbd4227130':'baserom.gba','6c5404a1effb17f481f352181d0f1c61a2765c5d':'baserom_jp.gba'},'name':'Minish Cap (USA, Europa o Japón)'},
   'note':'Project Picori, port nativo. Necesita la ROM de GBA (se reconoce por SHA-1, sea cual sea el nombre del archivo); la edición europea incluye el texto en español.'},
@@ -177,7 +178,7 @@ def clean(item,category='',source=''):
     if not isinstance(folder,str) or not FOLDER.fullmatch(folder):folder=re.sub(r'[^A-Za-z0-9._-]','',repo.split('/')[1]) or 'port'
     name=item.get('name');icon=item.get('appIconUrl') or item.get('icon');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
     ai=bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
-    result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','rom','zelda3','wwhd') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
+    result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','rom','zelda3','wwhd','project2099') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
     for key in ('added_at','release_at','first_seen'):
         if type(item.get(key)) in (int,float) and item[key]>=0:result[key]=item[key]
     for key in ('game_title','catalog_slug','release_version'):
@@ -313,15 +314,17 @@ def pick_asset(assets):
     best=None;best_score=0
     for asset in assets:
         name=str(asset.get('name',''));low=name.lower()
-        if re.search(r'\.(sha256|sig|txt|md5|json|asc|exe|msi|dmg|apk|deb|rpm|pkg|7z|rar)$|source|src\b',low):continue
+        if re.search(r'\.(sha256|sig|txt|md5|json|asc|exe|msi|dmg|apk|deb|rpm|pkg|7z|rar)$|source|src\b|symbols|debug|flatpak',low):continue
         # 'win' and 'mac' only as whole words: "WindWakerHD" and "machine" are not Windows or macOS.
-        if re.search(r'(?<![a-z])(?:win|windows|win32|win64|mac|macos)(?![a-z])|osx|darwin|android|arm64|aarch64|armv|i386|x86\b|32-?bit',low):continue
-        linux=bool(re.search(r'linux|steamdeck|steam-deck|deck',low))
+        if re.search(r'(?<![a-z])(?:win|windows|win32|win64|mac|macos)(?![a-z])|osx|darwin|android|arm64|aarch64|armv|(?<![a-z])arm(?![a-z])|ppc64|riscv|i386|x86\b|32-?bit',low):continue
+        linux=bool(re.search(r'linux|steamos|steamdeck|steam-deck|deck',low))
         if not linux and not low.endswith('.appimage'):continue
+        if not low.endswith(('.appimage','.tar.gz','.tgz','.tar.xz','.tar.bz2','.tbz2','.tar.zst','.tar','.zip')) and '.' in name:continue
         score=1
+        if re.search(r'steamos|steamdeck|steam-deck',low):score+=3
         if re.search(r'x86[_-]64|amd64|x64',low):score+=2
         bare='.' not in low.rsplit('-',1)[-1]
-        score+={'.appimage':4,'.tar.gz':3,'.tgz':3,'.tar.xz':3,'.tar.zst':0,'.zip':2}.get(next((e for e in ('.appimage','.tar.gz','.tgz','.tar.xz','.tar.zst','.zip') if low.endswith(e)),''),3 if bare and linux else 0)
+        score+={'.appimage':4,'.tar.gz':3,'.tgz':3,'.tar.xz':3,'.tar.bz2':3,'.tbz2':3,'.tar.zst':3,'.tar':3,'.zip':2}.get(next((e for e in ('.appimage','.tar.gz','.tgz','.tar.xz','.tar.bz2','.tbz2','.tar.zst','.tar','.zip') if low.endswith(e)),''),3 if bare and linux else 0)
         if score>best_score and score>2:best,best_score=asset,score
     return best
 
@@ -388,6 +391,14 @@ def sha256_file(path):
 
 def extract(archive,destination):
     destination=pathlib.Path(destination).resolve();name=str(archive).lower()
+    if name.endswith('.tar.zst'):
+        tool=shutil.which('zstd')
+        if not tool:raise ValueError('Falta zstd para extraer este paquete de Linux.')
+        with tempfile.TemporaryDirectory(prefix='port-zstd-',dir=destination.parent) as tmp:
+            unpacked=pathlib.Path(tmp)/'package.tar'
+            with unpacked.open('wb') as out:subprocess.run([tool,'-d','-q','-c',str(archive)],stdout=out,stderr=subprocess.PIPE,check=True,timeout=300)
+            extract(unpacked,destination)
+        return
     if name.endswith('.zip'):
         with zipfile.ZipFile(archive) as z:
             for info in z.infolist():
@@ -397,7 +408,7 @@ def extract(archive,destination):
             for info in z.infolist():
                 mode=info.external_attr>>16
                 if mode&0o111 and not info.is_dir():(destination/info.filename).chmod(0o755)
-    elif re.search(r'\.(tar\.gz|tgz|tar\.xz)$',name):
+    elif re.search(r'\.(tar|tar\.gz|tgz|tar\.xz|tar\.bz2|tbz2)$',name):
         with tarfile.open(archive) as tar:
             for member in tar.getmembers():
                 if not (member.isfile() or member.isdir()):raise ValueError('El paquete contiene enlaces o archivos especiales.')
@@ -427,6 +438,8 @@ def find_executable(folder,repository=''):
     images=[p for p in files if p.suffix.lower()=='.appimage']
     if len(images)==1:return images[0]
     binaries=[p for p in files if is_elf(p) or (p.suffix.lower()=='.sh')]
+    if not binaries:
+        binaries=[p for p in folder.glob('*/*') if p.is_file() and not SKIP_NAMES.search(p.name) and is_elf(p)]
     if len(binaries)==1:return binaries[0]
     key=re.sub(r'[^a-z0-9]','',repository.split('/')[-1].lower())
     named=[p for p in binaries if key and key in re.sub(r'[^a-z0-9]','',p.name.lower())]
@@ -434,7 +447,8 @@ def find_executable(folder,repository=''):
 
 def install(item,store=None,root=None,progress=print,get=fetch_json,replace=False,web=None,runner=None,transfer=None,cancel=None):
     """Install or update one catalog port. Returns the stored record."""
-    check_cancel(cancel)
+    from . import port_packages
+    check_cancel(cancel);runtime='linux'
     store=store or Store();root=pathlib.Path(root or ports_root());item=clean(item)
     if item is None:raise ValueError('Entrada de catálogo inválida.')
     if item['web']:
@@ -442,8 +456,12 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
         if urllib.parse.urlparse(resolved['url']).hostname not in WEB_HOSTS:raise ValueError('La descarga apunta a un servidor no permitido.')
         asset={'name':resolved['name'],'browser_download_url':resolved['url'],'digest':('sha256:'+resolved['sha256']) if resolved.get('sha256') else '','size':resolved.get('size') or 0};tag=resolved['tag']
     else:
-        release=release_for(item['repository'],get);asset=pick_asset(release.get('assets',[]))
-        if asset is None:raise ValueError('La última versión no incluye un archivo para Linux x86_64. Se puede instalar manualmente desde '+release.get('html_url','GitHub')+'.')
+        release=release_for(item['repository'],get);plan=port_packages.select(release.get('assets',[]))
+        if plan is None:raise ValueError(port_packages.summary(None)+' '+release.get('html_url','GitHub'))
+        asset=plan['asset'];runtime=plan['runtime']
+        if runtime=='proton':
+            from .project2099 import proton_path
+            proton_path() # Validate the runtime before changing an existing installation.
         tag=str(release.get('tag_name',''))
     destination=root/item['folder']
     if destination.exists() and not replace:raise ValueError('La carpeta '+item['folder']+' ya existe en '+str(root)+'.')
@@ -460,7 +478,7 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
         if asset.get('size') and archive.stat().st_size!=asset['size']:raise ValueError('El tamaño descargado no coincide con el publicado; no se instaló.')
         if digest.startswith('sha256:') and sha256_file(archive)!=digest[7:].lower():raise ValueError('La suma SHA-256 no coincide con la publicada; no se instaló.')
         staging=temp/'files';staging.mkdir()
-        if not re.search(r'\.(zip|tar\.gz|tgz|tar\.xz)$',archive.name.lower()):
+        if not archive.name.lower().endswith(port_packages.ARCHIVES):
             # AppImage or a single bare executable.
             shutil.copy2(archive,staging/archive.name);(staging/archive.name).chmod(0o755)
         else:
@@ -472,15 +490,24 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
             # The AppImage is unpacked once: its compiler needs the SDK's headers, and the module it builds is kept next to the unpacked files.
             progress('Desempaquetando OpenPete');(runner or subprocess.run)([str(staging/archive.name),'--appimage-extract'],cwd=str(staging),capture_output=True,timeout=300,check=True)
             (staging/archive.name).unlink();executable=staging/'squashfs-root/AppRun';kit=True
-        elif item.get('exe'):executable=staging/item['exe']
+        elif item.get('exe'):
+            executable=(staging/item['exe']).resolve()
+            if not executable.is_relative_to(staging.resolve()):raise ValueError('La ruta del ejecutable sale del paquete.')
+        elif runtime=='proton':executable=port_packages.windows_executable(staging,item['repository'])
         else:executable=find_executable(staging,item['repository'])
+        if runtime=='proton' and not executable:raise ValueError('El paquete Windows no contiene un juego portable identificable. Se conserva la instalación anterior; este port requiere una integración específica.')
         if executable and executable.exists():executable.chmod(executable.stat().st_mode|0o111)
-        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
+        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'runtime':runtime,'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
+        if destination.exists():port_packages.preserve_saves(destination,staging,cancel)
         atomic_json(staging/'.deck-library-port.json',record)
         check_cancel(cancel)
+        old=None
         if destination.exists():
             old=root/'.deck-library-replaced'/(item['folder']+'-'+time.strftime('%Y%m%dT%H%M%S'));old.parent.mkdir(exist_ok=True);destination.rename(old)
-        shutil.move(str(staging),str(destination))
+        try:shutil.move(str(staging),str(destination))
+        except BaseException:
+            if old:old.rename(destination)
+            raise
     saved=records(store);saved[item['repository']]=record;atomic_json(store.root/'ports.json',saved)
     return record
 
@@ -496,7 +523,8 @@ def installed_updates(store,get=fetch_json):
         try:release=release_for(repo,get)
         except (OSError,ValueError):continue
         tag=str(release.get('tag_name',''))
-        if tag and tag!=record.get('tag') and pick_asset(release.get('assets',[])):result.append({'name':record.get('name',repo),'repository':repo,'installed':record.get('tag',''),'latest':tag,'page':release.get('html_url',''),'notes':(release.get('body') or '')[:8000]})
+        from .port_packages import select
+        if tag and tag!=record.get('tag') and select(release.get('assets',[])):result.append({'name':record.get('name',repo),'repository':repo,'installed':record.get('tag',''),'latest':tag,'page':release.get('html_url',''),'notes':(release.get('body') or '')[:8000]})
     return result
 
 def port_id(repository):
@@ -524,8 +552,11 @@ def entry_for(folder):
         if (built.parent/'bios.cfg').is_file():args=[*args,'--no-launcher']
     env=[f'{k}={v}' for k,v in (record.get('env') or {}).items()]
     command=buildenv.wrap([str(exe),*args],record.get('env')) if record.get('sandbox') else [*(['env',*env] if env else []),str(exe),*args]
+    if record.get('runtime')=='proton':
+        import sys
+        command=[sys.executable,'-m','deck_library.port_runtime',str(folder)];cwd=str(pathlib.Path(__file__).resolve().parent.parent)
     title=record.get('cover_title') or next((b.get('cover_title','') for b in BUILTIN if b['repository']==record['repository']),'')
-    return Entry(record.get('name',folder.name),command,'port','Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],**({'game_title':title} if title else {}),'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
+    return Entry(record.get('name',folder.name),command,'port','Windows' if record.get('runtime')=='proton' else 'Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],**({'game_title':title} if title else {}),'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
 
 
 DATA_CTR=pathlib.Path('.local/share/ctr-turbocharged')

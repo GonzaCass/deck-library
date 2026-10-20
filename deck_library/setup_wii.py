@@ -19,22 +19,41 @@ def check_image(path):
         if header!=b'RMCP01':raise ValueError('Se necesita Mario Kart Wii PAL limpio RMCP01. Esta imagen no corresponde.')
     return path.resolve()
 
-def run_logged(command,cwd,env,log,progress,cancel):
+def run_logged(command,cwd,env,log,progress,cancel,*,activity=None,idle_timeout=None,cleanup=None):
+    import time
     progress('Ejecutando '+pathlib.Path(command[0]).name+'…')
     process=subprocess.Popen(command,cwd=cwd,env=env,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,errors='replace',start_new_session=True,bufsize=1)
+    last_activity=[time.monotonic()]
     def collect():
         for line in process.stdout:
-            log.write(line);log.flush();progress(line.strip()[-350:])
+            log.write(line);log.flush()
+            text=line.strip()
+            # Runtime diagnostics belong in the log, not in the game's progress bar.
+            if not text or text.startswith(('wine:','fsync:','ntsync:','Proton:')):continue
+            last_activity[0]=time.monotonic();progress(text[-350:])
     reader=threading.Thread(target=collect,daemon=True);reader.start()
-    while process.poll() is None:
-        if cancel.wait(.3):
+    error=None
+    try:
+        while process.poll() is None:
+            if cancel.wait(.3):
+                error=Cancelled('Instalación cancelada; la imagen original se conserva.');break
+            if activity and activity():last_activity[0]=time.monotonic()
+            if idle_timeout and time.monotonic()-last_activity[0]>idle_timeout:
+                error=RuntimeError('El instalador dejó de avanzar. Se conserva la instalación anterior. Revisá el registro o reintentá la actualización.');break
+    except BaseException as caught:error=caught
+    finally:
+        if error:
             try:os.killpg(process.pid,signal.SIGTERM)
             except ProcessLookupError:pass
+            if cleanup:cleanup()
             try:process.wait(timeout=8)
-            except subprocess.TimeoutExpired:os.killpg(process.pid,signal.SIGKILL);process.wait()
-            reader.join(timeout=2);process.stdout.close();raise Cancelled('Instalación cancelada; la imagen original se conserva.')
+            except subprocess.TimeoutExpired:
+                try:os.killpg(process.pid,signal.SIGKILL)
+                except ProcessLookupError:pass
+                process.wait()
     reader.join(timeout=5)
     process.stdout.close()
+    if error:raise error
     if process.returncode:raise RuntimeError('El proceso terminó con error '+str(process.returncode)+'. Ver el registro de instalación.')
 
 def install(image,store=None,setup=None,progress=lambda text:None,cancel=None):

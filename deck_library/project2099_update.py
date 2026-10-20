@@ -1,5 +1,5 @@
 """Verified, staged Project-2099 updates; the old game remains recoverable."""
-import json,pathlib,re,shutil,tempfile,threading,time
+import json,pathlib,re,shutil,subprocess,tempfile,threading,time
 from . import ports,project2099,presets
 from .models import atomic_json
 
@@ -29,11 +29,60 @@ def assets_for(release):
         if not a.get('browser_download_url','').startswith('https://github.com/GenryTheFox0/Project-2099/releases/download/'):raise ValueError('Origen de descarga no permitido.')
     return setup,payload
 
-def update(entry,source,release,store,progress=lambda _:None,cancel=None,runner=None):
+def installation_activity(work,progress,interval=2):
+    """Count actual staged writes; silent WinExe installers need not have a console."""
+    previous=[None];checked=[0]
+    def poll():
+        now=time.monotonic()
+        if now-checked[0]<interval:return False
+        checked[0]=now;count=size=0
+        for folder in work.glob('game*'):
+            for path in folder.rglob('*'):
+                try:
+                    if path.is_file():count+=1;size+=path.stat().st_size
+                except FileNotFoundError:pass
+        value=(count,size)
+        if value==previous[0]:return False
+        previous[0]=value
+        if count:progress({'phase':'install','text':f'Instalando · {size/(1<<30):.2f} GB escritos · {count} archivos','fraction':None,'eta':None})
+        return bool(count)
+    return poll
+
+def promote(entry,stage,folder,tag,source,store,cancel=None):
+    """Commit only a complete staged game, retaining a restorable previous version."""
+    stage=pathlib.Path(stage);folder=pathlib.Path(folder)
+    executable,engine=project2099.installation_files(stage)
+    if not executable:raise ValueError('La instalación temporal está incompleta; se conserva la anterior.')
+    ports.check_cancel(cancel)
+    from .port_packages import preserve_saves
+    preserve_saves(folder,stage,cancel)
+    atomic_json(stage/'deck-library-project2099.json',{'version':tag,'source':str(source)})
+    ports.check_cancel(cancel);backup=None
+    if folder.exists():
+        backup=folder.parent/'.deck-library-replaced'/(folder.name+'-'+time.strftime('%Y%m%dT%H%M%S'));backup.parent.mkdir(exist_ok=True);folder.rename(backup)
+    try:stage.rename(folder)
+    except BaseException:
+        if backup:backup.rename(folder)
+        raise
+    entry.source=str(project2099.installation_files(folder)[0]);entry.metadata.update(build=tag,engine=engine)
+    if engine=='reeot':
+        # Legacy runtime switches and graphics profiles belong to the old engine.
+        args=[];skip=False
+        for value in entry.command:
+            if skip:skip=False;continue
+            if value=='--proton':skip=True;continue
+            if value=='--single-queue':continue
+            args.append(value)
+        entry.command=args
+    store.merge([entry],overwrite=True)
+    return {'version':tag,'backup':str(backup) if backup else ''}
+
+def update(entry,source,release,store,progress=lambda _:None,cancel=None,runner=None,*,fresh=False):
     from .setup_wii import run_logged
     cancel=cancel or threading.Event();ports.check_cancel(cancel)
     folder=pathlib.Path(entry.source).parent
-    if entry.metadata.get('adapter')!='project2099' or folder.is_symlink() or not (folder/'SpiderManEOT.exe').is_file():raise ValueError('No se encontró la instalación original de Project-2099.')
+    if entry.metadata.get('adapter')!='project2099' or folder.is_symlink() or (not fresh and not project2099.installation_files(folder)[0]):raise ValueError('No se encontró la instalación original de Project-2099.')
+    if fresh and folder.exists() and any(folder.iterdir()):raise ValueError('La carpeta de destino debe estar vacía.')
     if presets.busy('project2099'):raise RuntimeError('Cerrá el juego antes de actualizarlo.')
     source=pathlib.Path(source).resolve()
     if source.is_dir():
@@ -74,18 +123,19 @@ def update(entry,source,release,store,progress=lambda _:None,cancel=None,runner=
                 with zipfile.ZipFile(source) as z,z.open(next(i for i in z.infolist() if i.filename.lower().endswith('.iso'))) as inp,image.open('wb') as out:shutil.copyfileobj(inp,out,1<<20)
             with image.open('rb') as stream:project2099.check_image(stream)
         ports.check_cancel(cancel)
-        preferred=next((entry.command[i+1] for i,v in enumerate(entry.command[:-1]) if v=='--proton'),None)
+        proton,env=project2099.installer_environment(store)
         win=lambda p:'Z:'+str(p).replace('/','\\')
-        command=[str(project2099.proton_path(preferred=preferred)),'run',str(cache/setup['name']),'--install-test',win(image),win(stage),win(manifests[0].parent),'5']
+        command=[str(proton),'run',str(cache/setup['name']),'--install-test',win(image),win(stage),win(manifests[0].parent),'5']
         progress('Instalando la nueva versión en una carpeta temporal…')
-        with (cache/'update.log').open('w') as log:(runner or run_logged)(command,str(cache),project2099.proton_env(store,preferred),log,progress,cancel)
-        if not all((stage/n).is_file() for n in ('SpiderManEOT.exe','rexruntime.dll')):raise ValueError('El instalador no produjo una instalación completa. Se conserva la anterior.')
-        ports.check_cancel(cancel)
-        if (folder/'UserData').is_dir():shutil.copytree(folder/'UserData',stage/'UserData',dirs_exist_ok=True)
-        # Engine changes may invalidate renderer options and mods; keep those in the complete backup.
-        atomic_json(stage/'deck-library-project2099.json',{'version':tag,'source':str(source)})
-        backup=folder.parent/'.deck-library-replaced'/(folder.name+'-'+time.strftime('%Y%m%dT%H%M%S'));backup.parent.mkdir(exist_ok=True);folder.rename(backup)
-        try:stage.rename(folder)
-        except BaseException:backup.rename(folder);raise
-    entry.metadata['build']=tag;store.merge([entry],overwrite=True)
-    return {'version':tag,'backup':str(backup)}
+        def stop_installer():
+            clean=dict(env);clean['WINEPREFIX']=str(pathlib.Path(env['STEAM_COMPAT_DATA_PATH'])/'pfx')
+            server=proton.parent/'files/bin/wineserver'
+            if server.is_file():
+                try:subprocess.run([str(server),'-k'],env=clean,timeout=10,capture_output=True)
+                except (OSError,subprocess.TimeoutExpired):pass
+        with (cache/'update.log').open('w') as log:
+            if runner:runner(command,str(cache),env,log,progress,cancel)
+            else:run_logged(command,str(cache),env,log,progress,cancel,activity=installation_activity(work,progress),idle_timeout=300,cleanup=stop_installer)
+        if not project2099.installation_files(stage)[0]:raise ValueError('El instalador no produjo una instalación completa. Se conserva la anterior. Registro: '+str(cache/'update.log'))
+        result=promote(entry,stage,folder,tag,source,store,cancel)
+    return result
