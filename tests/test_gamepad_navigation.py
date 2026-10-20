@@ -28,3 +28,31 @@ class MixedControlNavigationTests(unittest.TestCase):
         self.assertEqual(control_neighbour(controls,0,'down'),2)
         self.assertEqual(control_neighbour(controls,2,'right'),3)
         self.assertEqual(control_neighbour(controls,2,'up'),0)
+
+class CompositorFocusTests(unittest.TestCase):
+    def test_steam_app_identity_accepts_shortcut_game_id_and_ignores_invalid_values(self):
+        from deck_library.compositor_focus import steam_app_id
+        self.assertEqual(steam_app_id({'SteamAppId':'3735928559'}),3735928559)
+        self.assertEqual(steam_app_id({'SteamGameId':str((3735928559<<32)|0x02000000)}),3735928559)
+        self.assertEqual(steam_app_id({'SteamAppId':'0','SteamGameId':'123'}),123)
+        self.assertIsNone(steam_app_id({'SteamAppId':'invalid'}))
+
+    def test_native_focus_property_matches_app_and_releases_x11_data(self):
+        import ctypes as C
+        from unittest.mock import Mock
+        from deck_library.compositor_focus import GamescopeFocus
+        reader=GamescopeFocus({'SteamAppId':'123'});reader.attempted=True;reader.display=1;reader.atom=2;reader.lib=Mock();reader.lib.XDefaultRootWindow.return_value=3
+        value=C.c_ulong(123)
+        def read(*args):
+            C.cast(args[7],C.POINTER(C.c_ulong))[0]=6;C.cast(args[8],C.POINTER(C.c_int))[0]=32;C.cast(args[9],C.POINTER(C.c_ulong))[0]=1
+            C.cast(args[11],C.POINTER(C.POINTER(C.c_ubyte)))[0]=C.cast(C.pointer(value),C.POINTER(C.c_ubyte));return 0
+        reader.lib.XGetWindowProperty.side_effect=read
+        self.assertTrue(reader.focused());value.value=769;self.assertFalse(reader.focused());self.assertEqual(reader.lib.XFree.call_count,2)
+        reader.lib.XGetWindowProperty.return_value=1;reader.lib.XGetWindowProperty.side_effect=None;self.assertIsNone(reader.focused())
+        reader.close();reader.lib.XCloseDisplay.assert_called_once_with(1)
+
+    def test_ordinary_desktop_needs_no_gamescope_connection(self):
+        from unittest.mock import patch
+        from deck_library.compositor_focus import GamescopeFocus
+        with patch('ctypes.CDLL',side_effect=AssertionError('unexpected X11 connection')):
+            self.assertIsNone(GamescopeFocus({}).focused())

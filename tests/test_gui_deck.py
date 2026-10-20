@@ -606,3 +606,43 @@ class DeckUITests(unittest.TestCase):
         self.w.open_library();play.grab_focus();self.w.last_controller_action=('',0)
         with patch.object(self.w,'play',side_effect=AssertionError('Hidden play activated')):self.w.controller_action('activate')
         self.assertEqual(self.w.pages.get_visible_child_name(),'library')
+
+    def test_gaming_mode_switches_catalog_and_back_without_stack_snapshots(self):
+        from gi.repository import Gtk,GLib
+        from deck_library import ports,motion
+        errors=[]
+        handler=GLib.log_set_handler('Gtk',GLib.LogLevelFlags.LEVEL_CRITICAL,lambda domain,level,message,data:errors.append(message),None)
+        try:
+            with patch.dict(os.environ,{'SteamGameId':'12345'}):
+                Gtk.Settings.get_default().set_property('gtk-enable-animations',True);self.w.apply_motion()
+                Gtk.Settings.get_default().set_property('gtk-enable-animations',True)
+                self.w.catalog_page();self.w.catalog_apps=[ports.clean({'repository':'test/game','name':'Game'})]
+                with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog()
+                for _ in range(3):
+                    self.w.open_library();self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.settle()
+                    self.assertEqual(self.w.pages.get_visible_child_name(),'catalog');self.assertTrue(self.w.catalog_rows.get_mapped());self.assertEqual(self.w.pages.get_transition_type(),Gtk.StackTransitionType.NONE)
+                    self.w.last_controller_action=('',0);self.w.controller_action('back');self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertTrue(self.w.covers.get_mapped())
+                self.w.select_game(self.w.entries[0]);self.settle();self.w.open_game_section('files');self.settle();self.assertEqual(self.w.game_pages.get_transition_type(),Gtk.StackTransitionType.NONE)
+                self.w.last_controller_action=('',0);self.w.controller_action('back');self.settle();self.assertEqual(self.w.game_tab,'profiles')
+                self.w.last_controller_action=('',0);self.w.controller_action('back');self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'library')
+                self.assertTrue(motion.enabled());self.assertFalse(motion.page_transitions())
+            self.assertFalse(errors)
+        finally:GLib.log_remove_handler('Gtk',handler)
+
+    def test_gamepad_recovers_when_gtk_focus_is_lost_but_gamescope_keeps_app_active(self):
+        from unittest.mock import Mock
+        from gi.repository import Gtk
+        from deck_library.gamepad import Driver,Repeater
+        from deck_library import ports
+        driver=Driver.__new__(Driver);driver.window=self.w;driver.sdl=Mock();driver.focus=Mock();driver.repeat=Repeater()
+        self.w.catalog_page();self.w.catalog_apps=[ports.clean({'repository':'test/game','name':'Game'})]
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog()
+        self.w.open_library();self.settle()
+        with patch.object(Gtk.Window,'list_toplevels',return_value=[]):
+            driver.focus.focused.return_value=True;driver.sdl.read.return_value={'next_tab'};driver.poll();self.settle()
+            self.assertEqual(self.w.pages.get_visible_child_name(),'catalog')
+            driver.sdl.read.return_value=set();driver.poll();self.w.last_controller_action=('',0)
+            driver.sdl.read.return_value={'back'};driver.poll();self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'library')
+            # Steam's own menu or another app must keep its input.
+            driver.sdl.read.return_value=set();driver.poll();driver.focus.focused.return_value=False;driver.sdl.read.return_value={'next_tab'};driver.poll();self.assertEqual(self.w.pages.get_visible_child_name(),'library')
+            driver.sdl.read.return_value=set();driver.poll();driver.focus.focused.return_value=None;driver.sdl.read.return_value={'next_tab'};driver.poll();self.assertEqual(self.w.pages.get_visible_child_name(),'library')

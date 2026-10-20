@@ -102,7 +102,7 @@ class ShellMixin:
         grid=Gtk.FlowBox();grid.get_style_context().add_class('game-grid');grid.set_selection_mode(Gtk.SelectionMode.NONE);grid.set_min_children_per_line(1);grid.set_max_children_per_line(9);grid.set_column_spacing(16);grid.set_row_spacing(20);grid.set_homogeneous(True);grid.set_valign(Gtk.Align.START);return grid
     def apply_motion(self):
         enabled=self.preferences.get('animations',True);Gtk.Settings.get_default().set_property('gtk-enable-animations',enabled)
-        for stack in (self.library_stack,self.wizard_box):stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if enabled else Gtk.StackTransitionType.NONE);stack.set_transition_duration(150 if enabled else 0)
+        for stack in (self.library_stack,self.wizard_box):stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if enabled and motion.page_transitions() else Gtk.StackTransitionType.NONE);stack.set_transition_duration(150 if enabled and motion.page_transitions() else 0)
     def shown_entries(self):return visible_entries([e for e in self.entries if e.id not in self.preferences.get('hidden_originals',[])],prefer_ports=False)
     def visible(self):
         text=self.search.get_text().casefold();entries,_=self.shown_entries()

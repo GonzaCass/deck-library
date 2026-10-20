@@ -65,3 +65,26 @@ class Project2099Tests(unittest.TestCase):
             self.assertEqual(project2099.proton_path(root,'Proton 10.0').parent.name,'Proton 10.0')
             self.assertNotEqual(project2099.proton_env(store)['STEAM_COMPAT_DATA_PATH'],project2099.proton_env(store,'Proton 10.0')['STEAM_COMPAT_DATA_PATH'])
             with self.assertRaises(ValueError):project2099.proton_path(root,'../../external')
+
+    def test_beta5_launches_engine_directly_with_installed_data_and_language(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=pathlib.Path(tmp)/'Game folder'
+            for name in ('Project 2099.exe','Engine/Project2099.exe','Engine/rexruntime.dll','Data/Original/Default.xex'):
+                p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_bytes(b'file')
+            receipt=root/'Support/Install/INSTALL_RECEIPT.json';receipt.parent.mkdir(parents=True);receipt.write_text(json.dumps({'EffectiveLanguage':5}))
+            with patch.object(project2099,'proton_path',return_value=pathlib.Path('/fake/proton')),patch.object(project2099,'proton_env',return_value={}):
+                command,cwd,env=project2099.launch_plan(root/'SpiderManEOT.exe')
+                self.assertEqual(command[2],str(root/'Engine/Project2099.exe'));self.assertEqual(cwd,root)
+                self.assertIn('--game_data_root=Z:'+str(root/'Data/Original').replace('/','\\'),command);self.assertIn('--eot_language=es',command);self.assertIn('--profile=default',command)
+                launcher,_,_=project2099.launch_plan(root/'SpiderManEOT.exe',launcher=True)
+                self.assertEqual(launcher[2],str(root/'Project 2099.exe'));self.assertEqual(len(launcher),3)
+                receipt.write_text(json.dumps({'EffectiveLanguage':1}));command,_,_=project2099.launch_plan(root/'Engine/Project2099.exe');self.assertIn('--eot_language=en',command)
+
+    def test_legacy_direct_launch_retains_explicit_proton_and_missing_data_is_rejected(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=pathlib.Path(tmp);(root/'SpiderManEOT.exe').touch();(root/'rexruntime.dll').touch()
+            with patch.object(project2099,'proton_path',return_value=pathlib.Path('/fake/proton')) as runtime,patch.object(project2099,'proton_env',return_value={}):
+                command,_,_=project2099.launch_plan(root/'SpiderManEOT.exe','Proton 9.0 (Beta)');self.assertEqual(command[2],str(root/'SpiderManEOT.exe'));runtime.assert_called_with(preferred='Proton 9.0 (Beta)')
+                for name in ('Project 2099.exe','Engine/Project2099.exe','Engine/rexruntime.dll'):
+                    p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.touch()
+                with self.assertRaisesRegex(ValueError,'datos instalados'):project2099.launch_plan(root/'SpiderManEOT.exe')

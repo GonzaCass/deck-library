@@ -50,7 +50,7 @@ class GameMixin:
         self.game_pages = Gtk.Stack()
         self.game_pages.set_homogeneous(False)
         self.game_pages.set_vexpand(True)
-        self.game_pages.set_transition_duration(140 if motion.enabled() else 0)
+        self.game_pages.set_transition_duration(140 if motion.page_transitions() else 0)
         self.detail.pack_start(self.game_pages, True, True, 0)
         home = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         self.game_pages.add_named(home, 'profiles')
@@ -181,7 +181,7 @@ class GameMixin:
         GLib.idle_add(self.reflow_game)
 
     def reflow_game(self):
-        if not self.ui_closed:self.detail.check_resize()
+        if not self.ui_closed:self.detail.queue_resize()
         return False
 
     def game_steam_pending(self, entry):
@@ -528,7 +528,7 @@ class GameMixin:
                 page.pack_start(scroll,True,True,0)
                 {'controls':self.build_game_controls,'files':self.build_game_files,'content':self.build_game_content}.get(section,self.build_game_files)(entry,body)
             page.show_all()
-        self.game_pages.set_transition_type(Gtk.StackTransitionType.NONE if not motion.enabled() or not animate else Gtk.StackTransitionType.SLIDE_RIGHT if section=='profiles' else Gtk.StackTransitionType.SLIDE_LEFT)
+        self.game_pages.set_transition_type(Gtk.StackTransitionType.NONE if not motion.page_transitions() or not animate else Gtk.StackTransitionType.SLIDE_RIGHT if section=='profiles' else Gtk.StackTransitionType.SLIDE_LEFT)
         self.game_pages.set_visible_child_name(section)
         self.game_tab = section
         self.game_location.set_text({'profiles':'Juego','options':'Ajustes manuales','controls':'Controles e idioma','files':'Archivos y acceso','content':'Contenido del juego'}.get(section,'Juego'))

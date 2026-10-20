@@ -204,7 +204,7 @@ class PageStack(Gtk.Stack):
     ORDER={'library':0,'detail':1}
     def set_visible_child_name(self,name):
         current=self.get_visible_child_name();old=self.ORDER.get(current,0);new=self.ORDER.get(name,0)
-        if not motion.enabled():self.set_transition_type(Gtk.StackTransitionType.NONE);self.set_transition_duration(0)
+        if not motion.page_transitions():self.set_transition_type(Gtk.StackTransitionType.NONE);self.set_transition_duration(0)
         else:
             self.set_transition_duration(140)
             self.set_transition_type(Gtk.StackTransitionType.CROSSFADE)

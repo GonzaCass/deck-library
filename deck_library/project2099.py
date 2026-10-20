@@ -127,21 +127,38 @@ def prepare(source,destination,store=None,progress=print,cancel=None):
     project2099_update.update(entry,source,ports.release_for('GenryTheFox0/Project-2099'),store,progress,cancel,fresh=True)
     progress('Instalación completa');return entry
 
+def launch_plan(executable,preferred=None,*,launcher=False,store=None):
+    exe=pathlib.Path(executable).resolve();folder=exe.parent
+    if folder.name=='Engine' and installation_files(folder.parent)[1]=='reeot':folder=folder.parent
+    actual,engine=installation_files(folder)
+    if actual:exe=actual
+    arguments=[]
+    if engine=='reeot' and not launcher:
+        # Launch the native engine as Steam's game process. The WPF launcher can
+        # retain Gamescope focus after spawning it, hiding the actual game window.
+        exe=folder/'Engine/Project2099.exe'
+        data=folder/'Data/Original'
+        if not (data/'Default.xex').is_file():raise ValueError('Faltan los datos instalados de Xbox 360. Revisá la instalación de Project 2099.')
+        language='es'
+        try:
+            receipt=json.loads((folder/'Support/Install/INSTALL_RECEIPT.json').read_text(encoding='utf-8-sig'))
+            language={1:'en',3:'de',4:'fr',5:'es',6:'it',12:'ru'}.get(receipt.get('EffectiveLanguage'),'es')
+        except (OSError,ValueError):pass
+        arguments=['--game_data_root=Z:'+str(data).replace('/','\\'),'--eot_language='+language,'--genry_ui_language='+language,'--profile=default']
+    elif engine=='reeot':preferred=None # The optional .NET settings launcher needs a current Proton.
+    if not exe.is_file():raise ValueError('No se encuentra el juego instalado.')
+    return [str(proton_path(preferred=preferred)),'run',str(exe),*arguments],folder,proton_env(store,preferred=preferred)
+
 def main():
     import argparse
     parser=argparse.ArgumentParser()
     parser.add_argument('action',choices=['run']);parser.add_argument('executable');parser.add_argument('--proton',choices=['Proton 11.0','Proton - Experimental','Proton 10.0','Proton 9.0 (Beta)','Proton 8.0']);parser.add_argument('--single-queue',action='store_true')
+    parser.add_argument('--launcher',action='store_true',help='Abrir el lanzador oficial en vez del juego directo.')
     args=parser.parse_args()
-    exe=pathlib.Path(args.executable).resolve()
-    actual,engine=installation_files(exe.parent)
-    if actual:exe=actual
-    if not exe.is_file():raise ValueError('No se encuentra el juego instalado.')
-    # Beta 5's .NET launcher needs newer Mono too; legacy gameplay keeps its tested runtime.
-    preferred=None if engine=='reeot' else args.proton
-    env=proton_env(preferred=preferred)
+    command,cwd,env=launch_plan(args.executable,args.proton,launcher=args.launcher)
     if args.single_queue:
         options=[v for v in env.get('VKD3D_CONFIG','').replace(';',',').split(',') if v]
         env['VKD3D_CONFIG']=','.join(dict.fromkeys(options+['single_queue']))
-    return subprocess.call([str(proton_path(preferred=preferred)),'run',str(exe)],cwd=exe.parent,env=env)
+    return subprocess.call(command,cwd=cwd,env=env)
 
 if __name__=='__main__':sys.exit(main())

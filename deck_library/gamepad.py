@@ -68,11 +68,13 @@ class SDL:
 class Driver:
     def __init__(self,window):
         from gi.repository import GLib
-        self.window=window;self.sdl=SDL();self.repeat=Repeater();self.timer=GLib.timeout_add(25,self.poll)
+        from .compositor_focus import GamescopeFocus
+        self.window=window;self.sdl=SDL();self.focus=GamescopeFocus();self.repeat=Repeater();self.timer=GLib.timeout_add(25,self.poll)
     def poll(self):
         from gi.repository import Gtk
         if self.window.ui_closed:return False
-        active=next((w for w in Gtk.Window.list_toplevels() if w.get_visible() and (w.is_active() or w.has_toplevel_focus())),None)
+        focused=self.focus.focused()
+        active=next((w for w in Gtk.Window.list_toplevels() if w.get_visible() and w.get_accept_focus() and (w.is_active() or w.has_toplevel_focus())),None)
         own=active
         while own is not None and own is not self.window:own=own.get_transient_for()
         if own is not self.window:
@@ -82,6 +84,11 @@ class Driver:
             while owner is not None and owner is not self.window:owner=owner.get_transient_for()
             if owner is self.window:active=candidate;own=owner
         pressed=self.sdl.read()
+        # Gamescope owns app focus. Its activation can remain correct while GTK's
+        # is_active flags are cleared by an internal page/menu change.
+        if focused is False:self.repeat.events(pressed);return True
+        if focused is True and self.window.get_visible() and self.window.get_mapped() and own is not self.window:
+            active=self.window;own=self.window
         if own is not self.window:self.repeat.events(pressed);return True
         self.window.prepare_controller_window(active)
         self.window.ensure_controller_focus(active)
@@ -90,4 +97,4 @@ class Driver:
     def close(self):
         from gi.repository import GLib
         if GLib.MainContext.default().find_source_by_id(self.timer):GLib.source_remove(self.timer)
-        self.sdl.close()
+        self.sdl.close();self.focus.close()

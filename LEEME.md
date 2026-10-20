@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.19.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.19.1.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -111,7 +111,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.19.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.19.1**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
@@ -246,3 +246,7 @@ Los perfiles integrados se identifican como **Integrado en Deck Library**. La ma
 La ficha del catálogo muestra qué paquete se instalará. Se admiten AppImage, binarios y archivos comprimidos de Linux; también ports portables de Windows mediante Proton. Los instaladores que necesitan convertir un disco o compilar una ROM usan una integración específica. Los proyectos sin un paquete compatible lo indican al consultar sus detalles.
 
 Project 2099 instala la última versión oficial. Beta 5 usa un motor nuevo y un acceso distinto: Deck Library los reconoce y conserva la versión anterior como respaldo. El instalador tiene su propio entorno de Proton, progreso por archivos escritos, cancelación y detección de bloqueos. Los perfiles verificados de Beta 4.1 no se aplican a Beta 5.
+
+### Correcciones de modo Juego (0.19.1)
+
+El mando usa el foco de Gamescope en modo Juego, para mantener la navegación aunque GTK pierda su indicador de ventana activa. Se suspende la entrada al pasar al menú de Steam u otra app. Los cambios de pantalla del catálogo y la biblioteca son directos en sesiones de Steam, para evitar bloqueos de dibujo de GTK. Se conservan las animaciones de los controles. Project 2099 Beta 5 arranca directamente desde su acceso de Steam, sin pasar por el lanzador de Windows.

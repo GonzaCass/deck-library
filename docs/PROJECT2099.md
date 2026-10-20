@@ -67,3 +67,7 @@ La instalación inicial consulta ahora la última release oficial y comparte el 
 El instalador corre con Proton 11, Experimental o 10 en un entorno `project2099-installer` independiente. Usar el Proton 9 de Beta 4.1 provocó un bloqueo real del instalador Beta 5. El mensaje `wine: using kernel write watches` es diagnóstico; el progreso muestra las escrituras reales del juego, conserva el registro y detiene la operación tras cinco minutos sin actividad. La cancelación solo cierra el entorno del instalador.
 
 Beta 5 se inicia mediante su lanzador oficial con Proton actual, ya que también usa .NET. Los argumentos de Proton 9 de la versión anterior y los perfiles gráficos de Beta 4.1 no se trasladan al motor nuevo. Las partidas se conservan; los mods y ajustes anteriores siguen en el respaldo completo. Instalación real terminada con salida 0 y español confirmado en el recibo; arranque, rendimiento y compatibilidad de partidas de Beta 5 pendientes de prueba en la Deck.
+
+## Inicio directo en Steam (0.19.1)
+
+El acceso habitual ejecuta el motor `Engine/Project2099.exe` con los argumentos de datos, idioma y perfil que antes preparaba el lanzador. Evita dejar abierta la ventana WPF delante del juego en Gamescope. Se conserva el acceso de Steam y la configuración gráfica. El argumento opcional `--launcher` del módulo de lanzamiento permite abrir el programa oficial por separado. La instalación sigue usando su entorno independiente.

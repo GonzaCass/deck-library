@@ -4,6 +4,7 @@ Durations follow common UI guidance: micro-interactions 150-300 ms, list entranc
 ease-out curves, and no continuous motion outside loaders.
 """
 import gi
+import os,sys
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib
 
@@ -11,6 +12,14 @@ def enabled():
     """False when the user turned animations off (Ajustes) or the desktop asks for reduced motion."""
     settings=Gtk.Settings.get_default()
     return bool(settings is None or settings.get_property('gtk-enable-animations'))
+
+def gaming_mode():
+    return bool('--gaming' in sys.argv or os.environ.get('SteamAppId') or os.environ.get('SteamGameId'))
+
+def page_transitions():
+    # Gamescope can snapshot a GTK Stack while its new scrolled child still needs
+    # allocation. Switch pages directly there; button/card motion remains available.
+    return enabled() and not gaming_mode()
 
 def ease_out(t):return 1-(1-t)**3
 
