@@ -439,25 +439,30 @@ class DeckUITests(unittest.TestCase):
         self.assertTrue(button.get_style_context().has_class('controller-focus'));self.assertTrue(dialog._deck_controller_hints.get_visible())
         GLib.idle_add(lambda:(self.w.controller_action('back',dialog),False)[1]);self.assertEqual(dialog.run(),Gtk.ResponseType.CANCEL);dialog.destroy()
 
+    def application_windows(self):
+        from gi.repository import Gtk
+        # GTK may lazily allocate hidden tooltip/pop-up windows in headless sessions.
+        return {window for window in Gtk.Window.list_toplevels() if window.get_visible() and window.get_window_type()==Gtk.WindowType.TOPLEVEL}
+
     def test_notice_is_an_internal_page_and_circle_restores_the_game_focus(self):
         from gi.repository import Gtk
         self.w.select_game(self.w.entries[0]);self.settle();focus=self.w.game_play_button;focus.grab_focus()
-        windows=set(Gtk.Window.list_toplevels());self.w.message('Aviso','Detalle del cambio.');self.settle()
+        windows=self.application_windows();self.w.message('Aviso','Detalle del cambio.');self.settle()
         page=self.w.inline_workflows[-1]
         self.assertNotIsInstance(page,Gtk.Window);self.assertIs(self.w.workflow_stack.get_visible_child(),page)
-        self.assertEqual(set(Gtk.Window.list_toplevels()),windows)
+        self.assertEqual(self.application_windows(),windows)
         self.assertTrue(self.w.get_focus().get_style_context().has_class('controller-focus'))
         self.w.controller_action('back');self.settle()
         self.assertFalse(self.w.inline_workflows);self.assertIs(self.w.workflow_stack.get_visible_child(),self.w.pages);self.assertIs(self.w.get_focus(),focus)
 
     def test_nested_inline_pages_restore_the_parent_without_changing_window_size(self):
         from gi.repository import Gtk,GLib
-        self.w.resize(840,640);self.settle();size=self.w.get_size();windows=set(Gtk.Window.list_toplevels())
+        self.w.resize(840,640);self.settle();size=self.w.get_size();windows=self.application_windows()
         parent=self.inline(title='Carátulas',transient_for=self.w);parent.add_button('Volver',Gtk.ResponseType.CLOSE);parent._mount();self.settle()
         child=self.inline(title='Elegir archivo',transient_for=parent);child.add_button('Cancelar',Gtk.ResponseType.CANCEL)
         seen=[]
         def check():
-            seen.append(self.w.workflow_stack.get_visible_child() is child);seen.append(set(Gtk.Window.list_toplevels())==windows);self.w.last_controller_action=('',0);self.w.controller_action('back');return False
+            seen.append(self.w.workflow_stack.get_visible_child() is child);seen.append(self.application_windows()==windows);self.w.last_controller_action=('',0);self.w.controller_action('back');return False
         GLib.timeout_add(120,check);self.assertEqual(child.run(),Gtk.ResponseType.CANCEL);child.destroy();self.settle()
         self.assertEqual(seen,[True,True]);self.assertIs(self.w.workflow_stack.get_visible_child(),parent);self.assertEqual(self.w.get_size(),size)
         parent.destroy();self.assertFalse(self.w.inline_workflows)
@@ -465,10 +470,10 @@ class DeckUITests(unittest.TestCase):
     def test_confirmation_and_artwork_use_only_the_main_window(self):
         from gi.repository import Gtk,GLib
         from deck_library import cover_provider
-        windows=set(Gtk.Window.list_toplevels());original=self.inline.run;seen=[]
+        windows=self.application_windows();original=self.inline.run;seen=[]
         def run(page):
             def check():
-                seen.append(self.w.workflow_stack.get_visible_child() is page and set(Gtk.Window.list_toplevels())==windows);page.response(Gtk.ResponseType.OK);return False
+                seen.append(self.w.workflow_stack.get_visible_child() is page and self.application_windows()==windows);page.response(Gtk.ResponseType.OK);return False
             GLib.timeout_add(100,check);return original(page)
         with patch.object(self.inline,'run',run),patch.object(cover_provider,'search',return_value=[]):
             self.assertTrue(self.w.confirm('Aplicar cambio','Detalle','Aplicar'));self.w.artwork_dialog(self.w.entries[0])
