@@ -1,6 +1,7 @@
 """Native account panel, with isolated provider forms inside the app."""
 import json,pathlib,subprocess,threading,time
 from gi.repository import Gtk,GLib,GdkX11
+from .inline_pages import InlineDialog
 from . import auth_runtime
 from .auth_policy import account_uri
 from .community import Client
@@ -177,7 +178,7 @@ class AccountPane(Gtk.Box):
         if self.alive:self.cancel();self.alive=False
 
 def account_dialog(window):
-    dialog=Gtk.Dialog(title='Cuenta · Deck Library',transient_for=window,modal=True)
+    dialog=InlineDialog(title='Cuenta · Deck Library',transient_for=window,modal=True)
     width,height=window.get_size();dialog.set_default_size(min(900,width-32),min(720,height-48));dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
     content=dialog.get_content_area();content.set_border_width(18)
     pane=AccountPane(Client(window.store,window.preferences.get('community_url','https://presets.jokerlan.xyz')));scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);scroll.add(pane);content.pack_start(scroll,True,True,0)

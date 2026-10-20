@@ -1,5 +1,6 @@
 """Manual options inside the game page, with a fixed save action."""
 from gi.repository import Gtk
+from .inline_pages import InlineDialog
 from . import presets
 from .gui_tools import SETTING_LABELS,SECTION_LABELS
 
@@ -57,7 +58,7 @@ class EditorMixin:
     def export_game_profile(self,e):
         from .gui import label
         from .models import atomic_json
-        dialog=Gtk.Dialog(title='Exportar ajustes',transient_for=self,modal=True);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Exportar',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(10);name=Gtk.Entry();name.set_text(e.name+' — mis ajustes');author=Gtk.Entry();author.set_placeholder_text('Alias público');box.pack_start(label('Nombre del perfil'),False,False,0);box.pack_start(name,False,False,0);box.pack_start(label('Autor'),False,False,0);box.pack_start(author,False,False,0);self.fit_dialog(dialog);dialog.show_all();response=dialog.run();title=name.get_text().strip();alias=author.get_text().strip();dialog.destroy()
+        dialog=InlineDialog(title='Exportar ajustes',transient_for=self,modal=True);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Exportar',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(10);name=Gtk.Entry();name.set_text(e.name+' — mis ajustes');author=Gtk.Entry();author.set_placeholder_text('Alias público');box.pack_start(label('Nombre del perfil'),False,False,0);box.pack_start(name,False,False,0);box.pack_start(label('Autor'),False,False,0);box.pack_start(author,False,False,0);self.fit_dialog(dialog);dialog.show_all();response=dialog.run();title=name.get_text().strip();alias=author.get_text().strip();dialog.destroy()
         if response!=Gtk.ResponseType.OK:return
         try:
             value=presets.export_current(e,title,alias,self.store,self.preferences.get('eden_config') or None);path=self.pick_file('Guardar perfil JSON',save=True)

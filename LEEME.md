@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.17.2.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.18.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -111,7 +111,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.17.2**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.18.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
@@ -214,3 +214,9 @@ El resaltado también aparece en Jugar, perfiles, opciones, menús y ventanas, y
 ### Nombres e imágenes del catálogo (0.17.2)
 
 La API pública de Quiver aporta el nombre del juego, el proyecto que lo adapta, descripción e imágenes. El catálogo muestra primero el juego y debajo el nombre del port; la búsqueda admite ambos. Las carátulas se muestran en vertical. Si falla una descarga se intenta el icono del proyecto y después una portada coincidente por plataforma; los errores se vuelven a intentar después de una hora. Los proyectos de otras listas pueden tener menos información.
+
+### Una sola ventana (0.18.0)
+
+Los avisos, confirmaciones, carátulas, archivos, cuenta, comunidad y herramientas se abren como páginas dentro de Deck Library. Mantienen el tamaño de la app en modo Juego. Las acciones quedan al pie y **B / ○** vuelve a la página anterior, recuperando el control seleccionado. En tareas que no se pueden interrumpir, Volver espera a que termine la operación. Los errores del lanzador también aparecen dentro de la app; si estaba cerrada, se muestran al volver a abrirla.
+
+El botón **Añadir Deck Library a Steam** está junto a las pestañas y utiliza la misma cola de cambios de Steam. Si Steam está abierto, el acceso se guarda al cerrarlo. En ventanas compactas, la cabecera se desplaza horizontalmente y el mando lleva a la vista el botón seleccionado.

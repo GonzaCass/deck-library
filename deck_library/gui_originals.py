@@ -1,11 +1,12 @@
 """Explicit management of source images after a port is installed."""
 from gi.repository import Gtk
+from .inline_pages import InlineDialog
 from . import originals
 from .installations import save_settings
 from .ui_components import ActionButton,text
 class OriginalsMixin:
     def originals_dialog(self,entry=None):
-        dialog=Gtk.Dialog(title='Originales y ports',transient_for=self,modal=True);dialog.set_default_size(820,600);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
+        dialog=InlineDialog(title='Originales y ports',transient_for=self,modal=True);dialog.set_default_size(820,600);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(12)
         box.pack_start(text('Originales con un port instalado','section-title'),False,False,0)
         box.pack_start(text('Ocultarlos conserva los archivos para reinstalar o actualizar el port. La papelera permite recuperarlos si necesitás el original.','muted',85),False,False,0)

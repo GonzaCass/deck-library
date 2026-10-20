@@ -3,6 +3,7 @@ import threading,time,datetime,json
 import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib,GdkPixbuf,Pango
+from .inline_pages import InlineDialog
 from . import ports
 from .installations import save_settings
 
@@ -153,7 +154,7 @@ class CatalogMixin:
 
     def add_repository_dialog(self):
         from .gui import label
-        dialog=Gtk.Dialog(title='Agregar repositorio',transient_for=self,modal=True);dialog.set_default_size(640,360);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL);save=dialog.add_button('Agregar',Gtk.ResponseType.OK);save.get_style_context().add_class('primary')
+        dialog=InlineDialog(title='Agregar repositorio',transient_for=self,modal=True);dialog.set_default_size(640,360);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL);save=dialog.add_button('Agregar',Gtk.ResponseType.OK);save.get_style_context().add_class('primary')
         box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(10)
         box.pack_start(label('Cualquier proyecto de GitHub con releases para Linux: dirección completa o «usuario/repositorio».','muted'),False,False,0)
         repo=Gtk.Entry();repo.set_placeholder_text('https://github.com/usuario/proyecto');box.pack_start(repo,False,False,0)

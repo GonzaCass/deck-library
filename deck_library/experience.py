@@ -3,6 +3,7 @@ import pathlib,threading
 import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib,GdkPixbuf
+from .inline_pages import InlineDialog,InlineFileChooser
 from .installations import report,save_settings
 from . import cover_provider
 
@@ -133,7 +134,7 @@ class ExperienceMixin:
             self.wizard_results.pack_start(label('No se encontraron juegos. Añadir una carpeta o configurar el emulador.','muted'),False,False,0)
         self.wizard_results.show_all()
     def wizard_folder(self):
-        dialog=Gtk.FileChooserDialog(title='Carpeta de juegos',transient_for=self,action=Gtk.FileChooserAction.SELECT_FOLDER);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Buscar en esta carpeta',Gtk.ResponseType.OK)
+        dialog=InlineFileChooser(title='Carpeta de juegos',transient_for=self,action=Gtk.FileChooserAction.SELECT_FOLDER);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Buscar en esta carpeta',Gtk.ResponseType.OK)
         if dialog.run()==Gtk.ResponseType.OK:
             path=dialog.get_filename()
             for key in ('rom_roots','port_roots'):
@@ -169,7 +170,7 @@ class ExperienceMixin:
         self.artwork_busy=False;self.artwork_spinner.stop();self.artwork_bar.hide();self.set_status(f'{count} carátulas encontradas.'+(' Las faltantes se pueden buscar desde la ficha de cada juego.' if count<total else ''));return False
     def artwork_dialog(self,e):
         from .gui import label,button,wrap_row
-        dialog=Gtk.Dialog(title='Carátula · '+e.name,transient_for=self,modal=True);dialog.set_default_size(820,600);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
+        dialog=InlineDialog(title='Carátula · '+e.name,transient_for=self,modal=True);dialog.set_default_size(820,600);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(12)
         query=Gtk.Entry();query.set_text(cover_provider.title_for(e));row=Gtk.Box(spacing=10);row.pack_start(query,True,True,0);box.pack_start(row,False,False,0)
         status=label('Buscar una carátula en línea o elegir una imagen local.','muted');box.pack_start(status,False,False,0)
@@ -219,7 +220,7 @@ class ExperienceMixin:
         if not key:
             self.message('Falta la clave de SteamGridDB','Agregar la clave API en Ajustes. Es la misma cuenta que usa el plugin de Decky.');return
         account=pathlib.Path(e.metadata['steam_account']);appid=e.metadata['steam_appid']
-        dialog=Gtk.Dialog(title='Arte de Steam · '+e.name,transient_for=self,modal=True);dialog.set_default_size(900,660);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
+        dialog=InlineDialog(title='Arte de Steam · '+e.name,transient_for=self,modal=True);dialog.set_default_size(900,660);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(18);box.set_spacing(10)
         top=Gtk.Box(spacing=10);query=Gtk.Entry();query.set_text(cover_provider.title_for(e));top.pack_start(query,True,True,0);games=Gtk.ComboBoxText();top.pack_start(games,False,False,0);find=button('Buscar juego',lambda _:look(),True);top.pack_start(find,False,False,0);box.pack_start(top,False,False,0)
         status=label('','muted');box.pack_start(status,False,False,0)
@@ -321,7 +322,7 @@ class ExperienceMixin:
         account=e.metadata.get('steam_account')
         try:item=next(s for s in shortcuts(account) if s['appid']==e.metadata.get('steam_appid'))
         except (OSError,ValueError,StopIteration,TypeError):self.message('Acceso no disponible','Buscar juegos de nuevo para detectar los accesos de Steam.');return
-        dialog=Gtk.Dialog(title='Editar acceso de Steam',transient_for=self,modal=True);dialog.set_default_size(700,460);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(10)
+        dialog=InlineDialog(title='Editar acceso de Steam',transient_for=self,modal=True);dialog.set_default_size(700,460);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(10)
         fields={}
         for key,title in [('name','Nombre'),('exe','Ejecutable'),('startdir','Carpeta de inicio'),('options','Opciones de lanzamiento')]:
             box.pack_start(label(title,'muted'),False,False,0);field=Gtk.Entry();field.set_text(item[key]);fields[key]=field;box.pack_start(field,False,False,0)

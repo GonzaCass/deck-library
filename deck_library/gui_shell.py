@@ -1,6 +1,7 @@
 """Library-first shell: top navigation and persistent game tabs, without a sidebar."""
 import json,os,pathlib,threading
 from gi.repository import Gtk,Gdk,GLib,Pango,GdkPixbuf
+from .inline_pages import InlineDialog
 from .models import Store
 from .installations import settings,save_settings
 from .steam import find_accounts,active_account
@@ -16,7 +17,7 @@ class ShellMixin:
         self.ui_closed=False;self.ui_sources=[];self.library_focus_id=None;self.library_targets={};self.controller_mode=False
         self.connect('destroy',Gtk.main_quit);self.connect('destroy',self.close_ui_sources);self.connect('delete-event',lambda *_:not self.discard_game_edits());self.connect('key-press-event',self.library_key);self.connect('set-focus',self.library_focus_changed);self.connect('map',self.fit_window);self.connect('size-allocate',self.update_game_size);self.connect('size-allocate',lambda *_:self.update_controller_hints(self))
         root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.add(root);self.build_navigation(root)
-        overlay=Gtk.Overlay();root.pack_start(overlay,True,True,0);self.pages=PageStack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);overlay.add(self.pages);self.toast_widget=motion.Toast();overlay.add_overlay(self.toast_widget)
+        overlay=Gtk.Overlay();root.pack_start(overlay,True,True,0);self.pages=PageStack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);self.inline_workflows=[];self.workflow_stack=Gtk.Stack();self.workflow_stack.set_homogeneous(False);self.workflow_stack.add_named(self.pages,'main');overlay.add(self.workflow_stack);self.toast_widget=motion.Toast();overlay.add_overlay(self.toast_widget)
         self.build_library_page();self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.detail.set_border_width(20);self.pages.add_named(self.detail,'detail');self.settings_box=self.scrolled_page('settings');self.updates_box=self.scrolled_page('updates');self.catalog_box=self.scrolled_page('catalog');self.add_box=self.scrolled_page('add');self.pending_box=self.scrolled_page('pending')
         self.wizard_box=Gtk.Stack();self.wizard_box.set_homogeneous(False);wizard_scroll=self.new_scroll();wizard_scroll.add(self.wizard_box);self.pages.add_named(wizard_scroll,'welcome')
         footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);footer.set_margin_start(24);footer.set_margin_end(24);footer.set_margin_bottom(8);root.pack_end(footer,False,False,0)
@@ -53,9 +54,13 @@ class ShellMixin:
             caption=control.get_child();control.remove(caption);content=Gtk.Box(spacing=7);content.pack_start(Icon({'Biblioteca':'library','Catálogo de ports':'plus','Actualizaciones':'download','Ajustes':'sliders'}[name],18),False,False,0);content.pack_start(caption,False,False,0);control.add(content);control.get_accessible().set_name(name)
             if name=='Actualizaciones':
                 content.pack_start(self.update_badge,False,False,0)
+        self.steam_library_button=button('Añadir Deck Library a Steam',self.add_library_to_steam,True);bar.pack_start(self.steam_library_button,False,False,0)
         from .gui_account import account_dialog
         from .ui_components import ActionButton
         account_button=ActionButton('Cuenta','community',lambda _:account_dialog(self),'quiet');account_button.caption.set_no_show_all(True);account_button.caption.hide();account_button.get_accessible().set_name('Cuenta');account_button.set_tooltip_text('Cuenta');bar.pack_end(account_button,False,False,0)
+        self.navigation_controls=[*self.nav_buttons.values(),self.steam_library_button,account_button]
+        # Keep all tabs and the Steam action reachable at compact widths.
+        header_scroll=Gtk.ScrolledWindow();header_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);header_scroll.set_overlay_scrolling(False);root.remove(bar);header_scroll.add(bar);root.pack_start(header_scroll,False,False,0);root.reorder_child(header_scroll,0)
         self.update_banner=Gtk.Box(spacing=12);self.update_banner.set_no_show_all(True);self.update_banner.get_style_context().add_class('banner');self.banner_text=label('');self.banner_action=button('Ver',lambda _:self.banner_clicked());self.update_banner.pack_start(self.banner_text,True,True,0);self.update_banner.pack_end(self.banner_action,False,False,0);root.pack_start(self.update_banner,False,False,0)
     def scrolled_page(self,name):
         scroll=self.new_scroll();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);box.set_border_width(24);box.set_margin_end(8);scroll.add(box);self.pages.add_named(scroll,name);return box
@@ -171,7 +176,7 @@ class ShellMixin:
         self.settings_box.show_all();self.pages.set_visible_child_name('settings')
     def appearance_dialog(self):
         from .gui import label,button
-        dialog=Gtk.Dialog(title='Carátulas y apariencia',transient_for=self,modal=True);dialog.set_default_size(760,600);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(12);combo,key=self.provider_fields(box);animations=Gtk.CheckButton(label='Animaciones');animations.set_active(self.preferences.get('animations',True));box.pack_start(animations,False,False,0);self.fit_dialog(dialog);dialog.show_all()
+        dialog=InlineDialog(title='Carátulas y apariencia',transient_for=self,modal=True);dialog.set_default_size(760,600);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(12);combo,key=self.provider_fields(box);animations=Gtk.CheckButton(label='Animaciones');animations.set_active(self.preferences.get('animations',True));box.pack_start(animations,False,False,0);self.fit_dialog(dialog);dialog.show_all()
         if dialog.run()==Gtk.ResponseType.OK:
             self.preferences.update(artwork_provider=combo.get_active_id(),steamgriddb_key=key.get_text().strip(),animations=animations.get_active());save_settings(self.preferences,self.store);self.apply_motion();self.fetch_covers()
         dialog.destroy()

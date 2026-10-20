@@ -61,4 +61,14 @@ class CoreTests(unittest.TestCase):
         store=Store(self.root/'data');store.root.mkdir();store.path.write_text('{"schema":99,"entries":[]}')
         with self.assertRaises(ValueError):store.load()
 
+class LauncherNoticeTests(unittest.TestCase):
+    def test_launch_errors_are_recorded_without_opening_a_system_dialog(self):
+        import contextlib,io
+        from deck_library.runtime import show_error
+        with tempfile.TemporaryDirectory() as tmp:
+            store=Store(tmp);output=io.StringIO()
+            with patch('subprocess.run',side_effect=AssertionError('No native error dialogs')),contextlib.redirect_stderr(output):show_error('Falta el juego.',store)
+            self.assertEqual(json.loads((store.root/'launch-notice.json').read_text())['message'],'Falta el juego.')
+            self.assertIn('Falta el juego.',output.getvalue())
+
 if __name__=='__main__':unittest.main()

@@ -1,5 +1,11 @@
 # Validación
 
+## Versión 0.18.0 — 2026-10-19
+
+Se superaron 674 pruebas, incluidas 46 de GTK. Se comprueba que los avisos, confirmaciones y carátulas no crean ventanas adicionales; páginas internas anidadas conservan el tamaño de la app; B/Círculo vuelve al nivel anterior y recupera el foco. El explorador local valida archivos y carpetas, y conserva la confirmación explícita antes de reemplazar un archivo. El cierre con B respeta los bloqueos de tareas activas. Los errores del lanzador se guardan localmente y aparecen dentro de la app, sin ejecutar kdialog. El botón de Steam usa la cola existente y la cabecera admite 840 píxeles. Cuenta y comunidad también se validan dentro de la ventana principal.
+
+Se revisó visualmente la pantalla interna de carátulas a 1280×760. La prueba física en modo Juego queda pendiente. No se abrieron juegos ni se cambiaron sus ajustes. Las aplicaciones externas solo se abren mediante las acciones explícitas correspondientes.
+
 ## Versión 0.17.2 — 2026-10-19
 
 Se superaron 666 pruebas, incluidas 39 de GTK. Se comprueban el nombre del juego como título del catálogo y del port como subtítulo, búsqueda por ambos nombres, descripción y diseño a 840 píxeles. Las pruebas de metadatos cubren la prioridad de la API actual sobre las listas antiguas, conservación de imágenes al normalizar el catálogo, alternativa del icono cuando falla la carátula, imágenes de más de 2 MB, reintento de errores de descarga y búsqueda de portadas por el título original.

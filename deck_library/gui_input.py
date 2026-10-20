@@ -1,4 +1,4 @@
-"""Shared keyboard and gamepad navigation, including modal tasks."""
+"""Shared keyboard and gamepad navigation, including embedded tasks."""
 from gi.repository import Gtk,Gdk,GLib
 
 class InputMixin:
@@ -28,7 +28,8 @@ class InputMixin:
         hint=getattr(window,'_deck_controller_hints',None) if window is not self else getattr(self,'controller_hint',None)
         if hint is None:return
         focus=window.get_focus();activate='Seleccionar';back='Volver'
-        if window is not self:back='Cerrar'
+        if window is self and getattr(self,'inline_workflows',[]):back='Volver'
+        elif window is not self:back='Cerrar'
         elif self.pages.get_visible_child_name()=='detail':back='Biblioteca' if self.game_tab=='profiles' else 'Volver al juego'
         elif self.pages.get_visible_child_name()!='library':back='Biblioteca'
         if self.current_popover(window) or isinstance(Gtk.grab_get_current(),Gtk.MenuShell):back='Cerrar menú'
@@ -94,15 +95,16 @@ class InputMixin:
 
     def ensure_controller_focus(self,window):
         if self.ui_closed:return False
+        workflow=self.inline_workflows[-1] if window is self and getattr(self,'inline_workflows',[]) else None
         focus=window.get_focus()
         if focus is not None and focus.get_mapped() and focus.is_sensitive():
             self.mark_controller_focus(window,focus);return False
-        if window is self and self.pages.get_visible_child_name()=='library':
+        if not workflow and window is self and self.pages.get_visible_child_name()=='library':
             self.focus_library()
             if self.get_focus() is not None and self.get_focus().get_mapped():return False
-        targets=self.control_targets(self.current_popover(window) or window)
+        targets=self.control_targets(self.current_popover(window) or workflow or window)
         preferred=None
-        if window is self and self.pages.get_visible_child_name()=='detail':
+        if not workflow and window is self and self.pages.get_visible_child_name()=='detail':
             preferred=getattr(self,'game_play_button',None) if self.game_tab=='profiles' else getattr(self.game_pages.get_visible_child(),'back_control',None)
         target=preferred if preferred in targets else next(iter(targets),None)
         if target:target.grab_focus();self.mark_controller_focus(window,target);self.reveal_focus(target)
@@ -110,7 +112,7 @@ class InputMixin:
 
     def move_control_focus(self,window,direction):
         from .navigation import control_neighbour
-        popover=self.current_popover(window);targets=self.control_targets(popover or window);focus=window.get_focus();rectangles={}
+        popover=self.current_popover(window);workflow=self.inline_workflows[-1] if window is self and getattr(self,'inline_workflows',[]) else None;targets=self.control_targets(popover or workflow or window);focus=window.get_focus();rectangles={}
         for index,widget in enumerate(targets):
             point=widget.translate_coordinates(window,0,0)
             if point:rectangles[index]=(*point,widget.get_allocated_width(),widget.get_allocated_height())
@@ -238,7 +240,8 @@ class InputMixin:
         if hasattr(self,'controller_hint'):self.controller_hint.show()
         window=window or self
         self.prepare_controller_window(window)
-        handler=getattr(window,'account_controller',None)
+        workflow=self.inline_workflows[-1] if window is self and getattr(self,'inline_workflows',[]) else None
+        handler=getattr(workflow or window,'account_controller',None)
         if handler and handler(action):return True
         grab=Gtk.grab_get_current()
         if isinstance(grab,Gtk.MenuShell):
@@ -248,6 +251,7 @@ class InputMixin:
             if action=='activate' and current:grab.activate_item(current,True);return True
             if action in ('up','down') and items:
                 index=items.index(current) if current in items else -1;grab.select_item(items[(index+(1 if action=='down' else -1))%len(items)]);return True
+        if workflow and action in ('previous_tab','next_tab','search'):return True
         if action in ('previous_tab','next_tab') and window is self:
             names=list(self.nav_buttons);active={'library':0,'detail':0,'catalog':1,'updates':2,'settings':3}.get(self.pages.get_visible_child_name(),0);self.nav_buttons[names[(active+(-1 if action=='previous_tab' else 1))%len(names)]].clicked();return True
         if action=='back':
@@ -256,7 +260,8 @@ class InputMixin:
                 anchor=popover.get_relative_to();popover.popdown()
                 if anchor:anchor.grab_focus();self.mark_controller_focus(window,anchor)
                 return True
-            if isinstance(window,Gtk.Dialog):window.response(Gtk.ResponseType.CANCEL)
+            if workflow:workflow.cancel()
+            elif isinstance(window,Gtk.Dialog):window.response(Gtk.ResponseType.CANCEL)
             elif window is self:
                 if self.pages.get_visible_child_name()=='detail':self.back_from_game()
                 elif self.pages.get_visible_child_name()!='library':self.open_library()
@@ -269,7 +274,7 @@ class InputMixin:
         if action=='search' and window is self:
             entry=self.catalog_search if self.pages.get_visible_child_name()=='catalog' and hasattr(self,'catalog_search') else self.search
             entry.grab_focus();return True
-        if window is self and self.move_library_focus(action):return True
+        if not workflow and window is self and self.move_library_focus(action):return True
         focus=window.get_focus()
         if action=='activate':
             if not self.control_is_shown(focus):self.ensure_controller_focus(window);return True

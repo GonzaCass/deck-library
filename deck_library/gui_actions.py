@@ -1,6 +1,7 @@
 """Library actions and background work, independent of the window layout."""
 import json,os,pathlib,shlex,subprocess,sys,threading
 from gi.repository import Gtk,GLib,Pango
+from .inline_pages import InlineDialog,InlineFileButton
 from .models import Store,Entry
 from .discovery import scan,available_emulators,nice_name,SYSTEMS
 from .runtime import diagnostics,clean_environment
@@ -13,6 +14,13 @@ class ActionsMixin:
         for child in box.get_children():box.remove(child)
     def toast(self,text):self.toast_widget.show_text(text)
     def poll_sync(self):
+        notice=self.store.root/'launch-notice.json'
+        if notice.is_file():
+            reading=notice.with_name('launch-notice-reading.json')
+            try:
+                notice.replace(reading);value=json.loads(reading.read_text());reading.unlink()
+                if isinstance(value,dict) and isinstance(value.get('message'),str):self.message('No se pudo iniciar el juego',value['message'])
+            except (OSError,ValueError):pass
         path=self.store.root/'last-sync.json'
         try:
             if path.exists() and path.stat().st_mtime>self.last_sync_seen:
@@ -27,9 +35,9 @@ class ActionsMixin:
         return (', '.join(parts) or 'Cambios guardados').capitalize()+'. Abrir Steam para verlos.'
     def set_status(self,text):self.status.set_text(text)
     def message(self,title,text):
-        dialog=Gtk.MessageDialog(transient_for=self,modal=True,message_type=Gtk.MessageType.INFO,buttons=Gtk.ButtonsType.OK,text=title);dialog.format_secondary_text(text);self.fit_dialog(dialog);dialog.show_all();dialog.run();dialog.destroy()
+        page=InlineDialog(title=title,transient_for=self);page.get_content_area().pack_start(label(text,'subtitle'),False,False,0);page.add_button('Volver',Gtk.ResponseType.CLOSE);page.connect('response',lambda *_:page.destroy());page._mount()
     def confirm(self,title,text,accept='Continuar',danger=False):
-        dialog=Gtk.MessageDialog(transient_for=self,modal=True,message_type=Gtk.MessageType.QUESTION,buttons=Gtk.ButtonsType.NONE,text=title);dialog.format_secondary_text(text);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL)
+        dialog=InlineDialog(title=title,transient_for=self);dialog.get_content_area().pack_start(label(text,'subtitle'),False,False,0);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL)
         action=dialog.add_button(accept,Gtk.ResponseType.OK)
         if danger:action.get_style_context().add_class('danger')
         else:action.get_style_context().add_class('primary')
@@ -118,7 +126,7 @@ class ActionsMixin:
             issues,log=diagnostics(e,self.store);GLib.idle_add(self.show_diagnostic,e,issues,log)
         threading.Thread(target=work,daemon=True).start()
     def show_diagnostic(self,e,issues,log):
-        dialog=Gtk.Dialog(title='Diagnóstico · '+e.name,transient_for=self,modal=True);dialog.set_default_size(850,530);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
+        dialog=InlineDialog(title='Diagnóstico · '+e.name,transient_for=self,modal=True);dialog.set_default_size(850,530);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(20);box.pack_start(label('\n'.join(issues) if issues else 'Rutas y programa disponibles. Esto no garantiza la compatibilidad del juego.','subtitle'),False,False,12)
         scroll=self.new_scroll();view=Gtk.TextView();view.set_editable(False);view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR);view.get_buffer().set_text(log or 'Sin registro todavía. Ejecutar el juego y volver a revisar.');scroll.add(view);box.pack_start(scroll,True,True,0)
         self.fit_dialog(dialog);dialog.show_all();dialog.run();dialog.destroy();self.set_status('Diagnóstico revisado.');return False
@@ -167,13 +175,13 @@ class ActionsMixin:
     def failed(self,text):self.add_button.set_sensitive(True);self.message('No se pudo guardar',text);self.set_status('La biblioteca de Steam no se modificó.');return False
     def manual(self,existing=None):
         if existing and existing.kind=='steam':self.steam_edit_dialog(existing);return
-        dialog=Gtk.Dialog(title='Editar juego' if existing else 'Agregar un juego',transient_for=self,modal=True);dialog.set_default_size(650,510);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL);dialog.add_button('Guardar',Gtk.ResponseType.OK)
+        dialog=InlineDialog(title='Editar juego' if existing else 'Agregar un juego',transient_for=self,modal=True);dialog.set_default_size(650,510);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL);dialog.add_button('Guardar',Gtk.ResponseType.OK)
         box=dialog.get_content_area();box.set_border_width(22);box.set_spacing(12)
         kind=Gtk.ComboBoxText();kinds=['Port o app de Linux','Juego emulado','Comando personalizado']
         for k in kinds:kind.append_text(k)
         kind.set_active(1 if existing and existing.kind=='emulated' else 2 if existing else 0);box.pack_start(label('Tipo','muted'),False,False,0);box.pack_start(kind,False,False,0)
         name=Gtk.Entry();name.set_placeholder_text('Nombre en Steam');name.set_text(existing.name if existing else '');box.pack_start(name,False,False,0)
-        file_=Gtk.FileChooserButton(title='Elegir juego o programa',action=Gtk.FileChooserAction.OPEN);file_.set_hexpand(True)
+        file_=InlineFileButton(title='Elegir juego o programa',action=Gtk.FileChooserAction.OPEN);file_.set_hexpand(True)
         if existing and existing.source:file_.set_filename(existing.source)
         def chosen(widget):
             path=widget.get_filename()

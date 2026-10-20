@@ -1,6 +1,7 @@
 """Screen-sized library workflows and non-modal pending Steam changes."""
 import os,pathlib,sys,threading
 from gi.repository import Gtk,Gdk,GLib
+from .inline_pages import InlineDialog
 from .models import Entry
 
 class LibraryToolsMixin:
@@ -10,6 +11,7 @@ class LibraryToolsMixin:
         if os.environ.get('SteamAppId') or '--gaming' in sys.argv:self.fullscreen()
         return False
     def fit_dialog(self,dialog):
+        if isinstance(dialog,InlineDialog):return
         if getattr(dialog,'_deck_fitted',False):return
         dialog._deck_fitted=True
         display=Gdk.Display.get_default();monitor=display.get_monitor_at_window(self.get_window()) if self.get_window() else display.get_primary_monitor()
@@ -36,7 +38,7 @@ class LibraryToolsMixin:
     def conflicts_page(self):
         from .gui import label,button
         from .conflicts import analyze
-        dialog=Gtk.Dialog(title='Coincidencias e instalaciones',transient_for=self,modal=True);dialog.set_default_size(760,580);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(16)
+        dialog=InlineDialog(title='Coincidencias e instalaciones',transient_for=self,modal=True);dialog.set_default_size(760,580);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(16)
         status=label('Revisando rutas e instalaciones…','muted');box.pack_start(status,False,False,8);results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);box.pack_start(results,True,True,0);alive=[True]
         def show(rows,error):
             if not alive[0]:return False
@@ -65,7 +67,7 @@ class LibraryToolsMixin:
         from .gui import label,button
         from .emulator_settings import inspect_emulator,set_language
         from .discovery import available_emulators
-        dialog=Gtk.Dialog(title='Emulador · '+e.platform,transient_for=self,modal=True);dialog.set_default_size(700,500);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(12)
+        dialog=InlineDialog(title='Emulador · '+e.platform,transient_for=self,modal=True);dialog.set_default_size(700,500);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(12)
         state=inspect_emulator(e,self.preferences);text=label(state['summary']);text.set_selectable(True);text.set_max_width_chars(65);box.pack_start(text,False,False,0)
         if state['languages']:
             combo=Gtk.ComboBoxText()

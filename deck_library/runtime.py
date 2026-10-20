@@ -80,22 +80,21 @@ def prepare_eden_profile(entry,store,env):
     env['XDG_DATA_HOME']=str(paths['data'].parent)
     return env
 
-def show_error(message):
-    if shutil.which('kdialog'):
-        try:subprocess.run(['kdialog','--title','Deck Library','--error',message],env=clean_environment(),timeout=120)
-        except (OSError,subprocess.TimeoutExpired):pass
-    else:print(message,file=sys.stderr)
+def show_error(message,store=None):
+    print(message,file=sys.stderr)
+    try:atomic_json((store or Store()).root/'launch-notice.json',{'message':str(message),'time':time.time()})
+    except OSError:pass
 
 def launch(entry,store=None,notify=True):
     store=store or Store(); issues,_=diagnostics(entry,store)
     # Old error logs inform the diagnostic panel, but do not prevent trying a repaired launch.
     blocking=[i for i in issues if i.startswith(('No se encuentra','El programa no tiene','Un ejecutable Windows','Falta el entorno'))]
     if blocking:
-        if notify:show_error('\n'.join(blocking))
+        if notify:show_error('\n'.join(blocking),store)
         return 1
     try:env=prepare_eden_profile(entry,store,clean_environment())
     except (OSError,configparser.Error,RuntimeError) as error:
-        if notify:show_error('No se pudo preparar '+entry.name+'.\n'+str(error))
+        if notify:show_error('No se pudo preparar '+entry.name+'.\n'+str(error),store)
         return 1
     folder=store.root/'logs'; folder.mkdir(parents=True,exist_ok=True,mode=0o700)
     log=folder/(entry.id+'.log'); start=time.monotonic()
@@ -117,7 +116,7 @@ def launch(entry,store=None,notify=True):
         try:process=subprocess.Popen(command,cwd=pathlib.Path.home() if entry.platform=='Switch' else entry.cwd if pathlib.Path(entry.cwd).is_dir() else pathlib.Path.home(),env=env,stdout=output,stderr=subprocess.STDOUT,start_new_session=True)
         except OSError as error:
             output.write(str(error)+'\n')
-            if notify:show_error('No se pudo abrir '+entry.name+'.\n'+str(error))
+            if notify:show_error('No se pudo abrir '+entry.name+'.\n'+str(error),store)
             return 1
         previous={};stop_requested=False
         def forward(signum,frame):
@@ -139,5 +138,5 @@ def launch(entry,store=None,notify=True):
     atomic_json(folder/(entry.id+'.status.json'),{'exit':code,'seconds':round(time.monotonic()-start,1)})
     if code and notify and not stop_requested:
         issues,details=diagnostics(entry,store)
-        show_error(entry.name+' terminó con error '+str(code)+'.\n\n'+('\n'.join(issues) or details[-2200:])+'\n\nRegistro local: '+str(log))
+        show_error(entry.name+' terminó con error '+str(code)+'.\n\n'+('\n'.join(issues) or details[-2200:])+'\n\nRegistro local: '+str(log),store)
     return code if code>=0 else 128-code

@@ -3,6 +3,7 @@ import datetime,os,pathlib,subprocess,sys,threading
 import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib
+from .inline_pages import InlineFileChooser
 from . import __version__,updates
 from .installations import save_settings
 
@@ -41,7 +42,7 @@ class UpdatesMixin:
         if not info:self.message('WiiCompiled','No se pudo consultar la última versión.');return
         image=wiiupdate.find_image(self.entries)
         if not image:
-            chooser=Gtk.FileChooserDialog(title='Elegir la imagen PAL limpia de Mario Kart Wii (RMCP01)',transient_for=self,action=Gtk.FileChooserAction.OPEN);chooser.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Elegir',Gtk.ResponseType.OK)
+            chooser=InlineFileChooser(title='Elegir la imagen PAL limpia de Mario Kart Wii (RMCP01)',transient_for=self,action=Gtk.FileChooserAction.OPEN);chooser.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Elegir',Gtk.ResponseType.OK)
             if chooser.run()==Gtk.ResponseType.OK:image=chooser.get_filename()
             chooser.destroy()
             if not image:return
@@ -169,7 +170,7 @@ class UpdatesMixin:
         source=project2099_update.source_for(entry,self.entries)
         if not source and automatic:self.set_status('Project-2099 necesita indicar la copia original para actualizarse.');return
         if not source:
-            chooser=Gtk.FileChooserDialog(title='Elegir la copia Xbox 360 de Edge of Time',transient_for=self,action=Gtk.FileChooserAction.OPEN);chooser.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Elegir',Gtk.ResponseType.OK)
+            chooser=InlineFileChooser(title='Elegir la copia Xbox 360 de Edge of Time',transient_for=self,action=Gtk.FileChooserAction.OPEN);chooser.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Elegir',Gtk.ResponseType.OK)
             if chooser.run()==Gtk.ResponseType.OK:source=chooser.get_filename()
             chooser.destroy()
             if not source:return

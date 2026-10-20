@@ -8,6 +8,8 @@ class DeckUITests(unittest.TestCase):
         from deck_library import gui,gui_shell
         from deck_library.installations import DEFAULTS
         from deck_library.models import Store,Entry
+        from deck_library.inline_pages import InlineDialog
+        self.inline=InlineDialog
         self.gui=gui;self.temp=tempfile.TemporaryDirectory();self.store=Store(self.temp.name)
         self.store.save([Entry('Juego de prueba',['/bin/true'],kind='emulated',platform='Switch',source='/tmp/test.nsp',game_id='0100000000000000')])
         self.patches=[patch.object(gui_shell,'Store',return_value=self.store),patch.object(gui_shell,'settings',return_value={**DEFAULTS,'onboarding_complete':True,'check_updates':False,'artwork_provider':'off','animations':False,'community_ratings':False,'eden_config':str(pathlib.Path(self.temp.name)/'eden')}),patch.object(gui.Window,'discover',return_value=False),patch.object(gui.Window,'load_catalog',return_value=None),patch.object(gui_shell,'find_accounts',return_value=[]),patch.object(gui_shell,'active_account',return_value=None)]
@@ -35,22 +37,22 @@ class DeckUITests(unittest.TestCase):
         (self.store.root/'pending.json').unlink();self.w.refresh_pending();self.assertFalse(self.w.pending_bar.get_visible())
     def test_dynamic_conflicts_keep_scroll_inside_dialog(self):
         from gi.repository import Gtk,GLib
-        original=Gtk.Dialog.run;sizes=[]
+        original=self.inline.run;sizes=[]
         def run(dialog):
             def capture():sizes.append(dialog.get_size());dialog.response(Gtk.ResponseType.CLOSE);return False
             GLib.timeout_add(300,capture);return original(dialog)
         rows=[{'title':'Coincidencia '+str(i),'note':'Revisar las rutas','paths':['/tmp/a','/tmp/b']} for i in range(50)]
-        with patch('deck_library.conflicts.analyze',return_value=rows),patch.object(Gtk.Dialog,'run',run):self.w.conflicts_page()
-        self.assertLessEqual(sizes[0].height,736);self.assertLessEqual(sizes[0].width,1280)
+        with patch('deck_library.conflicts.analyze',return_value=rows),patch.object(self.inline,'run',run):self.w.conflicts_page()
+        self.assertLessEqual(sizes[0].height,760);self.assertLessEqual(sizes[0].width,1280)
 
     def test_long_confirmation_keeps_buttons_inside_screen(self):
         from gi.repository import Gtk,GLib
-        original=Gtk.Dialog.run;sizes=[]
+        original=self.inline.run;sizes=[]
         def run(dialog):
             def capture():sizes.append(dialog.get_size());dialog.response(Gtk.ResponseType.CANCEL);return False
             GLib.timeout_add(200,capture);return original(dialog)
-        with patch.object(Gtk.Dialog,'run',run):self.w.confirm('Vista previa','\n'.join('Opción: valor anterior → valor nuevo' for _ in range(80)))
-        self.assertLessEqual(sizes[0].height,736)
+        with patch.object(self.inline,'run',run):self.w.confirm('Vista previa','\n'.join('Opción: valor anterior → valor nuevo' for _ in range(80)))
+        self.assertLessEqual(sizes[0].height,760)
 
     def test_game_profiles_are_inline_and_apply_with_the_visible_preview(self):
         from gi.repository import Gtk
@@ -61,7 +63,7 @@ class DeckUITests(unittest.TestCase):
             if isinstance(widget,Gtk.Container):
                 for child in widget.get_children():out.extend(buttons(child))
             return out
-        with patch('deck_library.presets.preview',return_value=(pathlib.Path(self.temp.name)/'game.ini',[('Renderer.backend','0',1)])),patch('deck_library.presets.apply',return_value={'changes':1,'backup':'test'}) as apply,patch.object(Gtk.Dialog,'run',side_effect=AssertionError('Unexpected modal profile selector')):
+        with patch('deck_library.presets.preview',return_value=(pathlib.Path(self.temp.name)/'game.ini',[('Renderer.backend','0',1)])),patch('deck_library.presets.apply',return_value={'changes':1,'backup':'test'}) as apply,patch.object(self.inline,'run',side_effect=AssertionError('Unexpected modal profile selector')):
             self.w.show_detail(entry);self.w.pages.set_visible_child_name('detail');self.settle()
             self.assertFalse(any(isinstance(c,Gtk.StackSwitcher) for c in self.w.detail.get_children()))
             apply_button=next(b for b in buttons(self.w.detail) if b.get_label()=='Aplicar ajustes');self.assertTrue(apply_button.get_sensitive());apply_button.emit('clicked');self.settle();self.assertEqual(apply.call_count,1)
@@ -195,7 +197,7 @@ class DeckUITests(unittest.TestCase):
         from gi.repository import Gtk
         from deck_library.models import atomic_json
         entry=self.w.entries[0];atomic_json(self.store.root/'pending.json',{'ids':[entry.id]})
-        with patch.object(Gtk.Dialog,'run',side_effect=AssertionError('Unexpected pending modal')):self.w.pending_details()
+        with patch.object(self.inline,'run',side_effect=AssertionError('Unexpected pending modal')):self.w.pending_details()
         self.assertEqual(self.w.pages.get_visible_child_name(),'pending')
         def labels(widget):
             result=[widget.get_text()] if isinstance(widget,Gtk.Label) else []
@@ -230,7 +232,7 @@ class DeckUITests(unittest.TestCase):
     def test_community_dialog_bounds_and_guided_publication(self):
         from gi.repository import Gtk,GLib
         from deck_library.community import Client
-        original=Gtk.Dialog.run;sizes=[];labels=[]
+        original=self.inline.run;sizes=[];labels=[]
         def walk(widget):
             if isinstance(widget,Gtk.Button):labels.append(widget.get_label())
             if isinstance(widget,Gtk.Container):
@@ -247,8 +249,8 @@ class DeckUITests(unittest.TestCase):
                 stack=stacks[0];self.assertEqual(stack.get_visible_child_name(),'publish')
                 dialog.response(Gtk.ResponseType.CLOSE);return False
             GLib.timeout_add(200,capture);return original(dialog)
-        with patch.object(Client,'search',return_value=[]),patch.object(Gtk.Dialog,'run',run):self.w.community_dialog(self.w.entries[0],mode='publish')
-        self.assertLessEqual(sizes[0].width,1232);self.assertLessEqual(sizes[0].height,696)
+        with patch.object(Client,'search',return_value=[]),patch.object(self.inline,'run',run):self.w.community_dialog(self.w.entries[0],mode='publish')
+        self.assertLessEqual(sizes[0].width,1280);self.assertLessEqual(sizes[0].height,760)
         self.assertIn('Revisar mis ajustes',labels);self.assertIn('Publicar perfil',labels)
 
     def test_catalog_recent_order_and_existing_ctr_alternative(self):
@@ -321,11 +323,11 @@ class DeckUITests(unittest.TestCase):
     def test_account_dialog_fits_small_deck_window(self):
         from deck_library.gui_account import account_dialog
         from gi.repository import Gtk,GLib
-        self.w.resize(840,640);self.settle();sizes=[];original=Gtk.Dialog.run
+        self.w.resize(840,640);self.settle();sizes=[];original=self.inline.run
         def run(dialog):
             def capture():sizes.append(dialog.get_size());dialog.response(Gtk.ResponseType.CLOSE);return False
             GLib.timeout_add(200,capture);return original(dialog)
-        with patch.object(Gtk.Dialog,'run',run):account_dialog(self.w)
+        with patch.object(self.inline,'run',run):account_dialog(self.w)
         self.assertLessEqual(sizes[0].width,840);self.assertLessEqual(sizes[0].height,640)
 
     def populate_games(self,count=20):
@@ -436,6 +438,76 @@ class DeckUITests(unittest.TestCase):
         self.w.prepare_controller_window(dialog);dialog.show_all();button.grab_focus();self.settle()
         self.assertTrue(button.get_style_context().has_class('controller-focus'));self.assertTrue(dialog._deck_controller_hints.get_visible())
         GLib.idle_add(lambda:(self.w.controller_action('back',dialog),False)[1]);self.assertEqual(dialog.run(),Gtk.ResponseType.CANCEL);dialog.destroy()
+
+    def test_notice_is_an_internal_page_and_circle_restores_the_game_focus(self):
+        from gi.repository import Gtk
+        self.w.select_game(self.w.entries[0]);self.settle();focus=self.w.game_play_button;focus.grab_focus()
+        windows=set(Gtk.Window.list_toplevels());self.w.message('Aviso','Detalle del cambio.');self.settle()
+        page=self.w.inline_workflows[-1]
+        self.assertNotIsInstance(page,Gtk.Window);self.assertIs(self.w.workflow_stack.get_visible_child(),page)
+        self.assertEqual(set(Gtk.Window.list_toplevels()),windows)
+        self.assertTrue(self.w.get_focus().get_style_context().has_class('controller-focus'))
+        self.w.controller_action('back');self.settle()
+        self.assertFalse(self.w.inline_workflows);self.assertIs(self.w.workflow_stack.get_visible_child(),self.w.pages);self.assertIs(self.w.get_focus(),focus)
+
+    def test_nested_inline_pages_restore_the_parent_without_changing_window_size(self):
+        from gi.repository import Gtk,GLib
+        self.w.resize(840,640);self.settle();size=self.w.get_size();windows=set(Gtk.Window.list_toplevels())
+        parent=self.inline(title='Carátulas',transient_for=self.w);parent.add_button('Volver',Gtk.ResponseType.CLOSE);parent._mount();self.settle()
+        child=self.inline(title='Elegir archivo',transient_for=parent);child.add_button('Cancelar',Gtk.ResponseType.CANCEL)
+        seen=[]
+        def check():
+            seen.append(self.w.workflow_stack.get_visible_child() is child);seen.append(set(Gtk.Window.list_toplevels())==windows);self.w.last_controller_action=('',0);self.w.controller_action('back');return False
+        GLib.timeout_add(120,check);self.assertEqual(child.run(),Gtk.ResponseType.CANCEL);child.destroy();self.settle()
+        self.assertEqual(seen,[True,True]);self.assertIs(self.w.workflow_stack.get_visible_child(),parent);self.assertEqual(self.w.get_size(),size)
+        parent.destroy();self.assertFalse(self.w.inline_workflows)
+
+    def test_confirmation_and_artwork_use_only_the_main_window(self):
+        from gi.repository import Gtk,GLib
+        from deck_library import cover_provider
+        windows=set(Gtk.Window.list_toplevels());original=self.inline.run;seen=[]
+        def run(page):
+            def check():
+                seen.append(self.w.workflow_stack.get_visible_child() is page and set(Gtk.Window.list_toplevels())==windows);page.response(Gtk.ResponseType.OK);return False
+            GLib.timeout_add(100,check);return original(page)
+        with patch.object(self.inline,'run',run),patch.object(cover_provider,'search',return_value=[]):
+            self.assertTrue(self.w.confirm('Aplicar cambio','Detalle','Aplicar'));self.w.artwork_dialog(self.w.entries[0])
+        self.assertEqual(seen,[True,True]);self.assertFalse(self.w.inline_workflows)
+
+    def test_inline_file_browser_validates_files_folders_and_overwrite(self):
+        from gi.repository import Gtk
+        from deck_library.inline_pages import InlineFileChooser
+        root=pathlib.Path(self.temp.name);file=root/'cover.png';file.write_bytes(b'image');folder=root/'games';folder.mkdir()
+        page=InlineFileChooser(transient_for=self.w);page.load(root);page._mount();self.settle()
+        page.response(Gtk.ResponseType.OK);self.assertIsNone(page._answer)
+        page.open_row(page.files,next(row for row in page.files.get_children() if row.path==folder));self.assertEqual(page.folder,folder)
+        page.load(root);row=next(row for row in page.files.get_children() if row.path==file);page.select(page.files,row);page.response(Gtk.ResponseType.OK);self.assertEqual(page.get_filename(),str(file));self.assertEqual(page._answer,Gtk.ResponseType.OK);page.destroy()
+        page=InlineFileChooser(transient_for=self.w,action=Gtk.FileChooserAction.SAVE);page.load(root);page.set_current_name('cover.png');page.set_do_overwrite_confirmation(True);page._mount()
+        with patch.object(self.w,'confirm',return_value=False):page.response(Gtk.ResponseType.OK)
+        self.assertIsNone(page._answer)
+        with patch.object(self.w,'confirm',return_value=True):page.response(Gtk.ResponseType.OK)
+        self.assertEqual(page._answer,Gtk.ResponseType.OK);page.destroy()
+        page=InlineFileChooser(transient_for=self.w,action=Gtk.FileChooserAction.SELECT_FOLDER);page.load(root)
+        self.assertTrue(all(row.path.is_dir() for row in page.files.get_children()));page.response(Gtk.ResponseType.OK);self.assertEqual(page.get_filename(),str(root));page.destroy()
+
+    def test_inline_busy_setup_cannot_be_closed_with_circle(self):
+        from gi.repository import Gtk
+        page=self.inline(title='Preparando',transient_for=self.w);page.add_button('Cerrar',Gtk.ResponseType.CLOSE);page.set_response_sensitive(Gtk.ResponseType.CLOSE,False);page._mount();self.settle()
+        self.w.controller_action('back');self.assertIsNone(page._answer)
+        page.set_response_sensitive(Gtk.ResponseType.CLOSE,True);self.w.last_controller_action=('',0);self.w.controller_action('back');self.assertEqual(page._answer,Gtk.ResponseType.CANCEL);page.destroy()
+
+    def test_header_steam_action_uses_existing_queue_and_fits_compact_width(self):
+        button=self.w.steam_library_button;self.assertEqual(button.get_label(),'Añadir Deck Library a Steam')
+        with patch.object(self.w,'current_account',return_value=pathlib.Path('/tmp/steam/config')),patch.object(self.w,'run_queue') as queued:
+            button.clicked();queued.assert_called_once()
+        self.w.resize(840,640);self.settle();self.assertLessEqual(self.w.get_size().width,840)
+
+    def test_launcher_error_is_consumed_inside_the_application(self):
+        from deck_library.models import atomic_json
+        path=self.store.root/'launch-notice.json';atomic_json(path,{'message':'Falta el ejecutable.'})
+        self.w.poll_sync();self.settle();self.assertEqual(len(self.w.inline_workflows),1);self.assertFalse(path.exists())
+        self.w.poll_sync();self.assertEqual(len(self.w.inline_workflows),1)
+        self.w.controller_action('back');self.settle();self.assertFalse(self.w.inline_workflows)
 
     def test_initial_library_shows_the_configured_view(self):
         self.assertEqual(self.w.library_stack.get_visible_child_name(),self.w.view)

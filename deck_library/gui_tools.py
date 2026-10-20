@@ -3,6 +3,7 @@ import datetime,json,pathlib,shlex,subprocess,sys,threading
 import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib
+from .inline_pages import InlineDialog,InlineFileChooser,InlineFileButton
 from .installations import settings,save_settings,report
 from .models import atomic_json
 from . import presets
@@ -57,7 +58,7 @@ class ToolsMixin:
     def gtaiv_dialog(self,e):
         from .gui import label,button,wrap_row
         from . import gtaiv
-        dialog=Gtk.Dialog(title='Arreglo de GTA IV',transient_for=self,modal=True)
+        dialog=InlineDialog(title='Arreglo de GTA IV',transient_for=self,modal=True)
         dialog.set_default_size(760,520);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(22);box.set_spacing(14)
         box.pack_start(label('GTA IV · FusionFix 4.0.5','title'),False,False,0)
@@ -100,7 +101,7 @@ class ToolsMixin:
         dialog.destroy()
 
     def pick_file(self,title,save=False):
-        dialog=Gtk.FileChooserDialog(title=title,transient_for=self,action=Gtk.FileChooserAction.SAVE if save else Gtk.FileChooserAction.OPEN)
+        dialog=InlineFileChooser(title=title,transient_for=self,action=Gtk.FileChooserAction.SAVE if save else Gtk.FileChooserAction.OPEN)
         dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar' if save else 'Elegir',Gtk.ResponseType.OK)
         if save:dialog.set_do_overwrite_confirmation(True);dialog.set_current_name('preset.json')
         result=dialog.get_filename() if dialog.run()==Gtk.ResponseType.OK else None;dialog.destroy();return result
@@ -114,7 +115,7 @@ class ToolsMixin:
             except GLib.Error:self.message('Carátula','Elegir un archivo de imagen compatible.')
     def installation_dialog(self):
         from .gui import label,button,wrap_row
-        dialog=Gtk.Dialog(title='Instalaciones y rutas',transient_for=self,modal=True);dialog.set_default_size(850,650);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL);dialog.add_button('Guardar y buscar',Gtk.ResponseType.OK)
+        dialog=InlineDialog(title='Instalaciones y rutas',transient_for=self,modal=True);dialog.set_default_size(850,650);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL);dialog.add_button('Guardar y buscar',Gtk.ResponseType.OK)
         scroll=self.new_scroll();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);box.set_border_width(20);scroll.add(box);dialog.get_content_area().pack_start(scroll,True,True,0)
         found=report(preferences=self.preferences);deck=found['emudeck']
         box.pack_start(label(('EmuDeck detectado' if deck['installed'] else 'EmuDeck no detectado. Elegir carpetas y emuladores instalados.')+'\nBiblioteca: '+deck['roms'],'title'),False,False,0)
@@ -124,7 +125,7 @@ class ToolsMixin:
             row=Gtk.Box(spacing=8);row.pack_start(label(title),True,True,0)
             view=Gtk.TextView();view.set_size_request(-1,60);view.get_buffer().set_text('\n'.join(self.preferences.get(key,[])));buffers[key]=view.get_buffer()
             def choose(_,buffer=buffers[key]):
-                picker=Gtk.FileChooserDialog(title='Elegir carpeta',transient_for=dialog,action=Gtk.FileChooserAction.SELECT_FOLDER);picker.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Agregar carpeta',Gtk.ResponseType.OK)
+                picker=InlineFileChooser(title='Elegir carpeta',transient_for=dialog,action=Gtk.FileChooserAction.SELECT_FOLDER);picker.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Agregar carpeta',Gtk.ResponseType.OK)
                 if picker.run()==Gtk.ResponseType.OK:
                     current=buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),True).strip();buffer.set_text(current+('\n' if current else '')+picker.get_filename())
                 picker.destroy()
@@ -147,7 +148,7 @@ class ToolsMixin:
         dialog.destroy()
     def content_dialog(self,e):
         from .gui import label,button,wrap_row
-        dialog=Gtk.Dialog(title='Contenido de Switch · '+e.name,transient_for=self,modal=True);dialog.set_default_size(870,620);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
+        dialog=InlineDialog(title='Contenido de Switch · '+e.name,transient_for=self,modal=True);dialog.set_default_size(870,620);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(12);status=label('Leyendo contenido…','muted');box.pack_start(status,False,False,0);scroll=self.new_scroll();rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);scroll.add(rows);box.pack_start(scroll,True,True,0)
         def fill():
             inventory=switch_inventory(e,config_dir=self.preferences.get('eden_config') or None)
@@ -209,7 +210,7 @@ class ToolsMixin:
         threading.Thread(target=work,daemon=True).start()
     def layout_dialog(self,e):
         from .gui import label,button,wrap_row
-        dialog=Gtk.Dialog(title='Controles recomendados · Minecraft',transient_for=self,modal=True);dialog.set_default_size(700,570);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(12)
+        dialog=InlineDialog(title='Controles recomendados · Minecraft',transient_for=self,modal=True);dialog.set_default_size(700,570);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(12)
         from .steam_input import local_profiles
         profiles=local_profiles(e)
         if profiles:
@@ -232,11 +233,11 @@ class ToolsMixin:
     def setup_wii_dialog(self):
         from .gui import label,button,wrap_row
         from .setup_wii import install,check_image
-        dialog=Gtk.Dialog(title='Preparar Mario Kart WiiCompiled',transient_for=self,modal=True);dialog.set_default_size(780,590);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(15)
+        dialog=InlineDialog(title='Preparar Mario Kart WiiCompiled',transient_for=self,modal=True);dialog.set_default_size(780,590);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(15)
         box.pack_start(label('Imagen → recompilación → optimización → Steam','title'),False,False,0)
         box.pack_start(label('Requiere una imagen limpia de Mario Kart Wii PAL (RMCP01). Se descarga el setup oficial 0.2.33 y el SDK si falta. Usa unos 20 GB temporales, tarda bastante y no sobrescribe una instalación existente.','muted'),False,False,0)
-        image=Gtk.FileChooserButton(title='Elegir imagen de Mario Kart Wii',action=Gtk.FileChooserAction.OPEN);box.pack_start(image,False,False,0)
-        setup=Gtk.FileChooserButton(title='Setup oficial existente (opcional)',action=Gtk.FileChooserAction.OPEN);box.pack_start(label('Setup oficial ya descargado (opcional)','muted'),False,False,0);box.pack_start(setup,False,False,0)
+        image=InlineFileButton(title='Elegir imagen de Mario Kart Wii',action=Gtk.FileChooserAction.OPEN);box.pack_start(image,False,False,0)
+        setup=InlineFileButton(title='Setup oficial existente (opcional)',action=Gtk.FileChooserAction.OPEN);box.pack_start(label('Setup oficial ya descargado (opcional)','muted'),False,False,0);box.pack_start(setup,False,False,0)
         status=label('Elegir la imagen para comenzar.','status');box.pack_start(status,True,True,0);cancel=threading.Event();busy=[False]
         def start(_):
             try:check_image(image.get_filename() or '')
@@ -261,12 +262,12 @@ class ToolsMixin:
     def project2099_dialog(self):
         from .gui import label,button,wrap_row
         from . import project2099
-        dialog=Gtk.Dialog(title='Preparar Project-2099',transient_for=self,modal=True)
+        dialog=InlineDialog(title='Preparar Project-2099',transient_for=self,modal=True)
         dialog.set_default_size(660,360);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_spacing(12);box.set_border_width(20)
         box.pack_start(label('Spider-Man: Edge of Time','title'),False,False,0)
         box.pack_start(label('Requiere la versión de Xbox 360; la de PS3 no es compatible. Instala la Beta 4.1 en español con Proton y un perfil inicial de 720p y 60 FPS.','muted'),False,False,0)
-        source=Gtk.FileChooserButton(title='Elegir ISO, ZIP o 7z de Xbox 360',action=Gtk.FileChooserAction.OPEN)
+        source=InlineFileButton(title='Elegir ISO, ZIP o 7z de Xbox 360',action=Gtk.FileChooserAction.OPEN)
         box.pack_start(source,False,False,0)
         destination=Gtk.Entry();destination.set_text(str(pathlib.Path.home()/'ports/project2099'))
         box.pack_start(label('Carpeta de destino vacía'),False,False,0);box.pack_start(destination,False,False,0)

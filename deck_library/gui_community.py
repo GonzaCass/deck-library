@@ -1,13 +1,14 @@
 """Public profiles, real ratings/comments and guided publication with a private account."""
 import threading
 from gi.repository import Gtk,GLib
+from .inline_pages import InlineDialog
 from .community import Client
 from . import presets,profile_display
 from .ui_components import ActionButton,text
 
 class CommunityMixin:
     def community_dialog(self,e,profile_id=None,mode='browse'):
-        dialog=Gtk.Dialog(title='Comunidad · '+e.name,transient_for=self,modal=True)
+        dialog=InlineDialog(title='Comunidad · '+e.name,transient_for=self,modal=True)
         width,height=self.get_size();dialog.set_default_size(min(1040,width-48),min(700,height-64));dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(18);box.set_spacing(12)
         client=Client(self.store,self.preferences.get('community_url','https://presets.jokerlan.xyz'))

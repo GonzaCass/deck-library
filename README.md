@@ -178,7 +178,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.17.2**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.18.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
@@ -225,3 +225,9 @@ The focus marker now follows every control: Play, profiles, settings, menus and 
 ### Catalog metadata (0.17.2)
 
 The current public Quiver API supplies game titles, project names, descriptions and artwork. Catalog rows show the game title first and the port name underneath; search matches either name. Current API metadata takes priority over older lists. Portrait artwork supports larger files, falls back to project icons and exact game/platform artwork, and retries failed downloads after one hour. The catalog cache refreshes once on upgrade to load the additional metadata. Projects from independent lists may lack these fields.
+
+### Single-window workflows (0.18.0)
+
+Notices, confirmations, artwork, local file selection, account, community and setup tools are pages inside the main application window. They create no secondary GTK windows and do not resize the Gaming Mode surface. Action buttons remain outside the scrolling body. Back/B/Circle returns through nested tasks and restores focus. Tasks that explicitly disable closing cannot be cancelled with Back. Existing synchronous task handlers use a GLib loop on the embedded page; rendering and background work continue. Launcher failures are recorded locally and shown inside Deck Library when it is running or next opened, without launching a system error dialog.
+
+The header includes **Añadir Deck Library a Steam**, using the existing pending Steam queue. The header scrolls horizontally on compact windows. Explicit actions that open Steam, emulator settings, external documentation or an external sign-in fallback still open their respective applications.
