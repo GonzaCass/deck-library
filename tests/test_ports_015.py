@@ -4,6 +4,45 @@ from deck_library import ports,originals,catalog_sources,project2099_update,proj
 from deck_library.models import Entry,Store
 
 class PortImprovements(unittest.TestCase):
+    def test_independent_list_keeps_game_headings_descriptions_and_platforms(self):
+        document='''## 🎮 Nintendo
+<details>
+<summary><strong>Golden Sun</strong></summary>
+### ⭐ [GSRecomp](https://github.com/author/gs)
+Native Game Boy Advance static recompilation.
+</details>
+<details>
+<summary><strong>Zelda &amp; friends</strong></summary>
+### [Project A](https://github.com/author/a)
+First adaptation.
+### [Project B](https://github.com/author/b)
+Second adaptation.
+</details>
+## Utilities
+<details>
+<summary><strong>Port Manager</strong></summary>
+### [Manager](https://github.com/author/manager)
+Manage ports.
+</details>'''
+        rows=catalog_sources.independent(document,ports.clean)
+        self.assertEqual(rows[0]['game_title'],'Golden Sun');self.assertEqual(rows[0]['list'],'Game Boy Advance');self.assertIn('static recompilation',rows[0]['description'])
+        self.assertEqual([r['game_title'] for r in rows[1:3]],['Zelda & friends']*2)
+        self.assertEqual(rows[1]['description'],'First adaptation.');self.assertEqual(rows[2]['description'],'Second adaptation.');self.assertFalse(rows[3]['game_title'])
+
+    def test_game_artwork_enriches_other_sources_only_on_exact_game_identity(self):
+        rows=[ports.clean({'repository':'a/one','name':'Opaque','game_title':'Golden Sun','category':'Nintendo'}),ports.clean({'repository':'a/two','name':'Golden Sun Fan Project'})]
+        get=lambda url:{'items':[{'title':'Golden Sun','libraryArt':{'capsule':'https://cdn.example/gs.png'},'originalSystems':['gba']}],'isDone':True}
+        catalog_sources.enrich_games(rows,get)
+        self.assertEqual(rows[0]['icon'],'https://cdn.example/gs.png');self.assertEqual(rows[0]['list'],'Game Boy Advance');self.assertFalse(rows[1]['icon'])
+
+    def test_artwork_can_be_retried_explicitly_without_waiting_for_backoff(self):
+        from deck_library import cover_provider
+        with tempfile.TemporaryDirectory() as tmp:
+            store=Store(tmp);item={'name':'Game','icon':'https://cdn.example/art','list':''}
+            with patch.object(cover_provider,'request',side_effect=OSError('offline')):self.assertFalse(ports.icon_path(store,item))
+            with patch.object(cover_provider,'request',return_value=b'\x89PNGtest') as request:
+                self.assertTrue(ports.icon_path(store,item,force=True));request.assert_called_once()
+
     def test_live_metadata_survives_old_lists_and_cache_normalization(self):
         def get(url):
             if '/release-status?' in url:return {'items':[{'slug':'native','provider':'github','repository':'author/native'}],'isDone':True}

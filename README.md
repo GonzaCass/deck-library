@@ -178,7 +178,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.18.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.18.1**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
@@ -231,3 +231,9 @@ The current public Quiver API supplies game titles, project names, descriptions 
 Notices, confirmations, artwork, local file selection, account, community and setup tools are pages inside the main application window. They create no secondary GTK windows and do not resize the Gaming Mode surface. Action buttons remain outside the scrolling body. Back/B/Circle returns through nested tasks and restores focus. Tasks that explicitly disable closing cannot be cancelled with Back. Existing synchronous task handlers use a GLib loop on the embedded page; rendering and background work continue. Launcher failures are recorded locally and shown inside Deck Library when it is running or next opened, without launching a system error dialog.
 
 The header includes **Añadir Deck Library a Steam**, using the existing pending Steam queue. The header scrolls horizontally on compact windows. Explicit actions that open Steam, emulator settings, external documentation or an external sign-in fallback still open their respective applications.
+
+### Port details and independent game identities (0.18.1)
+
+Catalog cards open an internal detail page rather than starting installation. The page identifies the original game separately from the port, shows source descriptions, requirements and available release metadata, and exposes installation/update as explicit actions. Transfer controls remain outside the clickable card body.
+
+The [independent list](https://github.com/Sebastrion/awesome-unofficial-pc-ports) stores game identities in HTML summary headings. The parser now retains them and each project description, without leaking one heading into another. Exact identities can reuse artwork and console metadata from Quiver’s public games endpoint. Platform artwork lookup also supports GBA, Nintendo 64, Super Nintendo and Xbox. Tools and unknown games are not matched by project-name guesses. The catalog cache refreshes once after upgrading.

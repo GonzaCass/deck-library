@@ -1,5 +1,11 @@
 # Validación
 
+## Versión 0.18.1 — 2026-10-19
+
+Se superaron 679 pruebas, incluidas 48 de GTK. Se verifican los encabezados de juego de la lista independiente, entidades HTML, separación de descripciones por proyecto, clasificación de herramientas, enriquecimiento de imágenes únicamente por identidad exacta y reintento manual de imágenes. En GTK se comprueba que pulsar una tarjeta abre una ficha interna sin iniciar la instalación, que la ficha identifica juego y port por separado y que se muestran imágenes descargadas.
+
+Se descargaron imágenes reales para Golden Sun, Spider-Man: Edge of Time, Twilight Princess y otros juegos entre los primeros 24 proyectos del catálogo. Las herramientas y algunos proyectos que agrupan varios juegos pueden no tener una carátula. Se revisó visualmente la ficha de Golden Sun a 1280×760. No se instalaron ni se abrieron juegos.
+
 ## Versión 0.18.0 — 2026-10-19
 
 Se superaron 674 pruebas, incluidas 46 de GTK. Se comprueba que los avisos, confirmaciones y carátulas no crean ventanas adicionales; páginas internas anidadas conservan el tamaño de la app; B/Círculo vuelve al nivel anterior y recupera el foco. El explorador local valida archivos y carpetas, y conserva la confirmación explícita antes de reemplazar un archivo. El cierre con B respeta los bloqueos de tareas activas. Los errores del lanzador se guardan localmente y aparecen dentro de la app, sin ejecutar kdialog. El botón de Steam usa la cola existente y la cabecera admite 840 píxeles. Cuenta y comunidad también se validan dentro de la ventana principal.

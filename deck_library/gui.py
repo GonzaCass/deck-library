@@ -159,6 +159,8 @@ popover button { padding:8px; }
 menu { background:@surface; color:@text; border:1px solid @line; padding:4px; }
 menuitem { background:transparent; color:@text; padding:6px 10px; }
 menuitem:hover { background:@raised; }
+button.catalog-open { background:transparent; border:0; padding:0; box-shadow:none; }
+button.catalog-open:hover { background:#232530; }
 /* Logical focus stays visible on every control, including coloured actions. */
 .controller-focus, button.controller-focus, button.action.controller-focus,
 button.action.play.controller-focus, button.task.controller-focus,

@@ -23,6 +23,8 @@ class DeckUITests(unittest.TestCase):
     def tearDown(self):
         from gi.repository import Gtk
         self.w.disconnect_by_func(Gtk.main_quit);self.w.destroy()
+        # Finish pending popup/focus events before constructing the next test window.
+        self.settle()
         for p in reversed(self.patches):p.stop()
         self.temp.cleanup()
     def test_pages_stay_inside_deck_window_and_list_has_thumbnail(self):
@@ -277,9 +279,35 @@ class DeckUITests(unittest.TestCase):
                 for child in widget.get_children():yield from labels(child)
         content=list(labels(self.w.catalog_rows))
         for text in ('Original Game','Native Project','A native port of the original game.'):self.assertIn(text,content)
-        row=self.w.catalog_rows.get_children()[0];image=row.get_children()[0]
+        row=self.w.catalog_rows.get_children()[0];image=row.catalog_image
         self.assertEqual(image.get_storage_type(),Gtk.ImageType.ICON_NAME)
         self.w.resize(840,640);self.settle();self.assertLessEqual(self.w.get_size().width,840)
+
+    def test_catalog_click_opens_internal_details_without_installing(self):
+        from deck_library import ports
+        from gi.repository import Gtk,GLib
+        item=ports.clean({'repository':'author/native','name':'GSRecomp','game_title':'Golden Sun','description':'Native adaptation.','category':'Game Boy Advance','supported_os':['linux'],'release_version':'v1.2'})
+        self.w.catalog_page();self.w.catalog_apps=[item];self.w.catalog_search.set_text('Golden Sun')
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog()
+        open_=self.w.catalog_rows.get_children()[0].catalog_open;original=self.inline.run;seen=[]
+        def run(page):
+            def check():
+                seen.append(self.w.workflow_stack.get_visible_child() is page)
+                def labels(widget):
+                    if isinstance(widget,Gtk.Label):yield widget.get_text()
+                    if isinstance(widget,Gtk.Container):
+                        for child in widget.get_children():yield from labels(child)
+                content=list(labels(page))
+                for text in ('Juego','Golden Sun','Port','GSRecomp','Native adaptation.','Versión disponible: v1.2'):seen.append(text in content)
+                self.w.last_controller_action=('',0);self.w.controller_action('back');return False
+            GLib.timeout_add(150,check);return original(page)
+        with patch.object(self.inline,'run',run),patch.object(ports,'icon_path',return_value=''),patch.object(ports,'requirements',return_value=[]),patch.object(self.w,'install_port') as install:open_.clicked();install.assert_not_called()
+        self.assertTrue(all(seen));self.assertEqual(len(seen),7);self.assertFalse(self.w.inline_workflows)
+
+    def test_catalog_artwork_is_displayed_from_the_downloaded_image(self):
+        from gi.repository import GdkPixbuf,Gtk
+        self.w.catalog_generation=1;path=pathlib.Path(self.temp.name)/'cover.png';pixbuf=GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB,False,8,60,90);pixbuf.fill(0xff0000ff);pixbuf.savev(str(path),'png',[],[])
+        image=Gtk.Image();self.w.show_icon(image,str(path),1);self.assertEqual(image.get_storage_type(),Gtk.ImageType.PIXBUF);self.assertGreater(image.get_pixbuf().get_height(),0)
 
     def test_transfer_cancel_and_error_dismiss_are_inline(self):
         import threading

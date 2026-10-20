@@ -47,7 +47,7 @@ def sgdb_search(query,key):
             if grid.get('url'):rows.append({'title':game['name'],'url':grid['url'],'provider':'SteamGridDB','page':'https://www.steamgriddb.com/grid/'+str(grid['id']),'width':grid.get('width',600),'height':grid.get('height',900)})
     return rows
 
-SYSTEMS={'Wii':'Nintendo - Wii','WiiCompiled':'Nintendo - Wii','GameCube':'Nintendo - GameCube','PlayStation':'Sony - PlayStation','PlayStation 2':'Sony - PlayStation 2','PSP':'Sony - PlayStation Portable','Nintendo 3DS':'Nintendo - Nintendo 3DS','Wii U':'Nintendo - Wii U'}
+SYSTEMS={'Wii':'Nintendo - Wii','WiiCompiled':'Nintendo - Wii','GameCube':'Nintendo - GameCube','PlayStation':'Sony - PlayStation','PlayStation 2':'Sony - PlayStation 2','PSP':'Sony - PlayStation Portable','Nintendo 3DS':'Nintendo - Nintendo 3DS','Wii U':'Nintendo - Wii U','Nintendo 64':'Nintendo - Nintendo 64','Game Boy Advance':'Nintendo - Game Boy Advance','Super Nintendo':'Nintendo - Super Nintendo Entertainment System','Xbox 360':'Microsoft - Xbox 360','Xbox':'Microsoft - Xbox'}
 @functools.lru_cache(maxsize=12)
 def libretro_index(system):
     url='https://thumbnails.libretro.com/'+urllib.parse.quote(system,safe='')+'/Named_Boxarts/'

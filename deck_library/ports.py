@@ -44,7 +44,7 @@ BUILTIN+=[
   'note':'Port nativo por recompilación. Necesita el disco de Wii U (.wux/.wud/.wua) y, para .wux/.wud, la clave del disco y la clave común, que se leen de keys.txt de EmuDeck y solo se usan en archivos temporales. La versión USA incluye español.'},
 ]
 
-PLATFORMS={'playstation':'PlayStation','ps1':'PlayStation','psx':'PlayStation','playstation 2':'PlayStation 2','ps2':'PlayStation 2','gamecube':'GameCube','wii':'Wii','nintendo':'Nintendo','n64':'Nintendo 64','xbox':'Xbox 360','rexglue':'Xbox 360'}
+PLATFORMS={'playstation':'PlayStation','ps1':'PlayStation','psx':'PlayStation','playstation 2':'PlayStation 2','ps2':'PlayStation 2','gamecube':'GameCube','wii u':'Wii U','wii':'Wii','nintendo 64':'Nintendo 64','game boy advance':'Game Boy Advance','gba':'Game Boy Advance','super nintendo':'Super Nintendo','snes':'Super Nintendo','nintendo':'Nintendo','n64':'Nintendo 64','xbox 360':'Xbox 360','x360':'Xbox 360','xbox':'Xbox','rexglue':'Xbox 360'}
 
 def platform_for(category):
     low=str(category).lower()
@@ -180,7 +180,7 @@ def clean(item,category='',source=''):
     result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','rom','zelda3','wwhd') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
     for key in ('added_at','release_at','first_seen'):
         if type(item.get(key)) in (int,float) and item[key]>=0:result[key]=item[key]
-    for key in ('game_title','catalog_slug'):
+    for key in ('game_title','catalog_slug','release_version'):
         if isinstance(item.get(key),str):result[key]=item[key][:160]
     if isinstance(item.get('description'),str):result['description']=item['description'][:600]
     fallback=item.get('icon_fallback')
@@ -210,7 +210,7 @@ def fetch_catalog(get=fetch_json,extra=()):
                 # GithubLauncher's categories are finer than Quiver's; its AI-assisted flag is kept.
                 if item['source']=='GithubLauncher' and item['list']:previous['list']=item['list']
 
-                for k in ('added_at','release_at','game_title','supported_os','catalog_slug','description','icon_fallback'):
+                for k in ('added_at','release_at','game_title','supported_os','catalog_slug','description','icon_fallback','release_version'):
                     if item.get(k):previous[k]=item[k]
                 if item.get('source')=='Quiver actual':
                     previous['name']=item['name']
@@ -235,6 +235,8 @@ def fetch_catalog(get=fetch_json,extra=()):
     if get is fetch_json:
         try:add(catalog_sources.independent(fetch(catalog_sources.INDEPENDENT).decode(),clean))
         except (OSError,ValueError,UnicodeError):pass
+    try:catalog_sources.enrich_games(found.values(),get)
+    except (OSError,ValueError,KeyError,TypeError):pass
     if not found and failures:raise OSError('No se pudo descargar ninguna fuente del catálogo.')
     return sorted(found.values(),key=lambda i:i['name'].casefold())
 
@@ -250,7 +252,7 @@ def merged(apps,preferences=None):
 ICON_LIMIT=12*1024*1024
 ICON_RETRY_SECONDS=3600
 
-def icon_path(store,item,get=None):
+def icon_path(store,item,get=None,force=False):
     """Cached icon or box art for a catalog entry, or '' when none is available. Network work: call off the GTK thread."""
     import hashlib
     from . import cover_provider
@@ -264,7 +266,7 @@ def icon_path(store,item,get=None):
     for suffix in ('.png','.jpg','.webp','.ico'):
         if (base.with_suffix(suffix)).exists():return str(base.with_suffix(suffix))
     missing=base.with_suffix('.none')
-    if missing.exists() and missing.read_bytes()==b'retry-v2' and time.time()-missing.stat().st_mtime<ICON_RETRY_SECONDS:return ''
+    if not force and missing.exists() and missing.read_bytes()==b'retry-v2' and time.time()-missing.stat().st_mtime<ICON_RETRY_SECONDS:return ''
     folder.mkdir(parents=True,exist_ok=True)
     def save(data):
         suffix='.png' if data.startswith(b'\x89PNG') else '.jpg' if data.startswith(b'\xff\xd8') else '.webp' if data[:4]==b'RIFF' else '.ico' if data[:4]==b'\x00\x00\x01\x00' else ''
@@ -289,21 +291,21 @@ def catalog(store,force=False,get=fetch_json,extra=()):
     path=store.root/'catalog-ports.json'
     try:cached=json.loads(path.read_text())
     except (OSError,ValueError):cached={}
-    if not force and cached.get('schema')==3 and cached.get('apps') and time.time()-cached.get('time',0)<CACHE_SECONDS:return cached['apps']
+    if not force and cached.get('schema')==4 and cached.get('apps') and time.time()-cached.get('time',0)<CACHE_SECONDS:return cached['apps']
     try:apps=fetch_catalog(get,extra)
     except (OSError,ValueError,KeyError):
         if cached.get('apps'):
             cached['offline']=True;atomic_json(path,cached);return cached['apps']
         bundled=pathlib.Path(__file__).resolve().parent.parent/'catalog/ports.json'
         if bundled.is_file():
-            apps=parse_source(json.loads(bundled.read_text()),'Deck Library');atomic_json(path,{'schema':3,'time':0,'apps':apps,'offline':True});return apps
+            apps=parse_source(json.loads(bundled.read_text()),'Deck Library');atomic_json(path,{'schema':4,'time':0,'apps':apps,'offline':True});return apps
         raise
     if apps:
         seen=cached.get('first_seen',{});now=time.time()
         old={a['repository'].lower() for a in cached.get('apps',[])}
         for a in apps:
             key=a['repository'].lower();seen.setdefault(key,now if old and key not in old else 0);a['first_seen']=seen[key]
-        atomic_json(path,{'schema':3,'time':now,'apps':apps,'first_seen':seen,'last_added':len({a['repository'].lower() for a in apps}-old) if old else 0,'offline':False})
+        atomic_json(path,{'schema':4,'time':now,'apps':apps,'first_seen':seen,'last_added':len({a['repository'].lower() for a in apps}-old) if old else 0,'offline':False})
     return apps
 
 def pick_asset(assets):
