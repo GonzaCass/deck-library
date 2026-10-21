@@ -646,3 +646,45 @@ class DeckUITests(unittest.TestCase):
             # Steam's own menu or another app must keep its input.
             driver.sdl.read.return_value=set();driver.poll();driver.focus.focused.return_value=False;driver.sdl.read.return_value={'next_tab'};driver.poll();self.assertEqual(self.w.pages.get_visible_child_name(),'library')
             driver.sdl.read.return_value=set();driver.poll();driver.focus.focused.return_value=None;driver.sdl.read.return_value={'next_tab'};driver.poll();self.assertEqual(self.w.pages.get_visible_child_name(),'library')
+
+    def test_controller_poll_keeps_running_inside_a_port_details_workflow(self):
+        import time
+        from unittest.mock import Mock
+        from gi.repository import Gtk,GLib
+        from deck_library import ports
+        from deck_library.gamepad import Driver,Repeater
+        self.w.catalog_page();self.w.catalog_apps=[ports.clean({'repository':'example/native','name':'Native Game'})]
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog()
+        self.settle();self.w.catalog_rows.get_children()[0].catalog_open.grab_focus()
+        driver=Driver.__new__(Driver);driver.window=self.w;driver.focus=Mock();driver.focus.focused.return_value=True;driver.repeat=Repeater();driver.sdl=Mock()
+        state={'reads':0,'opened':None,'back':False,'closed':False,'timeout':False};loop=GLib.MainLoop()
+        def read():
+            state['reads']+=1
+            if state['reads']==1:return {'activate'}
+            if self.w.inline_workflows:
+                if state['opened'] is None:state['opened']=time.monotonic()
+                elif time.monotonic()-state['opened']>.15 and not state['back']:state['back']=True;return {'back'}
+            elif state['opened'] is not None:state['closed']=True;loop.quit()
+            return set()
+        driver.sdl.read.side_effect=read
+        def watchdog():
+            state['timeout']=True
+            for page in list(self.w.inline_workflows):page.cancel()
+            loop.quit();return False
+        poll=GLib.timeout_add(25,driver.poll);deadline=GLib.timeout_add(1800,watchdog)
+        try:
+            with patch.object(ports,'icon_path',return_value=''),patch.object(ports,'requirements',return_value=[]),patch.object(ports,'release_for',return_value={'assets':[]}):loop.run()
+            self.assertFalse(state['timeout'],'The SDL timeout stopped delivering B while the port page ran its nested loop.')
+            self.assertTrue(state['back']);self.assertTrue(state['closed']);self.assertFalse(self.w.inline_workflows);self.assertGreater(state['reads'],4)
+        finally:
+            for source in (poll,deadline):
+                if GLib.MainContext.default().find_source_by_id(source):GLib.source_remove(source)
+
+    def test_controller_timeout_recovers_from_a_callback_error(self):
+        import io
+        from unittest.mock import Mock
+        from deck_library.gamepad import Driver
+        driver=Driver.__new__(Driver);driver.window=self.w
+        driver.poll_input=Mock(side_effect=[RuntimeError('temporary input failure'),True])
+        with patch('sys.stderr',new_callable=io.StringIO) as log:
+            self.assertTrue(driver.poll());self.assertIn('temporary input failure',log.getvalue());self.assertTrue(driver.poll())

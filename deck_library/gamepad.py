@@ -71,7 +71,17 @@ class Driver:
         from .compositor_focus import GamescopeFocus
         self.window=window;self.sdl=SDL();self.focus=GamescopeFocus();self.repeat=Repeater();self.timer=GLib.timeout_add(25,self.poll)
     def poll(self):
-        from gi.repository import Gtk
+        try:return self.poll_input()
+        except Exception:
+            # GLib removes a timeout whose Python callback raises. Retain input
+            # polling and a traceback instead of silently disabling the controller.
+            import traceback,sys
+            if time.monotonic()-getattr(self,'last_error',0)>5:
+                self.last_error=time.monotonic();traceback.print_exc(file=sys.stderr)
+            return not self.window.ui_closed
+
+    def poll_input(self):
+        from gi.repository import Gtk,GLib
         if self.window.ui_closed:return False
         focused=self.focus.focused()
         active=next((w for w in Gtk.Window.list_toplevels() if w.get_visible() and w.get_accept_focus() and (w.is_active() or w.has_toplevel_focus())),None)
@@ -92,8 +102,16 @@ class Driver:
         if own is not self.window:self.repeat.events(pressed);return True
         self.window.prepare_controller_window(active)
         self.window.ensure_controller_focus(active)
-        for event in self.repeat.events(pressed):self.window.controller_action(event,active)
+        for event in self.repeat.events(pressed):
+            # Inline workflows run a nested GLib loop. Calling one from this
+            # timeout suspends the very source that must deliver B to close it.
+            # Dispatch from a separate idle source so polling stays alive.
+            GLib.idle_add(self.dispatch,event,active)
         return True
+
+    def dispatch(self,event,active):
+        if not self.window.ui_closed and active.get_visible():self.window.controller_action(event,active)
+        return False
     def close(self):
         from gi.repository import GLib
         if GLib.MainContext.default().find_source_by_id(self.timer):GLib.source_remove(self.timer)

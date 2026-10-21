@@ -71,3 +71,7 @@ Beta 5 se inicia mediante su lanzador oficial con Proton actual, ya que también
 ## Inicio directo en Steam (0.19.1)
 
 El acceso habitual ejecuta el motor `Engine/Project2099.exe` con los argumentos de datos, idioma y perfil que antes preparaba el lanzador. Evita dejar abierta la ventana WPF delante del juego en Gamescope. Se conserva el acceso de Steam y la configuración gráfica. El argumento opcional `--launcher` del módulo de lanzamiento permite abrir el programa oficial por separado. La instalación sigue usando su entorno independiente.
+
+## Carpeta del motor y Proton del juego (0.19.2)
+
+El inicio directo usa `Engine` como carpeta de trabajo, igual que el lanzador oficial. El motor nativo prefiere Proton 9 cuando está instalado: no necesita el soporte .NET del lanzador, que sigue usando Proton actual. En esta Deck el inicio directo con Proton 11 terminaba con código 3; con Proton 9 y la carpeta de trabajo corregida mostró carga en español y permaneció abierto durante una prueba de 35 segundos. La prueba se hizo en el escritorio de la pantalla física; falta validar el avance y el mando en modo Juego.

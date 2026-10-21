@@ -74,7 +74,7 @@ class Project2099Tests(unittest.TestCase):
             receipt=root/'Support/Install/INSTALL_RECEIPT.json';receipt.parent.mkdir(parents=True);receipt.write_text(json.dumps({'EffectiveLanguage':5}))
             with patch.object(project2099,'proton_path',return_value=pathlib.Path('/fake/proton')),patch.object(project2099,'proton_env',return_value={}):
                 command,cwd,env=project2099.launch_plan(root/'SpiderManEOT.exe')
-                self.assertEqual(command[2],str(root/'Engine/Project2099.exe'));self.assertEqual(cwd,root)
+                self.assertEqual(command[2],str(root/'Engine/Project2099.exe'));self.assertEqual(cwd,root/'Engine')
                 self.assertIn('--game_data_root=Z:'+str(root/'Data/Original').replace('/','\\'),command);self.assertIn('--eot_language=es',command);self.assertIn('--profile=default',command)
                 launcher,_,_=project2099.launch_plan(root/'SpiderManEOT.exe',launcher=True)
                 self.assertEqual(launcher[2],str(root/'Project 2099.exe'));self.assertEqual(len(launcher),3)
@@ -88,3 +88,17 @@ class Project2099Tests(unittest.TestCase):
                 for name in ('Project 2099.exe','Engine/Project2099.exe','Engine/rexruntime.dll'):
                     p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.touch()
                 with self.assertRaisesRegex(ValueError,'datos instalados'):project2099.launch_plan(root/'SpiderManEOT.exe')
+
+    def test_beta5_defaults_to_native_proton9_but_launcher_uses_current_proton(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=pathlib.Path(tmp)
+            for name in ('Project 2099.exe','Engine/Project2099.exe','Engine/rexruntime.dll','Data/Original/Default.xex'):
+                p=root/name;p.parent.mkdir(parents=True,exist_ok=True);p.touch()
+            with patch.object(project2099,'proton_path',return_value=pathlib.Path('/fake/proton')) as path,patch.object(project2099,'proton_env',return_value={}) as env:
+                project2099.launch_plan(root/'SpiderManEOT.exe');path.assert_called_with(preferred='Proton 9.0 (Beta)');env.assert_called_with(None,preferred='Proton 9.0 (Beta)')
+                project2099.launch_plan(root/'SpiderManEOT.exe',launcher=True);path.assert_called_with(preferred=None)
+            def available(preferred=None):
+                if preferred=='Proton 9.0 (Beta)':raise ValueError('not installed')
+                return pathlib.Path('/current/proton')
+            with patch.object(project2099,'proton_path',side_effect=available),patch.object(project2099,'proton_env',return_value={}):
+                command,cwd,_=project2099.launch_plan(root/'SpiderManEOT.exe');self.assertEqual(command[0],'/current/proton');self.assertEqual(cwd,root/'Engine')

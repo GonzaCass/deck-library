@@ -137,6 +137,11 @@ def launch_plan(executable,preferred=None,*,launcher=False,store=None):
         # Launch the native engine as Steam's game process. The WPF launcher can
         # retain Gamescope focus after spawning it, hiding the actual game window.
         exe=folder/'Engine/Project2099.exe'
+        if preferred is None:
+            # The native engine does not need the launcher's newer CLR. Proton 9
+            # avoids the early exit observed with Proton 11 on this Deck.
+            try:proton_path(preferred='Proton 9.0 (Beta)');preferred='Proton 9.0 (Beta)'
+            except ValueError:pass
         data=folder/'Data/Original'
         if not (data/'Default.xex').is_file():raise ValueError('Faltan los datos instalados de Xbox 360. Revisá la instalación de Project 2099.')
         language='es'
@@ -147,7 +152,7 @@ def launch_plan(executable,preferred=None,*,launcher=False,store=None):
         arguments=['--game_data_root=Z:'+str(data).replace('/','\\'),'--eot_language='+language,'--genry_ui_language='+language,'--profile=default']
     elif engine=='reeot':preferred=None # The optional .NET settings launcher needs a current Proton.
     if not exe.is_file():raise ValueError('No se encuentra el juego instalado.')
-    return [str(proton_path(preferred=preferred)),'run',str(exe),*arguments],folder,proton_env(store,preferred=preferred)
+    return [str(proton_path(preferred=preferred)),'run',str(exe),*arguments],exe.parent,proton_env(store,preferred=preferred)
 
 def main():
     import argparse
