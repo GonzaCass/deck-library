@@ -116,15 +116,21 @@ class ShellMixin:
     def apply_motion(self):
         enabled=self.preferences.get('animations',True);Gtk.Settings.get_default().set_property('gtk-enable-animations',enabled)
         for stack in (self.library_stack,self.wizard_box):stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if enabled and motion.page_transitions() else Gtk.StackTransitionType.NONE);stack.set_transition_duration(150 if enabled and motion.page_transitions() else 0)
-    def shown_entries(self):return visible_entries([e for e in self.entries if e.id not in self.preferences.get('hidden_originals',[])],prefer_ports=False)
+    def shown_entries(self):return visible_entries([e for e in self.entries if e.id not in self.preferences.get('hidden_originals',[])],association_exclusions=self.preferences.get('unlinked_originals',[]))
     def visible(self):
         text=self.search.get_text().casefold();entries,_=self.shown_entries()
-        return sorted([e for e in entries if text in (e.name+' '+e.platform).casefold() and (self.platform_filter=='all' or self.platform_filter==e.platform) and (self.type_filter=='all' or self.type_filter==entry_type(e))],key=lambda e:e.name.casefold())
+        if self.type_filter=='emulator':entries=visible_entries([e for e in self.entries if e.id not in self.preferences.get('hidden_originals',[])],prefer_ports=False)[0]
+        from .originals import associations
+        linked=associations(self.entries,self.preferences.get('unlinked_originals',[]))
+        return sorted([e for e in entries if text in (e.name+' '+e.platform).casefold() and (self.platform_filter=='all' or self.platform_filter==e.platform or any(o.platform==self.platform_filter for o in linked.get(e.id,[]))) and (self.type_filter=='all' or self.type_filter==entry_type(e))],key=lambda e:e.name.casefold())
     def render(self):
         previous_focus=getattr(self.get_focus(),'library_entry_id',None)
         self.library_targets={}
         self.library_dirty=False
-        from .originals import pairs
+        from .originals import pairs,associations,rom_caption
+        self.rom_associations=associations(self.entries,self.preferences.get('unlinked_originals',[]))
+        if self.type_filter!='emulator':self.checked-={o.id for roms in self.rom_associations.values() for o in roms}
+        if previous_focus:previous_focus=next((pid for pid,roms in self.rom_associations.items() if any(o.id==previous_focus for o in roms)),previous_focus)
         originals=[(o,p) for o,p in pairs(self.entries) if o.id not in self.preferences.get('hidden_originals',[])]
         if originals:
             self.originals_label.set_text(str(len(originals))+' originales con un port instalado.');self.originals_button.set_tooltip_text(self.originals_label.get_text());self.originals_bar.set_no_show_all(False);self.originals_bar.show_all();self.originals_bar.set_no_show_all(True)
@@ -139,6 +145,8 @@ class ShellMixin:
             if self.selection_mode:
                 check=Gtk.CheckButton();check.set_active(e.id in self.checked);check.connect('toggled',self.toggle,e.id);body.pack_start(check,False,False,0)
             body.pack_start(Poster(e,find_cover(e),48,72),False,False,0);texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.pack_start(label(e.name,'title'),False,False,0);texts.pack_start(label(e.platform+(' · En Steam' if self.in_steam(e) else ''),'meta'),False,False,0);body.pack_start(texts,True,True,0);self.list.add(row)
+            linked=self.rom_associations.get(e.id,[])
+            if linked:texts.pack_start(label(rom_caption(linked),'meta'),False,False,0)
             if self.view=='covers':self.add_cover_card(e)
             if self.view=='platforms':
                 if e.platform not in groups:groups[e.platform]=[]
@@ -154,9 +162,13 @@ class ShellMixin:
         if getattr(self,'animate_next',False):self.animate_next=False;motion.stagger(self.new_tiles,rise=0)
     def add_cover_card(self,e,target=None):
         from .gui import label,Poster
-        tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);tile.get_style_context().add_class('library-game');tile.set_size_request(164,-1);action=Gtk.Button();action.get_style_context().add_class('poster');action.add(Poster(e,find_cover(e),164,246));action.connect('clicked',lambda _:self.select_game(e));action.set_tooltip_text(e.name);self.bind_library_focus(action,e,tile)
+        tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);tile.get_style_context().add_class('library-game');tile.set_size_request(164,-1);action=Gtk.Button();action.get_style_context().add_class('poster');action.add(Poster(e,find_cover(e),164,246));action.connect('clicked',lambda _:self.select_game(e));action.set_tooltip_text(e.name);self.bind_library_focus(action,e,tile)
         if e.id in self.checked:action.get_style_context().add_class('selected')
         tile.pack_start(action,False,False,0);name=label(e.name,'cover-title');name.set_line_wrap(True);name.set_lines(2);name.set_ellipsize(Pango.EllipsizeMode.END);name.set_max_width_chars(19);name.set_size_request(-1,44);name.set_tooltip_text(e.name);tile.pack_start(name,False,False,0);tile.pack_start(label(e.platform+(' · Steam' if self.in_steam(e) else ''),'meta'),False,False,0);(target if target is not None else self.covers).add(tile);tile.get_parent().set_can_focus(False);self.new_tiles.append(tile)
+        linked=getattr(self,'rom_associations',{}).get(e.id,[])
+        if linked:
+            from .originals import rom_caption
+            badge=label(rom_caption(linked),'meta');badge.set_tooltip_text('\n'.join(o.source for o in linked));tile.pack_start(badge,False,False,0)
     def open_library(self):
         if not self.discard_game_edits():return
         if getattr(self,'library_dirty',False):self.render()

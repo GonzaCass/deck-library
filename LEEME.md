@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.19.5.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.19.6.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -111,7 +111,9 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.19.5**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.19.6**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+
+La ficha de cada port indica cómo se preparan sus archivos: desde Deck Library, desde el asistente del propio port o manualmente. Si hay adaptador, podés elegir la ROM, el disco o la BIOS que falten y se comprueban antes de preparar. **Instalar con Proton** permite usar paquetes Windows portables cuando corresponde. La [tabla de proyectos revisados](docs/PORTS.md#proyectos-revisados-el-21-de-octubre-de-2026) detalla los casos de God of War, inFAMOUS, Sonic, Smash, Time Crisis, Lord of the Rings y Crash; no implica que todos se hayan probado en juego.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
@@ -187,7 +189,7 @@ El catálogo consulta la API actual de Quiver, las listas de GithubLauncher y un
 
 Un port detectado desde otra instalación aparece como instalado. Si hay otra variante del mismo juego, se identifica como alternativa y pide confirmar antes de instalarla. Las descargas permiten **Cancelar**; una tarea terminada o fallida se puede **Descartar** desde su fila. Un error de descarga no abre un diálogo que bloquee la app.
 
-**Revisar originales**, sobre la biblioteca, o **Ajustes → Originales y ports** muestra los juegos que tienen port instalado. **Ocultar original** conserva sus archivos y tiene una acción para volver a mostrarlo. **Enviar a la papelera** muestra los archivos y requiere confirmación; se bloquea si otro acceso usa alguno. Los discos originales pueden hacer falta para reconstruir un port al actualizarlo.
+El port y su original se asocian automáticamente en una sola carátula. **ROM encontrada** indica que el archivo sigue disponible; **Revisar originales** o ese botón en la ficha permiten ver su ruta y abrir la ficha original. **Mostrar separado** revierte la asociación sin modificar archivos. **Enviar a la papelera** muestra los archivos y requiere confirmación; se bloquea si otro acceso usa alguno. Los discos originales pueden hacer falta para reconstruir un port al actualizarlo.
 
 **Actualizaciones → Project-2099 → Actualizar** localiza la copia de Xbox 360 disponible o permite elegirla; verifica el SHA-256 del instalador y del paquete, instala en una carpeta temporal y conserva la versión anterior completa. Se preserva UserData. Beta 5 cambia de motor: los mods y ajustes gráficos antiguos quedan en el respaldo. Se mantiene el Proton elegido en el acceso del juego; el instalador utiliza su entorno de instalación. La actualización no abre el juego. También se incluye en la cola al habilitar actualizaciones automáticas de ports.
 

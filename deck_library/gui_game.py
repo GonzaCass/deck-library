@@ -87,6 +87,9 @@ class GameMixin:
             control=ActionButton(caption,icon,lambda _,s=section:self.open_game_section(s),tone)
             styled(control,'game-section');control.section_id=section
             tabs.pack_start(control,False,False,0);self.game_section_controls[section]=control
+        from .originals import associations,rom_caption
+        linked=associations(self.entries,self.preferences.get('unlinked_originals',[])).get(entry.id,[])
+        if linked:tabs.pack_start(ActionButton(rom_caption(linked),'file',lambda _:self.originals_dialog(entry),'quiet'),False,False,0)
         if presets.adapter_for(entry) in presets.REGISTRY:
             tabs.pack_end(ActionButton('Comunidad','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0)
         scroll=self.new_scroll();scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);scroll.add(tabs)

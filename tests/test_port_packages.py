@@ -9,7 +9,8 @@ class PackageTests(unittest.TestCase):
         names=['game-win64.zip','game-linux-aarch64.AppImage','game-linux-x86_64.tar.zst','game-win64-setup.exe']
         self.assertEqual(port_packages.select([{'name':n} for n in names])['asset']['name'],names[2])
         self.assertEqual(port_packages.select([{'name':names[0]}])['runtime'],'proton')
-        for name in ('game-win32.zip','game-windows-arm64.zip','game-win64-installer.exe','game-win64-debug.zip','game-linux-x64.sha256','game-linux-x64.yml'):
+        self.assertEqual(port_packages.select([{'name':'game-win32.zip'}])['runtime'],'proton')
+        for name in ('game-windows-arm64.zip','game-win64-installer.exe','game-win64-debug.zip','game-linux-x64.sha256','game-linux-x64.yml'):
             self.assertIsNone(port_packages.select([{'name':name}]),name)
 
     def test_portable_update_preserves_saves_and_uses_stable_prefix(self):
@@ -19,9 +20,12 @@ class PackageTests(unittest.TestCase):
                 data=io.BytesIO()
                 with zipfile.ZipFile(data,'w') as z:z.writestr('Game/Game.exe',b'MZ'+tag.encode());z.writestr('Game/data.txt','assets')
                 release={'tag_name':tag,'assets':[{'name':'Game-win64.zip','browser_download_url':'https://github.com/owner/Game/releases/download/v1/Game-win64.zip'}]}
+                if replace:release['assets'].append({'name':'Game-linux-x64.zip','browser_download_url':'https://github.com/owner/Game/releases/download/v2/Game-linux-x64.zip'})
                 with patch.object(ports,'download',side_effect=lambda url,path,**kw:path.write_bytes(data.getvalue())),patch.object(project2099,'proton_path',return_value=pathlib.Path('/fake/proton')):
                     return ports.install(item,store,destination,get=lambda _:release,progress=lambda _:None,replace=replace)
             record=install('v1');folder=destination/'Game';(folder/'UserData').mkdir();(folder/'UserData/save.bin').write_bytes(b'progress')
+            from deck_library.models import atomic_json
+            record['inputs']={'rom':str(root/'owned.rom')};atomic_json(store.root/'ports.json',{'owner/Game':record})
             entry=ports.entry_for(folder);self.assertEqual(entry.platform,'Windows');self.assertIn('deck_library.port_runtime',entry.command)
             with patch.object(project2099,'proton_path',return_value=pathlib.Path('/fake/proton')):
                 first=port_runtime.command_for(folder,store)
@@ -29,6 +33,7 @@ class PackageTests(unittest.TestCase):
             self.assertEqual(first[1]['STEAM_COMPAT_DATA_PATH'],second[1]['STEAM_COMPAT_DATA_PATH'])
             self.assertEqual((folder/'UserData/save.bin').read_bytes(),b'progress');self.assertEqual((folder/'Game.exe').read_bytes(),b'MZv2')
             self.assertEqual(ports.entry_for(folder).id,entry.id)
+            self.assertEqual(ports.records(store)['owner/Game']['inputs'],record['inputs'])
             backup=next((destination/'.deck-library-replaced').iterdir());self.assertEqual((backup/'Game.exe').read_bytes(),b'MZv1')
 
     def test_unsafe_declared_executable_is_rejected_before_replacement(self):

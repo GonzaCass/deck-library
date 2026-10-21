@@ -1,6 +1,6 @@
 # Guía de ports y juegos configurados
 
-Cada port se instala desde **Catálogo → Instalar** y se prepara con **Configurar**. La app busca los archivos necesarios sola (discos, ROMs, BIOS, claves), verifica lo que descarga y deja el acceso listo en Steam, con el layout de mando asignado. Esta guía resume qué necesita cada juego, qué deja ajustado la app y qué límites hay. Ningún archivo de juego, BIOS ni clave se incluye en Deck Library ni se sube a ningún sitio.
+Los ports se descargan desde **Catálogo de ports → Instalar**. La ficha distingue **Preparación integrada**, **Asistente del port**, **Preparación manual** y requisitos todavía sin integrar. Cuando hay adaptador, **Configurar** detecta o permite elegir ROM, disco y BIOS, valida sus hashes o seriales y prepara el juego. Los demás conservan el asistente o las instrucciones del proyecto. Agregar el acceso a Steam es una acción separada. Esta guía resume qué necesita cada juego, qué deja ajustado la app y qué límites hay. Ningún archivo de juego, BIOS ni clave se incluye en Deck Library ni se sube a ningún sitio.
 
 Los ajustes de calidad parten de la pantalla de la Deck (1280×800, hasta 90 Hz). Los juegos de 30 FPS no pasan de 30 FPS salvo que el port tenga un modo propio.
 
@@ -71,7 +71,7 @@ La instalación identifica familias de paquetes en la publicación oficial, sin 
 | --- | --- |
 | AppImage o binario Linux x86_64 | Descargar, verificar, registrar y ejecutar. Se prefiere una build SteamOS cuando existe. |
 | ZIP, tar.gz, tar.xz, tar.bz2 o tar.zst de Linux | Extraer con validación de rutas y enlaces; identificar el ejecutable. tar.zst requiere zstd. |
-| Windows portable, ZIP o EXE x64 | Identificar un ejecutable PE; usar Proton con un entorno persistente separado por port. Se prefiere Linux si está disponible. |
+| Windows portable, ZIP o EXE x64 o x86 | Identificar un ejecutable PE; usar Proton con un entorno persistente separado por port. Se prefiere Linux si está disponible. |
 | ROM/disco + extracción o compilación conocida | Usar la integración específica: WiiCompiled, Project 2099, kits de PS1, OpenPete, CTR, zelda3, Minish Cap y Wind Waker HD. |
 | Setup/MSI desconocido, Flatpak empaquetado o solo código fuente | Mostrar que requiere una integración específica. No tratarlo como un juego portable ni ejecutar pasos inventados. |
 
@@ -88,3 +88,30 @@ Se consulta el catálogo factual de [SSLabs / PortIntegration](https://github.co
 Se fusiona por repositorio, ignorando mayúsculas: las identidades y categorías que ya existen conservan su precedencia; las imágenes faltantes se completan. El filtro de fuentes permite elegir **PortIntegration**. En los detalles se presenta su estado declarado, sin convertir «jugable» en verificación de Deck Library. Su fecha de edición no se usa como fecha de incorporación ni como fecha de release. La versión instalable se consulta directamente al repositorio original cuando se instala. Si la fuente falla o cambia de formato, siguen disponibles las demás listas y la caché.
 
 Este sitio mantiene una lista propia; su [escáner](https://github.com/Samuel-SSLabs/Port-Integration/blob/main/scripts/discover-ports.js) consulta GitHub por temas y palabras clave, filtra candidatos y genera cambios mediante un workflow diario. No es un registro exhaustivo y puede incluir proyectos experimentales, herramientas o etiquetas de estado imprecisas. La presencia en cualquier catálogo no demuestra que haya un paquete compatible o que el juego funcione en la Deck.
+
+## Asociación de originales y preparación (0.19.6)
+
+Un original y su port se muestran en una sola ficha, conservando ambas entradas y todos los archivos. **ROM encontrada** significa que el archivo original sigue disponible; no certifica que su región, versión o formato sean compatibles con el instalador. La asociación usa identidad y plataforma cuando están disponibles y evita unir títulos ambiguos de plataformas distintas. **Revisar originales → Ver original** abre la versión emulada; **Mostrar separado** deshace la agrupación. El filtro Emulador permite ver los originales. Volver a la biblioteca mantiene el foco en el port asociado.
+
+Los adaptadores integrados ofrecen un selector cuando falta una ROM, disco o BIOS. Se valida el SHA-1, SHA-256 o serial que exige el adaptador antes de guardar la selección en los datos privados. La ruta se conserva para futuras actualizaciones. Los proyectos sin adaptador muestran si usan su propio asistente o una preparación manual; elegir un archivo arbitrario no sustituye un proceso de importación desconocido.
+
+La ficha ofrece **Instalar con Proton** cuando hay un paquete Windows portable, incluso como alternativa a Linux. Se reconocen EXE sin etiqueta de plataforma, ZIP sin esa etiqueta cuando el catálogo revisado identifica Windows, y paquetes x86 de 32 bits para Proton. Los paquetes ARM y los instaladores genéricos siguen excluidos. Los ZIP con separadores de Windows se normalizan antes de validar las rutas. Los tar de Linux admiten bibliotecas enlazadas dentro del paquete y rechazan enlaces que salgan de su carpeta, también después de quitar la carpeta envolvente.
+
+### Proyectos revisados el 21 de octubre de 2026
+
+Se consultaron las publicaciones y las instrucciones originales. Identificar o instalar un paquete no valida jugabilidad, rendimiento ni mandos.
+
+| Juego y proyecto | Paquete elegido | Preparación de los originales |
+| --- | --- | --- |
+| [God of War III / SpartanPort](https://github.com/FelipePrado0/SpartanPort/releases) | AppImage Linux | Su asistente pide la carpeta extraída del juego de PS4. |
+| [inFAMOUS Second Son](https://github.com/HayatoG/iss_pc/releases) | tar.gz Linux; ejecutable principal identificado | Su asistente usa la carpeta de PS4 CUSA00223 con update 1.07. |
+| [Sonic Unleashed](https://github.com/hedge-dev/UnleashedRecomp/releases) | ZIP Windows con Proton; el bundle Flatpak necesita otra integración | Su importador prepara los datos de Xbox 360. |
+| [Smash 64 / BattleShip](https://github.com/JRickey/BattleShip/releases) | AppImage Linux general, antes que la variante japonesa | Asistente del port; ROM compatible de Nintendo 64. |
+| [Smash Melee](https://github.com/999sian/melee-pc/releases) | AppImage Linux x86_64 | Asistente del port; disco de GameCube. |
+| [Smash Ultimate](https://github.com/Denkishi/ssbu-recomp/releases) | El release del runtime se identifica como herramienta, no como juego portable | Instalador completo del proyecto; preparación manual. |
+| [Time Crisis](https://github.com/spacestate1/namco22-decompile/releases) | Su AppImage específico; no el primer AppImage del release multijuego | `timecris.zip` de MAME 0.271 o posterior, junto al ejecutable, en `roms` o en Descargas; el port valida los archivos. |
+| [LOTR / Athelas](https://github.com/Shagg88/Athelas/releases) | ZIP Windows sin etiqueta de plataforma, con Proton; `Athelas.exe` | Su asistente permite seleccionar los discos o archivos de Xbox para Two Towers y Return of the King, o la carpeta del juego de PC. |
+| [The Two Towers Recompiled](https://github.com/Gumpolas/TooTawersRecomp/releases) | tar.gz Linux; se identifica `TwoTowers.sh` | Su lanzador pide una ISO/XISO USA de Xbox: usa zenity y, como alternativa, un terminal con `twotowers-setup`. |
+| [Crash Bandicoot Launcher](https://github.com/Matteo842/CrashBandicoot-Launcher/releases) | Binario Linux | Asistente propio; CHD o CUE y BIN. |
+| [Crash Warped Recompiled](https://github.com/alexbeavs-ps1-ports/crash-bandicoot-3-warped-recomp/releases) | ZIP Linux | Asistente del kit, disco y BIOS; compilación dentro del SDK de KDE. |
+| [CTR Native](https://github.com/CTR-tools/ctr-native/releases) | ZIP Windows x86 con Proton | Adaptador integrado: BIN crudo del disco SCUS-94426 en `assets/ctr-u.bin`. |

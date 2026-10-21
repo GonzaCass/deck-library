@@ -33,6 +33,7 @@ BUILTIN=[
  {'name':'Crash Team Racing: Turbocharged','repository':'web/ctr-turbocharged','folderName':'CTRTurbocharged','category':'PlayStation','setup':'ctr','web':{'kind':'ctr'},'cover_title':'CTR - Crash Team Racing','disc':{'serial':'SCUS-94426','match':'crashteamracing','exclude':''},'note':'Descarga de ctr.cmzi.uk (el sitio no publica hash; se comprueba el tamaño). Necesita el BIN crudo MODE2/2352 del disco NTSC-U SCUS-94426, que se copia como ctr-u.bin en ~/.local/share/ctr-turbocharged.'},
 ]
 BUILTIN+=[
+ {'name':'Time Crisis','repository':'spacestate1/namco22-decompile','folderName':'TimeCrisis','category':'Arcade','cover_title':'Time Crisis','game_title':'Time Crisis','note':'Instala el AppImage de Time Crisis. Usa timecris.zip de MAME 0.271 o posterior.'},
  {'name':'Spider-Man: Edge of Time (Project 2099)','repository':'GenryTheFox0/Project-2099','folderName':'project2099','category':'Xbox 360','setup':'project2099','cover_title':'Spider-Man - Edge of Time','note':'Instala o actualiza con el instalador y los datos oficiales. Requiere una copia propia de Xbox 360. La versión PS3 no es compatible.'},
  {'name':'The Legend of Zelda: The Minish Cap','repository':'999sian/tmc','folderName':'TheLegendOfZeldaTheMinishCap-ProjectPicori','category':'Game Boy Advance','setup':'rom','cover_title':'Legend of Zelda, The - The Minish Cap',
   'rom':{'systems':['gba'],'sizes':[16777216],'sha1':{'cff199b36ff173fb6faf152653d1bccf87c26fb7':'baserom_eu.gba','b4bd50e4131b027c334547b4524e2dbbd4227130':'baserom.gba','6c5404a1effb17f481f352181d0f1c61a2765c5d':'baserom_jp.gba'},'name':'Minish Cap (USA, Europa o Japón)'},
@@ -62,9 +63,13 @@ def parse_repository(text):
 
 BIOS_SIZE=524288
 
-def find_bios(sha256,home=None):
+def find_bios(sha256,home=None,paths=()):
     """First BIOS file whose SHA-256 matches, searching the usual EmuDeck folders; '' when none."""
     home=pathlib.Path(home or pathlib.Path.home());wanted={h.lower() for h in sha256}
+    for file in map(pathlib.Path,filter(None,paths)):
+        try:
+            if file.is_file() and file.stat().st_size==BIOS_SIZE and sha256_file(file) in wanted:return str(file)
+        except OSError:pass
     roots=[home/'Emulation/bios',home/'.config/EmuDeck/bios']
     try:
         from .installations import emudeck_paths
@@ -93,23 +98,36 @@ def find_disc(spec,games):
         return {'name':name,'source':str(path),'cue':str(cue) if cue else '','bin':str(binary) if binary else ''}
     return None
 
-def find_rom(spec,home=None):
+def match_rom(spec,path):
+    path=pathlib.Path(path)
+    try:
+        sizes=set(spec.get('sizes',[]))
+        if not path.is_file() or path.stat().st_size>max(sizes or {64*1024*1024}) or sizes and path.stat().st_size not in sizes:return None
+        data=path.read_bytes();header=len(data)%1024==512 and spec.get('strip_header',False)
+        digest=hashlib.sha1(data[512:] if header else data).hexdigest()
+        target={k.lower():v for k,v in spec.get('sha1',{}).items()}.get(digest)
+        if target:return {'path':str(path),'target':target,'header':header}
+    except OSError:pass
+    return None
+
+def find_rom(spec,home=None,paths=()):
     """A ROM by SHA-1 in the EmuDeck system folders, whatever its name. Returns {path, target, header} or None.
 
     `sha1` maps hash -> the file name the port expects; with `strip_header` a 512-byte copier header is ignored for the hash.
     """
     home=pathlib.Path(home or pathlib.Path.home());roots=[home/'Emulation/roms'/system for system in spec.get('systems',[])]
-    sizes=set(spec.get('sizes',[]));wanted={k.lower():v for k,v in spec.get('sha1',{}).items()}
-    for root in roots:
+    for path in filter(None,paths):
+        found=match_rom(spec,path)
+        if found:return found
+    try:
+        from .installations import emudeck_paths
+        roots.extend(pathlib.Path(emudeck_paths(home)['roms'])/system for system in spec.get('systems',[]))
+    except (OSError,KeyError):pass
+    for root in dict.fromkeys(roots):
         if not root.is_dir():continue
         for path in sorted(root.rglob('*')):
-            try:
-                if not path.is_file() or (sizes and path.stat().st_size not in sizes):continue
-                data=path.read_bytes()
-            except OSError:continue
-            header=len(data)%1024==512 and spec.get('strip_header',False)
-            digest=hashlib.sha1(data[512:] if header else data).hexdigest()
-            if digest in wanted:return {'path':str(path),'target':wanted[digest],'header':header}
+            found=match_rom(spec,path)
+            if found:return found
     return None
 
 def keys_file(home=None):
@@ -141,12 +159,12 @@ def requirements(item,games,home=None):
     `games` holds names or (name, source) pairs. A disc is matched by its serial when the source is a readable image;
     otherwise by Redump-style name, in which case ok is None (only a name check was possible).
     """
-    lines=[]
+    lines=[];inputs=item.get('inputs') or {};games=[*games,*[(pathlib.Path(p).name,p) for k,p in inputs.items() if k in ('disc','wiiu') and p]]
     if item.get('bios'):
-        found=find_bios(item['bios'].get('sha256',[]),home)
+        found=find_bios(item['bios'].get('sha256',[]),home,[inputs.get('bios')])
         lines.append((True,'BIOS '+item['bios'].get('name','')+': encontrada en '+found) if found else (False,'BIOS '+item['bios'].get('name','')+': no se encontró un archivo con el hash exacto.'))
     if item.get('rom'):
-        found=find_rom(item['rom'],home)
+        found=find_rom(item['rom'],home,[inputs.get('rom')])
         lines.append((True,'ROM '+item['rom'].get('name','')+': encontrada en '+found['path']) if found else (False,'ROM '+item['rom'].get('name','')+': no se encontró un archivo con el SHA-1 exacto en las carpetas de EmuDeck.'))
     if item.get('wiiu'):
         image=find_wiiu_image(item['wiiu'],games)
@@ -175,10 +193,14 @@ def clean(item,category='',source=''):
     if not isinstance(item,dict):return None
     repo=item.get('repository');folder=item.get('folderName') or item.get('folder') or ''
     if not valid_repository(repo):return None
+    from .port_recipes import RECIPES
+    item={**item,**RECIPES.get(repo.lower(),{})}
     if not isinstance(folder,str) or not FOLDER.fullmatch(folder):folder=re.sub(r'[^A-Za-z0-9._-]','',repo.split('/')[1]) or 'port'
     name=item.get('name');icon=item.get('appIconUrl') or item.get('icon');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
     ai=bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
-    result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','rom','zelda3','wwhd','project2099') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
+    result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','ctr_native','rom','zelda3','wwhd','project2099') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
+    for field in ('preparation','source_note','asset_prefix','windows_exe','package_role'):
+        if field in RECIPES.get(repo.lower(),{}):result[field]=RECIPES[repo.lower()][field]
     for key in ('added_at','release_at','first_seen'):
         if type(item.get(key)) in (int,float) and item[key]>=0:result[key]=item[key]
     for key in ('game_title','catalog_slug','release_version','source_status'):
@@ -324,13 +346,14 @@ def pick_asset(assets):
         name=str(asset.get('name',''));low=name.lower()
         if re.search(r'\.(sha256|sig|txt|md5|json|asc|exe|msi|dmg|apk|deb|rpm|pkg|7z|rar)$|source|src\b|symbols|debug|flatpak',low):continue
         # 'win' and 'mac' only as whole words: "WindWakerHD" and "machine" are not Windows or macOS.
-        if re.search(r'(?<![a-z])(?:win|windows|win32|win64|mac|macos)(?![a-z])|osx|darwin|android|arm64|aarch64|armv|(?<![a-z])arm(?![a-z])|ppc64|riscv|i386|x86\b|32-?bit',low):continue
+        if re.search(r'(?<![a-z])(?:win|windows|win32|win64|mac|macos)(?![a-z])|osx|darwin|android|arm64|aarch64|armv|(?<![a-z])arm(?![a-z])|ppc64|riscv|i386|(?<![a-z0-9])x86(?![_-]?64)|32-?bit',low):continue
         linux=bool(re.search(r'linux|steamos|steamdeck|steam-deck|deck',low))
         if not linux and not low.endswith('.appimage'):continue
         if not low.endswith(('.appimage','.tar.gz','.tgz','.tar.xz','.tar.bz2','.tbz2','.tar.zst','.tar','.zip')) and '.' in name:continue
         score=1
         if re.search(r'steamos|steamdeck|steam-deck',low):score+=3
         if re.search(r'x86[_-]64|amd64|x64',low):score+=2
+        if re.search(r'(?<![a-z])(?:jp|japan|japanese)(?![a-z])',low):score-=1
         bare='.' not in low.rsplit('-',1)[-1]
         score+={'.appimage':4,'.tar.gz':3,'.tgz':3,'.tar.xz':3,'.tar.bz2':3,'.tbz2':3,'.tar.zst':3,'.tar':3,'.zip':2}.get(next((e for e in ('.appimage','.tar.gz','.tgz','.tar.xz','.tar.bz2','.tbz2','.tar.zst','.tar','.zip') if low.endswith(e)),''),3 if bare and linux else 0)
         if score>best_score and score>2:best,best_score=asset,score
@@ -369,6 +392,27 @@ def release_for(repo,get=fetch_json):
 def records(store):
     try:return json.loads((store.root/'ports.json').read_text())
     except (OSError,ValueError):return {}
+
+def package_plan(item,assets,runtime='auto'):
+    from .port_packages import select
+    item=clean(item)
+    if not item or item.get('package_role')=='build-tool':return None
+    return select(assets,runtime=runtime,platforms=item.get('supported_os',[]),asset_prefix=item.get('asset_prefix',''))
+
+def set_input(repository,key,path,store=None):
+    """Remember a manually selected original only after checking the adapter's identity."""
+    store=store or Store();saved=records(store);record=saved.get(repository)
+    if not record or key not in ('rom','disc','bios','wiiu') or not record.get(key):raise ValueError('Este instalador no admite ese tipo de archivo.')
+    path=pathlib.Path(path).expanduser().resolve()
+    if not path.is_file():raise ValueError('El archivo elegido no está disponible.')
+    spec=record[key]
+    if key=='rom' and not match_rom(spec,path):raise ValueError('La ROM no coincide con el tamaño y el SHA-1 requeridos por este port.')
+    if key=='bios' and not (path.stat().st_size==BIOS_SIZE and sha256_file(path) in spec.get('sha256',[])):raise ValueError('La BIOS no coincide con el hash requerido por este port.')
+    if key=='disc' and not find_disc(spec,[(path.name,str(path))]):raise ValueError('El disco no tiene el serial requerido: '+spec['serial']+'. Elegí un CUE, BIN o ISO compatible.')
+    if key=='wiiu' and not find_wiiu_image(spec,[(path.name,str(path))]):raise ValueError('Elegí la imagen WUD, WUX o WUA de '+spec['name']+'.')
+    record['inputs']={**record.get('inputs',{}),key:str(path)}
+    atomic_json(store.root/'ports.json',saved)
+    return record
 
 class Cancelled(Exception):pass
 
@@ -409,18 +453,32 @@ def extract(archive,destination):
         return
     if name.endswith('.zip'):
         with zipfile.ZipFile(archive) as z:
+            files=[];seen=set()
             for info in z.infolist():
-                if not (destination/info.filename).resolve().is_relative_to(destination):raise ValueError('El paquete contiene rutas inseguras.')
+                # Windows packagers sometimes store backslashes in ZIP names.
+                # Normalize before validating and extracting so Proton sees
+                # real directories rather than a literal backslash filename.
+                filename=info.filename.replace('\\','/');relative=pathlib.PurePosixPath(filename)
+                if relative.is_absolute() or '..' in relative.parts or re.match(r'^[A-Za-z]:',filename):raise ValueError('El paquete contiene rutas inseguras.')
+                target=destination/filename
+                if not target.resolve().is_relative_to(destination):raise ValueError('El paquete contiene rutas inseguras.')
                 if stat.S_ISLNK(info.external_attr>>16):raise ValueError('El paquete contiene enlaces simbólicos.')
-            z.extractall(destination)
-            for info in z.infolist():
+                if relative in seen:raise ValueError('El paquete contiene rutas duplicadas.')
+                seen.add(relative);files.append((info,target,filename.endswith('/')))
+            for info,target,directory in files:
+                if directory:target.mkdir(parents=True,exist_ok=True);continue
+                target.parent.mkdir(parents=True,exist_ok=True)
+                with z.open(info) as source,target.open('wb') as output:shutil.copyfileobj(source,output)
                 mode=info.external_attr>>16
-                if mode&0o111 and not info.is_dir():(destination/info.filename).chmod(0o755)
+                if mode&0o111:target.chmod(0o755)
     elif re.search(r'\.(tar|tar\.gz|tgz|tar\.xz|tar\.bz2|tbz2)$',name):
         with tarfile.open(archive) as tar:
             for member in tar.getmembers():
-                if not (member.isfile() or member.isdir()):raise ValueError('El paquete contiene enlaces o archivos especiales.')
+                if not (member.isfile() or member.isdir() or member.issym() or member.islnk()):raise ValueError('El paquete contiene archivos especiales.')
                 if not (destination/member.name).resolve().is_relative_to(destination):raise ValueError('El paquete contiene rutas inseguras.')
+                if member.issym() or member.islnk():
+                    base=(destination/member.name).parent if member.issym() else destination
+                    if pathlib.Path(member.linkname).is_absolute() or not (base/member.linkname).resolve().is_relative_to(destination):raise ValueError('El paquete contiene enlaces fuera de su carpeta.')
             tar.extractall(destination,filter='data')
     else:raise ValueError('Formato de paquete no admitido: '+pathlib.Path(archive).name)
 
@@ -453,19 +511,21 @@ def find_executable(folder,repository=''):
     named=[p for p in binaries if key and key in re.sub(r'[^a-z0-9]','',p.name.lower())]
     return named[0] if len(named)==1 else ''
 
-def install(item,store=None,root=None,progress=print,get=fetch_json,replace=False,web=None,runner=None,transfer=None,cancel=None):
+def install(item,store=None,root=None,progress=print,get=fetch_json,replace=False,web=None,runner=None,transfer=None,cancel=None,runtime='auto'):
     """Install or update one catalog port. Returns the stored record."""
     from . import port_packages
-    check_cancel(cancel);runtime='linux'
+    check_cancel(cancel);requested_runtime=runtime;runtime='linux'
     store=store or Store();root=pathlib.Path(root or ports_root());item=clean(item)
     if item is None:raise ValueError('Entrada de catálogo inválida.')
+    previous=records(store).get(item['repository'],{})
+    if replace and requested_runtime=='auto' and previous.get('runtime')=='proton':requested_runtime='proton'
     if item['web']:
         resolved=(web or resolve_web)(item['web'])
         if urllib.parse.urlparse(resolved['url']).hostname not in WEB_HOSTS:raise ValueError('La descarga apunta a un servidor no permitido.')
         asset={'name':resolved['name'],'browser_download_url':resolved['url'],'digest':('sha256:'+resolved['sha256']) if resolved.get('sha256') else '','size':resolved.get('size') or 0};tag=resolved['tag']
     else:
-        release=release_for(item['repository'],get);plan=port_packages.select(release.get('assets',[]))
-        if plan is None:raise ValueError(port_packages.summary(None)+' '+release.get('html_url','GitHub'))
+        release=release_for(item['repository'],get);plan=package_plan(item,release.get('assets',[]),requested_runtime)
+        if plan is None:raise ValueError((item.get('source_note','')+' ' if item.get('package_role') else '')+port_packages.summary(None)+' '+release.get('html_url','GitHub'))
         asset=plan['asset'];runtime=plan['runtime']
         if runtime=='proton':
             from .project2099 import proton_path
@@ -491,21 +551,26 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
             shutil.copy2(archive,staging/archive.name);(staging/archive.name).chmod(0o755)
         else:
             progress('Extrayendo');extract(archive,staging);flatten(staging)
+            for path in staging.rglob('*'):
+                if path.is_symlink() and not path.resolve().is_relative_to(staging.resolve()):raise ValueError('Un enlace del paquete sale de la carpeta del port.')
         from . import buildenv
         kit=buildenv.looks_like_kit(staging)
+        declared=(item.get('windows_exe') or (item['exe'] if item.get('exe','').lower().endswith('.exe') else '')) if runtime=='proton' else item.get('exe')
         if item['setup']=='zelda3':kit=True  # built from source, runs inside the SDK
         if item['web'] and item['web']['kind']=='openpete':
             # The AppImage is unpacked once: its compiler needs the SDK's headers, and the module it builds is kept next to the unpacked files.
             progress('Desempaquetando OpenPete');(runner or subprocess.run)([str(staging/archive.name),'--appimage-extract'],cwd=str(staging),capture_output=True,timeout=300,check=True)
             (staging/archive.name).unlink();executable=staging/'squashfs-root/AppRun';kit=True
-        elif item.get('exe'):
-            executable=(staging/item['exe']).resolve()
+        elif declared:
+            executable=(staging/declared).resolve()
             if not executable.is_relative_to(staging.resolve()):raise ValueError('La ruta del ejecutable sale del paquete.')
+            if not executable.is_file():raise ValueError('El paquete no contiene el ejecutable esperado: '+executable.name+'. Se conserva la instalación anterior.')
         elif runtime=='proton':executable=port_packages.windows_executable(staging,item['repository'])
         else:executable=find_executable(staging,item['repository'])
         if runtime=='proton' and not executable:raise ValueError('El paquete Windows no contiene un juego portable identificable. Se conserva la instalación anterior; este port requiere una integración específica.')
         if executable and executable.exists():executable.chmod(executable.stat().st_mode|0o111)
-        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'runtime':runtime,'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
+        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'runtime':runtime,'game_title':item.get('game_title') or item['cover_title'],'original_platform':platform_for(item['list']),'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'preparation':item.get('preparation',''),'source_note':item.get('source_note',''),'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
+        if previous.get('inputs'):record['inputs']=dict(previous['inputs'])
         if destination.exists():port_packages.preserve_saves(destination,staging,cancel)
         atomic_json(staging/'.deck-library-port.json',record)
         check_cancel(cancel)
@@ -531,8 +596,7 @@ def installed_updates(store,get=fetch_json):
         try:release=release_for(repo,get)
         except (OSError,ValueError):continue
         tag=str(release.get('tag_name',''))
-        from .port_packages import select
-        if tag and tag!=record.get('tag') and select(release.get('assets',[])):result.append({'name':record.get('name',repo),'repository':repo,'installed':record.get('tag',''),'latest':tag,'page':release.get('html_url',''),'notes':(release.get('body') or '')[:8000]})
+        if tag and tag!=record.get('tag') and package_plan({'repository':repo,**record},release.get('assets',[])):result.append({'name':record.get('name',repo),'repository':repo,'installed':record.get('tag',''),'latest':tag,'page':release.get('html_url',''),'notes':(release.get('body') or '')[:8000]})
     return result
 
 def port_id(repository):
@@ -563,8 +627,8 @@ def entry_for(folder):
     if record.get('runtime')=='proton':
         import sys
         command=[sys.executable,'-m','deck_library.port_runtime',str(folder)];cwd=str(pathlib.Path(__file__).resolve().parent.parent)
-    title=record.get('cover_title') or next((b.get('cover_title','') for b in BUILTIN if b['repository']==record['repository']),'')
-    return Entry(record.get('name',folder.name),command,'port','Windows' if record.get('runtime')=='proton' else 'Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],**({'game_title':title} if title else {}),'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
+    title=record.get('game_title') or record.get('cover_title') or next((b.get('cover_title','') for b in BUILTIN if b['repository']==record['repository']),'')
+    return Entry(record.get('name',folder.name),command,'port','Windows' if record.get('runtime')=='proton' else 'Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],**({'game_title':title} if title else {}),'original_platform':record.get('original_platform') or next((platform_for(b.get('category','')) for b in BUILTIN if b['repository']==record['repository']),''),'configured':bool(record.get('configured')) if record.get('setup') else True,'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
 
 
 DATA_CTR=pathlib.Path('.local/share/ctr-turbocharged')
@@ -998,6 +1062,8 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
     store=store or Store();home=pathlib.Path(home or pathlib.Path.home());run=run or buildenv.run
     record=records(store).get(repository)
     if not record or not record.get('setup'):raise ValueError('Este port no necesita configuración.')
+    inputs=record.get('inputs') or {}
+    games=[*games,*[(pathlib.Path(p).name,p) for k,p in inputs.items() if k in ('disc','wiiu') and p]]
     folder=ports_root(home)/record['folder']
     if not folder.is_dir():raise ValueError('La carpeta del port ya no existe: '+str(folder))
     problems=[text for ok,text in requirements(record,games,home) if ok is False]
@@ -1007,7 +1073,7 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
     kind=record['setup'];executable=folder/record['executable']
     if kind=='kit':
         if not disc['cue']:raise ValueError('El kit necesita el archivo .cue del disco.')
-        bios=find_bios(record['bios']['sha256'],home);cli='psxrecomp/psxrecomp_cli.py';base=['python3',cli]
+        bios=find_bios(record['bios']['sha256'],home,[inputs.get('bios')]);cli='psxrecomp/psxrecomp_cli.py';base=['python3',cli]
         ensure_controller_default(folder);ensure_overlay_compiler(folder);enhance_kit(folder)
         outcome=apply_runtime_patches(folder)
         if outcome=='incompatible':progress('Esta versión del kit no admite la mejora de rendimiento; se compila sin ella')
@@ -1028,21 +1094,21 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
             run([str(executable),'--disc',disc['source'],'--headless'],cwd=str(executable.parent),progress=progress,until=module.is_file)
             if not module.is_file():raise RuntimeError('OpenPete no llegó a compilar su módulo.')
         record['args']=['--disc',disc['source'],'--fullscreen','1']
-    elif kind=='ctr':
+    elif kind in ('ctr','ctr_native'):
         source=pathlib.Path(disc['bin'])
         if not source.is_file() or source.stat().st_size%2352:raise ValueError('CTR necesita un BIN crudo MODE2/2352; el archivo '+source.name+' no tiene ese formato.')
-        target=home/DATA_CTR/'assets/ctr-u.bin';target.parent.mkdir(parents=True,exist_ok=True)
+        target=(folder if kind=='ctr_native' else home/DATA_CTR)/'assets/ctr-u.bin';target.parent.mkdir(parents=True,exist_ok=True)
         if not target.is_file() or target.stat().st_size!=source.stat().st_size:
             progress('Copiando el disco como ctr-u.bin');temporary=target.with_suffix('.part');shutil.copyfile(source,temporary);temporary.replace(target)
     elif kind=='rom':
-        found=find_rom(record['rom'],home)
+        found=find_rom(record['rom'],home,[inputs.get('rom')])
         if not found:raise ValueError('No se encontró la ROM de '+record['rom']['name']+'.')
         target=folder/found['target'];progress('Copiando la ROM como '+found['target']);data=pathlib.Path(found['path']).read_bytes()
         target.write_bytes(data[512:] if found['header'] else data)
         disc={'name':pathlib.Path(found['path']).name}
     elif kind=='zelda3':
         import shlex
-        found=find_rom(record['rom'],home)
+        found=find_rom(record['rom'],home,[inputs.get('rom')])
         if not found:raise ValueError('No se encontró la ROM de '+record['rom']['name']+'.')
         data=pathlib.Path(found['path']).read_bytes();(folder/found['target']).write_bytes(data[512:] if found['header'] else data)
         progress('Instalando Pillow y PyYAML (solo para extraer los recursos)')

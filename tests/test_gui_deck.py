@@ -305,12 +305,68 @@ class DeckUITests(unittest.TestCase):
         entry=self.w.entries[0];self.w.select_game(entry);self.w.open_game_section('options');self.w.open_library();self.w.select_game(entry);self.settle()
         self.assertEqual(self.w.game_tab,'profiles')
         self.assertIs(self.w.get_focus(),self.w.game_play_button)
-    def test_library_does_not_hide_an_emulator_copy_behind_a_port(self):
+    def test_library_associates_the_original_without_removing_its_entry(self):
         from deck_library.models import Entry
         self.w.preferences['prefer_ports']=True
         self.w.entries=[Entry('Same',['a'],kind='port'),Entry('Same',['b'],kind='emulated',platform='Wii')]
+        self.assertEqual(len(self.w.shown_entries()[0]),1)
+        self.assertEqual(len(self.w.entries),2)
+        self.w.preferences['unlinked_originals']=[self.w.entries[1].id]
         self.assertEqual(len(self.w.shown_entries()[0]),2)
         self.assertFalse(hasattr(self.w,'prefer_ports'))
+
+    def test_associated_rom_badge_and_last_cover_fit_with_pending_changes(self):
+        from gi.repository import Gtk
+        from deck_library.models import Entry,atomic_json
+        self.w.resize(1280,800);self.populate_games(40)
+        rom=pathlib.Path(self.temp.name)/'owned.iso';rom.write_bytes(b'owned')
+        port=Entry('ZZ Final Game',['port']);original=Entry(port.name,['emulator'],kind='emulated',platform='Wii',source=str(rom))
+        self.w.entries.extend([port,original]);self.w.checked={original.id};atomic_json(self.store.root/'pending.json',{'ids':[port.id]});self.w.refresh_pending();self.w.render();self.settle();self.w.focus_library(port.id);self.settle()
+        self.assertFalse(self.w.checked)
+        self.assertNotIn(original.id,self.w.library_targets)
+        visual=self.w.library_targets[port.id].library_focus_visual
+        self.assertIn('ROM encontrada',[c.get_text() for c in visual.get_children() if isinstance(c,Gtk.Label)])
+        scroll=self.w.library_stack.get_visible_child();position=visual.translate_coordinates(scroll,0,0)
+        self.assertGreaterEqual(position[1],0);self.assertLessEqual(position[1]+visual.get_allocated_height(),scroll.get_allocated_height())
+        self.w.platform_filter='Wii';self.assertEqual(self.w.visible(),[port])
+        self.w.type_filter='emulator';self.assertEqual(self.w.visible(),[original])
+        self.w.focus_library(original.id);self.settle()
+        self.assertEqual(self.w.get_focus().library_entry_id,port.id)
+
+    def test_port_input_picker_validates_before_preparing_without_a_native_dialog(self):
+        import hashlib
+        from gi.repository import Gtk,GLib
+        from deck_library import ports
+        from deck_library.models import atomic_json
+        rom=pathlib.Path(self.temp.name)/'outside.gba';rom.write_bytes(b'owned')
+        record={'repository':'a/test','setup':'rom','rom':{'systems':['gba'],'sizes':[5],'sha1':{hashlib.sha1(b'owned').hexdigest():'baserom.gba'},'name':'Test'}}
+        atomic_json(self.store.root/'ports.json',{'a/test':record});original_run=self.inline.run;seen=[];windows=self.application_windows()
+        def run(page):
+            def select():
+                ready=page._buttons[Gtk.ResponseType.OK];seen.append(ready.get_sensitive())
+                choose=next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Elegir ROM');choose.clicked()
+                seen.append(ready.get_sensitive());page.response(Gtk.ResponseType.OK);return False
+            GLib.timeout_add(200,select);return original_run(page)
+        with patch.object(self.w,'pick_file',return_value=str(rom)),patch.object(self.inline,'run',run):self.assertTrue(self.w.port_inputs({'repository':'a/test','name':'Test'}))
+        self.assertEqual(seen,[False,True]);self.assertEqual(self.application_windows(),windows)
+        self.assertEqual(ports.records(self.store)['a/test']['inputs']['rom'],str(rom));self.assertEqual(rom.read_bytes(),b'owned')
+
+    def test_port_detail_offers_proton_as_an_explicit_alternative(self):
+        from gi.repository import Gtk,GLib
+        from deck_library import ports
+        item=ports.clean({'repository':'a/test','name':'Test'})
+        release={'assets':[{'name':'Test-linux-x64.zip'},{'name':'Test-win64.zip'}]};original_run=self.inline.run;seen=[]
+        def run(page):
+            def choose():
+                buttons=self.w.control_targets(page);proton=next((c for c in buttons if c.get_accessible().get_name()=='Instalar con Proton'),None)
+                seen.append(proton is not None)
+                if proton:proton.clicked()
+                else:page.response(Gtk.ResponseType.CLOSE)
+                return False
+            GLib.timeout_add(300,choose);return original_run(page)
+        with patch.object(ports,'release_for',return_value=release),patch.object(ports,'icon_path',return_value=''),patch.object(self.w,'install_port') as install,patch.object(self.inline,'run',run):
+            self.w.port_details(item);self.settle();install.assert_called_once();self.assertEqual(install.call_args.kwargs['runtime'],'proton')
+        self.assertEqual(seen,[True])
     def test_pending_page_shows_the_operation_name_without_another_dialog(self):
         from gi.repository import Gtk
         from deck_library.models import atomic_json

@@ -103,7 +103,11 @@ class CatalogMixin:
                 if record.get('setup')=='kit' and record.get('patch_level',0)<ports.PATCH_LEVEL:side.pack_start(button('Mejorar rendimiento',lambda _,i=item:self.configure_port(i),True),False,False,0)
                 else:side.pack_start(button('Volver a configurar',lambda _,i=item:self.configure_port(i)),False,False,0)
                 if record.get('setup')=='wwhd':side.pack_start(button('Preparar shaders',lambda _:self.prepare_shaders()),False,False,0)
-            elif record:side.pack_start(label('Instalado','good'),False,False,0)
+            elif record:
+                side.pack_start(label('Instalado','good'),False,False,0)
+                if item.get('preparation')=='launcher':
+                    side.pack_start(label('Asistente del port','meta'),False,False,0);side.pack_start(button('Abrir port',lambda _,r=record:self.open_installed_port(r)),False,False,0)
+                elif item.get('preparation')=='manual':side.pack_start(button('Ver preparación',lambda _,i=item:self.port_details(i)),False,False,0)
             else:side.pack_start(button('Instalar',lambda _,i=item:self.install_port(i,False)),False,False,0)
             if 'Agregado' in item['source']:side.pack_start(button('Quitar de la lista',lambda _,i=item:self.remove_repository(i),tone='danger'),False,False,0)
             row.pack_end(side,False,False,0);card.catalog_open=open_;card.catalog_image=image;self.catalog_rows.pack_start(card,False,False,0)
@@ -114,6 +118,7 @@ class CatalogMixin:
     def port_details(self,item):
         from .gui import label,button
         import subprocess
+        item=ports.clean(item)
         title=item.get('game_title') or item['name'];page=InlineDialog(title=title,transient_for=self);page.add_button('Volver al catálogo',Gtk.ResponseType.CLOSE)
         box=page.get_content_area();hero=Gtk.Box(spacing=20);image=Gtk.Image.new_from_icon_name('applications-games-symbolic',Gtk.IconSize.DIALOG);image.set_size_request(132,198);image.set_valign(Gtk.Align.START);hero.pack_start(image,False,False,0)
         text=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
@@ -142,6 +147,13 @@ class CatalogMixin:
         retry=button('Reintentar imagen',lambda _:artwork(True));box.pack_start(retry,False,False,0)
         checks=label('Comprobando requisitos…','status');box.pack_start(checks,False,False,0)
         package=label('Comprobando el paquete de instalación…','meta');box.pack_start(package,False,False,0)
+        from .port_recipes import preparation
+        _,preparation_text=preparation(item);box.pack_start(label(preparation_text,'title'),False,False,0)
+        if item.get('source_note'):box.pack_start(label(item['source_note'],'muted'),False,False,0)
+        primary_action=[None]
+        def proton_install(_):
+            page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.install_port(item,bool(ports.records(self.store).get(item['repository'])),runtime='proton'),False)[1])
+        proton_button=button('Instalar con Proton',proton_install,True);proton_button.set_no_show_all(True);proton_button.hide();page.get_action_area().pack_start(proton_button,False,False,0)
         games=[(e.name,e.source) for e in self.entries if e.source]
         def requirements():
             try:lines=ports.requirements(item,games)
@@ -157,8 +169,15 @@ class CatalogMixin:
                 if item['repository']=='GenryTheFox0/Project-2099':info='Instalador integrado · Xbox 360 → Project 2099 · respaldo completo al actualizar.'
                 elif item.get('web'):info='Instalador integrado · '+item['web']['kind']
                 else:
-                    release=ports.release_for(item['repository']);plan=port_packages.select(release.get('assets',[]));info=port_packages.summary(plan)
+                    release=ports.release_for(item['repository']);plan=ports.package_plan(item,release.get('assets',[]));proton_plan=ports.package_plan(item,release.get('assets',[]),runtime='proton');info=port_packages.summary(plan)
                     if plan:info+='\n'+plan['asset']['name']+' · '+release.get('tag_name','')
+                    def offer():
+                        if page._closed:return False
+                        if proton_plan and (not plan or plan['runtime']!='proton'):proton_button.set_no_show_all(False);proton_button.show_all();proton_button.set_no_show_all(True)
+                        if primary_action[0] and plan and plan['runtime']=='proton':primary_action[0].set_label('Instalar con Proton')
+                        if primary_action[0] and not plan:primary_action[0].set_sensitive(False)
+                        return False
+                    GLib.idle_add(offer)
             except Exception:info='No se pudo comprobar el paquete. Se volverá a consultar al instalar.'
             def show():
                 if not page._closed:package.set_text(info)
@@ -178,10 +197,12 @@ class CatalogMixin:
             page.get_action_area().pack_start(button('Actualizar',update,True),False,False,0)
         elif record and record.get('setup') and not record.get('configured'):
             page.get_action_area().pack_start(button('Configurar',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.configure_port(item),False)[1])),True),False,False,0)
-        elif record:box.pack_start(label('Instalado · '+record.get('tag',''),'good'),False,False,0)
+        elif record:
+            box.pack_start(label('Instalado · '+record.get('tag',''),'good'),False,False,0)
+            if item.get('preparation')=='launcher':page.get_action_area().pack_start(button('Abrir port',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.open_installed_port(record),False)[1]))),False,False,0)
         else:
             def install(_):page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.install_port(item,False),False)[1])
-            page.get_action_area().pack_start(button('Instalar',install,True),False,False,0)
+            primary_action[0]=button('Instalar',install,True);page.get_action_area().pack_start(primary_action[0],False,False,0)
         self.transfer_row(box,item['repository']);page.show_all();artwork();page.run();page.destroy()
 
     def prepare_shaders(self):
@@ -273,8 +294,14 @@ class CatalogMixin:
             if same or key(e.name)==key(item.get('game_title') or item['name']):return {'external':True,'alternative':not same,'entry':e,'tag':e.metadata.get('port_tag') or e.metadata.get('build') or '?'}
         return None
 
-    def install_port(self,item,replace):
+    def open_installed_port(self,record):
+        entry=ports.entry_for(ports.ports_root()/record['folder'])
+        if entry:self.play(entry)
+        else:self.message('Port no disponible','No se encontró el ejecutable instalado. Volvé a detectar o reinstalar el port.')
+
+    def install_port(self,item,replace,runtime='auto'):
         from . import buildenv
+        item=ports.clean(item)
         if getattr(self,'port_busy',False):self.set_status('Ya hay una instalación en curso.');return
         if item['repository']=='GenryTheFox0/Project-2099':
             if any(e.metadata.get('adapter')=='project2099' for e in self.entries):self.update_project2099()
@@ -291,7 +318,7 @@ class CatalogMixin:
         def work():
             try:
                 if needs_sdk:buildenv.install(lambda text:GLib.idle_add(self.set_status,'SDK de KDE: '+text))
-                record=ports.install(item,self.store,progress=progress,transfer=progress,replace=replace,cancel=cancel);GLib.idle_add(self.port_installed,item,record)
+                record=ports.install(item,self.store,progress=progress,transfer=progress,replace=replace,cancel=cancel,runtime=runtime);GLib.idle_add(self.port_installed,item,record)
             except Exception as error:GLib.idle_add(self.port_failed,item,str(error))
         threading.Thread(target=work,daemon=True).start()
 
@@ -305,13 +332,35 @@ class CatalogMixin:
         if record.get('setup'):
             self.set_status(item['name']+' instalado. Preparando la configuración…');self.configure_port(item,automatic=True)
         elif record.get('sandbox'):self.message(item['name']+' instalado','Abrirlo desde la biblioteca inicia el asistente: pide el disco y la BIOS propios y compila el juego dentro del SDK de KDE (la primera vez tarda varios minutos). Después se agrega a Steam como cualquier otro juego.')
-        elif record['executable']:self.set_status(f'{item["name"]} {record["tag"]} instalado.')
+        elif record['executable']:self.set_status(f'{item["name"]} {record["tag"]} instalado.'+(' Abrí el port para elegir los archivos originales.' if item.get('preparation')=='launcher' else ' Revisá la preparación manual en su ficha.' if item.get('preparation')=='manual' else ''))
         else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en ~/ports/{record["folder"]}, pero hay varios ejecutables posibles. Elegir el correcto con «Agregar juegos → Elegir un juego o una app».')
         if getattr(self,'update_state',None):self.update_state['catalog']=[u for u in self.update_state.get('catalog') or [] if u['repository']!=item['repository']];self.refresh_update_badges()
         self.discover()
         GLib.idle_add(self.run_next_auto_port)
         if self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
         return False
+
+    def port_inputs(self,item):
+        from .gui import label,button
+        page=InlineDialog(title='Preparar '+item['name'],transient_for=self);page.add_button('Más tarde',Gtk.ResponseType.CANCEL);ready=page.add_button('Preparar',Gtk.ResponseType.OK)
+        body=page.get_content_area();summary=label('','muted');body.pack_start(summary,False,False,0)
+        error=label('','status');body.pack_start(error,False,False,0)
+        record=ports.records(self.store).get(item['repository'],{})
+        if item.get('source_note'):body.pack_start(label(item['source_note'],'muted'),False,False,0)
+        def refresh():
+            record=ports.records(self.store).get(item['repository'],{})
+            lines=ports.requirements(record,[(e.name,e.source) for e in self.entries if e.source])
+            summary.set_text('\n'.join(('✓ ' if ok else '• ')+value for ok,value in lines))
+            ready.set_sensitive(all(ok is True for ok,_ in lines))
+        def select(_,key):
+            path=self.pick_file({'rom':'Elegir ROM','disc':'Elegir disco CUE, BIN o ISO','bios':'Elegir BIOS','wiiu':'Elegir imagen de Wii U'}[key])
+            if not path:return
+            try:ports.set_input(item['repository'],key,path,self.store);error.set_text('');refresh()
+            except (ValueError,OSError) as exc:error.set_text(str(exc))
+        for key,caption in (('rom','Elegir ROM'),('disc','Elegir disco'),('bios','Elegir BIOS'),('wiiu','Elegir imagen de Wii U')):
+            if record.get(key):body.pack_start(button(caption,lambda w,k=key:select(w,k)),False,False,0)
+        body.pack_start(button('Volver a detectar',lambda _:refresh()),False,False,0)
+        refresh();page.show_all();accepted=page.run()==Gtk.ResponseType.OK;page.destroy();return accepted
 
     def configure_port(self,item,automatic=False):
         """Configure an installed port with the library's disc and the BIOS found by hash, then add it to the library."""
@@ -321,9 +370,11 @@ class CatalogMixin:
         if getattr(self,'port_busy',False):self.set_status('Ya hay una tarea en curso.');return
         games=[(e.name,e.source) for e in self.entries if e.source]
         lines=ports.requirements(record,games)
-        missing=[text for ok,text in lines if ok is False]
+        missing=[text for ok,text in lines if ok is not True]
         if missing:
-            self.message('Falta algo para configurar '+item['name'],'\n\n'.join(missing)+'\n\nCuando esté disponible, usar «Configurar» en el catálogo.');self.set_status(item['name']+': faltan requisitos.');return
+            self.transfer_event(item['repository'],{'phase':'awaiting_input','text':'Archivos originales pendientes.','fraction':None,'eta':None})
+            if self.port_inputs(item):return self.configure_port(item,automatic=True)
+            self.set_status(item['name']+': archivos originales pendientes.');return
         needs_sdk=record['setup'] in ('kit','openpete') and not buildenv.installed()
         used=next((text for ok,text in lines if ok and text.startswith('Disco')),'')
         question='Se va a configurar '+item['name']+' con lo que ya está en la Deck.\n\n'+'\n'.join(text for ok,text in lines)+'\n\n'+('Compila el juego dentro del SDK de KDE; el kit de Spider-Man tarda unos minutos. ' if record['setup'] in ('kit','openpete') else '')+('Antes se instalará el SDK de KDE de Flatpak (una sola vez). ' if needs_sdk else '')+'Los discos originales no se modifican.'

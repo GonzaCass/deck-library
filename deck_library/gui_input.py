@@ -196,7 +196,9 @@ class InputMixin:
         if self.ui_closed or self.pages.get_visible_child_name()!='library':return False
         self._scroll_focus_hold=(None,0)
         targets=getattr(self,'library_targets',{})
-        target=targets.get(identifier or getattr(self,'library_focus_id',None)) or next(iter(targets.values()),None)
+        wanted=identifier or getattr(self,'library_focus_id',None)
+        if wanted not in targets:wanted=next((pid for pid,roms in getattr(self,'rom_associations',{}).items() if any(o.id==wanted for o in roms)),wanted)
+        target=targets.get(wanted) or next(iter(targets.values()),None)
         if target:target.grab_focus();self.library_focus_changed(self,target);self.reveal_focus(target)
         return False
 

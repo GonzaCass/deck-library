@@ -4,29 +4,39 @@ import pathlib,re,shutil,sys
 ARCHIVES=('.zip','.tar.gz','.tgz','.tar.xz','.tar.bz2','.tbz2','.tar.zst','.tar')
 SAVES=('UserData','userdata','saves','Saves','savegames','SaveGames')
 
-def select(assets):
+def select(assets,runtime='auto',platforms=(),asset_prefix=''):
     from .ports import pick_asset
-    native=pick_asset(assets)
+    if runtime not in ('auto','linux','proton'):raise ValueError('Runtime de instalación desconocido.')
+    native=pick_asset([a for a in assets if not asset_prefix or a.get('name','').lower().startswith(asset_prefix.lower())]) if runtime!='proton' else None
     if native:return {'asset':native,'runtime':'linux','kind':'appimage' if native['name'].lower().endswith('.appimage') else 'archive' if native['name'].lower().endswith(ARCHIVES) else 'binary'}
+    if runtime=='linux':return None
+    platforms={p.lower() for p in platforms}
+    windows_only='windows' in platforms and not any(p in platforms for p in ('linux','steamos'))
     candidates=[]
     for asset in assets:
         name=asset.get('name','').lower()
-        if re.search(r'arm64|aarch64|win32|i386|(?<![a-z0-9])x86(?![_-]?64)|setup|installer|uninstall|source|symbols|debug',name):continue
-        if not re.search(r'(?<![a-z])(?:win|windows|win64)(?![a-z])',name):continue
+        if re.search(r'arm64|aarch64|armv|(?<![a-z])arm(?![a-z])|setup|installer|uninstall|source|symbols|debug|runtime|readme|patch|manifest',name):continue
+        if re.search(r'linux|steamos|macos|darwin|osx|android|flatpak|(?<![a-z])mac(?![a-z])',name):continue
         if not name.endswith(('.zip','.exe')):continue
-        candidates.append((2 if re.search(r'x64|x86[_-]64|amd64|win64',name) else 1,asset))
-    if candidates:return {'asset':max(candidates,key=lambda pair:pair[0])[1],'runtime':'proton','kind':'archive' if max(candidates,key=lambda pair:pair[0])[1]['name'].lower().endswith('.zip') else 'binary'}
+        windows=bool(re.search(r'(?<![a-z])(?:win|windows|win32|win64)(?![a-z])',name))
+        if not (windows or name.endswith('.exe') or windows_only or runtime=='proton'):continue
+        score=3 if re.search(r'x64|x86[_-]64|amd64|win64',name) else 1 if re.search(r'x86|win32|i386',name) else 2
+        if re.search(r'(?<![a-z])(?:jp|japan|japanese)(?![a-z])',name):score-=1
+        candidates.append((score,asset))
+    if candidates:
+        asset=max(candidates,key=lambda pair:pair[0])[1]
+        return {'asset':asset,'runtime':'proton','kind':'archive' if asset['name'].lower().endswith('.zip') else 'binary'}
     return None
 
 def summary(plan):
     if not plan:return 'Sin paquete compatible: requiere una integración específica o una compilación desde código fuente.'
-    if plan['runtime']=='proton':return 'Windows portable · Proton · instalación y actualización desde Deck Library.'
+    if plan['runtime']=='proton':return 'Windows portable · Proton · compatibilidad del juego sin comprobar.'
     return {'appimage':'AppImage de Linux','archive':'Paquete de Linux','binary':'Ejecutable de Linux'}[plan['kind']]+' · instalación y actualización desde Deck Library.'
 
 def windows_executable(folder,repository=''):
     from .ports import SKIP_NAMES
     root=pathlib.Path(folder)
-    files=[p for p in root.rglob('*.exe') if len(p.relative_to(root).parts)<=3 and not SKIP_NAMES.search(p.name) and not re.search(r'redist|crash|helper|tools|vcredist|unitycrash',str(p.relative_to(root)),re.I)]
+    files=[p for p in root.rglob('*') if p.is_file() and p.suffix.lower()=='.exe' and len(p.relative_to(root).parts)<=3 and not SKIP_NAMES.search(p.name) and not re.search(r'redist|crash|helper|tools|vcredist|unitycrash',str(p.relative_to(root)),re.I)]
     def pe(path):
         with path.open('rb') as stream:return stream.read(2)==b'MZ'
     files=[p for p in files if pe(p)]

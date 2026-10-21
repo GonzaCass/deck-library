@@ -1,17 +1,55 @@
-"""Match originals to installed ports, with explicit hide/trash choices."""
+"""Associate original images with ready ports without changing either entry or file."""
 import pathlib,re
 from .library_view import title_key,entry_type
 from .models import atomic_json
 ALIASES={'crashteamracingturbocharged':'crashteamracing','ctrcrashteamracing':'crashteamracing','crashteamracing':'crashteamracing','mariokartwiicompiled':'mariokartwii'}
 def key(name):
+    name=str(name or '')
+    name=re.sub(r'^(.+?),\s*(The|A|An)(\s*[-:]\s*|$)',r'\2 \1\3',name,flags=re.I)
     value=re.sub(r'[^a-z0-9]','',title_key(name));return ALIASES.get(value,value)
-def pairs(entries):
+
+def platform_key(name):
+    value=re.sub(r'[^a-z0-9]','',name.lower().replace(' ports',''))
+    return {'ps1':'playstation','psx':'playstation','ps2':'playstation2','ps3':'playstation3','ps4':'playstation4','n64':'nintendo64','gcn':'gamecube','gc':'gamecube','x360':'xbox360','gba':'gameboyadvance','snes':'supernintendo'}.get(value,value)
+
+def original_platform(port):
+    value=port.metadata.get('original_platform','')
+    if value:return platform_key(value)
+    if port.kind=='wiicompiled' or port.metadata.get('adapter')=='wiicompiled':return 'wii'
+    if port.metadata.get('adapter')=='project2099':return 'xbox360'
+    if re.search(r'\bps1\b',port.name,re.I):return 'playstation'
+    return ''
+
+def pairs(entries,excluded=()):
     result=[];ports=[e for e in entries if entry_type(e)=='port' and e.metadata.get('configured') is not False]
+    title_platforms={}
+    for e in entries:
+        if entry_type(e)=='emulator':title_platforms.setdefault(key(e.name),set()).add(platform_key(e.platform))
     for original in entries:
-        if entry_type(original)!='emulator':continue
-        matches=[p for p in ports if (original.game_id and p.game_id and original.game_id.upper()==p.game_id.upper()) or key(original.name) in {key(p.name),key(p.metadata.get('game_title',''))}]
+        if entry_type(original)!='emulator' or original.id in excluded:continue
+        matches=[]
+        for port in ports:
+            platform=original_platform(port)
+            if platform and platform!=platform_key(original.platform):continue
+            if original.game_id and port.game_id:
+                if original.game_id.upper()==port.game_id.upper():matches.append(port)
+                continue
+            title=key(original.name)
+            if not title or not platform and len(title_platforms.get(title,()))>1:continue
+            if title in {key(port.name),key(port.metadata.get('game_title',''))}:matches.append(port)
         if matches:result.append((original,matches))
     return result
+
+def associations(entries,excluded=()):
+    linked={}
+    for original,ports in pairs(entries,excluded):
+        for port in ports:linked.setdefault(port.id,[]).append(original)
+    return linked
+
+def rom_caption(originals):
+    available=sum(bool(e.source and pathlib.Path(e.source).is_file()) for e in originals)
+    if not originals:return ''
+    return ('ROM encontrada' if available==1 else str(available)+' ROMs encontradas') if available else 'ROM no disponible'
 
 def files_for(entry,entries):
     path=pathlib.Path(entry.source)
