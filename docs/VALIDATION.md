@@ -418,3 +418,24 @@ Un archivo 7z real con un ejecutable mínimo se extrajo y clasificó; las prueba
 Se abrió la app en la pantalla real de la Deck (1280×800, escritorio) y se recorrieron Biblioteca, Catálogo, ficha de port, ficha de juego, Actualizaciones y Ajustes con capturas antes y después. Antes: cuatro filas en la Biblioteca, dos tarjetas en el Catálogo, un mensaje fijo que tapaba el final de Ajustes y una ficha de port con pares etiqueta/valor apilados que obligaba a desplazar. Después: ocho filas, cuatro tarjetas y media, mensaje transitorio y ficha de port completa sin desplazamiento. Las 776 pruebas pasan, incluidas las de interfaz sobre un display desechable (tres corridas seguidas); la maximización inicial se omite bajo esas pruebas porque cambia el tamaño de forma asíncrona.
 
 Cobertura de instalación del catálogo (641 de 646 entradas con repositorio de GitHub, consultando el último release o el más reciente si no hay estable y aplicando la misma selección de paquetes de la app): 53,2 % con paquete de Linux, 28,1 % con paquete de Windows para Proton, 5,1 % con paquete sin etiqueta que se identifica al descargar, 2,5 % con receta revisada, 6,1 % sin paquete compatible (Android o código fuente), 5,0 % sin releases publicados o sin archivos. Esto mide si hay algo que descargar e instalar, no que cada juego arranque: no se instaló ningún port nuevo y la mayoría necesita los archivos del juego original.
+
+### 0.19.10 - Prueba de diez ports populares y README bilingüe
+
+Se instalaron diez ports del catálogo, elegidos entre los más valorados en GitHub, en una carpeta personal temporal con el instalador de la app (descarga, extracción, identificación del ejecutable) y se comprobó con el mismo escaneo que usa la biblioteca si cada uno aparece, además de arrancarlos diez segundos en un display remoto.
+
+| Port | Paquete | En la biblioteca | Arranque |
+| --- | --- | --- | --- |
+| OpenRA | AppImage de Linux | sí (solo el AppImage de Dune 2000; el release trae tres) | abierto a los 10 s |
+| OpenRCT2 | AppImage de Linux | sí | abierto a los 10 s |
+| DevilutionX | AppImage de Linux | sí | abierto a los 10 s |
+| Ship of Harkinian | AppImage de Linux | sí | abierto a los 10 s |
+| VCMI | AppImage de Linux | sí | abierto a los 10 s |
+| mGBA | AppImage de Linux | sí | abierto a los 10 s |
+| Zelda 64: Recompiled | ZIP que envuelve un tar.gz | **no** antes de la corrección; sí después | termina por falta de Vulkan en esa sesión remota (sin DRI3), no por el instalador |
+| OpenMW | tar.gz de Linux con muchas herramientas | **no** antes de la corrección; sí después (arranca con el lanzador) | abierto a los 10 s |
+| 3D Pinball Space Cadet | ZIP de Windows (Proton) | sí | el proceso del juego aparece bajo Proton |
+| Unleashed Recompiled | ZIP de Windows (Proton) | sí | no se arrancó (requiere los archivos del juego) |
+
+Dos fallos reales: un ZIP que solo contiene un tar.gz quedaba sin extraer (el port se instalaba pero no aparecía y el aviso hablaba de «varios ejecutables»), y con varias herramientas del mismo proyecto no se elegía ninguna. Ahora se abre el archivo anidado una vez y, entre varios candidatos, se prefiere el lanzador del proyecto (también si es un script con shebang) y después el binario principal. Límites que siguen: un release con varios juegos instala solo uno (OpenRA), no se reconocen todos los formatos anidados, y que un port arranque no significa que sea jugable: no se probaron audio, mando ni FPS, y varios necesitan los archivos del juego original.
+
+El README de GitHub pasó a tener una sección completa en inglés seguida de otra completa en español; la segunda se genera desde LEEME.md con `tools/sync_readme.py` y una prueba comprueba que coincidan y que el inglés no mezcle prosa en español.

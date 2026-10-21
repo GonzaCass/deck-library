@@ -8,7 +8,7 @@ files=[ROOT/name for name in ('app.py','install.py','launch.sh','Instalar.sh','R
 for folder in ('deck_library','tests'):
     files.extend(sorted((ROOT/folder).glob('*.py')))
 files.extend(sorted((ROOT/'presets').glob('*.json')))
-files.extend([ROOT/'.dockerignore',ROOT/'docs/DECK-INTERFACE.md'])
+files.extend([ROOT/'.dockerignore',ROOT/'docs/DECK-INTERFACE.md',ROOT/'tools/sync_readme.py'])
 files.extend(sorted(p for p in (ROOT/'community').iterdir() if p.is_file() and p.name in ('__init__.py','server.py','oidc.py','keycloak-client.json','Dockerfile','compose.yaml','.env.example','README.md')))
 files.extend(sorted(p for p in (ROOT/'community/keycloak-theme').rglob('*') if p.is_file() and p.suffix in ('.properties','.css','.png')))
 files.extend(sorted(p for p in (ROOT/'community/keycloak-mail').rglob('*') if p.is_file() and (p.suffix in ('.java','.py','.md') or p.name=='org.keycloak.email.EmailSenderProviderFactory')))

@@ -6,18 +6,18 @@ Agregar ports, aplicaciones y juegos emulados a Steam desde una sola ventana.
 
 ## Usar Deck Library directamente desde Steam
 
-1. Instalar la app en modo Escritorio: descargar y extraer [la última versión](https://github.com/GonzaCass/deck-library/releases/latest), abrir la carpeta y ejecutar **Instalar.sh**. Completá el asistente inicial.
+1. Instalar la app en modo Escritorio: descargar y extraer [la última versión](https://github.com/GonzaCass/deck-library/releases/latest), abrir la carpeta y ejecutar **Instalar.sh**. Completar el asistente inicial.
 2. En modo Escritorio, dentro de Deck Library, pulsar **Añadir Deck Library a Steam** junto a las pestañas superiores. También está disponible desde **Ajustes → Deck Library en Steam**.
 3. Si Steam está abierto, el acceso queda preparado y aparece el aviso de cambios pendientes. Terminar de agregar o editar lo necesario, cerrar Steam una vez y esperar que desaparezca el aviso. El proceso en segundo plano guarda el acceso y los controles.
 4. Volver al modo Juego. Buscar **Deck Library** en la biblioteca de Steam y pulsar **Jugar**. Se abre directamente a pantalla completa, con la biblioteca, las carátulas y los ajustes.
 
-La primera instalación se hace desde Escritorio; después podés abrir la app desde Steam. El acceso usa la versión nativa de Linux. Para navegar: trackpad derecho y gatillo derecho para puntero/clic; cruceta o stick para moverte; **A** para activar; **B** para volver; **X** para abrir el teclado en la búsqueda. **Steam + X** abre el teclado en pantalla. La plantilla y la interfaz se comprobaron con pruebas automáticas; la navegación con el mando físico en modo Juego sigue pendiente de prueba.
+La primera instalación se hace desde Escritorio; después se puede abrir la app desde Steam. El acceso usa la versión nativa de Linux. Para navegar: trackpad derecho y gatillo derecho para puntero/clic; cruceta o stick para moverte; **A** para activar; **B** para volver; **X** para abrir el teclado en la búsqueda. **Steam + X** abre el teclado en pantalla. La plantilla y la interfaz se comprobaron con pruebas automáticas; la navegación con el mando físico en modo Juego sigue pendiente de prueba.
 
 ### Agregar cada juego a Steam
 
 Abrir la carátula del juego y pulsar el botón azul **Agregar a Steam**. Verás **Acceso pendiente** hasta que se guarde al cerrar Steam; después aparecerá **En Steam**. Para varios juegos, pulsar **Seleccionar**, marcar sus carátulas y usar **Agregar a Steam** en la barra inferior.
 
-Después de guardar los accesos, cada juego se puede abrir directamente desde su propia ficha de Steam. Abrir Deck Library antes es opcional. También podés pulsar **Jugar** dentro de Deck Library: si ese juego ya tiene acceso, la app utiliza el de Steam y su configuración de mando.
+Después de guardar los accesos, cada juego se puede abrir directamente desde su propia ficha de Steam. Abrir Deck Library antes es opcional. También se puede pulsar **Jugar** dentro de Deck Library: si ese juego ya tiene acceso, la app utiliza el de Steam y su configuración de mando.
 
 Los cambios se acumulan: basta con cerrar Steam una vez al terminar. **Ver cambios** detalla las operaciones pendientes y permite descartarlas. La app y los juegos tienen accesos separados.
 
@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.19.9.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.19.10.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -81,7 +81,7 @@ Si Dolphin abre el archivo como texto, abrir una terminal en esa carpeta y ejecu
 
 Se abre un asistente de cuatro pasos: **Bienvenida → Detectar → Carátulas → Listo para Steam**. Busca EmuDeck, emuladores, ports e instancias de Prism en segundo plano. Revisar los juegos encontrados y agregar una carpeta si falta algo. Elegir el proveedor de carátulas y abrir la biblioteca. Se puede repetirlo desde **Ajustes**.
 
-## Tu biblioteca
+## La biblioteca
 
 Las carátulas tienen formato vertical 2:3. Tocar una para abrir su ficha: **Jugar** y **Agregar a Steam** son las acciones principales. Debajo están las tarjetas de ajustes. **Controles**, **Contenido** y **Avanzados** abren cada tarea; **Más opciones → Archivos y acceso de Steam** muestra rutas y comandos.
 
@@ -111,9 +111,9 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.19.9**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.19.10**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
-La ficha de cada port indica cómo se preparan sus archivos: desde Deck Library, desde el asistente del propio port o manualmente. Si hay adaptador, podés elegir la ROM, el disco o la BIOS que falten y se comprueban antes de preparar. **Instalar con Proton** permite usar paquetes Windows portables cuando corresponde. La [tabla de proyectos revisados](docs/PORTS.md#proyectos-revisados-el-21-de-octubre-de-2026) detalla los casos de God of War, inFAMOUS, Sonic, Smash, Time Crisis, Lord of the Rings y Crash; no implica que todos se hayan probado en juego.
+La ficha de cada port indica cómo se preparan sus archivos: desde Deck Library, desde el asistente del propio port o manualmente. Si hay adaptador, se puede elegir la ROM, el disco o la BIOS que falten y se comprueban antes de preparar. **Instalar con Proton** permite usar paquetes Windows portables cuando corresponde. La [tabla de proyectos revisados](docs/PORTS.md#proyectos-revisados-el-21-de-octubre-de-2026) detalla los casos de God of War, inFAMOUS, Sonic, Smash, Time Crisis, Lord of the Rings y Crash; no implica que todos se hayan probado en juego.
 
 Código y versiones descargables: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library). Para información técnica, consultar [README.md](README.md).
 
@@ -130,7 +130,7 @@ Elegir una tarjeta, desplegar **Ver cambios** y pulsar **Aplicar ajustes** para 
 - En Switch, **Base, updates y mods** muestra contenido, versión detectada por Eden y qué NSP está registrado en NAND. Permite elegir una base faltante, instalar updates/DLC propios y mods ZIP LayeredFS. Que un archivo esté disponible en una carpeta no significa que esté instalado en NAND. La versión base puede necesitar consultarse en Eden si no se identifica.
 - **Ajustes recomendados** permite aplicar, respaldar, restaurar, importar/exportar JSON y guardar feedback para compartir. Hay siete perfiles iniciales con su estado de prueba. Algunos son propuestas; no todos están validados jugando.
 
-Para compartir ajustes, usar **Más opciones → Exportar mis ajustes** y enviá el JSON; la otra persona lo carga con **Importar ajustes de un archivo**. **Comunidad** ofrece el servicio opcional de perfiles y feedback con inicio de sesión con cuenta propia. La biblioteca local funciona sin cuenta. Ver [servicio comunitario](docs/COMMUNITY-PRESETS.md).
+Para compartir ajustes, usar **Más opciones → Exportar mis ajustes** y enviar el JSON; la otra persona lo carga con **Importar ajustes de un archivo**. **Comunidad** ofrece el servicio opcional de perfiles y feedback con inicio de sesión con cuenta propia. La biblioteca local funciona sin cuenta. Ver [servicio comunitario](docs/COMMUNITY-PRESETS.md).
 
 El formato y sus límites están explicados en [docs/PRESETS.md](docs/PRESETS.md).
 
@@ -197,7 +197,7 @@ Los perfiles incluidos y probados aparecen entre los principales con **✓ Compr
 
 ### Iniciar sesión y registrarse
 
-Abrir **Cuenta** con el icono de personas de la barra superior, o **Comunidad → Mi cuenta** desde un juego. **Iniciar sesión** y **Crear cuenta** abren los formularios dentro de Deck Library. Para registrarte en el servicio público es necesario verificar el correo. Desde el inicio de sesión también podés recuperar la contraseña. Consultar perfiles no requiere una cuenta ni GitHub.
+Abrir **Cuenta** con el icono de personas de la barra superior, o **Comunidad → Mi cuenta** desde un juego. **Iniciar sesión** y **Crear cuenta** abren los formularios dentro de Deck Library. Para registrarte en el servicio público es necesario verificar el correo. Desde el inicio de sesión también se puede recuperar la contraseña. Consultar perfiles no requiere una cuenta ni GitHub.
 
 En la Steam Deck se reutiliza el componente web de GNOME si está instalado. Si falta, la app ofrece instalarlo desde Flathub o seguir en el navegador. En modo Juego: cruceta/stick para moverte, A para seleccionar, B para cancelar el acceso y **Steam + X** para escribir. La navegación física con mando queda pendiente de confirmación.
 
@@ -259,4 +259,4 @@ Se corrigió un bloqueo del lector del mando al abrir fichas de ports y otras ta
 
 ### Más fuentes de ports (0.19.3)
 
-PortIntegration se suma al catálogo con nombres, plataformas, repositorios y carátulas. Podés elegirlo en el filtro de fuentes. Los repositorios repetidos se unifican y mantienen sus fuentes visibles. Los estados de ese sitio se muestran como declaraciones de la fuente; no son perfiles verificados ni pruebas de funcionamiento en Steam Deck. Las descargas se siguen consultando en el proyecto original.
+PortIntegration se suma al catálogo con nombres, plataformas, repositorios y carátulas. Puede elegirse en el filtro de fuentes. Los repositorios repetidos se unifican y mantienen sus fuentes visibles. Los estados de ese sitio se muestran como declaraciones de la fuente; no son perfiles verificados ni pruebas de funcionamiento en Steam Deck. Las descargas se siguen consultando en el proyecto original.

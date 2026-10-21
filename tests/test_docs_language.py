@@ -1,0 +1,28 @@
+import importlib.util,pathlib,re,unittest
+
+ROOT=pathlib.Path(__file__).resolve().parent.parent
+
+def load_sync():
+    spec=importlib.util.spec_from_file_location('sync_readme',ROOT/'tools/sync_readme.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
+
+class DocsLanguageTests(unittest.TestCase):
+    def test_readme_spanish_half_is_generated_from_leeme(self):
+        self.assertTrue(load_sync().main(check=True),'ejecutar tools/sync_readme.py')
+
+    def test_english_half_has_no_spanish_prose_outside_labels(self):
+        text=(ROOT/'README.md').read_text();english=text.split('<!-- BEGIN SPANISH')[0]
+        english=re.sub(r'^\|.*\|$','',english,flags=re.M)  # glossary table
+        english=english.replace('[Español](#español)','')
+        english=re.sub(r'\*\*[^*\n]+\*\*|`[^`\n]+`|\]\([^)]*\)|https?://\S+','',english)
+        found=sorted(set(re.findall(r'[A-Za-z]*[áéíóúñÁÉÍÓÚÑ¿¡][A-Za-z]*',english)))
+        self.assertEqual(found,[])
+
+    def test_spanish_half_is_complete_and_impersonal(self):
+        text=(ROOT/'README.md').read_text();spanish=text.split('<!-- BEGIN SPANISH')[1]
+        self.assertIn('# Español',spanish);self.assertGreater(len(spanish.splitlines()),200)
+        voseo=re.compile(r'\b(podés|tenés|querés|elegí|abrí|pulsá|revisá|vos|tu|tus)\b',re.I)
+        for path in (ROOT/'LEEME.md',*sorted((ROOT/'docs').glob('*.md'))):
+            if path.name=='DECK-INTERFACE.md':continue  # describes the removed forms
+            self.assertIsNone(voseo.search(path.read_text()),path.name)
+
+if __name__=='__main__':unittest.main()
