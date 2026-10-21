@@ -511,6 +511,16 @@ def is_elf(path):
         with open(path,'rb') as source:return source.read(4)==b'\x7fELF'
     except OSError:return False
 
+def unwrap_nested_archive(staging,progress=print):
+    """Some releases publish a ZIP that only wraps the real tar.gz; open it once so the port is not left without files."""
+    from . import port_packages
+    staging=pathlib.Path(staging);files=[p for p in staging.iterdir() if p.is_file()]
+    inner=[p for p in files if p.name.lower().endswith(port_packages.ARCHIVES)]
+    if len(inner)!=1 or any(p.is_dir() for p in staging.iterdir()):return False
+    if any(is_elf(p) or p.suffix.lower() in ('.exe','.appimage','.sh') for p in files):return False
+    progress('Extrayendo '+inner[0].name);extract(inner[0],staging);inner[0].unlink();flatten(staging)
+    return True
+
 def find_executable(folder,repository=''):
     """Pick the file that starts the port, or '' when it is ambiguous."""
     folder=pathlib.Path(folder);files=[p for p in folder.iterdir() if p.is_file() and not SKIP_NAMES.search(p.name)]
@@ -525,7 +535,18 @@ def find_executable(folder,repository=''):
     if len(binaries)==1:return binaries[0]
     key=re.sub(r'[^a-z0-9]','',repository.split('/')[-1].lower())
     named=[p for p in binaries if key and key in re.sub(r'[^a-z0-9]','',p.name.lower())]
-    return named[0] if len(named)==1 else ''
+    if len(named)==1:return named[0]
+    # Several tools share the project name (openmw, openmw-launcher, openmw-cs…): the launcher, then the plain binary, starts the game.
+    def squash(path):return re.sub(r'[^a-z0-9]','',re.sub(r'\.(x86_64|x64|amd64)$','',path.name.lower()))
+    def is_script(path):
+        try:
+            with path.open('rb') as source:return source.read(2)==b'#!' and os.access(path,os.X_OK)
+        except OSError:return False
+    wrappers=[p for p in files if p not in binaries and key and key in re.sub(r'[^a-z0-9]','',p.name.lower()) and is_script(p)]
+    for wanted in (key+'launcher',key):
+        match=[p for p in sorted(named+wrappers,key=lambda p:('.' in p.name,p.name)) if squash(p)==wanted]
+        if match:return match[0]
+    return ''
 
 def install(item,store=None,root=None,progress=print,get=fetch_json,replace=False,web=None,runner=None,transfer=None,cancel=None,runtime='auto'):
     """Install or update one catalog port. Returns the stored record."""
@@ -567,6 +588,7 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
             shutil.copy2(archive,staging/archive.name);(staging/archive.name).chmod(0o755)
         else:
             progress('Extrayendo');extract(archive,staging);flatten(staging)
+            unwrap_nested_archive(staging,progress)
             for path in staging.rglob('*'):
                 if path.is_symlink() and not path.resolve().is_relative_to(staging.resolve()):raise ValueError('Un enlace del paquete sale de la carpeta del port.')
         from . import buildenv

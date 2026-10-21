@@ -66,7 +66,7 @@ Las tres propuestas declaran Eden 0.2.1 y hardware Deck LCD/OLED. Una versión i
 
 En la ficha de un juego, **Ajustes recomendados** permite ver cambios, aplicar, restaurar, importar JSON y exportar opciones actuales. Se guarda el archivo original privadamente. Si el programa está abierto se rechaza modificar su configuración. Restaurar también se rechaza si otro programa cambió el archivo después, para conservar esos cambios; el backup sigue disponible.
 
-**Exportar mis ajustes** pide un alias público y crea una propuesta con licencia MIT. Revisá las opciones y completá versiones/notas antes de recomendarlo. La app filtra claves y no incluye rutas, pero cualquier nota escrita manualmente debe revisarse antes de publicar.
+**Exportar mis ajustes** pide un alias público y crea una propuesta con licencia MIT. Revisar las opciones y completar versiones/notas antes de recomendarlo. La app filtra claves y no incluye rutas, pero cualquier nota escrita manualmente debe revisarse antes de publicar.
 
 **Dar feedback** guarda un JSON de resultado y permite exportarlo. No envía nada automáticamente a GitHub o a un servidor.
 
@@ -78,9 +78,9 @@ Probar preservación de opciones ajenas al preset, rechazo de claves desconocida
 
 ## Capturar, editar y compartir (0.19.7)
 
-Abrí un juego → **Comunidad → Compartir mis ajustes**. **Leer configuración del juego** captura las opciones reconocidas, incluidos los valores globales heredados. **Leer otro archivo de configuración** permite elegir un INI o TOML; solo importa las claves permitidas para ese adaptador. No copia el archivo completo.
+Abrir un juego → **Comunidad → Compartir mis ajustes**. **Leer configuración del juego** captura las opciones reconocidas, incluidos los valores globales heredados. **Leer otro archivo de configuración** permite elegir un INI o TOML; solo importa las claves permitidas para ese adaptador. No copia el archivo completo.
 
-Podés editar los valores JSON, escribir instrucciones, registrar resultados de prueba y declarar Linux nativo, Proton o Steam, su versión y opciones de lanzamiento. **Revisar mis ajustes** muestra el contenido antes de compartirlo. **Guardar localmente** funciona sin cuenta. **Publicar perfil** requiere iniciar sesión; el servicio asigna el autor autenticado y mantiene el aporte pendiente de revisión. **Mis aportes** muestra los perfiles propios para ese juego y adaptador. Publicar no concede una marca de verificado.
+Se pueden editar los valores JSON, escribir instrucciones, registrar resultados de prueba y declarar Linux nativo, Proton o Steam, su versión y opciones de lanzamiento. **Revisar mis ajustes** muestra el contenido antes de compartirlo. **Guardar localmente** funciona sin cuenta. **Publicar perfil** requiere iniciar sesión; el servicio asigna el autor autenticado y mantiene el aporte pendiente de revisión. **Mis aportes** muestra los perfiles propios para ese juego y adaptador. Publicar no concede una marca de verificado.
 
 | Programa | Lectura | Aplicación |
 | --- | --- | --- |
@@ -96,7 +96,7 @@ Podés editar los valores JSON, escribir instrucciones, registrar resultados de 
 
 Los archivos se buscan en instalaciones nativas y Flatpak conocidas. Una instalación personalizada puede usar `emulator_config_dir` en sus metadatos o el selector de archivo. La aplicación de PCSX2 exige una configuración existente inequívoca o serial + CRC explícitos. Un serial, Title ID o versión desconocidos se deben completar antes de aplicar. No se exportan rutas, cuentas, controles ni claves de los archivos leídos.
 
-`instructions` admite hasta 12.000 caracteres. `runtime` declara `kind` (`native`, `proton`, `steam`), `version` y `launch_options`. Ambos son texto informativo: importar, descargar o aplicar un perfil **no ejecuta comandos ni cambia Proton**. Una guía sin ajustes automáticos muestra **Ver instrucciones** y mantiene deshabilitado Aplicar. Revisá los textos escritos manualmente antes de publicarlos.
+`instructions` admite hasta 12.000 caracteres. `runtime` declara `kind` (`native`, `proton`, `steam`), `version` y `launch_options`. Ambos son texto informativo: importar, descargar o aplicar un perfil **no ejecuta comandos ni cambia Proton**. Una guía sin ajustes automáticos muestra **Ver instrucciones** y mantiene deshabilitado Aplicar. Revisar los textos escritos manualmente antes de publicarlos.
 
 Los juegos sin identificador público usan una identidad derivada del repositorio del port o del nombre y plataforma. Renombrarlos puede cambiar esa identidad; un ID público explícito es preferible. Los perfiles de Project 2099 Beta 4.1 no se aplican al motor distinto de Beta 5. Las referencias documentadas de DMC3 Crimson y Shattered Dimensions no instalan automáticamente esos fixes.
 

@@ -2,15 +2,15 @@
 
 **Agregar juegos → Preparar Project-2099** instala Spider-Man: Edge of Time desde una ISO propia de Xbox 360, o un ZIP/7z con una sola ISO. No acepta la versión PS3. La comprobación de cabecera detecta ese caso antes de descargar componentes; el instalador oficial comprueba además la revisión, tamaños y hashes de los archivos del juego.
 
-Instalá Proton 11.0 desde las Herramientas de Steam. Elegí el archivo y una carpeta de destino vacía. El asistente exige 18 GB libres para los datos temporales, más el tamaño descomprimido de la ISO cuando se selecciona ZIP/7z. Los 7z requieren `7z` o `7zz`. Deck Library consulta la última release y descarga el instalador y payload oficiales, verifica SHA-256, los ejecuta mediante Proton en un entorno de instalación propio y selecciona español. No cambia la ISO original ni instala sobre una carpeta ocupada. Los registros quedan en la carpeta privada de Deck Library, dentro de `downloads/project2099/<versión>/update.log`.
+Instalar Proton 11.0 desde las Herramientas de Steam. Elegir el archivo y una carpeta de destino vacía. El asistente exige 18 GB libres para los datos temporales, más el tamaño descomprimido de la ISO cuando se selecciona ZIP/7z. Los 7z requieren `7z` o `7zz`. Deck Library consulta la última release y descarga el instalador y payload oficiales, verifica SHA-256, los ejecuta mediante Proton en un entorno de instalación propio y selecciona español. No cambia la ISO original ni instala sobre una carpeta ocupada. Los registros quedan en la carpeta privada de Deck Library, dentro de `downloads/project2099/<versión>/update.log`.
 
-Al terminar, el juego aparece en la biblioteca. Usá **Agregar a Steam** desde su ficha; con Steam abierto, el guardado queda pendiente hasta cerrarlo. El acceso ejecuta el juego directamente, sin volver a mostrar el launcher de Windows. Los ports ya preparados se detectan en `~/ports` y las carpetas de ports configuradas. Se reconoce tanto la estructura de Beta 4.1 como la de Beta 5.
+Al terminar, el juego aparece en la biblioteca. Usar **Agregar a Steam** desde su ficha; con Steam abierto, el guardado queda pendiente hasta cerrarlo. El acceso ejecuta el juego directamente, sin volver a mostrar el launcher de Windows. Los ports ya preparados se detectan en `~/ports` y las carpetas de ports configuradas. Se reconoce tanto la estructura de Beta 4.1 como la de Beta 5.
 
 ## Perfil de Beta 4.1
 
 El preset **Project 2099 — Steam Deck 720p / 60 FPS** usa salida 1280×720, renderizado interno 1×, DirectX 12 mediante VKD3D, objetivo/límite de 60 FPS, anisotropía 8×, caché y compilación asíncrona originales, mando XInput y modo teclado/ratón desactivado. Conserva Native AA del paquete oficial; no instala DLSS, ReShade ni generación de cuadros. Resolución interna superior a nativa y Vulkan no son rutas recomendadas por el proyecto en esta beta.
 
-Es un perfil **propuesto**, pendiente de prueba de juego en Steam Deck. No se midieron FPS ni se garantiza que alcance 60 en todas las escenas. En Steam Input, elegí la plantilla **Gamepad**. Para probar 60 FPS en OLED, usá 60 Hz; 90 Hz puede producir una cadencia desigual a 60 FPS. No se modifica el refresco global de la Deck.
+Es un perfil **propuesto**, pendiente de prueba de juego en Steam Deck. No se midieron FPS ni se garantiza que alcance 60 en todas las escenas. En Steam Input, elegir la plantilla **Gamepad**. Para probar 60 FPS en OLED, usar 60 Hz; 90 Hz puede producir una cadencia desigual a 60 FPS. No se modifica el refresco global de la Deck.
 
 **Ajustes recomendados** permite ver cambios, aplicar, respaldar, restaurar y compartir el JSON. El adaptador solo modifica una lista de opciones gráficas/de mando; conserva idioma, rutas, partidas y el resto del TOML.
 

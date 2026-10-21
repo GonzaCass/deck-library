@@ -36,6 +36,30 @@ class PackageTests(unittest.TestCase):
             self.assertEqual(ports.records(store)['owner/Game']['inputs'],record['inputs'])
             backup=next((destination/'.deck-library-replaced').iterdir());self.assertEqual((backup/'Game.exe').read_bytes(),b'MZv1')
 
+    def test_a_zip_that_only_wraps_a_tar_gz_is_opened_and_the_port_shows_in_the_library(self):
+        import tarfile
+        with tempfile.TemporaryDirectory() as tmp:
+            root=pathlib.Path(tmp);inner=io.BytesIO()
+            with tarfile.open(fileobj=inner,mode='w:gz') as tar:
+                info=tarfile.TarInfo('Game');info.size=4;info.mode=0o755;tar.addfile(info,io.BytesIO(b'\x7fELF'))
+                info=tarfile.TarInfo('assets/data.txt');info.size=2;tar.addfile(info,io.BytesIO(b'ok'))
+            data=io.BytesIO()
+            with zipfile.ZipFile(data,'w') as z:z.writestr('Game.tar.gz',inner.getvalue())
+            release={'tag_name':'v1','assets':[{'name':'Game-Linux-X64.zip','browser_download_url':'https://github.com/a/Game/releases/download/v1/Game-Linux-X64.zip'}]}
+            store=Store(root/'private')
+            with patch.object(ports,'download',side_effect=lambda url,path,**kw:path.write_bytes(data.getvalue())):
+                record=ports.install({'repository':'a/Game','folderName':'Game'},store,root/'ports',get=lambda _:release,progress=lambda _:None)
+            self.assertEqual(record['executable'],'Game');self.assertFalse((root/'ports/Game/Game.tar.gz').exists());self.assertTrue((root/'ports/Game/assets/data.txt').is_file())
+            self.assertIsNotNone(ports.entry_for(root/'ports/Game'))
+
+    def test_a_package_with_several_tools_starts_the_launcher_then_the_plain_binary(self):
+        for names,expected in ((['openmw','openmw.x86_64','openmw-launcher','openmw-launcher.x86_64','bsatool','esmtool'],'openmw-launcher'),(['openmw','openmw.x86_64','bsatool'],'openmw'),(['alpha','beta'],'')):
+            with tempfile.TemporaryDirectory() as tmp:
+                for name in names:(pathlib.Path(tmp)/name).write_bytes(b'\x7fELF')
+                if expected=='openmw-launcher':
+                    wrapper=pathlib.Path(tmp)/'openmw-launcher';wrapper.write_bytes(b'#!/bin/sh\nexec "$0.x86_64"\n');wrapper.chmod(0o755)
+                found=ports.find_executable(tmp,'OpenMW/openmw');self.assertEqual(found.name if found else '',expected)
+
     def test_unsafe_declared_executable_is_rejected_before_replacement(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=pathlib.Path(tmp);data=io.BytesIO()
