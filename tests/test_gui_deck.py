@@ -647,6 +647,19 @@ class DeckUITests(unittest.TestCase):
             driver.sdl.read.return_value=set();driver.poll();driver.focus.focused.return_value=False;driver.sdl.read.return_value={'next_tab'};driver.poll();self.assertEqual(self.w.pages.get_visible_child_name(),'library')
             driver.sdl.read.return_value=set();driver.poll();driver.focus.focused.return_value=None;driver.sdl.read.return_value={'next_tab'};driver.poll();self.assertEqual(self.w.pages.get_visible_child_name(),'library')
 
+    def test_gaming_page_recovers_a_mapped_but_unallocated_viewport(self):
+        from gi.repository import Gdk
+        from deck_library import ports
+        self.w.catalog_page();self.w.catalog_apps=[ports.clean({'repository':'test/game','name':'Game'})]
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog()
+        self.settle();page=self.w.pages.get_visible_child()
+        small=Gdk.Rectangle();small.width=small.height=1
+        page.size_allocate(small)
+        self.assertLessEqual(page.get_allocated_width(),1)
+        self.w.pages.allocate_visible_page()
+        self.assertEqual(page.get_allocated_width(),self.w.pages.get_allocated_width())
+        self.assertEqual(page.get_allocated_height(),self.w.pages.get_allocated_height())
+
     def test_controller_poll_keeps_running_inside_a_port_details_workflow(self):
         import time
         from unittest.mock import Mock
@@ -688,6 +701,27 @@ class DeckUITests(unittest.TestCase):
         driver.poll_input=Mock(side_effect=[RuntimeError('temporary input failure'),True])
         with patch('sys.stderr',new_callable=io.StringIO) as log:
             self.assertTrue(driver.poll());self.assertIn('temporary input failure',log.getvalue());self.assertTrue(driver.poll())
+
+    def test_unchanged_controller_focus_leaves_idle_callbacks_available(self):
+        import time
+        from unittest.mock import Mock
+        from gi.repository import Gtk,GLib
+        from deck_library.gamepad import Driver,Repeater
+        driver=Driver.__new__(Driver);driver.window=self.w;driver.focus=Mock();driver.focus.focused.return_value=True;driver.repeat=Repeater();driver.sdl=Mock();driver.sdl.read.return_value=set()
+        self.w.search.grab_focus();self.settle()
+        loop=GLib.MainLoop();completed=[]
+        def slow_tree_scan(*_):time.sleep(.045);return None
+        def idle():completed.append(True);loop.quit();return False
+        def start_idle():GLib.idle_add(idle);return False
+        with patch.object(Gtk.Window,'list_toplevels',return_value=[]),patch.object(self.w,'current_popover',side_effect=slow_tree_scan) as scan:
+            poll=GLib.timeout_add(25,driver.poll);start=GLib.timeout_add(80,start_idle);deadline=GLib.timeout_add(450,lambda:(loop.quit(),False)[1])
+            try:
+                loop.run()
+                self.assertTrue(completed,'Controller polling starved catalog and button idle callbacks.')
+                self.assertEqual(scan.call_count,0,'Unchanged focus must not scan the page at 40 Hz.')
+            finally:
+                for source in (poll,start,deadline):
+                    if GLib.MainContext.default().find_source_by_id(source):GLib.source_remove(source)
 
     def test_portintegration_source_can_be_filtered_in_catalog(self):
         from deck_library import ports

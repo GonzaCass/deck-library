@@ -209,6 +209,15 @@ class PageStack(Gtk.Stack):
             self.set_transition_duration(140)
             self.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
         super().set_visible_child_name(name)
+        if self.get_transition_type()==Gtk.StackTransitionType.NONE:
+            GLib.idle_add(self.allocate_visible_page)
+
+    def allocate_visible_page(self):
+        child=self.get_visible_child()
+        if child is None or not self.get_mapped():return False
+        window=self.get_toplevel()
+        window.queue_resize();window.check_resize()
+        return False
 
 class Banner(Gtk.DrawingArea):
     """Steam's own background (and logo) for a shortcut, cropped to the page width with a fade into the page colour."""

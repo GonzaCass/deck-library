@@ -353,3 +353,14 @@ Se corrigió también una activación duplicada al construir pantallas: el filtr
 Se consultó la release estable oficial de Quiver: v3.5.1, publicada el 15 de octubre de 2026. La instalación local preparada de Quiver tiene fuentes v3.4.5. Se revisaron sus cambios de mando, archivos y catálogo; no se reemplazó Quiver ni se tocaron sus juegos como parte de esta revisión.
 
 PortIntegration se inspeccionó desde su repositorio público y su sitio. Al revisarlo, `PORTS_DATABASE` contenía 231 entradas y 230 repositorios distintos, de los cuales 95 no aparecían en la caché previa de Deck Library. Su escáner usa búsquedas de GitHub y filtros; el workflow genera propuestas diariamente. Se integró la lectura de literales JSON, con validación de repositorios, límite de filas, enlaces de imágenes restringidos al manifiesto, deduplicación, precedencia de identidades existentes y filtro de fuente. Las pruebas cubren un catálogo con código JS después de los datos (no ejecutado), contenido inválido, rutas de imagen inseguras, estados y fechas no verificados, fallo de red y fusión sin duplicados.
+
+
+## 0.19.4 — Catálogo desde Steam y navegación con mando
+
+Se superaron 719 pruebas: 658 de lógica y 61 de GTK.
+
+Se reprodujo el bloqueo al abrir el catálogo desde el acceso de Steam en una Deck física, en modo Escritorio y a pantalla completa. El registro mostró recorridos del árbol de widgets desde la comprobación de foco, repetidos por el sondeo SDL cada 25 ms. El foco que no cambia ya no vuelve a recorrer el árbol; la búsqueda de menús solo visita las páginas visibles. Una prueba con un recorrido deliberadamente lento verifica que los callbacks de carga siguen ejecutándose mientras el mando se consulta.
+
+También se reprodujo una página mapeada con una distribución de 1×1 píxel y luego tarjetas sin distribuir tras completar la carga. El cambio de página sin transición y la carga del catálogo solicitan y procesan una nueva distribución de la ventana. La regresión comprueba la recuperación de la distribución y se mantienen las comprobaciones de ancho compacto. Se revisaron visualmente los 633 proyectos combinados de la caché local: las primeras 60 tarjetas, con imágenes y nombres, aparecen en la pantalla de 1280×800. La prueba final del mando físico y de una nueva sesión de modo Juego requiere confirmación del usuario.
+
+La versión no cambia juegos, Proton, perfiles ni ajustes de Spider-Man. Las correcciones del servicio de escritorio remoto y de la clasificación de sesiones son mantenimiento local de esa Deck; no se incluyen en el paquete público.

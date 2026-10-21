@@ -30,6 +30,11 @@ class InputMixin:
 
     def mark_controller_focus(self,window,focus):
         previous=getattr(window,'_deck_focus_widget',None)
+        # SDL polls at 40 Hz. Re-scanning the widget tree for an unchanged
+        # focus can keep the timeout permanently ready and starve catalog
+        # completion callbacks (which run at GLib's idle priority).
+        if previous is focus and getattr(window,'_deck_focus_initialized',False):return
+        window._deck_focus_initialized=True
         if previous is not None and previous is not focus:previous.get_style_context().remove_class('controller-focus')
         window._deck_focus_widget=focus
         if focus is not None:
@@ -99,10 +104,14 @@ class InputMixin:
         focus=window.get_focus();popover=focus.get_ancestor(Gtk.Popover) if focus else None
         if popover and popover.get_mapped() and self.control_is_shown(popover.get_relative_to()):return popover
         def find(widget):
-            if not widget.get_mapped() or not self.control_is_shown(widget):return None
+            if not widget.get_mapped() or not widget.is_sensitive():return None
             if isinstance(widget,Gtk.MenuButton):
                 value=widget.get_popover()
                 if value and value.get_mapped():return value
+            if isinstance(widget,Gtk.Stack):
+                child=widget.get_visible_child()
+                return find(child) if child else None
+            if isinstance(widget,Gtk.Revealer) and not widget.get_reveal_child():return None
             if isinstance(widget,Gtk.Container):
                 for child in widget.get_children():
                     value=find(child)

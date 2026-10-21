@@ -109,6 +109,7 @@ class CatalogMixin:
             row.pack_end(side,False,False,0);card.catalog_open=open_;card.catalog_image=image;self.catalog_rows.pack_start(card,False,False,0)
             self.transfer_row(card,item['repository'])
         self.catalog_rows.show_all();self.load_icons(images,generation);self.check_kits(kits,generation)
+        self.queue_resize();GLib.idle_add(self.check_resize)
 
     def port_details(self,item):
         from .gui import label,button
