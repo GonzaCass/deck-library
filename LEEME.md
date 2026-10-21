@@ -7,7 +7,7 @@ Agregá ports, aplicaciones y juegos emulados a Steam desde una sola ventana.
 ## Usar Deck Library directamente desde Steam
 
 1. Instalá la app en modo Escritorio: descargá y extraé [la última versión](https://github.com/GonzaCass/deck-library/releases/latest), abrí la carpeta y ejecutá **Instalar.sh**. Completá el asistente inicial.
-2. Dentro de Deck Library, pulsá **Añadir Deck Library a Steam** junto a las pestañas superiores. También está disponible desde **Ajustes → Deck Library en Steam**.
+2. En modo Escritorio, dentro de Deck Library, pulsá **Añadir Deck Library a Steam** junto a las pestañas superiores. También está disponible desde **Ajustes → Deck Library en Steam**.
 3. Si Steam está abierto, el acceso queda preparado y aparece el aviso de cambios pendientes. Terminá de agregar o editar lo que necesites, cerrá Steam una vez y esperá que desaparezca el aviso. El proceso en segundo plano guarda el acceso y los controles.
 4. Volvé al modo Juego. Buscá **Deck Library** en la biblioteca de Steam y pulsá **Jugar**. Se abre directamente a pantalla completa, con la biblioteca, las carátulas y los ajustes.
 

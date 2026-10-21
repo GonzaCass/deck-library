@@ -65,6 +65,9 @@ class ShellMixin:
             if name=='Actualizaciones':
                 content.pack_start(self.update_badge,False,False,0)
         self.steam_library_button=button('Añadir Deck Library a Steam',self.add_library_to_steam,True);bar.pack_start(self.steam_library_button,False,False,0)
+        gaming=motion.gaming_mode()
+        self.steam_library_button.set_no_show_all(gaming)
+        self.steam_library_button.set_visible(not gaming)
         from .gui_account import account_dialog
         from .ui_components import ActionButton
         account_button=ActionButton('Cuenta','community',lambda _:account_dialog(self),'quiet');account_button.caption.set_no_show_all(True);account_button.caption.hide();account_button.get_accessible().set_name('Cuenta');account_button.set_tooltip_text('Cuenta');bar.pack_end(account_button,False,False,0)

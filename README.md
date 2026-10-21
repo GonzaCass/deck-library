@@ -23,7 +23,7 @@ Requires Python 3.11+, PyGObject and GTK 3 (available on the Steam Deck used for
 ## Open Deck Library directly from Steam
 
 1. Install and open Deck Library in Desktop Mode. Finish the first-run assistant.
-2. Click **Añadir Deck Library a Steam** beside the top navigation tabs (also available under **Ajustes → Deck Library en Steam**).
+2. In Desktop Mode, click **Añadir Deck Library a Steam** beside the top navigation tabs (also available under **Ajustes → Deck Library en Steam**).
 3. If Steam is open, the app shows a persistent pending-changes banner. Finish your other changes, exit Steam once and wait for the banner to disappear. The background worker saves the shortcut and its Deck controls; no per-change restart dialog is shown.
 4. Return to Gaming Mode, find **Deck Library** in Steam's library and press **Play**. The shortcut launches the native Linux app fullscreen, with `--gaming` and its navigation template.
 
