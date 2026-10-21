@@ -585,7 +585,7 @@ class GameMixin:
         steam = self.in_steam(entry)
         panel = self.card(body,'Mando de Steam')
         if entry.metadata.get('steam_store'):
-            panel.pack_start(text('Configurá el mando desde la ficha del juego en Steam.','muted'),False,False,0)
+            panel.pack_start(text('Configurar el mando desde la ficha del juego en Steam.','muted'),False,False,0)
             return
         panel.pack_start(text(self.controller_summary(entry) if steam else 'Agregar este juego a Steam para asignarle un perfil de mando.','muted',85),False,False,0)
         panel.pack_start(ActionButton('Asignar perfil de mando' if steam else 'Agregar a Steam','controller' if steam else 'steam',lambda _:self.fix_controllers(entry) if steam else self.single_steam(entry),'amber'),False,False,0)

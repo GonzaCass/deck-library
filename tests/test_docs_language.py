@@ -9,11 +9,10 @@ class DocsLanguageTests(unittest.TestCase):
     def test_readme_spanish_half_is_generated_from_leeme(self):
         self.assertTrue(load_sync().main(check=True),'ejecutar tools/sync_readme.py')
 
-    def test_english_half_has_no_spanish_prose_outside_labels(self):
+    def test_english_half_has_no_spanish_prose(self):
         text=(ROOT/'README.md').read_text();english=text.split('<!-- BEGIN SPANISH')[0]
-        english=re.sub(r'^\|.*\|$','',english,flags=re.M)  # glossary table
-        english=english.replace('[Español](#español)','')
-        english=re.sub(r'\*\*[^*\n]+\*\*|`[^`\n]+`|\]\([^)]*\)|https?://\S+','',english)
+        english=re.sub(r'^\|.*\|$','',english,flags=re.M).replace('[Español](#español)','').replace('Español','').replace('Idioma','')
+        english=re.sub(r'`[^`\n]+`|\]\([^)]*\)|https?://\S+','',english)
         found=sorted(set(re.findall(r'[A-Za-z]*[áéíóúñÁÉÍÓÚÑ¿¡][A-Za-z]*',english)))
         self.assertEqual(found,[])
 

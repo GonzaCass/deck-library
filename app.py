@@ -3,8 +3,11 @@ import argparse,json,os,sys
 from deck_library.models import Store
 
 def main():
-    parser=argparse.ArgumentParser(description='Deck Library — ports y juegos emulados, juntos en Steam')
-    parser.add_argument('--gaming',action='store_true',help='Abrir a pantalla completa desde Steam')
+    from deck_library import i18n
+    from deck_library.installations import settings
+    i18n.set_language(i18n.detect(settings(Store())))
+    parser=argparse.ArgumentParser(description=i18n.translate('Deck Library — ports y juegos emulados, juntos en Steam'))
+    parser.add_argument('--gaming',action='store_true',help=i18n.translate('Abrir a pantalla completa desde Steam'))
     sub=parser.add_subparsers(dest='action')
     for name in ('scan','sync','launch','check'):
         p=sub.add_parser(name)
@@ -25,7 +28,7 @@ def main():
         from deck_library.service import sync
         print(json.dumps(sync(store,wait=not args.no_wait)));return 0
     entry=next((e for e in store.load() if e.id==args.id),None)
-    if entry is None:raise ValueError('El juego ya no está en la biblioteca. Volvé a agregarlo desde Deck Library.')
+    if entry is None:raise ValueError('El juego ya no está en la biblioteca. Volver a agregarlo desde Deck Library.')
     if args.action=='check':
         from deck_library.runtime import diagnostics
         issues,log=diagnostics(entry,store);print(json.dumps({'issues':issues,'log':log},ensure_ascii=False,indent=2));return int(bool(issues))
@@ -38,4 +41,5 @@ if __name__=='__main__':
         if len(sys.argv)>1 and sys.argv[1]=='launch':
             from deck_library.runtime import show_error
             show_error(str(error))
-        print('Deck Library:',error,file=sys.stderr);sys.exit(1)
+        from deck_library import i18n
+        print('Deck Library:',i18n.translate(str(error)),file=sys.stderr);sys.exit(1)

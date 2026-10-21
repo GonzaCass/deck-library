@@ -330,4 +330,6 @@ def run():
     Gtk.Settings.get_default().set_property('gtk-application-prefer-dark-theme',True)
     Gtk.Window.set_default_icon_from_file(str(pathlib.Path(__file__).resolve().parent.parent/'assets/icon.png'))
     provider=Gtk.CssProvider();provider.load_from_data(CSS);Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-    window=Window();window.show_all();Gtk.main()
+    from . import i18n
+    i18n.setup(settings(Store()))
+    window=Window();window.show_all();Gtk.main();i18n.dump_missed()

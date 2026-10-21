@@ -767,7 +767,10 @@ class DeckUITests(unittest.TestCase):
 
     def test_nested_inline_pages_restore_the_parent_without_changing_window_size(self):
         from gi.repository import Gtk,GLib
-        self.w.resize(840,640);self.settle();size=self.w.get_size();windows=self.application_windows()
+        import time
+        self.w.resize(840,640);self.settle();until=time.monotonic()+3
+        while tuple(self.w.get_size())!=(840,640) and time.monotonic()<until:self.settle()  # the window manager applies the resize asynchronously
+        size=self.w.get_size();windows=self.application_windows()
         parent=self.inline(title='Carátulas',transient_for=self.w);parent.add_button('Volver',Gtk.ResponseType.CLOSE);parent._mount();self.settle()
         child=self.inline(title='Elegir archivo',transient_for=parent);child.add_button('Cancelar',Gtk.ResponseType.CANCEL)
         seen=[]

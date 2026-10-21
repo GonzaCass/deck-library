@@ -77,7 +77,7 @@ def installer_environment(store):
     for name in ('Proton 11.0','Proton - Experimental','Proton 10.0'):
         try:proton=proton_path(preferred=name);break
         except ValueError:pass
-    if proton is None:raise ValueError('El instalador necesita Proton 11.0, 10.0 o Experimental. Instalalo desde Steam → Biblioteca → Herramientas; el Proton elegido para jugar se conserva.')
+    if proton is None:raise ValueError('El instalador necesita Proton 11.0, 10.0 o Experimental. Instalarlo desde Steam → Biblioteca → Herramientas; el Proton elegido para jugar se conserva.')
     env=proton_env(store)
     prefix=store.root/'runtimes/project2099-installer'
     prefix.mkdir(parents=True,exist_ok=True);env['STEAM_COMPAT_DATA_PATH']=str(prefix)
