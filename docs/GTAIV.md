@@ -1,6 +1,6 @@
 # GTA IV en Steam Deck: arreglo confirmado por usuario
 
-En Deck Library: **Buscar juegos → Grand Theft Auto IV → Ver arreglo → Aplicar arreglo de GTA IV**. La aplicación detecta la instalación de Steam, también en microSD. Cerrá GTA IV primero. El botón descarga el paquete oficial, verifica su SHA-256, guarda un respaldo y aplica el arreglo sin abrir el juego. **Restaurar respaldo** vuelve al estado inmediatamente anterior a la última aplicación.
+En Deck Library: **Buscar juegos → Grand Theft Auto IV → Ver arreglo → Aplicar arreglo de GTA IV**. La aplicación detecta la instalación de Steam, también en microSD. Cerrar GTA IV primero. El botón descarga el paquete oficial, verifica su SHA-256, guarda un respaldo y aplica el arreglo sin abrir el juego. **Restaurar respaldo** vuelve al estado inmediatamente anterior a la última aplicación.
 
 ## Qué funcionó en esta Deck
 

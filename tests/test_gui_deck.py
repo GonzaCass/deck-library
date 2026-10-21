@@ -534,11 +534,11 @@ class DeckUITests(unittest.TestCase):
                     if isinstance(widget,Gtk.Container):
                         for child in widget.get_children():yield from labels(child)
                 content=list(labels(page))
-                for text in ('Juego','Golden Sun','Port','GSRecomp','Native adaptation.','Versión disponible: v1.2'):seen.append(text in content)
+                for text in ('Golden Sun','Port: GSRecomp','Native adaptation.','Versión disponible: v1.2'):seen.append(text in content)
                 self.w.last_controller_action=('',0);self.w.controller_action('back');return False
             GLib.timeout_add(150,check);return original(page)
         with patch.object(self.inline,'run',run),patch.object(ports,'icon_path',return_value=''),patch.object(ports,'requirements',return_value=[]),patch.object(self.w,'install_port') as install:open_.clicked();install.assert_not_called()
-        self.assertTrue(all(seen));self.assertEqual(len(seen),7);self.assertFalse(self.w.inline_workflows)
+        self.assertTrue(all(seen));self.assertEqual(len(seen),5);self.assertFalse(self.w.inline_workflows)
 
     def test_catalog_artwork_is_displayed_from_the_downloaded_image(self):
         from gi.repository import GdkPixbuf,Gtk
@@ -777,7 +777,7 @@ class DeckUITests(unittest.TestCase):
         page.set_response_sensitive(Gtk.ResponseType.CLOSE,True);self.w.last_controller_action=('',0);self.w.controller_action('back');self.assertEqual(page._answer,Gtk.ResponseType.CANCEL);page.destroy()
 
     def test_header_steam_action_uses_existing_queue_and_fits_compact_width(self):
-        button=self.w.steam_library_button;self.assertEqual(button.get_label(),'Añadir Deck Library a Steam')
+        button=self.w.steam_library_button;self.assertEqual(button.get_label(),'Añadir a Steam');self.assertEqual(button.get_tooltip_text(),'Añadir Deck Library a Steam')
         with patch.object(self.w,'current_account',return_value=pathlib.Path('/tmp/steam/config')),patch.object(self.w,'run_queue') as queued:
             button.clicked();queued.assert_called_once()
         self.w.resize(840,640);self.settle();self.assertLessEqual(self.w.get_size().width,840)

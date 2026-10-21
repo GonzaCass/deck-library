@@ -49,7 +49,7 @@ def detect_runtime(folder):
         windows|=path.suffix.lower()=='.exe' and magic[:2]==b'MZ'
     if native:return 'linux'
     if windows:return 'proton'
-    raise ValueError('El paquete no contiene una aplicación Linux o Windows identificable. Puede ser código fuente o un constructor; revisá los requisitos de su ficha.')
+    raise ValueError('El paquete no contiene una aplicación Linux o Windows identificable. Puede ser código fuente o un constructor; conviene revisar los requisitos de su ficha.')
 
 def windows_executable(folder,repository=''):
     from .ports import SKIP_NAMES

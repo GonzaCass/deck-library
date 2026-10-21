@@ -39,7 +39,7 @@ def run_logged(command,cwd,env,log,progress,cancel,*,activity=None,idle_timeout=
                 error=Cancelled('Instalación cancelada; la imagen original se conserva.');break
             if activity and activity():last_activity[0]=time.monotonic()
             if idle_timeout and time.monotonic()-last_activity[0]>idle_timeout:
-                error=RuntimeError('El instalador dejó de avanzar. Se conserva la instalación anterior. Revisá el registro o reintentá la actualización.');break
+                error=RuntimeError('El instalador dejó de avanzar. Se conserva la instalación anterior. Revisar el registro o reintentar la actualización.');break
     except BaseException as caught:error=caught
     finally:
         if error:

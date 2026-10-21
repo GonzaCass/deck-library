@@ -13,6 +13,7 @@ class ShellMixin:
     def init_shell(self):
         from .gui import label,button,PageStack
         self.set_wmclass('deck-library','deck-library');self.set_icon_from_file(str(self.asset('icon.png')));self.set_default_size(1240,760);self.set_size_request(840,520)
+        if self.compact_screen() and not os.environ.get('DECK_LIBRARY_UI_TESTS'):self.maximize()
         self.store=Store();self.preferences=settings(self.store);self.view=self.preferences.get('view','covers');self.checked=set();self.selected=None;self.selection_mode=False;self.platform_filter='all';self.type_filter='all';self.artwork_attempted=set();self.artwork_busy=False;self.discover_busy=False;self.wizard_step=0;self.game_tab='profiles';self.detail_game_id=None;self.profile_choice={}
         self.ui_closed=False;self.ui_sources=[];self.library_focus_id=None;self.library_targets={};self.controller_mode=False
         self.connect('size-allocate',self.update_density);self.connect('destroy',Gtk.main_quit);self.connect('destroy',self.close_ui_sources);self.connect('delete-event',lambda *_:not self.discard_game_edits());self.connect('key-press-event',self.library_key);self.connect('set-focus',self.library_focus_changed);self.connect('map',self.fit_window);self.connect('size-allocate',self.update_game_size);self.connect('size-allocate',lambda *_:self.update_controller_hints(self))
@@ -25,7 +26,7 @@ class ShellMixin:
         self.artwork_bar=Gtk.Box(spacing=8);self.artwork_bar.set_no_show_all(True);self.artwork_spinner=Gtk.Spinner();self.artwork_label=label('','meta');self.artwork_bar.pack_start(self.artwork_spinner,False,False,0);self.artwork_bar.pack_start(self.artwork_label,True,True,0);footer.pack_start(self.artwork_bar,False,False,0)
         from .controller_hints import ControllerHints
         self.controller_hint=ControllerHints();self.controller_hint.hide();self.controller_hint.set_no_show_all(True);footer.pack_start(self.controller_hint,False,False,0)
-        self.status=label('','status');self.status.set_line_wrap(False);self.status.set_ellipsize(Pango.EllipsizeMode.END);footer.pack_start(self.status,False,False,0)
+        self.status=label('','status');self.status.set_line_wrap(False);self.status.set_ellipsize(Pango.EllipsizeMode.END);self.status.set_no_show_all(True);self.status.hide();footer.pack_start(self.status,False,False,0)
         try:self.entries=self.store.load()
         except Exception as error:self.entries=[];self.set_status('No se pudo leer la biblioteca: '+str(error))
         self.apply_motion();self.refresh_platforms();self.animate_next=True;self.render();self.pages.set_visible_child_name('library')
@@ -36,6 +37,9 @@ class ShellMixin:
         if self.preferences.get('check_updates',True):self.ui_sources.append(GLib.timeout_add_seconds(5,self.check_updates))
         path=self.store.root/'last-sync.json';self.last_sync_seen=path.stat().st_mtime if path.exists() else 0;self.ui_sources.append(GLib.timeout_add_seconds(3,self.poll_sync));self.refresh_pending()
         self.start_gamepad()
+    def compact_screen(self):
+        screen=Gdk.Screen.get_default()
+        return bool(screen) and screen.get_height()<=900 and screen.get_width()<=1400
     def update_density(self,_,allocation):
         compact=allocation.height<=900 and allocation.width<=1400
         if getattr(self,'deck_density',None)==compact:return
@@ -70,7 +74,7 @@ class ShellMixin:
             caption=control.get_child();control.remove(caption);content=Gtk.Box(spacing=7);content.pack_start(Icon({'Biblioteca':'library','Catálogo de ports':'plus','Actualizaciones':'download','Ajustes':'sliders'}[name],18),False,False,0);content.pack_start(caption,False,False,0);control.add(content);control.get_accessible().set_name(name)
             if name=='Actualizaciones':
                 content.pack_start(self.update_badge,False,False,0)
-        self.steam_library_button=button('Añadir Deck Library a Steam',self.add_library_to_steam,True);bar.pack_start(self.steam_library_button,False,False,0)
+        self.steam_library_button=button('Añadir a Steam',self.add_library_to_steam);self.steam_library_button.set_tooltip_text('Añadir Deck Library a Steam');self.steam_library_button.get_accessible().set_name('Añadir Deck Library a Steam');self.steam_library_button.get_style_context().add_class('steam-add');bar.pack_start(self.steam_library_button,False,False,0)
         gaming=motion.gaming_mode()
         self.steam_library_button.set_no_show_all(gaming)
         self.steam_library_button.set_visible(not gaming)
@@ -147,10 +151,10 @@ class ShellMixin:
         for e in entries:
             row=Gtk.ListBoxRow();row.entry=e
             if self.view=='list':self.bind_library_focus(row,e)
-            body=Gtk.Box(spacing=16);body.set_border_width(8);row.add(body)
+            compact=self.compact_screen();body=Gtk.Box(spacing=12 if compact else 16);body.set_border_width(3 if compact else 8);row.add(body)
             if self.selection_mode:
                 check=Gtk.CheckButton();check.set_active(e.id in self.checked);check.connect('toggled',self.toggle,e.id);body.pack_start(check,False,False,0)
-            body.pack_start(Poster(e,find_cover(e),48,72),False,False,0);texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.pack_start(label(e.name,'title'),False,False,0);texts.pack_start(label(e.platform+(' · En Steam' if self.in_steam(e) else ''),'meta'),False,False,0);body.pack_start(texts,True,True,0);self.list.add(row)
+            body.pack_start(Poster(e,find_cover(e),*((36,54) if compact else (48,72))),False,False,0);texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=1 if compact else 6);texts.pack_start(label(e.name,'title'),False,False,0);texts.pack_start(label(e.platform+(' · En Steam' if self.in_steam(e) else ''),'meta'),False,False,0);body.pack_start(texts,True,True,0);self.list.add(row)
             linked=self.rom_associations.get(e.id,[])
             if linked:texts.pack_start(label(rom_caption(linked),'meta'),False,False,0)
             if self.view=='covers':self.add_cover_card(e)
@@ -216,7 +220,7 @@ class ShellMixin:
         for title,description,caption,icon,action in [('Instalaciones y carpetas','Emuladores y carpetas de juegos.','Elegir carpetas','folder',lambda _:self.installation_dialog()),('Carátulas y apariencia','Proveedor de imágenes y animaciones.','Configurar','image',lambda _:self.appearance_dialog()),('Originales y ports','Ocultar o quitar originales que ya tienen un port instalado.','Administrar originales','folder',lambda _:self.originals_dialog()),('Revisar biblioteca','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam),('Configuración inicial','Volver a detectar instalaciones.','Iniciar asistente','plus',lambda _:self.start_wizard())]:
             if title=='Deck Library en Steam' and motion.gaming_mode():continue
             row=Gtk.Box(spacing=16);row.get_style_context().add_class('settings-row');texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.pack_start(label(title,'title'),False,False,0);texts.pack_start(label(description,'muted'),False,False,0);row.pack_start(texts,True,True,0);row.pack_end(ActionButton(caption,icon,action,'steam' if icon=='steam' else 'quiet'),False,False,0);self.settings_box.pack_start(row,False,False,0)
-            if icon=='steam':self.settings_box.pack_start(label('Si Steam está abierto, el acceso se guarda al cerrarlo. Después buscá «Deck Library» en su biblioteca y pulsá Jugar.','meta'),False,False,0)
+            if icon=='steam':self.settings_box.pack_start(label('Si Steam está abierto, el acceso se guarda al cerrarlo. Después buscar «Deck Library» en su biblioteca y pulsar Jugar.','meta'),False,False,0)
         self.settings_box.show_all();self.pages.set_visible_child_name('settings')
     def appearance_dialog(self):
         from .gui import label,button
@@ -227,7 +231,7 @@ class ShellMixin:
     def refresh_update_badges(self):
         count=len(self.pending_updates());self.update_badge.set_text(str(count));self.update_badge.set_visible(count>0)
         state=getattr(self,'update_state',{}) or {}
-        if getattr(self,'update_installed',None):self.banner_text.set_text('Deck Library actualizada. Volvé a abrirla para usar la nueva versión.');self.banner_action.set_label('Volver a abrir');self.update_banner.show_all()
+        if getattr(self,'update_installed',None):self.banner_text.set_text('Deck Library actualizada. Volver a abrirla para usar la nueva versión.');self.banner_action.set_label('Volver a abrir');self.update_banner.show_all()
         elif state.get('app'):self.banner_text.set_text('Hay una nueva versión de Deck Library.');self.banner_action.set_label('Ver actualización');self.update_banner.show_all()
         else:self.update_banner.hide()
     def refresh_pending(self):

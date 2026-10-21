@@ -35,7 +35,7 @@ class CommunityMixin:
         comments=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);comment_page.pack_start(comments,False,False,0)
         feedback=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);add_page(feedback,'feedback')
         feedback.pack_start(ActionButton('Volver al perfil','back',lambda _:stack.set_visible_child_name('profile'),'quiet'),False,False,0)
-        feedback.pack_start(text('Tu opinión','section-title'),False,False,0)
+        feedback.pack_start(text('Valoración','section-title'),False,False,0)
         rating=Gtk.ComboBoxText()
         for n in range(1,6):rating.append(str(n),str(n)+' '+('★'*n))
         rating.set_active_id('5');feedback.pack_start(rating,False,False,0)
@@ -86,7 +86,7 @@ class CommunityMixin:
             run(lambda:client.comments(value),lambda result:show_comments(result) if selected[0] is value else None)
         def found(values):
             self.reset_page(rows)
-            if not values:rows.add(text('No hay perfiles para este juego. Podés compartir los tuyos.','muted',95))
+            if not values:rows.add(text('No hay perfiles para este juego. Se pueden compartir perfiles propios.','muted',95))
             for value in values:
                 row=Gtk.ListBoxRow();row.value=value
                 control=ActionButton(profile_display.title(value['preset']),'sliders',lambda _,v=value:open_profile(v),'quiet')
@@ -100,11 +100,11 @@ class CommunityMixin:
         def search(_,mine=False):run(lambda:client.search(e,mine=mine),found)
         def auth_needed():
             if client.session().get('login'):return False
-            stack.set_visible_child_name('account');status.set_text('Iniciá sesión para continuar.');return True
+            stack.set_visible_child_name('account');status.set_text('Iniciar sesión para continuar.');return True
         def download(_):
             if not selected[0]:return
             try:
-                value=client.download(selected[0]);self.profile_choice[e.id]=value['id'];self.game_tab='profiles';self.toast('Perfil guardado. Revisá los cambios y aplicalo desde el juego.');dialog.response(Gtk.ResponseType.CLOSE)
+                value=client.download(selected[0]);self.profile_choice[e.id]=value['id'];self.game_tab='profiles';self.toast('Perfil guardado. Revisar los cambios y aplicarlo desde el juego.');dialog.response(Gtk.ResponseType.CLOSE)
             except Exception as error:status.set_text(str(error))
         def rate(_):
             if auth_needed() or not selected[0]:return
@@ -115,7 +115,7 @@ class CommunityMixin:
                 run(lambda:client.comments(value),show_comments)
             run(lambda:client.rate(value,int(rating.get_active_id()),notes),done)
         def review_profile(_):
-            try:composer.profile(client.session().get('login') or 'Usuario');submit.set_sensitive(True);status.set_text('Perfil revisado. Guardalo localmente o publicalo con tu cuenta.')
+            try:composer.profile(client.session().get('login') or 'Usuario');submit.set_sensitive(True);status.set_text('Perfil revisado. Guardarlo localmente o publicarlo con la cuenta.')
             except Exception as error:submit.set_sensitive(False);status.set_text(str(error))
         def save_local(_):
             try:client._save(composer.profile(client.session().get('login') or 'Usuario'));status.set_text('Perfil guardado en este dispositivo.');self.toast('Perfil guardado')
@@ -124,7 +124,7 @@ class CommunityMixin:
             if auth_needed():return
             try:value=composer.profile(client.session()['login'])
             except Exception as error:status.set_text(str(error));return
-            def done(_):submit.set_sensitive(False);status.set_text('Perfil enviado. Consultá su estado en Mis aportes.');self.toast('Perfil enviado para revisión')
+            def done(_):submit.set_sensitive(False);status.set_text('Perfil enviado. El estado figura en Mis aportes.');self.toast('Perfil enviado para revisión')
             run(lambda:client.publish(value),done)
         publication.pack_start(ActionButton('Revisar mis ajustes','sliders',review_profile,'violet-outline'),False,False,0);publication.pack_start(ActionButton('Guardar localmente','check',save_local,'cyan'),False,False,0)
         submit=ActionButton('Publicar perfil','upload',submit_profile,'violet');submit.set_sensitive(False);publication.pack_start(submit,False,False,0)

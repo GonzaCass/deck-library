@@ -59,7 +59,7 @@ class LibraryToolsMixin:
     def add_library_to_steam(self,*_):
         from .service import queue_entries
         account=self.current_account()
-        if not account:self.message('Steam','Iniciá sesión en Steam para preparar el acceso.');return
+        if not account:self.message('Steam','Iniciar sesión en Steam para preparar el acceso.');return
         app=pathlib.Path(__file__).resolve().parent.parent/'app.py'
         from .library_app import entry as self_entry
         entry=self_entry(app)
@@ -78,7 +78,7 @@ class LibraryToolsMixin:
                 try:set_language(e,combo.get_active_id(),self.store,self.preferences);self.toast('Idioma guardado para la próxima ejecución');dialog.response(Gtk.ResponseType.CLOSE)
                 except Exception as exc:self.message('No se pudo guardar',str(exc))
             box.pack_start(button('Guardar idioma',save,True),False,False,0)
-        box.pack_start(label('El mapeo de botones depende del emulador y del dispositivo. Abrí su editor para cambiarlo; el perfil de Steam se administra desde la ficha del juego.','muted'),False,False,0)
+        box.pack_start(label('El mapeo de botones depende del emulador y del dispositivo. Abrir su editor para cambiarlo; el perfil de Steam se administra desde la ficha del juego.','muted'),False,False,0)
         slug=state['slug'];program=available_emulators(preferences=self.preferences).get(slug)
         if program:
             def open_(_):

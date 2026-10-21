@@ -2,20 +2,20 @@
 
 ![Interfaz con una biblioteca de ejemplo](assets/screenshot.png)
 
-Agregá ports, aplicaciones y juegos emulados a Steam desde una sola ventana.
+Agregar ports, aplicaciones y juegos emulados a Steam desde una sola ventana.
 
 ## Usar Deck Library directamente desde Steam
 
-1. Instalá la app en modo Escritorio: descargá y extraé [la última versión](https://github.com/GonzaCass/deck-library/releases/latest), abrí la carpeta y ejecutá **Instalar.sh**. Completá el asistente inicial.
-2. En modo Escritorio, dentro de Deck Library, pulsá **Añadir Deck Library a Steam** junto a las pestañas superiores. También está disponible desde **Ajustes → Deck Library en Steam**.
-3. Si Steam está abierto, el acceso queda preparado y aparece el aviso de cambios pendientes. Terminá de agregar o editar lo que necesites, cerrá Steam una vez y esperá que desaparezca el aviso. El proceso en segundo plano guarda el acceso y los controles.
-4. Volvé al modo Juego. Buscá **Deck Library** en la biblioteca de Steam y pulsá **Jugar**. Se abre directamente a pantalla completa, con la biblioteca, las carátulas y los ajustes.
+1. Instalar la app en modo Escritorio: descargar y extraer [la última versión](https://github.com/GonzaCass/deck-library/releases/latest), abrir la carpeta y ejecutar **Instalar.sh**. Completá el asistente inicial.
+2. En modo Escritorio, dentro de Deck Library, pulsar **Añadir Deck Library a Steam** junto a las pestañas superiores. También está disponible desde **Ajustes → Deck Library en Steam**.
+3. Si Steam está abierto, el acceso queda preparado y aparece el aviso de cambios pendientes. Terminar de agregar o editar lo necesario, cerrar Steam una vez y esperar que desaparezca el aviso. El proceso en segundo plano guarda el acceso y los controles.
+4. Volver al modo Juego. Buscar **Deck Library** en la biblioteca de Steam y pulsar **Jugar**. Se abre directamente a pantalla completa, con la biblioteca, las carátulas y los ajustes.
 
 La primera instalación se hace desde Escritorio; después podés abrir la app desde Steam. El acceso usa la versión nativa de Linux. Para navegar: trackpad derecho y gatillo derecho para puntero/clic; cruceta o stick para moverte; **A** para activar; **B** para volver; **X** para abrir el teclado en la búsqueda. **Steam + X** abre el teclado en pantalla. La plantilla y la interfaz se comprobaron con pruebas automáticas; la navegación con el mando físico en modo Juego sigue pendiente de prueba.
 
 ### Agregar cada juego a Steam
 
-Abrí la carátula del juego y pulsá el botón azul **Agregar a Steam**. Verás **Acceso pendiente** hasta que se guarde al cerrar Steam; después aparecerá **En Steam**. Para varios juegos, pulsá **Seleccionar**, marcá sus carátulas y usá **Agregar a Steam** en la barra inferior.
+Abrir la carátula del juego y pulsar el botón azul **Agregar a Steam**. Verás **Acceso pendiente** hasta que se guarde al cerrar Steam; después aparecerá **En Steam**. Para varios juegos, pulsar **Seleccionar**, marcar sus carátulas y usar **Agregar a Steam** en la barra inferior.
 
 Después de guardar los accesos, cada juego se puede abrir directamente desde su propia ficha de Steam. Abrir Deck Library antes es opcional. También podés pulsar **Jugar** dentro de Deck Library: si ese juego ya tiene acceso, la app utiliza el de Steam y su configuración de mando.
 
@@ -61,7 +61,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ### Diseño, movimiento y actualizaciones propias
 
-- **Interfaz:** navegación superior, carátulas verticales y una ficha con Jugar en verde, Steam en azul y ajustes en violeta. Elegí una tarjeta y pulsá **Aplicar ajustes**; seleccionar no escribe cambios. **Ver cambios** despliega los detalles técnicos. Las pestañas **Controles**, **Contenido** y **Avanzados** permanecen visibles al cambiar de tarea. Importar, exportar, carátulas y archivos están en **Más opciones**.
+- **Interfaz:** navegación superior, carátulas verticales y una ficha con Jugar en verde, Steam en azul y ajustes en violeta. Elegir una tarjeta y pulsar **Aplicar ajustes**; seleccionar no escribe cambios. **Ver cambios** despliega los detalles técnicos. Las pestañas **Controles**, **Contenido** y **Avanzados** permanecen visibles al cambiar de tarea. Importar, exportar, carátulas y archivos están en **Más opciones**.
 - **Movimiento:** entrada de la ficha y de las tarjetas, transiciones entre tareas, despliegue de detalles, estados de botones y confirmaciones al guardar. Se desactiva desde **Ajustes → Carátulas y apariencia → Animaciones**.
 - **Ajustes:** la vista previa compara valores del archivo del juego y distingue los perfiles pendientes de los que ya coinciden. Aplicar guarda un respaldo y **Deshacer** restaura la configuración anterior. La edición manual conserva los cambios sin guardar durante una actualización de carátulas o detección.
 - **Clave de SteamGridDB:** Ajustes explica cómo conseguirla (iniciar sesión en steamgriddb.com, Perfil → Preferencias → API), permite mostrarla u ocultarla y tiene un botón **Probar clave**.
@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.19.8.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.19.9.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -83,15 +83,15 @@ Se abre un asistente de cuatro pasos: **Bienvenida → Detectar → Carátulas �
 
 ## Tu biblioteca
 
-Las carátulas tienen formato vertical 2:3. Tocá una para abrir su ficha: **Jugar** y **Agregar a Steam** son las acciones principales. Debajo están las tarjetas de ajustes. **Controles**, **Contenido** y **Avanzados** abren cada tarea; **Más opciones → Archivos y acceso de Steam** muestra rutas y comandos.
+Las carátulas tienen formato vertical 2:3. Tocar una para abrir su ficha: **Jugar** y **Agregar a Steam** son las acciones principales. Debajo están las tarjetas de ajustes. **Controles**, **Contenido** y **Avanzados** abren cada tarea; **Más opciones → Archivos y acceso de Steam** muestra rutas y comandos.
 
-Para agregar varios juegos, tocar **Seleccionar**, marcar las carátulas y usar **Agregar a Steam** en la barra inferior. Si Steam está abierto, los cambios quedan preparados hasta que lo cierres una vez al terminar. Los accesos aparecen en **No Steam** en modo Juego.
+Para agregar varios juegos, tocar **Seleccionar**, marcar las carátulas y usar **Agregar a Steam** en la barra inferior. Si Steam está abierto, los cambios quedan preparados hasta cerrar Steam una vez al terminar. Los accesos aparecen en **No Steam** en modo Juego.
 
 **Catálogo de ports** abre directamente los ports disponibles para instalar. En **Ajustes → Instalaciones y carpetas** se pueden corregir las rutas de emuladores, ports, Prism y bibliotecas en microSD. Los ejecutables Windows necesitan un launcher de Wine/Proton configurado.
 
 ## Carátulas automáticas
 
-**Automático** usa SteamGridDB si agregaste una clave personal; si no, busca carátulas en Libretro para las consolas compatibles y una imagen del juego en Wikipedia. Funciona sin crear una cuenta. Cuando una coincidencia es dudosa, se conserva una tarjeta de título para que elijas la imagen. Wikipedia puede devolver arte representativo de un artículo compartido por varias ediciones, en vez de la caja exacta.
+**Automático** usa SteamGridDB si agregaste una clave personal; si no, busca carátulas en Libretro para las consolas compatibles y una imagen del juego en Wikipedia. Funciona sin crear una cuenta. Cuando una coincidencia es dudosa, se conserva una tarjeta de título para elegir la imagen. Wikipedia puede devolver arte representativo de un artículo compartido por varias ediciones, en vez de la caja exacta.
 
 Para carátulas verticales de la comunidad, elegir **SteamGridDB** en el asistente o en **Ajustes** y agregar una [clave API personal](https://www.steamgriddb.com/profile/preferences/api). Esta integración requiere una clave válida; no se incluye una clave compartida en el paquete.
 
@@ -111,7 +111,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.19.8**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.19.9**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 La ficha de cada port indica cómo se preparan sus archivos: desde Deck Library, desde el asistente del propio port o manualmente. Si hay adaptador, podés elegir la ROM, el disco o la BIOS que falten y se comprueban antes de preparar. **Instalar con Proton** permite usar paquetes Windows portables cuando corresponde. La [tabla de proyectos revisados](docs/PORTS.md#proyectos-revisados-el-21-de-octubre-de-2026) detalla los casos de God of War, inFAMOUS, Sonic, Smash, Time Crisis, Lord of the Rings y Crash; no implica que todos se hayan probado en juego.
 
@@ -121,7 +121,7 @@ Código y versiones descargables: [GonzaCass/deck-library](https://github.com/Go
 
 Los juegos de Switch sin un preset específico incluido o importado ofrecen tres opciones en **Ajustes recomendados**: **Switch — Equilibrado**, **Switch — Rendimiento** y **Switch — Compatibilidad**. Toman como referencia los cinco perfiles existentes: Vulkan, modo portátil, resolución 1×, varios núcleos, velocidad al 100% y caché de shaders. Equilibrado usa precisión GPU normal sin shaders/presentación asíncronos; Rendimiento activa ambos; Compatibilidad usa precisión alta y desactiva ambos. Requieren un Title ID detectado o completado en **Editar juego** y declaran Eden 0.2.1. Son propuestas **Para probar**, sin garantía de FPS.
 
-Elegí una tarjeta, desplegá **Ver cambios** y pulsá **Aplicar ajustes** para escribir el perfil con respaldo. El juego se abre por separado con **Jugar**. Cerrá el emulador antes de aplicar otra configuración. **Deshacer** recupera el estado anterior a la última aplicación. Los perfiles específicos tienen prioridad y cada tarjeta muestra el estado de prueba declarado por su autor.
+Elegir una tarjeta, desplegar **Ver cambios** y pulsar **Aplicar ajustes** para escribir el perfil con respaldo. El juego se abre por separado con **Jugar**. Cerrar el emulador antes de aplicar otra configuración. **Deshacer** recupera el estado anterior a la última aplicación. Los perfiles específicos tienen prioridad y cada tarjeta muestra el estado de prueba declarado por su autor.
 
 - **Carátulas** como vista inicial; se puede cambiar a lista y elegir una imagen local. Se aprovechan imágenes existentes de Steam/Quiver/Prism cuando se encuentran; donde falta arte se muestra una tarjeta de título.
 - **Ajustes → Instalaciones y carpetas** detecta EmuDeck y permite agregar carpetas de ROMs/ports, instalaciones de Quiver, Prism y WiiCompiled, y elegir programas de emuladores que no se detectaron.
@@ -130,7 +130,7 @@ Elegí una tarjeta, desplegá **Ver cambios** y pulsá **Aplicar ajustes** para 
 - En Switch, **Base, updates y mods** muestra contenido, versión detectada por Eden y qué NSP está registrado en NAND. Permite elegir una base faltante, instalar updates/DLC propios y mods ZIP LayeredFS. Que un archivo esté disponible en una carpeta no significa que esté instalado en NAND. La versión base puede necesitar consultarse en Eden si no se identifica.
 - **Ajustes recomendados** permite aplicar, respaldar, restaurar, importar/exportar JSON y guardar feedback para compartir. Hay siete perfiles iniciales con su estado de prueba. Algunos son propuestas; no todos están validados jugando.
 
-Para compartir ajustes, usá **Más opciones → Exportar mis ajustes** y enviá el JSON; la otra persona lo carga con **Importar ajustes de un archivo**. **Comunidad** ofrece el servicio opcional de perfiles y feedback con inicio de sesión con cuenta propia. La biblioteca local funciona sin cuenta. Ver [servicio comunitario](docs/COMMUNITY-PRESETS.md).
+Para compartir ajustes, usar **Más opciones → Exportar mis ajustes** y enviá el JSON; la otra persona lo carga con **Importar ajustes de un archivo**. **Comunidad** ofrece el servicio opcional de perfiles y feedback con inicio de sesión con cuenta propia. La biblioteca local funciona sin cuenta. Ver [servicio comunitario](docs/COMMUNITY-PRESETS.md).
 
 El formato y sus límites están explicados en [docs/PRESETS.md](docs/PRESETS.md).
 
@@ -197,7 +197,7 @@ Los perfiles incluidos y probados aparecen entre los principales con **✓ Compr
 
 ### Iniciar sesión y registrarse
 
-Abrí **Cuenta** con el icono de personas de la barra superior, o **Comunidad → Mi cuenta** desde un juego. **Iniciar sesión** y **Crear cuenta** abren los formularios dentro de Deck Library. Para registrarte en el servicio público necesitás verificar tu correo. Desde el inicio de sesión también podés recuperar la contraseña. Consultar perfiles no requiere una cuenta ni GitHub.
+Abrir **Cuenta** con el icono de personas de la barra superior, o **Comunidad → Mi cuenta** desde un juego. **Iniciar sesión** y **Crear cuenta** abren los formularios dentro de Deck Library. Para registrarte en el servicio público es necesario verificar el correo. Desde el inicio de sesión también podés recuperar la contraseña. Consultar perfiles no requiere una cuenta ni GitHub.
 
 En la Steam Deck se reutiliza el componente web de GNOME si está instalado. Si falta, la app ofrece instalarlo desde Flathub o seguir en el navegador. En modo Juego: cruceta/stick para moverte, A para seleccionar, B para cancelar el acceso y **Steam + X** para escribir. La navegación física con mando queda pendiente de confirmación.
 
@@ -207,7 +207,7 @@ Cerrar el acceso cancela la espera y cierra su navegador interno. **Cerrar sesi�
 
 El juego enfocado se resalta con un borde claro y el fondo de la tarjeta. **Palanca izquierda / cruceta:** recorrer juegos. **A:** abrir la ficha. **B:** volver al mismo juego. **X:** teclado en la búsqueda. **LB/RB:** cambiar pestaña. **Palanca derecha:** desplazar la vista. El foco se mantiene visible al recorrer la cuadrícula y se conserva al actualizar carátulas. Moverse por los juegos no los marca para agregarlos a Steam.
 
-El perfil propio de Deck Library ahora usa las dos palancas como mando y conserva el ratón en el trackpad derecho. El instalador actualiza esa plantilla con respaldo; conserva los perfiles elegidos por el usuario y los controles de otros juegos. Cerrá y volvé a abrir Deck Library desde Steam para recargarla. Si elegiste un perfil personalizado, seguirá seleccionado. El recorrido se comprobó con un mando virtual de SDL; falta confirmar las palancas físicas en modo Juego.
+El perfil propio de Deck Library ahora usa las dos palancas como mando y conserva el ratón en el trackpad derecho. El instalador actualiza esa plantilla con respaldo; conserva los perfiles elegidos por el usuario y los controles de otros juegos. Cerrar y volver a abrir Deck Library desde Steam para recargarla. Si elegiste un perfil personalizado, seguirá seleccionado. El recorrido se comprobó con un mando virtual de SDL; falta confirmar las palancas físicas en modo Juego.
 
 ### Selector e indicadores (0.17.1)
 

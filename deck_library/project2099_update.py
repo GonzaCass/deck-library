@@ -83,7 +83,7 @@ def update(entry,source,release,store,progress=lambda _:None,cancel=None,runner=
     folder=pathlib.Path(entry.source).parent
     if entry.metadata.get('adapter')!='project2099' or folder.is_symlink() or (not fresh and not project2099.installation_files(folder)[0]):raise ValueError('No se encontró la instalación original de Project-2099.')
     if fresh and folder.exists() and any(folder.iterdir()):raise ValueError('La carpeta de destino debe estar vacía.')
-    if presets.busy('project2099'):raise RuntimeError('Cerrá el juego antes de actualizarlo.')
+    if presets.busy('project2099'):raise RuntimeError('Cerrar el juego antes de actualizarlo.')
     source=pathlib.Path(source).resolve()
     if source.is_dir():
         if not all((source/n).is_file() for n in ('Default.xex','Data/Main.pkz','Data/BaseGameplay.pkz')):raise ValueError('La carpeta no contiene los datos de Xbox 360 requeridos.')

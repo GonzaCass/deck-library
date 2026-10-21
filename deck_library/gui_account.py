@@ -28,7 +28,7 @@ class AccountPane(Gtk.Box):
         for button in (self.login,self.register,self.logout):
             button.show_all();button.set_no_show_all(True);self.actions.pack_start(button,False,False,0)
         self.stack=Gtk.Stack();self.stack.set_homogeneous(False);self.stack.set_vexpand(True);self.stack.connect('notify::visible-child',self.refresh_layout);self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if motion.page_transitions() else Gtk.StackTransitionType.NONE);self.stack.set_transition_duration(120 if motion.page_transitions() else 0);self.pack_start(self.stack,True,True,0)
-        intro=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);intro.set_valign(Gtk.Align.CENTER);intro.pack_start(text('Publicá ajustes, valorá perfiles y compartí tus resultados.','muted',64),False,False,0);intro.pack_start(text('Podés consultar los perfiles sin una cuenta.','meta',64),False,False,0);intro.pack_start(text('Para crear una cuenta necesitás verificar tu correo.','meta',64),False,False,0);self.stack.add_named(intro,'intro')
+        intro=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);intro.set_valign(Gtk.Align.CENTER);intro.pack_start(text('Permite publicar ajustes, valorar perfiles y compartir resultados.','muted',64),False,False,0);intro.pack_start(text('Los perfiles se pueden consultar sin una cuenta.','meta',64),False,False,0);intro.pack_start(text('Para crear una cuenta es necesario verificar el correo.','meta',64),False,False,0);self.stack.add_named(intro,'intro')
         self.browser_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);self.stack.add_named(self.browser_box,'browser');self.socket=None
         self.fallback=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.stack.add_named(self.fallback,'fallback');self.reason=text('','muted',70);self.fallback.pack_start(self.reason,False,False,0)
         self.retry=ActionButton('Reintentar','refresh',lambda _:self.embed(),'violet-outline');self.fallback.pack_start(self.retry,False,False,0)
@@ -82,7 +82,7 @@ class AccountPane(Gtk.Box):
     def embed(self):
         self.stop_browser()
         display=self.get_display()
-        if not isinstance(display,GdkX11.X11Display):self.unavailable('El acceso integrado necesita X11. Reiniciá la app con su lanzador o continuá en el navegador.',False);return
+        if not isinstance(display,GdkX11.X11Display):self.unavailable('El acceso integrado necesita X11. Reiniciar la app con su lanzador o continuar en el navegador.',False);return
         for child in self.browser_box.get_children():child.destroy()
         self.socket=AccountSocket();self.socket.set_can_focus(True);self.socket.set_hexpand(True);self.socket.set_vexpand(True);self.socket.set_size_request(-1,240);self.browser_box.pack_start(self.socket,True,True,0);self.browser_box.show_all();self.stack.set_visible_child_name('browser');self.socket.realize()
         socket=self.socket;generation=self.generation
@@ -110,8 +110,8 @@ class AccountPane(Gtk.Box):
         if event=='ready':
             self.status.set_text('Steam + X: abrir teclado · B: cancelar')
             if self.socket:self.socket.grab_focus()
-        elif event in ('tls_error','load_error'):self.status.set_text('No se pudo cargar el acceso. Revisá la conexión o continuá en el navegador.');self.external.show();self.stack.set_visible_child_name('fallback');self.install_button.hide();self.reason.set_text('No se pudo cargar el acceso de forma segura.')
-        elif event=='exited' and process is self.process and self.wait:self.unavailable('El componente de acceso se cerró. Podés reintentar o continuar en el navegador.',False)
+        elif event in ('tls_error','load_error'):self.status.set_text('No se pudo cargar el acceso. Revisar la conexión o continuar en el navegador.');self.external.show();self.stack.set_visible_child_name('fallback');self.install_button.hide();self.reason.set_text('No se pudo cargar el acceso de forma segura.')
+        elif event=='exited' and process is self.process and self.wait:self.unavailable('El componente de acceso se cerró. Se puede reintentar o continuar en el navegador.',False)
         return False
 
     def unavailable(self,reason,install):
@@ -143,7 +143,7 @@ class AccountPane(Gtk.Box):
     def poll(self):
         self.timer=None
         if not self.alive or not self.wait:return False
-        if time.monotonic()>self.deadline:self.cancel();self.status.set_text('El acceso venció. Volvé a intentarlo.');return False
+        if time.monotonic()>self.deadline:self.cancel();self.status.set_text('El acceso venció. Volver a intentarlo.');return False
         def done(value):
             if value.get('state')=='connected':
                 self.client.remember(value);self.cancel();self.refresh();self.status.set_text('Sesión iniciada.')

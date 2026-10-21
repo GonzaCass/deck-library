@@ -9,7 +9,7 @@ class OriginalsMixin:
         dialog=InlineDialog(title='Originales y ports',transient_for=self,modal=True);dialog.set_default_size(820,600);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(12)
         box.pack_start(text('Originales con un port instalado','section-title'),False,False,0)
-        box.pack_start(text('El port y su ROM comparten una ficha. Podés abrir el original, mostrarlo por separado o conservarlo para futuras actualizaciones.','muted',85),False,False,0)
+        box.pack_start(text('El port y su ROM comparten una ficha. Se puede abrir el original, mostrarlo por separado o conservarlo para futuras actualizaciones.','muted',85),False,False,0)
         rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);box.pack_start(rows,True,True,0)
         def render():
             self.reset_page(rows);separate=set(self.preferences.get('unlinked_originals',[]));matches=originals.pairs(self.entries)

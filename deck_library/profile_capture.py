@@ -36,7 +36,7 @@ def game_target(entry,adapter):
         if identity and re.fullmatch('[0-9A-F]{8}',crc):return root/'gamesettings'/(identity+'_'+crc+'.ini')
         matches=list((root/'gamesettings').glob(identity+'_????????.ini')) if identity else []
         if len(matches)==1:return matches[0]
-        raise ValueError('PCSX2 necesita el serial y CRC del juego. Creá sus ajustes por juego en PCSX2 para identificar el archivo; la lectura global sigue disponible.')
+        raise ValueError('PCSX2 necesita el serial y CRC del juego. Crear sus ajustes por juego en PCSX2 para identificar el archivo; la lectura global sigue disponible.')
     if adapter=='azahar':
         tid=entry.game_id or entry.metadata.get('title_id','')
         if not re.fullmatch('[0-9A-Fa-f]{16}',tid):

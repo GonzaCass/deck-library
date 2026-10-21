@@ -164,7 +164,7 @@ def requirements(item,games,home=None):
         from .original_data import validate
         try:
             original=validate(inputs.get('original_data',''),item['original_data']);lines.append((True,'Archivos originales: '+str(original)))
-        except (ValueError,OSError):lines.append((False,'Archivos originales pendientes: elegí exefs y romfs de Bayonetta 2 v1.2.' if item['original_data'].get('kind')=='switch-dump' else 'Archivos originales de Xbox pendientes: elegí la carpeta extraída'+(' o ISO/XISO.' if item['original_data'].get('iso') else '.')))
+        except (ValueError,OSError):lines.append((False,'Archivos originales pendientes: elegir exefs y romfs de Bayonetta 2 v1.2.' if item['original_data'].get('kind')=='switch-dump' else 'Archivos originales de Xbox pendientes: elegir la carpeta extraída'+(' o ISO/XISO.' if item['original_data'].get('iso') else '.')))
     if item.get('bios'):
         found=find_bios(item['bios'].get('sha256',[]),home,[inputs.get('bios')])
         lines.append((True,'BIOS '+item['bios'].get('name','')+': encontrada en '+found) if found else (False,'BIOS '+item['bios'].get('name','')+': no se encontró un archivo con el hash exacto.'))
@@ -421,8 +421,8 @@ def set_input(repository,key,path,store=None):
     spec=record[key]
     if key=='rom' and not match_rom(spec,path):raise ValueError('La ROM no coincide con el tamaño y el SHA-1 requeridos por este port.')
     if key=='bios' and not (path.stat().st_size==BIOS_SIZE and sha256_file(path) in spec.get('sha256',[])):raise ValueError('La BIOS no coincide con el hash requerido por este port.')
-    if key=='disc' and not find_disc(spec,[(path.name,str(path))]):raise ValueError('El disco no tiene el serial requerido: '+spec['serial']+'. Elegí un CUE, BIN o ISO compatible.')
-    if key=='wiiu' and not find_wiiu_image(spec,[(path.name,str(path))]):raise ValueError('Elegí la imagen WUD, WUX o WUA de '+spec['name']+'.')
+    if key=='disc' and not find_disc(spec,[(path.name,str(path))]):raise ValueError('El disco no tiene el serial requerido: '+spec['serial']+'. Elegir un CUE, BIN o ISO compatible.')
+    if key=='wiiu' and not find_wiiu_image(spec,[(path.name,str(path))]):raise ValueError('Elegir la imagen WUD, WUX o WUA de '+spec['name']+'.')
     record['inputs']={**record.get('inputs',{}),key:str(path)}
     atomic_json(store.root/'ports.json',saved)
     return record
@@ -1108,7 +1108,7 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None,c
         check_cancel(cancel)
         run([str(python),str(script),'--dump',str(source),'--jobs',str(min(4,os.cpu_count() or 2))],cwd=str(folder),progress=progress,sandbox=False,**({'until':cancel.is_set} if cancel is not None else {}))
         check_cancel(cancel)
-        if not (folder/'build-linux/game_native').is_file():raise ValueError('El constructor terminó sin generar game_native. Revisá el registro de compilación.')
+        if not (folder/'build-linux/game_native').is_file():raise ValueError('El constructor terminó sin generar game_native. Revisar el registro de compilación.')
         record.update(configured=True,configured_with=source.name)
         saved=records(store);saved[repository]=record;atomic_json(store.root/'ports.json',saved);atomic_json(folder/'.deck-library-port.json',record);return record
     if kind=='original_data':

@@ -9,7 +9,7 @@ from .ui_components import ActionButton, TaskButton, Icon, Reveal, GameBackdrop,
 class GameMixin:
     def discard_game_edits(self):
         if not getattr(self,'editor_dirty',False):return True
-        if not self.confirm('Cambios sin guardar','Hay opciones editadas en este juego. ¿Querés salir sin guardarlas?','Salir sin guardar'):return False
+        if not self.confirm('Cambios sin guardar','Hay opciones editadas en este juego. ¿Salir sin guardarlas?','Salir sin guardar'):return False
         self.editor_dirty=False
         old=self.game_pages.get_child_by_name('options')
         if old:self.game_pages.remove(old)
@@ -358,7 +358,7 @@ class GameMixin:
         # Dock stays on screen even when the list of profiles or changes is long.
         dock = styled(Gtk.Box(spacing=12),'apply-dock')
         dock_words = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=3)
-        self.profile_dock_title = text('Elegí un perfil','dock-title')
+        self.profile_dock_title = text('Elegir un perfil','dock-title')
         self.profile_dock_note = text('La configuración actual se conserva hasta aplicar.','meta',60)
         dock_words.pack_start(self.profile_dock_title,False,False,0)
         dock_words.pack_start(self.profile_dock_note,False,False,0)
@@ -390,7 +390,7 @@ class GameMixin:
             notes.set_visible(bool(guide))
             if not presets.automatic(profile):
                 self.profile_status.set_text('Guía manual · Los pasos y comandos se muestran como texto.')
-                self.profile_dock_note.set_text('Revisá las instrucciones del perfil.');self.profile_apply.set_sensitive(False)
+                self.profile_dock_note.set_text('Revisar las instrucciones del perfil.');self.profile_apply.set_sensitive(False)
                 self.profile_disclosure.control.set_label('Ver instrucciones');self.profile_disclosure.revealer.set_reveal_child(True)
                 changes.show_all();return
             self.reset_page(changes)
@@ -420,7 +420,7 @@ class GameMixin:
                 if not count:self.profile_apply.get_style_context().add_class('applied')
             except Exception as error:
                 self.profile_status.set_text('Falta completar la configuración: '+str(error))
-                self.profile_dock_note.set_text('Completá los datos del acceso para aplicar ajustes.')
+                self.profile_dock_note.set_text('Completar los datos del acceso para aplicar ajustes.')
                 self.profile_apply.set_sensitive(False)
                 changes.pack_start(ActionButton('Completar datos del juego','file',lambda _:self.manual(entry),'steam-outline'),False,False,0)
             changes.show_all()
@@ -459,7 +459,7 @@ class GameMixin:
                 empty.pack_start(ActionButton('Editar ajustes manualmente','sliders',lambda _:self.open_game_section('options')),False,False,0)
             content.pack_start(empty,False,False,0)
             self.profile_dock_title.set_text('Sin perfil seleccionado')
-            self.profile_dock_note.set_text('Podés importar uno o editar las opciones disponibles.')
+            self.profile_dock_note.set_text('Se puede importar uno o editar las opciones disponibles.')
 
         self.fetch_game_ratings(entry)
 
@@ -473,7 +473,7 @@ class GameMixin:
             panel=getattr(self,'community_profile_box',None)
             if panel:
                 self.reset_page(panel)
-                if error:panel.pack_start(text('No se pudo consultar la comunidad. Usá Ver todos para reintentar.','muted'),False,False,0)
+                if error:panel.pack_start(text('No se pudo consultar la comunidad. Ver todos permite reintentar.','muted'),False,False,0)
                 elif not values:panel.pack_start(text('Todavía no hay perfiles publicados para este juego.','muted'),False,False,0)
                 for value in values[:3]:
                     caption=display.title(value['preset'])+' · '+rating_caption(value)
@@ -587,7 +587,7 @@ class GameMixin:
         if entry.metadata.get('steam_store'):
             panel.pack_start(text('Configurá el mando desde la ficha del juego en Steam.','muted'),False,False,0)
             return
-        panel.pack_start(text(self.controller_summary(entry) if steam else 'Agregá este juego a Steam para asignarle un perfil de mando.','muted',85),False,False,0)
+        panel.pack_start(text(self.controller_summary(entry) if steam else 'Agregar este juego a Steam para asignarle un perfil de mando.','muted',85),False,False,0)
         panel.pack_start(ActionButton('Asignar perfil de mando' if steam else 'Agregar a Steam','controller' if steam else 'steam',lambda _:self.fix_controllers(entry) if steam else self.single_steam(entry),'amber'),False,False,0)
         if entry.kind == 'emulated':
             panel=self.card(body,'Emulador')
