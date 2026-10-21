@@ -8,6 +8,8 @@ files=[ROOT/name for name in ('app.py','install.py','launch.sh','Instalar.sh','R
 for folder in ('deck_library','tests'):
     files.extend(sorted((ROOT/folder).glob('*.py')))
 files.extend(sorted((ROOT/'presets').glob('*.json')))
+files.extend(sorted((ROOT/'deck_library/i18n_en').glob('*.json')))
+files.append(ROOT/'tools/i18n_extract.py')
 files.extend([ROOT/'.dockerignore',ROOT/'docs/DECK-INTERFACE.md',ROOT/'docs/V1-CHECKLIST.md',ROOT/'tools/sync_readme.py'])
 files.extend(sorted(p for p in (ROOT/'community').iterdir() if p.is_file() and p.name in ('__init__.py','server.py','oidc.py','keycloak-client.json','Dockerfile','compose.yaml','.env.example','README.md')))
 files.extend(sorted(p for p in (ROOT/'community/keycloak-theme').rglob('*') if p.is_file() and p.suffix in ('.properties','.css','.png')))

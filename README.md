@@ -1,6 +1,6 @@
 # Deck Library
 
-Native Linux app that gathers ports, applications and emulated games in one library and manages their Steam shortcuts, per-game settings and controller layouts on Steam Deck. The interface is in Spanish.
+Native Linux app that gathers ports, applications and emulated games in one library and manages their Steam shortcuts, per-game settings and controller layouts on Steam Deck. The interface is available in English and Spanish (see [Language](#language)).
 
 **English** · [Español](#español)
 
@@ -8,20 +8,9 @@ Native Linux app that gathers ports, applications and emulated games in one libr
 
 ![Game overview with fictional artwork](assets/screenshot-game.png)
 
-## Interface labels
+## Language
 
-The app's interface is in Spanish. Labels are quoted as they appear on screen; this table gives their meaning.
-
-| Label | Meaning |
-| --- | --- |
-| Biblioteca · Catálogo de ports · Actualizaciones · Ajustes | Library · Port catalog · Updates · Settings |
-| Añadir a Steam | Add Deck Library itself to Steam (header button) |
-| Agregar a Steam | Add a game to Steam |
-| Jugar · Aplicar ajustes · Ver cambios | Play · Apply settings · View changes |
-| Controles · Contenido · Avanzados · Comunidad | Controls · Content · Advanced · Community |
-| Más opciones · Seleccionar · Vista y filtros | More options · Select · View and filters |
-| Instalar · Instalar con Proton · Configurar · Mostrar más | Install · Install with Proton · Configure · Show more |
-| Buscar instalados · Cuenta · Sin valoraciones | Scan for installed games · Account · No ratings |
+The interface comes in English and Spanish. Change it under **Settings → Covers and appearance → Idioma · Language** (Automatic, Español or English) and reopen the app. An existing installation keeps its current language; a new one follows the system language. `DECK_LIBRARY_LANG=en` or `es` overrides the saved choice for one run. Every interface string has an English translation, and a test fails when a new one is added without it.
 
 ## Install
 
@@ -38,7 +27,7 @@ Requires Python 3.11+, PyGObject and GTK 3 (available on the Steam Deck used for
 ## Open Deck Library directly from Steam
 
 1. Install and open Deck Library in Desktop Mode. Finish the first-run assistant.
-2. In Desktop Mode, click **Añadir a Steam** beside the top navigation tabs (also available under **Ajustes → Deck Library en Steam**).
+2. In Desktop Mode, click **Add to Steam** beside the top navigation tabs (also available under **Settings → Deck Library in Steam**).
 3. If Steam is open, the app shows a persistent pending-changes banner. Finish your other changes, exit Steam once and wait for the banner to disappear. The background worker saves the shortcut and its Deck controls; no per-change restart dialog is shown.
 4. Return to Gaming Mode, find **Deck Library** in Steam's library and press **Play**. The shortcut launches the native Linux app fullscreen, with `--gaming` and its navigation template.
 
@@ -46,15 +35,15 @@ Use the right trackpad and right trigger for pointer/click, the D-pad or stick f
 
 ### Add individual games to Steam
 
-Open a game's cover and click the blue **Agregar a Steam** button. It changes to **Acceso pendiente** while queued and **En Steam** after the shortcut is saved. Add several by clicking **Seleccionar**, marking covers and using the batch action. Save the queue by exiting Steam once after finishing, then reopen Steam or return to Gaming Mode. Each game gets its own shortcut and can be launched directly from Steam; opening Deck Library first is optional. The game files stay in their current locations.
+Open a game's cover and click the blue **Add to Steam** button. It changes to **Shortcut pending** while queued and **In Steam** after the shortcut is saved. Add several by clicking **Select**, marking covers and using the batch action. Save the queue by exiting Steam once after finishing, then reopen Steam or return to Gaming Mode. Each game gets its own shortcut and can be launched directly from Steam; opening Deck Library first is optional. The game files stay in their current locations.
 
-For a game already in Steam, **Jugar** uses its existing Steam shortcut and controller identity. **Más opciones → Archivos y acceso de Steam** provides editing, artwork and removal tools.
+For a game already in Steam, **Play** uses its existing Steam shortcut and controller identity. **More options → Files and Steam shortcut** provides editing, artwork and removal tools.
 
 ## Use
 
-The first launch opens a four-step Spanish onboarding flow: welcome, installation/game detection, artwork provider and library handoff. Discovery runs in the background. Users can add a missing folder or configure an emulator instead of guessing where to start. Repeat onboarding from **Ajustes**.
+The first launch opens a four-step Spanish onboarding flow: welcome, installation/game detection, artwork provider and library handoff. Discovery runs in the background. Users can add a missing folder or configure an emulator instead of guessing where to start. Repeat onboarding from **Settings**.
 
-The library fills the window, with top navigation, 2:3 portrait cards, platform filters and search. Open a cover for the game overview: **Jugar** (green), **Agregar a Steam** (blue), selectable settings cards and a fixed **Aplicar ajustes** action. Selecting a card only previews the profile; changes are written, with a backup, after applying. Technical differences expand under **Ver cambios**. The persistent **Controles**, **Contenido** and **Avanzados** tabs open dedicated task pages. Settings cards use the full width and **Comunidad** remains available in the same tab bar. **Más opciones** contains import/export, artwork and shortcut tools. **Seleccionar** reveals batch controls only when needed. **Catálogo de ports** opens the downloadable port catalog directly. Use **Ajustes → Instalaciones y carpetas** to add discovery folders.
+The library fills the window, with top navigation, 2:3 portrait cards, platform filters and search. Open a cover for the game overview: **Play** (green), **Add to Steam** (blue), selectable settings cards and a fixed **Apply settings** action. Selecting a card only previews the profile; changes are written, with a backup, after applying. Technical differences expand under **View changes**. The persistent **Controls**, **Content** and **Advanced** tabs open dedicated task pages. Settings cards use the full width and **Community** remains available in the same tab bar. **More options** contains import/export, artwork and shortcut tools. **Select** reveals batch controls only when needed. **Port catalog** opens the downloadable port catalog directly. Use **Settings → Installations and folders** to add discovery folders.
 
 Steam changes accumulate in a persistent banner and are saved when Steam closes. No restart prompt interrupts each change. Settings → Add Deck Library to Steam prepares a fullscreen Gaming Mode shortcut with Deck navigation controls. The library also offers portrait cards, thumbnails in list view, platform groups and a read-only conflict report. See [Deck interface](docs/DECK-INTERFACE.md) and [optional community server](community/README.md). Physical Gaming Mode validation remains a separate check.
 
@@ -90,31 +79,31 @@ This addresses common launch-environment problems; a damaged/misconfigured Flatp
 
 ### Remove Steam shortcuts
 
-**Quitar de Steam** is on each game page and in the selection bar. It deletes the shortcut from `shortcuts.vdf`, moves its grid images to `grid/.deck-library-backups`, forgets its controller layouts and renumbers the remaining shortcuts. Games, files and saves are not touched, and a timestamped backup of `shortcuts.vdf` is written first. Like additions, removals are queued while Steam is open and applied once it is closed. Shortcuts that disappear from Steam are also dropped from the library on the next scan.
+**Remove from Steam** is on each game page and in the selection bar. It deletes the shortcut from `shortcuts.vdf`, moves its grid images to `grid/.deck-library-backups`, forgets its controller layouts and renumbers the remaining shortcuts. Games, files and saves are not touched, and a timestamped backup of `shortcuts.vdf` is written first. Like additions, removals are queued while Steam is open and applied once it is closed. Shortcuts that disappear from Steam are also dropped from the library on the next scan.
 
 ### Controller layouts (DualSense and others)
 
-Steam keeps the Steam Input layout of a non-Steam shortcut in one `configset_controller_<family>.vdf` per controller family. A shortcut that only has an entry for the Deck itself gets a desktop/browser layout when a DualSense, DualShock, Xbox or Switch Pro pad is connected, so the game sees no XInput device. New shortcuts now receive the gamepad template for every family that has none; existing choices are kept. **Mando → Asignar layout** on a game page replaces the saved layout for that shortcut (a backup of each changed file is kept). Writes need Steam closed. This can be disabled with `fix_controllers` in `settings.json`.
+Steam keeps the Steam Input layout of a non-Steam shortcut in one `configset_controller_<family>.vdf` per controller family. A shortcut that only has an entry for the Deck itself gets a desktop/browser layout when a DualSense, DualShock, Xbox or Switch Pro pad is connected, so the game sees no XInput device. New shortcuts now receive the gamepad template for every family that has none; existing choices are kept. **Controller → Assign controller layout** on a game page replaces the saved layout for that shortcut (a backup of each changed file is kept). Writes need Steam closed. This can be disabled with `fix_controllers` in `settings.json`.
 
 ### Updates
 
-The **Actualizaciones** page checks, at most every six hours: Deck Library releases on GitHub, the preset catalog, ports installed through Quiver (`version.txt` against the latest release of their repository) and Project-2099. Everything uses HTTPS with size limits. Deck Library can install its own update: the release must include `DeckLibrary-X.Y.Z.tar.gz` and its `.sha256`; the archive is verified, extracted with path checks and installed with `install.py`. Automatic installation of Deck Library updates is on by default and can be switched off on the page; it only runs in Desktop Mode and asks for a restart. Ports installed from the catalog can also update automatically (off by default). Ports installed by Quiver are only reported; Quiver applies them. GitHub allows 60 anonymous API requests per hour; set `GITHUB_TOKEN` to raise the limit. The catalog defaults to `presets/catalog.json` in this repository.
+The **Updates** page checks, at most every six hours: Deck Library releases on GitHub, the preset catalog, ports installed through Quiver (`version.txt` against the latest release of their repository) and Project-2099. Everything uses HTTPS with size limits. Deck Library can install its own update: the release must include `DeckLibrary-X.Y.Z.tar.gz` and its `.sha256`; the archive is verified, extracted with path checks and installed with `install.py`. Automatic installation of Deck Library updates is on by default and can be switched off on the page; it only runs in Desktop Mode and asks for a restart. Ports installed from the catalog can also update automatically (off by default). Ports installed by Quiver are only reported; Quiver applies them. GitHub allows 60 anonymous API requests per hour; set `GITHUB_TOKEN` to raise the limit. The catalog defaults to `presets/catalog.json` in this repository.
 
 ### Port catalog
 
-**Catálogo de ports** merges four sources: Quiver's public lists (`tgeorgiadis/quiver-community-app-catalog`), GithubLauncher's list (`SirDiabo/GHLAppList`, which includes Rexglue/Xbox 360 and system emulators and marks AI-assisted projects), a few built-in recommendations and the user's own repositories (about 255 ports). Both launchers use the same data model, so ports installed by either one (`apps.json`, `Apps/`, `version.txt`, `selected_executable.txt`) are found in any folder under `~/ports` or `~/Applications` and checked for updates. Each entry shows its icon, or box art found by platform, plus category, source and notes; the list can be filtered by category and source.
+**Port catalog** merges four sources: Quiver's public lists (`tgeorgiadis/quiver-community-app-catalog`), GithubLauncher's list (`SirDiabo/GHLAppList`, which includes Rexglue/Xbox 360 and system emulators and marks AI-assisted projects), a few built-in recommendations and the user's own repositories (about 255 ports). Both launchers use the same data model, so ports installed by either one (`apps.json`, `Apps/`, `version.txt`, `selected_executable.txt`) are found in any folder under `~/ports` or `~/Applications` and checked for updates. Each entry shows its icon, or box art found by platform, plus category, source and notes; the list can be filtered by category and source.
 
-**Agregar repositorio** accepts any GitHub address or `owner/repo`, checks its latest release for a Linux build and keeps it in `custom_ports` of `settings.json`. Extra list files can be added with `catalog_sources` (raw.githubusercontent.com URLs in Quiver's or GithubLauncher's format).
+**Add repository** accepts any GitHub address or `owner/repo`, checks its latest release for a Linux build and keeps it in `custom_ports` of `settings.json`. Extra list files can be added with `catalog_sources` (raw.githubusercontent.com URLs in Quiver's or GithubLauncher's format).
 
-**Instalar** downloads the latest release asset for Linux x86_64 (AppImage, tar.gz/tar.xz/tar.bz2/tar.zst, ZIP or a bare executable), checks the SHA-256 that GitHub publishes for the asset, extracts it with path and link checks into `~/ports/<folder>` and registers the version, so the library lists it and the updates page can detect new releases. Portable Windows ZIPs and standalone executables are supported through an isolated Proton prefix per port. Setup/MSI installers and source-only projects need an explicit integration; catalog data cannot inject installation scripts. When several executables are possible none is chosen and the game can be added by hand. Updating moves the previous folder to `~/ports/.deck-library-replaced` instead of deleting it.
+**Install** downloads the latest release asset for Linux x86_64 (AppImage, tar.gz/tar.xz/tar.bz2/tar.zst, ZIP or a bare executable), checks the SHA-256 that GitHub publishes for the asset, extracts it with path and link checks into `~/ports/<folder>` and registers the version, so the library lists it and the updates page can detect new releases. Portable Windows ZIPs and standalone executables are supported through an isolated Proton prefix per port. Setup/MSI installers and source-only projects need an explicit integration; catalog data cannot inject installation scripts. When several executables are possible none is chosen and the game can be added by hand. Updating moves the previous folder to `~/ports/.deck-library-replaced` instead of deleting it.
 
-Originals and ports share a library card, with **ROM encontrada** when the original file is still available. Both entries and files remain intact; **Ver original** opens the emulated entry and **Mostrar separado** reverses the association. Integrated adapters let users select and validate missing ROM/disc/BIOS files. Other projects identify their own setup assistant or manual preparation. Port details offer **Instalar con Proton** for portable Windows packages, including x86 releases. The [reviewed projects and requirements](docs/PORTS.md#proyectos-revisados-el-21-de-octubre-de-2026) distinguish package support from gameplay validation.
+Originals and ports share a library card, with **ROM found** when the original file is still available. Both entries and files remain intact; **View original** opens the emulated entry and **Show separately** reverses the association. Integrated adapters let users select and validate missing ROM/disc/BIOS files. Other projects identify their own setup assistant or manual preparation. Port details offer **Install with Proton** for portable Windows packages, including x86 releases. The [reviewed projects and requirements](docs/PORTS.md#proyectos-revisados-el-21-de-octubre-de-2026) distinguish package support from gameplay validation.
 
 The recommended Spider-Man entries (`alexbeavs-ps1-ports/spider-man-recomp`, `spider-man-2-enter-electro-recomp`) are setup kits: the user supplies a USA disc (SLUS-00875 and SLUS-01378 Rev 1) and a BIOS, and the kit generates and compiles the game on first start. SteamOS ships no compiler or headers, so these ports run inside the **KDE SDK 6.11 Flatpak** (CMake, Ninja, GCC, Python 3, SDL3/Vulkan/X11/Wayland/ALSA headers). Deck Library asks before installing it once for the user from Flathub (no root, no change to SteamOS), detects kits after installation (`CMakeLists.txt` next to `README-SETUP.txt`) and starts them through `flatpak run --devel` with network, display, audio, input devices and the home folder. A missing SDK is reported as a blocking diagnostic. Installed kits must live under the home folder, which is the only user data the sandbox mounts. Each kit card also compares its requirements with what is already on the Deck: the BIOS is searched by exact SHA-256 in the EmuDeck `bios` folder whatever the file is called, and the disc is checked by Redump-style name against the PlayStation library (a name check only; the kit's wizard verifies the exact dump hash). The kits are pinned to the USA executables, so a PAL disc cannot be used without a separate port. Once a kit has been generated and compiled (its wizard, or `psxrecomp_cli.py generate` and `rebuild` inside the SDK), the library entry points to the built game and keeps the same id.
 
 ### Automatic port setup
 
-Everything needed to make a port playable is scripted and starts from **Configurar** in the catalog (it also runs right after **Instalar**). Deck Library finds the disc in the library by the serial inside its `SYSTEM.CNF` (BIN, ISO or CUE; the file name does not matter) and the BIOS by exact SHA-256 in the EmuDeck folder, shows what it found and asks before doing anything:
+Everything needed to make a port playable is scripted and starts from **Set up** in the catalog (it also runs right after **Install**). Deck Library finds the disc in the library by the serial inside its `SYSTEM.CNF` (BIN, ISO or CUE; the file name does not matter) and the BIOS by exact SHA-256 in the EmuDeck folder, shows what it found and asks before doing anything:
 
 - **Recompilation kits** (Spider-Man, Spider-Man 2): `verify-disc`, `generate` and `rebuild` of the kit's own CLI inside the KDE SDK Flatpak, then the BIOS choice is stored in `build/bios.cfg`. The entry then starts the built game.
 - **OpenPete** (Spyro the Dragon, downloaded from openpete.com and checked against the SHA-256 the site publishes): the AppImage is unpacked once, its game module is pre-built from the disc inside the SDK and the entry starts it in fullscreen with `--disc`.
@@ -124,7 +113,7 @@ Ports published on their own site are found by reading its page (`resolve_web`);
 
 ### Zelda ports
 
-Three more built-in entries use the same **Configurar** flow:
+Three more built-in entries use the same **Set up** flow:
 
 - **Minish Cap** (Project Picori, `999sian/tmc`): the GBA ROM is found by SHA-1 in `~/Emulation/roms/gba` whatever its file name (USA, Europe or Japan) and copied next to the binary as `baserom.gba`, `baserom_eu.gba` or `baserom_jp.gba`. The European ROM carries Spanish text.
 - **A Link to the Past** (`snesrev/zelda3`, pinned commit, built from source): the USA 1.0 ROM is found by SHA-1 in `~/Emulation/roms/snes` (a 512-byte copier header is stripped), Pillow and PyYAML are installed into a local folder, `make` runs inside the KDE SDK and the executable starts there with `SDL_AUDIODRIVER=pulseaudio` (SDL otherwise tries JACK first inside the sandbox and gives up). The aspect ratio is set to 16:10. The game was never released in Spanish.
@@ -136,7 +125,7 @@ Per-game defaults: Eden's Breath of the Wild gets Latin American Spanish, 1x res
 
 A Link to the Past in Spanish: `deck_library.patching.apply_ups` applies the fan translation's UPS patch (all three CRC32s verified); the result is recognised by SHA-1, built with `restool.py --extract-dialogue` / `--languages=es` and selected with `Language = es`. For the PS1 kits, `psx.deck.display` is a built-in plugin package (framework plugin API: `psx_mod_set_frame_interpolation(0)` with motion-adaptive blending, `psx_mod_set_fixed_display_aspect(16, 10)`) added to the kit's `runtime.cmake` with a backup; it needs the kit to be rebuilt.
 
-Steam artwork: the game detail page has **Arte de Steam**, backed by `deck_library.steamart` (SteamGridDB API, vertical and horizontal covers, hero, logo with its position JSON, and icon, in the file layout Decky's SteamGridDB plugin writes). Existing files are kept unless a slot is explicitly replaced, replaced files are backed up, images are validated by magic bytes (PNG/JPEG/WebP, 20 MB limit) and written through the same Steam-closed queue as shortcuts. **Settings → Completar arte de todos los accesos de Steam** (`steamart.complete_missing`) fills only empty slots for every shortcut and reports per game. The app needs the user's own SteamGridDB key; the key embedded in Decky's plugin is reserved for it by its author.
+Steam artwork: the game detail page has **Steam artwork**, backed by `deck_library.steamart` (SteamGridDB API, vertical and horizontal covers, hero, logo with its position JSON, and icon, in the file layout Decky's SteamGridDB plugin writes). Existing files are kept unless a slot is explicitly replaced, replaced files are backed up, images are validated by magic bytes (PNG/JPEG/WebP, 20 MB limit) and written through the same Steam-closed queue as shortcuts. **Settings → Complete artwork for all Steam shortcuts** (`steamart.complete_missing`) fills only empty slots for every shortcut and reports per game. The app needs the user's own SteamGridDB key; the key embedded in Decky's plugin is reserved for it by its author.
 
 UI: top navigation, portrait game cards, distinct action colours, visible focus and finite transitions (`deck_library/motion.py`: fades, staggered card entrance, slide between library and detail, toasts), all disabled by the animations switch. The per-game settings dialog starts with the emulator's current values read from its own files. `deck_library/wiiupdate.py` updates a Quiver-managed WiiCompiled in place (SHA-256 from the GitHub digest, `install --game`, rollback of the previous setup tool).
 
@@ -150,7 +139,7 @@ The toolbar filters by platform and by **type** (ports, emulator games, Minecraf
 
 ### Per-game settings
 
-**Ajustes del juego** edits the allowlisted options of an emulator for one game: resolution, anti-aliasing, texture filtering, PGXP and other fixes, FPS limit, overclock and disc speed-up for DuckStation (`gamesettings/<SERIAL>.ini`); internal resolution and EFB options for Dolphin; Eden and Prism options use the same form. Controls start from the effective value (the game file, else the emulator-wide setting), only changed options are written, and every save keeps a backup that **Restaurar anteriores** reverts. Files are patched line by line, so repeated keys, patches and cheats stay as they were. The DuckStation serial is read from `SYSTEM.CNF` in BIN/ISO/CUE images; for CHD it must be entered in the game's identifier field. DuckStation per-game patches and cheats are not editable yet.
+**Game settings** edits the allowlisted options of an emulator for one game: resolution, anti-aliasing, texture filtering, PGXP and other fixes, FPS limit, overclock and disc speed-up for DuckStation (`gamesettings/<SERIAL>.ini`); internal resolution and EFB options for Dolphin; Eden and Prism options use the same form. Controls start from the effective value (the game file, else the emulator-wide setting), only changed options are written, and every save keeps a backup that **Restaurar anteriores** reverts. Files are patched line by line, so repeated keys, patches and cheats stay as they were. The DuckStation serial is read from `SYSTEM.CNF` in BIN/ISO/CUE images; for CHD it must be entered in the game's identifier field. DuckStation per-game patches and cheats are not editable yet.
 
 ## Steam data and backups
 
@@ -160,7 +149,7 @@ Queued changes and logs stay private. A user service performs deferred writes wh
 
 ## Local / GitHub community presets
 
-GTA IV Complete Edition installations in Steam also expose **Arreglo de GTA IV**: a pinned FusionFix 4.0.5/DXVK recipe with SHA-256 verification, complete backups and restore. It keeps the game closed and preserves existing graphics/FPS choices. One Steam Deck OLED user confirmed the resulting experience; sustained FPS were not measured. See [the GTA IV instructions and button API](docs/GTAIV.md).
+GTA IV Complete Edition installations in Steam also expose **GTA IV fix**: a pinned FusionFix 4.0.5/DXVK recipe with SHA-256 verification, complete backups and restore. It keeps the game closed and preserves existing graphics/FPS choices. One Steam Deck OLED user confirmed the resulting experience; sustained FPS were not measured. See [the GTA IV instructions and button API](docs/GTAIV.md).
 
 The [DMC3 Crimson Steam launch notes](docs/DMC3-CRIMSON.md) document a separate, locally boot-tested wrapper and Steam API compatibility fix. This is an integration guide; Crimson installation is not yet a button in Deck Library.
 
@@ -170,15 +159,15 @@ Game details expose recommended profiles, a change preview, apply/backup/restore
 
 The initial catalog includes WiiCompiled, Eden profiles for Smash, Mario Kart 8 and three Mario Party games, plus a Prism instance preset with Steam Input recommendations. Profiles explicitly distinguish proposals, boot checks and user confirmations; hardware/version matching does not imply universal FPS or compatibility.
 
-Switch games without a bundled or imported title-specific profile offer three proposals: **Equilibrado**, **Rendimiento** and **Compatibilidad**. They use the included profiles as references and require a Title ID; declared compatibility is Eden 0.2.1. Choose a card, expand **Ver cambios** if needed and press **Aplicar ajustes**. This saves a backup and writes the profile without opening the game. **Jugar** is a separate action. **Deshacer** restores the configuration before the latest application. Existing title-specific profiles keep priority, and each card displays its author's declared testing status. Performance still needs validation per game.
+Switch games without a bundled or imported title-specific profile offer three proposals: **Balanced**, **Performance** and **Compatibility**. They use the included profiles as references and require a Title ID; declared compatibility is Eden 0.2.1. Choose a card, expand **View changes** if needed and press **Apply settings**. This saves a backup and writes the profile without opening the game. **Play** is a separate action. **Undo** restores the configuration before the latest application. Existing title-specific profiles keep priority, and each card displays its author's declared testing status. Performance still needs validation per game.
 
 ## Discovery, covers and setup
 
 Portrait covers are the default view; list view is available. Local Steam, Quiver, Eden and Prism images and privately downloaded provider artwork are reused. Custom local covers can be selected. Public release artwork uses fictional placeholders; downloaded game artwork is not shipped.
 
-**Ajustes → Instalaciones y carpetas** reads EmuDeck paths without executing its settings script, offers manual paths and emulator executable selection, and discovers Prism instances by their folder IDs. Microsoft account files are never read or shared.
+**Settings → Installations and folders** reads EmuDeck paths without executing its settings script, offers manual paths and emulator executable selection, and discovers Prism instances by their folder IDs. Microsoft account files are never read or shared.
 
-**Preparar Mario Kart Wii** uses the official pinned setup 0.2.33 and an optional KDE SDK 6.11 sandbox to compile a supplied PAL RMCP01 image in its own private installation. It applies the known source-level F12 exit fix, stabilizes toolkit links, rebuilds and applies the confirmed 1.5× baseline. It needs Internet and around 20 GB of temporary space; progress and cancellation are visible. Other recompilation projects are not automatically supported by this wizard.
+**Prepare Mario Kart Wii** uses the official pinned setup 0.2.33 and an optional KDE SDK 6.11 sandbox to compile a supplied PAL RMCP01 image in its own private installation. It applies the known source-level F12 exit fix, stabilizes toolkit links, rebuilds and applies the confirmed 1.5× baseline. It needs Internet and around 20 GB of temporary space; progress and cancellation are visible. Other recompilation projects are not automatically supported by this wizard.
 
 Switch details inventory base, updates, DLC and LayeredFS mods. User-supplied PFS0 NSPs can be hash-validated and registered in Eden's NAND without deleting the originals; ZIP mods are installed with path validation and previous-mod backups. Valid emulator keys/firmware remain the user's responsibility. Registering updates in NAND avoids relying on asynchronous library scanning for direct CLI boots. Native/default and manually chosen Eden config paths are supported; not every Flatpak/AppImage combination was integration-tested.
 
@@ -195,7 +184,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.20.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **1.0.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
@@ -207,9 +196,9 @@ The Project-2099 adapter prepares a supplied Xbox 360 ISO (or a ZIP/7z containin
 
 ## Community accounts and update progress (0.14)
 
-**Comunidad → Mi cuenta → Crear cuenta / Iniciar sesión** opens the configured Keycloak device authorization page in the browser. The desktop app never asks for the account password. Anonymous browsing works without an account; writing requires a session. **Compartir mis ajustes → Revisar mis ajustes → Publicar perfil** exports only allowlisted values and submits the reviewed profile for moderation. Each user can leave one editable 1–5 star rating and comment per public profile. An unrated proposal is labelled **Sin valoraciones**. The server includes the packaged profiles as proposals, without inventing reviews or performance measurements.
+**Community → My account → Create account / Sign in** opens the configured Keycloak device authorization page in the browser. The desktop app never asks for the account password. Anonymous browsing works without an account; writing requires a session. **Share my settings → Review my settings → Publish profile** exports only allowlisted values and submits the reviewed profile for moderation. Each user can leave one editable 1–5 star rating and comment per public profile. An unrated proposal is labelled **Sin valoraciones**. The server includes the packaged profiles as proposals, without inventing reviews or performance measurements.
 
-Eden cards offer **Equilibrado**, **Rendimiento** (0.75×) and **Calidad** (1.5×), plus compatibility profiles. Title-specific settings keep their original values in the balanced card. These are proposals, not universal performance guarantees. Known emulator-version checks still apply.
+Eden cards offer **Balanced**, **Performance** (0.75×) and **Quality** (1.5×), plus compatibility profiles. Title-specific settings keep their original values in the balanced card. These are proposals, not universal performance guarantees. Known emulator-version checks still apply.
 
 Catalog and update rows show download progress, percentage and estimated time from measured bytes. Compilation shows its current phase without an invented completion percentage. Completed/error state stays in that port's row during the current session. Completed installs invalidate stale update notices. Tab changes reuse the existing library and catalog; native SDL2 input supplements Steam's navigation template in Gaming Mode.
 
@@ -247,7 +236,7 @@ The current public Quiver API supplies game titles, project names, descriptions 
 
 Notices, confirmations, artwork, local file selection, account, community and setup tools are pages inside the main application window. They create no secondary GTK windows and do not resize the Gaming Mode surface. Action buttons remain outside the scrolling body. Back/B/Circle returns through nested tasks and restores focus. Tasks that explicitly disable closing cannot be cancelled with Back. Existing synchronous task handlers use a GLib loop on the embedded page; rendering and background work continue. Launcher failures are recorded locally and shown inside Deck Library when it is running or next opened, without launching a system error dialog.
 
-The header includes **Añadir a Steam**, using the existing pending Steam queue. The header scrolls horizontally on compact windows. Explicit actions that open Steam, emulator settings, external documentation or an external sign-in fallback still open their respective applications.
+The header includes **Add to Steam**, using the existing pending Steam queue. The header scrolls horizontally on compact windows. Explicit actions that open Steam, emulator settings, external documentation or an external sign-in fallback still open their respective applications.
 
 ### Port details and independent game identities (0.18.1)
 
@@ -271,11 +260,11 @@ Community profiles have a dedicated, always-expanded preview with ratings and li
 
 ## Installing, uninstalling and review (0.20)
 
-- **Several games per release:** when a project publishes one AppImage per game, the app installs all of them and each appears in the library under its own name. OpenRA uses this today (Red Alert, Tiberian Dawn and Dune 2000). Anyone who already had OpenRA with a single game sees **Instalar todos los juegos** (Install all games) in the catalog.
-- **Uninstall:** each installed port has **Desinstalar** (Uninstall) in the catalog and on its page. The folder moves to `~/ports/.deck-library-removed` (saves stored inside it go with it and can be recovered from there; nothing is deleted), the game leaves the library and, if it was in Steam, its shortcut, artwork and controller layout are removed.
-- **Review:** every catalog card says **Revisado** (reviewed: built-in recommendations and projects with a reviewed recipe) or **Sin revisar** (unreviewed: external lists). The first install of an unreviewed port asks for confirmation once.
+- **Several games per release:** when a project publishes one AppImage per game, the app installs all of them and each appears in the library under its own name. OpenRA uses this today (Red Alert, Tiberian Dawn and Dune 2000). Anyone who already had OpenRA with a single game sees **Install all games** (Install all games) in the catalog.
+- **Uninstall:** each installed port has **Uninstall** (Uninstall) in the catalog and on its page. The folder moves to `~/ports/.deck-library-removed` (saves stored inside it go with it and can be recovered from there; nothing is deleted), the game leaves the library and, if it was in Steam, its shortcut, artwork and controller layout are removed.
+- **Review:** every catalog card says **Reviewed** (reviewed: built-in recommendations and projects with a reviewed recipe) or **Unreviewed** (unreviewed: external lists). The first install of an unreviewed port asks for confirmation once.
 - **Nested archives and multi-tool packages:** a ZIP that only wraps a tar.gz is opened, and when a package ships several tools the project's launcher is chosen.
-- The conditions for publishing 1.0 are listed in [docs/V1-CHECKLIST.md](docs/V1-CHECKLIST.md) (in Spanish).
+- The 1.0 conditions and their status are in [docs/V1-CHECKLIST.md](docs/V1-CHECKLIST.md) (in Spanish).
 
 ---
 
@@ -353,7 +342,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.20.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-1.0.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -395,7 +384,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.20.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **1.0.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 La ficha de cada port indica cómo se preparan sus archivos: desde Deck Library, desde el asistente del propio port o manualmente. Si hay adaptador, se puede elegir la ROM, el disco o la BIOS que falten y se comprueban antes de preparar. **Instalar con Proton** permite usar paquetes Windows portables cuando corresponde. La [tabla de proyectos revisados](docs/PORTS.md#proyectos-revisados-el-21-de-octubre-de-2026) detalla los casos de God of War, inFAMOUS, Sonic, Smash, Time Crisis, Lord of the Rings y Crash; no implica que todos se hayan probado en juego.
 
@@ -551,5 +540,9 @@ PortIntegration se suma al catálogo con nombres, plataformas, repositorios y ca
 - **Desinstalar:** el catálogo y la ficha de cada port instalado tienen **Desinstalar**. La carpeta se mueve a `~/ports/.deck-library-removed` (las partidas guardadas dentro van con ella y pueden recuperarse de ahí; no se borra nada), el juego sale de la biblioteca y, si estaba en Steam, se quita su acceso con su carátula y su layout de mando.
 - **Revisión:** cada tarjeta del catálogo indica **Revisado** (recomendaciones propias y proyectos con receta revisada) o **Sin revisar** (listas externas). La primera instalación de un port sin revisar pide confirmación una sola vez.
 - **Archivos anidados y varias herramientas:** un ZIP que solo envuelve un tar.gz se abre, y cuando un paquete trae varias herramientas se elige el lanzador del proyecto.
-- La lista de condiciones para publicar la 1.0 está en [docs/V1-CHECKLIST.md](docs/V1-CHECKLIST.md).
+- Las condiciones de la 1.0 y su estado están en [docs/V1-CHECKLIST.md](docs/V1-CHECKLIST.md).
+
+## Idioma
+
+La interfaz está en español e inglés. Se cambia en **Ajustes → Carátulas y apariencia → Idioma · Language** (Automático, Español o English) y hay que reabrir la app. Una instalación existente conserva su idioma actual; una nueva sigue el idioma del sistema. `DECK_LIBRARY_LANG=en` o `es` anula la elección guardada durante una ejecución. Cada texto de la interfaz tiene su traducción al inglés y una prueba falla si se agrega uno sin ella.
 <!-- END SPANISH -->

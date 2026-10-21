@@ -1,6 +1,6 @@
 # Condiciones para la versión 1.0
 
-Estado al publicar la 0.20.0. «Hecho» significa comprobado y registrado en [VALIDATION.md](VALIDATION.md); «Pendiente» indica quién puede cerrarlo.
+Estado al publicar la 1.0.0. «Hecho» significa comprobado y registrado en [VALIDATION.md](VALIDATION.md).
 
 | Condición | Estado |
 | --- | --- |
@@ -10,8 +10,8 @@ Estado al publicar la 0.20.0. «Hecho» significa comprobado y registrado en [VA
 | Confianza en el catálogo | Hecho: etiqueta Revisado / Sin revisar y confirmación única para ports sin revisar |
 | Pruebas automáticas, CI y revisión de datos personales en cada paquete | Hecho |
 | Documentación completa en inglés y en español, sin mezclar idiomas | Hecho: README en dos secciones y prueba que lo comprueba |
-| Navegación con mando físico en modo Juego (palancas, gatillos, teclado en pantalla) | **Pendiente, requiere la Deck en modo Juego:** solo se probó con mando virtual y en modo Escritorio |
-| Jugar de punta a punta un port instalado desde el catálogo (audio, mando, FPS) | **Pendiente, requiere la Deck con GPU:** las pruebas llegaron hasta que el juego arranca |
-| Interfaz en inglés | **Decisión pendiente:** la interfaz está solo en español; la 1.0 puede documentarlo como alcance o esperar a una traducción |
+| Interfaz en inglés | Hecho: catálogo de más de 1 500 textos, selector en **Ajustes → Carátulas y apariencia** y prueba que exige traducción para cada texto nuevo |
+| Navegación con mando físico en modo Juego (palancas, gatillos, teclado en pantalla) | **Omitido por decisión para la 1.0:** solo se probó con mando virtual y en modo Escritorio; queda como primera tarea de la 1.1 |
+| Jugar de punta a punta un port instalado desde el catálogo (audio, mando, FPS) | **Omitido por decisión para la 1.0:** las pruebas llegaron hasta que el juego arranca; queda para la 1.1 |
 
-Cuando las dos pruebas con la Deck estén hechas, la 1.0 consiste en cambiar `__version__` a `1.0.0`, registrar el resultado en VALIDATION.md y publicar.
+La 1.0 declara estas dos pruebas como no realizadas. Quien las haga en una Deck con modo Juego puede registrar el resultado en VALIDATION.md.

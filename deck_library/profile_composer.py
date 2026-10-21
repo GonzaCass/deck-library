@@ -62,7 +62,7 @@ class ProfileComposer(Gtk.Box):
         try:
             value=presets.export_current(self.entry,self.title.get_text().strip(),'Usuario',self.store,self.config_dir)
             self.draft=value;self.settings.get_buffer().set_text(json.dumps(value['settings'],indent=2,ensure_ascii=False))
-            self.instructions.get_buffer().set_text(value.get('instructions','') if value.get('instructions')!='Describí aquí los ajustes que probaste y los pasos para reproducirlos.' else '')
+            self.instructions.get_buffer().set_text(value.get('instructions','') if value.get('instructions')!='Describir aquí los ajustes probados y los pasos para reproducirlos.' else '')
             info=value.get('runtime',{});self.runtime.set_active_id(info.get('kind','native'));self.version.set_text(info.get('version',''));self.program_version.set_text(', '.join(value['adapter']['versions']))
             count=sum(len(v) for v in value['settings'].values())
             self.status.set_text(f'{count} opciones leídas. Se pueden editar y agregar instrucciones.' if count else 'No hay opciones reconocidas para capturar. Escribir los pasos y el entorno de ejecución.')

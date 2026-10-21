@@ -224,9 +224,16 @@ class ShellMixin:
         self.settings_box.show_all();self.pages.set_visible_child_name('settings')
     def appearance_dialog(self):
         from .gui import label,button
-        dialog=InlineDialog(title='Carátulas y apariencia',transient_for=self,modal=True);dialog.set_default_size(760,600);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(12);combo,key=self.provider_fields(box);animations=Gtk.CheckButton(label='Animaciones');animations.set_active(self.preferences.get('animations',True));box.pack_start(animations,False,False,0);self.fit_dialog(dialog);dialog.show_all()
+        dialog=InlineDialog(title='Carátulas y apariencia',transient_for=self,modal=True);dialog.set_default_size(760,600);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(12);combo,key=self.provider_fields(box);animations=Gtk.CheckButton(label='Animaciones');animations.set_active(self.preferences.get('animations',True));box.pack_start(animations,False,False,0)
+        language=Gtk.ComboBoxText();language.get_accessible().set_name('Idioma · Language')
+        for key_,title_ in (('auto','Automático'),('es','Español'),('en','English')):language.append(key_,title_)
+        current_language=self.preferences.get('language') or ('es' if self.preferences.get('onboarding_complete') else 'auto');language.set_active_id(current_language)
+        language_row=Gtk.Box(spacing=12);language_row.pack_start(label('Idioma · Language'),True,True,0);language_row.pack_end(language,False,False,0);box.pack_start(language_row,False,False,0);self.fit_dialog(dialog);dialog.show_all()
         if dialog.run()==Gtk.ResponseType.OK:
-            self.preferences.update(artwork_provider=combo.get_active_id(),steamgriddb_key=key.get_text().strip(),animations=animations.get_active());save_settings(self.preferences,self.store);self.apply_motion();self.toast('Apariencia guardada');self.fetch_covers()
+            self.preferences.update(artwork_provider=combo.get_active_id(),steamgriddb_key=key.get_text().strip(),animations=animations.get_active())
+            chosen_language=language.get_active_id() or current_language;changed_language=chosen_language!=current_language
+            if changed_language:self.preferences['language']=chosen_language
+            save_settings(self.preferences,self.store);self.apply_motion();self.toast('Idioma guardado · Language saved. Reabrir Deck Library para aplicarlo · Reopen Deck Library to apply it.' if changed_language else 'Apariencia guardada');self.fetch_covers()
         dialog.destroy()
     def refresh_update_badges(self):
         count=len(self.pending_updates());self.update_badge.set_text(str(count));self.update_badge.set_visible(count>0)

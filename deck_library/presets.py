@@ -212,7 +212,7 @@ def target_for(entry,config_dir=None):
         return game_target(entry,adapter)
     if adapter=='eden':
         tid=public_game_id(entry)
-        if not re.fullmatch(r'010[0-9A-Fa-f]{13}',tid):raise ValueError('Falta el Title ID; completalo en Editar acceso.')
+        if not re.fullmatch(r'010[0-9A-Fa-f]{13}',tid):raise ValueError('Falta el Title ID; completarlo en Editar acceso.')
         return eden_paths(config_dir=config_dir)['config']/'custom'/(tid.upper()+'.ini')
     if adapter=='project2099':
         return pathlib.Path(entry.source).parent/'spider_man_edge_of_time.toml'
@@ -335,7 +335,7 @@ def export_current(entry,name,author,store=None,config_dir=None):
     result['runtime']=runtime_info(entry)
     if not values:
         from .profile_capture import port_notes
-        result['instructions']=port_notes(entry) or 'Describí aquí los ajustes que probaste y los pasos para reproducirlos.'
+        result['instructions']=port_notes(entry) or 'Describir aquí los ajustes probados y los pasos para reproducirlos.'
     if adapter=='mgba':result['instructions']='Valores leídos de mGBA. Son opciones globales: reproducirlos manualmente en el emulador.'
     return validate(result)
 
