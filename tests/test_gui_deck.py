@@ -53,6 +53,21 @@ class DeckUITests(unittest.TestCase):
             self.assertIs(self.w.get_focus(),self.w.search)
             self.w.last_keyboard_request=0;self.w.search.emit('icon-press',Gtk.EntryIconPosition.PRIMARY,None);self.assertEqual(launch.call_count,2)
 
+    def test_gamepad_reaches_filters_and_changes_the_library_view(self):
+        from gi.repository import Gtk
+        targets=self.w.control_targets(self.w)
+        for picker in (self.w.platform_picker,self.w.type_picker,self.w.view_picker):
+            self.assertIn(picker,targets);self.assertTrue(picker.get_can_focus())
+        self.w.platform_picker.grab_focus();self.w.controller_action('right');self.settle()
+        self.assertIs(self.w.navigation_focus(self.w),self.w.type_picker)
+        self.w.view_picker.grab_focus();self.w.controller_action('activate');self.settle()
+        self.assertIsInstance(Gtk.grab_get_current(),Gtk.MenuShell)
+        self.w.controller_action('down');self.w.last_controller_action=('',0);self.w.controller_action('activate');self.settle()
+        self.assertEqual(self.w.view,'list')
+        self.w.platform_picker.grab_focus();self.w.last_controller_action=('',0);self.w.controller_action('activate');self.settle()
+        self.w.controller_action('back');self.settle()
+        self.assertNotIsInstance(Gtk.grab_get_current(),Gtk.MenuShell)
+
     def test_touch_drag_fallback_scrolls_and_leaves_short_taps_unclaimed(self):
         from gi.repository import Gtk
         from unittest.mock import Mock
@@ -62,7 +77,10 @@ class DeckUITests(unittest.TestCase):
         scroll._deck_drag_update(gesture,0,-120);self.assertGreaterEqual(adjustment.get_value(),100);gesture.set_state.assert_called_once_with(Gtk.EventSequenceState.CLAIMED)
 
     def test_last_focused_cover_includes_its_caption_inside_the_viewport(self):
-        self.populate_games(45);target=self.w.entries[-1].id;self.w.focus_library(target);self.settle()
+        from deck_library.models import atomic_json
+        self.populate_games(45);target=self.w.entries[-1].id
+        atomic_json(self.store.root/'pending.json',{'ids':[target]});self.w.refresh_pending()
+        self.w.focus_library(target);self.settle()
         scroll=self.w.library_stack.get_visible_child();adjustment=scroll.get_vadjustment();visual=self.w.library_targets[target].library_focus_visual;point=visual.translate_coordinates(scroll.get_child().get_child(),0,0)
         self.assertGreaterEqual(point[1],adjustment.get_value()-1);self.assertLessEqual(point[1]+visual.get_allocated_height(),adjustment.get_value()+adjustment.get_page_size()+1)
 
@@ -76,6 +94,42 @@ class DeckUITests(unittest.TestCase):
         for page in ('covers','list','platforms'):
             self.w.view=page;self.w.render();self.settle();self.assertLessEqual(self.w.get_size().width,1280);self.assertLessEqual(self.w.get_size().height,760)
         row=self.w.list.get_row_at_index(0);self.assertTrue(any(isinstance(c,self.gui.Poster) for c in row.get_child().get_children()))
+
+    def test_deck_text_and_primary_actions_fit_at_readable_sizes(self):
+        from gi.repository import Gtk,Gdk,Pango
+        self.w.resize(1280,800);self.settle()
+        font=self.w.library_count.get_style_context().get_font(Gtk.StateFlags.NORMAL)
+        pixels=font.get_size()/Pango.SCALE
+        if not font.get_size_is_absolute():pixels*=max(96,Gdk.Screen.get_default().get_resolution())/72
+        self.assertGreaterEqual(pixels,15)
+        for control in self.w.navigation_controls:
+            x,y=control.translate_coordinates(self.w,0,0)
+            self.assertGreaterEqual(x,0);self.assertLessEqual(x+control.get_allocated_width(),1280)
+            self.assertGreaterEqual(control.get_allocated_height(),44)
+        self.w.select_game(self.w.entries[0]);self.settle()
+        self.assertGreaterEqual(self.w.game_play_button.get_allocated_height(),44)
+        for card in self.w.profile_cards[:3]:
+            viewport=card.get_ancestor(Gtk.ScrolledWindow);point=card.translate_coordinates(viewport,0,0)
+            self.assertGreaterEqual(point[1],0)
+            self.assertLessEqual(point[1]+card.get_allocated_height(),viewport.get_allocated_height())
+    def test_deck_game_sections_keep_the_full_width_and_visible_navigation(self):
+        from gi.repository import Gtk
+        self.w.resize(1280,800);self.w.select_game(self.w.entries[0]);self.settle()
+        self.assertFalse(self.w.game_breadcrumb.get_mapped())
+        self.assertTrue(self.w.compact_game_back.get_mapped())
+        self.assertLess(self.w.game_header.get_allocated_height(),100)
+        scroll=self.w.profile_cards[0].get_ancestor(Gtk.ScrolledWindow)
+        self.assertGreater(scroll.get_allocated_width(),1180,'Presets must use the space previously occupied by the sidebar.')
+        for section in ('controls','content','options','profiles'):
+            control=self.w.game_section_controls[section];control.emit('clicked');self.settle()
+            self.assertEqual(self.w.game_tab,section)
+            self.assertTrue(control.get_style_context().has_class('active'))
+            for tab in self.w.game_section_controls.values():
+                self.assertTrue(tab.get_mapped())
+                x,y=tab.translate_coordinates(self.w,0,0)
+                self.assertGreaterEqual(x,0);self.assertLessEqual(x+tab.get_allocated_width(),1280)
+                self.assertGreaterEqual(tab.get_allocated_height(),44)
+
     def test_pending_queue_does_not_open_restart_dialog(self):
         from deck_library.models import atomic_json
         atomic_json(self.store.root/'pending.json',{'ids':['one'],'account':'test'})
@@ -209,6 +263,23 @@ class DeckUITests(unittest.TestCase):
             self.assertLessEqual(self.w.get_size().width,840)
             self.assertLessEqual(self.w.get_size().height,520)
 
+    def test_nested_game_sections_and_inline_workflows_flush_the_root_layout(self):
+        from gi.repository import Gtk
+        self.w.select_game(self.w.entries[0]);self.settle()
+        with patch.object(self.w,'check_resize',wraps=self.w.check_resize) as resize:
+            for section in ('controls','content','options','profiles'):
+                self.w.open_game_section(section);self.settle()
+                page=self.w.game_pages.get_visible_child()
+                self.assertGreater(page.get_allocated_width(),100)
+                self.assertGreater(page.get_allocated_height(),50)
+                self.assertTrue(resize.called,'Nested section did not flush the fullscreen layout.')
+                resize.reset_mock()
+            page=self.inline(title='Validación de navegación',transient_for=self.w)
+            page.add_button('Volver',Gtk.ResponseType.CLOSE);page.connect('response',lambda *_:page.destroy());page._mount();self.settle()
+            self.assertTrue(resize.called);resize.reset_mock()
+            self.w.controller_action('back');self.settle()
+            self.assertFalse(self.w.inline_workflows);self.assertTrue(resize.called)
+
     def test_pending_steam_action_changes_the_button_without_another_prompt(self):
         from deck_library.models import atomic_json
         entry=self.w.entries[0];self.w.select_game(entry)
@@ -268,6 +339,15 @@ class DeckUITests(unittest.TestCase):
             self.w.controller_action('activate')
         self.w.last_controller_action=('',0);self.w.controller_action('back');self.assertEqual(self.w.pages.get_visible_child_name(),'library',str((self.w.inline_workflows,self.w.game_tab,self.w.current_popover(self.w),Gtk.grab_get_current())))
 
+    def test_library_refresh_allocates_new_covers_without_switching_pages(self):
+        with patch.object(self.w,'check_resize',wraps=self.w.check_resize) as resize:
+            self.populate_games(40)
+            self.assertEqual(self.w.pages.get_visible_child_name(),'library')
+            self.assertTrue(resize.called)
+            for control in self.w.library_targets.values():
+                self.assertGreater(control.get_allocated_width(),100)
+                self.assertGreater(control.get_allocated_height(),100)
+
     def test_update_progress_is_measured_and_inline(self):
         self.w.update_state={'catalog':[{'name':'Test port','repository':'example/test','installed':'v1','latest':'v2'}]}
         self.w.updates_page();self.w.start_transfer('example/test');self.w.transfer_event('example/test',{'phase':'download','done':25,'total':100})
@@ -299,6 +379,38 @@ class DeckUITests(unittest.TestCase):
         with patch.object(Client,'search',return_value=[]),patch.object(self.inline,'run',run):self.w.community_dialog(self.w.entries[0],mode='publish')
         self.assertLessEqual(sizes[0].width,1280);self.assertLessEqual(sizes[0].height,760)
         self.assertIn('Revisar mis ajustes',labels);self.assertIn('Publicar perfil',labels)
+
+    def test_community_internal_tabs_flush_layout_without_starting_login(self):
+        from gi.repository import Gtk,GLib
+        from deck_library.community import Client
+        original=self.inline.run;checks=[];scroll_checks=[]
+        def run(dialog):
+            tabs=[]
+            def find(widget):
+                if isinstance(widget,Gtk.Stack):tabs.append(widget)
+                if isinstance(widget,Gtk.Container):
+                    for child in widget.get_children():find(child)
+            find(dialog);stack=tabs[0];names=iter(('publish','account','browse'));last=[None]
+            def next_page():
+                if last[0] is not None:
+                    page=stack.get_visible_child()
+                    checks.append((last[0],resize.called,page.get_allocated_width(),page.get_allocated_height()))
+                    if last[0]=='publish':
+                        tab=next((c for c in self.w.control_targets(dialog) if c.get_accessible().get_name()=='Compartir mis ajustes'),None)
+                        if tab:tab.grab_focus()
+                        adjustment=page.get_vadjustment()
+                        before=adjustment.get_value();self.w.controller_action('scroll_down')
+                        scroll_checks.append((tab is not None,adjustment.get_upper()>adjustment.get_page_size(),adjustment.get_value()>before))
+                name=next(names,None)
+                if name is None:dialog.response(Gtk.ResponseType.CLOSE);return False
+                resize.reset_mock();stack.set_visible_child_name(name);last[0]=name;return True
+            GLib.timeout_add(120,next_page);return original(dialog)
+        with patch.object(Client,'search',return_value=[]),patch.object(Client,'start') as login,patch.object(self.w,'check_resize',wraps=self.w.check_resize) as resize,patch.object(self.inline,'run',run):
+            self.w.community_dialog(self.w.entries[0]);login.assert_not_called()
+        self.assertEqual([v[0] for v in checks],['publish','account','browse'])
+        for name,flushed,width,height in checks:
+            self.assertTrue(flushed,name);self.assertGreater(width,100,name);self.assertGreater(height,50,name)
+        self.assertEqual(scroll_checks,[(True,True,True)],'Right stick must scroll content while the tab is focused.')
 
     def test_catalog_recent_order_and_existing_ctr_alternative(self):
         from deck_library import ports

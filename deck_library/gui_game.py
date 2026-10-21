@@ -46,8 +46,11 @@ class GameMixin:
         breadcrumb.pack_start(self.game_location, True, True, 0)
         breadcrumb.pack_end(self.game_menu(entry), False, False, 0)
         self.detail.pack_start(breadcrumb, False, False, 0)
+        self.game_breadcrumb=breadcrumb
         self.detail.pack_start(self.game_hero(entry), False, False, 0)
+        self.build_game_navigation(entry)
         self.game_pages = Gtk.Stack()
+        self.game_pages.connect('notify::visible-child',self.refresh_layout)
         self.game_pages.set_homogeneous(False)
         self.game_pages.set_vexpand(True)
         self.game_pages.set_transition_duration(140 if motion.page_transitions() else 0)
@@ -73,12 +76,35 @@ class GameMixin:
         else:
             self.open_library()
 
-    def game_menu(self, entry):
+    def build_game_navigation(self,entry):
+        tabs=Gtk.Box(spacing=8);styled(tabs,'game-tabs')
+        self.game_section_controls={}
+        sections=[('profiles','Ajustes','sliders','violet-outline'),('controls','Controles','controller','amber')]
+        sections.append(('content','Contenido','folder','cyan') if entry.platform=='Switch' else ('files','Archivos y Steam','folder','cyan'))
+        if presets.adapter_for(entry) in ('eden','duckstation','dolphin','prism'):
+            sections.append(('options','Avanzados','monitor','quiet'))
+        for section,caption,icon,tone in sections:
+            control=ActionButton(caption,icon,lambda _,s=section:self.open_game_section(s),tone)
+            styled(control,'game-section');control.section_id=section
+            tabs.pack_start(control,False,False,0);self.game_section_controls[section]=control
+        if presets.adapter_for(entry) in presets.REGISTRY:
+            tabs.pack_end(ActionButton('Comunidad','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0)
+        scroll=self.new_scroll();scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);scroll.add(tabs)
+        self.detail.pack_start(scroll,False,False,0)
+        self.update_game_navigation()
+
+    def update_game_navigation(self):
+        for section,control in self.game_section_controls.items():
+            active=section==self.game_tab;style=control.get_style_context()
+            style.add_class('active') if active else style.remove_class('active')
+            control.get_accessible().set_description('Sección actual' if active else 'Abrir sección')
+
+    def game_menu(self, entry, compact=False):
         menu = Gtk.MenuButton()
         styled(menu, 'quiet', 'game-menu')
         body = Gtk.Box(spacing=8)
         body.pack_start(Icon('more'), False, False, 0)
-        body.pack_start(text('Más opciones'), False, False, 0)
+        if not compact:body.pack_start(text('Más opciones'), False, False, 0)
         menu.add(body)
         menu.get_accessible().set_name('Más opciones del juego')
         popover = Gtk.Popover.new(menu)
@@ -120,6 +146,11 @@ class GameMixin:
         hero = Gtk.Box(spacing=24)
         hero.set_border_width(18)
         hero.connect('draw',backdrop.draw_backdrop)
+        self.compact_game_back=ActionButton('','back',lambda _:self.back_from_game())
+        self.compact_game_back.set_tooltip_text('Volver · B / ○')
+        self.compact_game_back.get_accessible().set_name('Volver')
+        self.compact_game_back.set_valign(Gtk.Align.CENTER)
+        hero.pack_start(self.compact_game_back,False,False,0)
         cover_button = Gtk.Button()
         styled(cover_button, 'hero-cover')
         cover_button.add(Poster(entry, cover, 96, 144))
@@ -151,29 +182,39 @@ class GameMixin:
         actions.pack_start(steam, False, False, 0)
         artwork = ActionButton('Carátula', 'image', lambda _: self.artwork_dialog(entry))
         actions.pack_start(artwork, False, False, 0)
+        compact_menu=self.game_menu(entry,compact=True)
+        compact_menu.set_tooltip_text('Más opciones del juego')
+        actions.pack_start(compact_menu,False,False,0)
         info.pack_start(actions, False, False, 0)
         hero.pack_start(info, True, True, 0)
         self.game_header = hero
         self.game_hero_parts = (cover_button,platform,info,name,actions)
+        self.game_header_secondary=(artwork,compact_menu)
         return hero
 
     def update_game_size(self,*_):
         if not hasattr(self,'game_hero_parts'):return
-        compact = self.get_size().height < 680
+        compact = self.get_size().height <= 820
         narrow = self.get_size().width < 1050
         if getattr(self,'game_compact',None) == (compact,narrow):return
         self.game_compact = (compact,narrow)
+        self.detail.set_spacing(8 if compact else 12)
         if self.profile_card_box:
             self.profile_card_box.set_orientation(Gtk.Orientation.VERTICAL if narrow else Gtk.Orientation.HORIZONTAL)
             self.profile_card_box.set_homogeneous(not narrow)
         cover,platform,info,name,actions = self.game_hero_parts
-        for widget in (cover,platform):
+        artwork,compact_menu=self.game_header_secondary
+        for widget in (cover,platform,artwork,self.game_breadcrumb):
             widget.set_no_show_all(compact)
             widget.set_visible(not compact)
+        for widget in (self.compact_game_back,compact_menu):
+            widget.set_no_show_all(not compact)
+            widget.set_visible(compact)
+        name.set_line_wrap(not compact);name.set_lines(1 if compact else 2);name.set_width_chars(1 if compact else -1)
         info.set_orientation(Gtk.Orientation.HORIZONTAL if compact else Gtk.Orientation.VERTICAL)
         info.set_child_packing(name,compact,True,0,Gtk.PackType.START)
         info.set_spacing(16 if compact else 12)
-        self.game_header.set_border_width(12 if compact else 18)
+        self.game_header.set_border_width(8 if compact else 18)
         self.detail.set_border_width(12 if compact else 20)
         style=self.game_header.get_style_context()
         style.add_class('compact') if compact else style.remove_class('compact')
@@ -248,20 +289,6 @@ class GameMixin:
             panel.pack_start(text('Ajustes del juego', 'section-title'), False, False, 0)
             panel.pack_start(text('Este juego se configura desde sus propias opciones.', 'muted'), False, False, 0)
             content.pack_start(panel, False, False, 0)
-        task_scroll = self.new_scroll()
-        task_scroll.set_size_request(248,-1)
-        tasks = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
-        tasks.set_margin_end(12)
-        tasks.pack_start(text('Administrar','rail-heading'),False,False,8)
-        tasks.pack_start(TaskButton('Controles', 'Mando e idioma', 'controller', lambda _: self.open_game_section('controls'), 'amber'),False,False,0)
-        if entry.platform == 'Switch':
-            tasks.pack_start(TaskButton('Contenido', 'Updates, DLC y mods', 'folder', lambda _: self.open_game_section('content'), 'cyan'),False,False,0)
-        else:
-            tasks.pack_start(TaskButton('Archivos y acceso', 'Ruta y acceso de Steam', 'folder', lambda _: self.open_game_section('files'), 'cyan'),False,False,0)
-        if adapter in ('eden','duckstation','dolphin','prism'):
-            tasks.pack_start(TaskButton('Ajustes manuales','Resolución, gráficos y más','sliders',lambda _:self.open_game_section('options'),'violet-outline'),False,False,0)
-        task_scroll.add(tasks)
-        workspace.pack_end(task_scroll,False,False,0)
 
     def profile_card(self, profile, choose, favourite=False):
         card = Gtk.Button()
@@ -302,10 +329,6 @@ class GameMixin:
         self.community_profile_box=None
         profiles = presets.recommended(entry, self.store)
         best = presets.best_for(entry, self.store) or next((p['id'] for p in profiles[:3] if presets.is_bundled(p) and p['tested']['status']=='user-confirmed'),next((p['id'] for p in profiles[:3] if presets.is_bundled(p) and p['tested']['status']=='boot-tested'),''))
-        heading = Gtk.Box(spacing=12)
-        heading.pack_start(text('Ajustes del juego','section-title'), True, True, 0)
-        heading.pack_end(ActionButton('Comunidad','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0)
-        content.pack_start(heading, False, False, 0)
         self.profile_selection = None
         details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
         details.set_border_width(12)
@@ -441,6 +464,7 @@ class GameMixin:
             for card in self.profile_cards:
                 value=next((v for v in values if v['preset']['id']==card.profile_id or 'community-'+v['id']==card.profile_id),None)
                 if value:card.rating_label.set_text(rating_caption(value))
+            self.refresh_layout()
             return False
         cached=self.community_rating_cache.get(entry.id)
         if cached and time.monotonic()-cached[0]<300:
@@ -531,6 +555,7 @@ class GameMixin:
         self.game_pages.set_transition_type(Gtk.StackTransitionType.NONE if not motion.page_transitions() or not animate else Gtk.StackTransitionType.SLIDE_RIGHT if section=='profiles' else Gtk.StackTransitionType.SLIDE_LEFT)
         self.game_pages.set_visible_child_name(section)
         self.game_tab = section
+        self.update_game_navigation()
         self.game_location.set_text({'profiles':'Juego','options':'Ajustes manuales','controls':'Controles e idioma','files':'Archivos y acceso','content':'Contenido del juego'}.get(section,'Juego'))
         self.game_back.set_label('Biblioteca' if section=='profiles' else 'Juego')
         if animate:

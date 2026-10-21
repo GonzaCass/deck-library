@@ -2,6 +2,10 @@
 from gi.repository import Gtk,Gdk,GLib
 
 class InputMixin:
+    def navigation_focus(self,window):
+        focus=window.get_focus()
+        return (focus.get_ancestor(Gtk.ComboBox) or focus) if focus else None
+
     def start_gamepad(self):
         import os,sys
         if not ('--gaming' in sys.argv or os.environ.get('SteamAppId') or os.environ.get('SteamGameId')):return
@@ -29,6 +33,7 @@ class InputMixin:
         except OSError:self.toast('No se pudo abrir el teclado de Steam.')
 
     def mark_controller_focus(self,window,focus):
+        if focus is not None:focus=focus.get_ancestor(Gtk.ComboBox) or focus
         previous=getattr(window,'_deck_focus_widget',None)
         # SDL polls at 40 Hz. Re-scanning the widget tree for an unchanged
         # focus can keep the timeout permanently ready and starve catalog
@@ -48,7 +53,7 @@ class InputMixin:
     def update_controller_hints(self,window):
         hint=getattr(window,'_deck_controller_hints',None) if window is not self else getattr(self,'controller_hint',None)
         if hint is None:return
-        focus=window.get_focus();activate='Seleccionar';back='Volver'
+        focus=self.navigation_focus(window);activate='Seleccionar';back='Volver'
         if window is self and getattr(self,'inline_workflows',[]):back='Volver'
         elif window is not self:back='Cerrar'
         elif self.pages.get_visible_child_name()=='detail':back='Biblioteca' if self.game_tab=='profiles' else 'Volver al juego'
@@ -89,6 +94,11 @@ class InputMixin:
     def control_targets(self,root):
         if not root.get_mapped() or not root.is_sensitive():return []
         if isinstance(root,Gtk.Revealer) and not root.get_reveal_child():return []
+        if isinstance(root,Gtk.ComboBox):
+            # GTK delegates ComboBox focus to an internal child that is absent
+            # from get_children(). Expose the actual picker to stick navigation.
+            root.set_can_focus(True)
+            return [root]
         if isinstance(root,Gtk.ListBoxRow):
             children=[]
             for child in root.get_children():children.extend(self.control_targets(child))
@@ -138,7 +148,7 @@ class InputMixin:
 
     def move_control_focus(self,window,direction):
         from .navigation import control_neighbour
-        popover=self.current_popover(window);workflow=self.inline_workflows[-1] if window is self and getattr(self,'inline_workflows',[]) else None;targets=self.control_targets(popover or workflow or window);focus=window.get_focus();rectangles={}
+        popover=self.current_popover(window);workflow=self.inline_workflows[-1] if window is self and getattr(self,'inline_workflows',[]) else None;targets=self.control_targets(popover or workflow or window);focus=self.navigation_focus(window);rectangles={}
         for index,widget in enumerate(targets):
             point=widget.translate_coordinates(window,0,0)
             if point:rectangles[index]=(*point,widget.get_allocated_width(),widget.get_allocated_height())
@@ -203,7 +213,7 @@ class InputMixin:
             if point and widget.get_mapped():rectangles[identifier]=(*point,widget.get_allocated_width(),widget.get_allocated_height())
         target=neighbour(rectangles,current,action)
         if target:self.focus_library(target)
-        elif action=='up':self.platform_picker.grab_focus()
+        elif action=='up':self.platform_picker.set_can_focus(True);self.platform_picker.grab_focus()
         elif action=='down' and self.selection_mode:self.select_button.grab_focus()
         return True
 
@@ -259,24 +269,34 @@ class InputMixin:
         import time
         self._pending_reveal=None;self._scroll_focus_hold=(window.get_focus(),time.monotonic()+.4)
         focus=window.get_focus();scroll=focus.get_ancestor(Gtk.ScrolledWindow) if focus else None
-        if not scroll:
-            def find(widget):
-                if not widget.get_mapped():return []
-                values=[widget] if isinstance(widget,Gtk.ScrolledWindow) else []
-                if isinstance(widget,Gtk.Container):
-                    for child in widget.get_children():values.extend(find(child))
-                return values
-            candidates=find(window)
-            if candidates:scroll=max(candidates,key=lambda w:w.get_allocated_width()*w.get_allocated_height())
+        candidates=[]
         while scroll:
-            vertical=action in ('scroll_up','scroll_down');adjustment=scroll.get_vadjustment() if vertical else scroll.get_hadjustment()
+            candidates.append(scroll)
+            parent=scroll.get_parent();scroll=parent.get_ancestor(Gtk.ScrolledWindow) if parent else None
+        def find(widget):
+            if not widget.get_mapped():return []
+            values=[widget] if isinstance(widget,Gtk.ScrolledWindow) else []
+            if isinstance(widget,Gtk.Stack):
+                child=widget.get_visible_child()
+                if child:values.extend(find(child))
+            elif isinstance(widget,Gtk.Container):
+                for child in widget.get_children():values.extend(find(child))
+            return values
+        # Tabs and headers can sit outside the scrolling content. Prefer the
+        # focused pane, then try visible panes with actual overflow; an outer
+        # viewport that fits must not hide its scrollable descendants.
+        workflow=self.inline_workflows[-1] if window is self and getattr(self,'inline_workflows',[]) else None
+        for pane in sorted(find(workflow or window),key=lambda w:w.get_allocated_width()*w.get_allocated_height(),reverse=True):
+            if pane not in candidates:candidates.append(pane)
+        vertical=action in ('scroll_up','scroll_down')
+        for scroll in candidates:
+            adjustment=scroll.get_vadjustment() if vertical else scroll.get_hadjustment()
             lower=adjustment.get_lower();upper=max(lower,adjustment.get_upper()-adjustment.get_page_size())
             if upper>lower:
                 sign=-1 if action in ('scroll_up','scroll_left') else 1
                 adjustment.set_value(max(lower,min(upper,adjustment.get_value()+sign*min(96,max(32,adjustment.get_page_size()*.16)))))
                 self.keep_scroll_focus(scroll,focus,vertical)
                 return True
-            parent=scroll.get_parent();scroll=parent.get_ancestor(Gtk.ScrolledWindow) if parent else None
         return True
 
     def controller_action(self,action,window=None):
@@ -330,7 +350,7 @@ class InputMixin:
             entry=self.catalog_search if self.pages.get_visible_child_name()=='catalog' and hasattr(self,'catalog_search') else self.search
             self.open_keyboard(entry);return True
         if not workflow and window is self and self.move_library_focus(action):return True
-        focus=window.get_focus()
+        focus=self.navigation_focus(window)
         if action=='activate':
             if not self.control_is_shown(focus):self.ensure_controller_focus(window);return True
             if isinstance(focus,Gtk.Entry):self.open_keyboard(focus)

@@ -29,14 +29,14 @@ CSS=b'''
 @define-color dim #c6c6c6;
 @define-color accent #78a9ff;
 @define-color line #393939;
-window, dialog { background:@bg; color:@text; font-family:"Noto Sans",Sans; font-size:14px; }
+window, dialog { background:@bg; color:@text; font-family:"Noto Sans",Sans; font-size:17px; }
 label { color:@text; }
 label.muted,label.meta,label.status { color:@dim; }
-label.meta,label.status { font-size:12px; }
+label.meta,label.status { font-size:15px; }
 label.hero,label.welcome-title { font-size:28px; font-weight:700; }
-label.title { font-size:16px; font-weight:600; }
-label.brand { font-size:17px; font-weight:700; }
-label.eyebrow,label.pill { color:@accent; font-size:12px; font-weight:600; }
+label.title { font-size:19px; font-weight:600; }
+label.brand { font-size:20px; font-weight:700; }
+label.eyebrow,label.pill { color:@accent; font-size:15px; font-weight:600; }
 .app-header { background:@surface; border-bottom:1px solid @line; }
 button { background:@raised; color:@text; border:1px solid transparent; border-radius:6px; padding:8px 16px; min-height:28px; background-image:none; box-shadow:none; text-shadow:none; }
 button label { color:@text; font-weight:600; }
@@ -60,13 +60,13 @@ button.poster:focus { border-color:#ffffff; outline:0; box-shadow:none; }
 .library-game.game-focused { background:#24344d; border-color:#78a9ff; }
 .library-game.game-focused .cover-title { color:#d0e2ff; }
 list row:focus,list row.game-focused { background:#24344d; border:2px solid #78a9ff; outline:0; }
-.cover-title { font-size:14px; font-weight:600; }
+.cover-title { font-size:17px; font-weight:600; }
 entry,combobox button { background:@surface; color:@text; border:0; border-bottom:1px solid #8d8d8d; border-radius:6px; padding:8px 12px; min-height:32px; }
 entry:focus { border-color:@accent; }
 .card,.selection-bar,.preset-detail { background:@surface; border:0; border-radius:6px; padding:16px; }
 .settings-row { padding:14px 4px; border-bottom:1px solid @line; }
 .banner { background:#262626; border:0; border-left:3px solid #4589ff; border-radius:6px; padding:9px 14px; }
-button.nav label.badge,button.nav.active label.badge { background:#0f62fe; color:#ffffff; border-radius:4px; padding:2px 6px; min-width:14px; min-height:16px; font-size:12px; font-weight:700; }
+button.nav label.badge,button.nav.active label.badge { background:#0f62fe; color:#ffffff; border-radius:4px; padding:2px 6px; min-width:14px; min-height:16px; font-size:15px; font-weight:700; }
 list,viewport,scrolledwindow { background:transparent; }
 list row { padding:6px; border-radius:6px; border:1px solid transparent; }
 list row:hover { background:@surface; }
@@ -83,19 +83,22 @@ textview text { background:@bg; color:@text; }
 progressbar trough { background:@raised; min-height:5px; border-radius:6px; }
 progressbar progress { background:@accent; }
 .toast { background:@raised; border:0; border-left:3px solid #4589ff; border-radius:6px; padding:12px 20px; }
-label.toast-text { color:@text; font-size:16px; font-weight:600; }
+label.toast-text { color:@text; font-size:19px; font-weight:600; }
 .toast.error { border-left-color:#ff8389; }
 button,entry { transition:background 160ms ease-out,border-color 160ms ease-out,box-shadow 160ms ease-out; }
 .app-header { background:@bg; padding:0 6px; border-bottom:1px solid #393939; }
-button.nav { border-radius:6px; padding:6px 12px; }
+button.nav { border-radius:6px; padding:6px 10px; }
 button.nav.active { background:#262626; border-bottom:2px solid #4589ff; border-radius:0; }
 button.nav.active label,button.nav.active image { color:#f4f4f4; }
-label.rating { color:#f1d18e; font-size:13px; }
+.game-tabs { padding-bottom:6px; border-bottom:1px solid @line; }
+button.game-section { min-height:30px; }
+button.game-section.active { border-color:@accent; background:#24344d; }
+label.rating { color:#f1d18e; font-size:15px; }
 label.game-title { font-size:29px; font-weight:800; letter-spacing:-0.5px; }
-.compact label.game-title { font-size:20px; }
+.compact label.game-title { font-size:26px; }
 label.section-title { font-size:19px; font-weight:700; }
-label.rail-heading { font-size:12px; color:@dim; font-weight:600; }
-label.platform-chip { font-size:11px; font-weight:700; color:#c6c6c6; background:#393939; border-radius:6px; padding:3px 9px; }
+label.rail-heading { font-size:15px; color:@dim; font-weight:600; }
+label.platform-chip { font-size:14px; font-weight:700; color:#c6c6c6; background:#393939; border-radius:6px; padding:3px 9px; }
 button.hero-cover { padding:0; border-radius:6px; border:2px solid transparent; box-shadow:none; }
 button.hero-cover:hover { border-color:@accent; box-shadow:none; }
 button.action { min-height:28px; padding:8px 14px; }
@@ -103,7 +106,7 @@ button.quiet,button.game-menu { background:transparent; border-color:transparent
 button.quiet:hover,button.game-menu:hover { background:@raised; border-color:@line; }
 button.game-menu { min-height:22px; padding:4px 8px; }
 button.breadcrumb { padding:2px 4px; min-height:24px; }
-button.breadcrumb label { color:@dim; font-size:13px; }
+button.breadcrumb label { color:@dim; font-size:15px; }
 button.play { color:#10251c; background:#7de1b1; border-color:#7de1b1; }
 button.play label { color:#10251c; font-weight:800; }
 button.play:hover { background:#a4efcd; border-color:#c3ffe3; box-shadow:none; }
@@ -131,25 +134,25 @@ button.profile-card:hover { background:#333333; border-color:#4589ff; box-shadow
 button.profile-card.chosen { background:#24344d; border-color:#78a9ff; box-shadow:none; }
 button.profile-card:active { background:#334966; }
 button.profile-card label { font-weight:400; }
-button.profile-card label.profile-title { color:@text; font-size:17px; font-weight:700; }
-button.profile-card label.muted { color:#c6c6c6; font-size:13px; }
-button.profile-card label.meta { color:#c6c6c6; font-size:11px; }
-button.profile-card label.profile-spec { color:#a6c8ff; font-size:12px; font-weight:600; }
+button.profile-card label.profile-title { color:@text; font-size:20px; font-weight:700; }
+button.profile-card label.muted { color:#c6c6c6; font-size:15px; }
+button.profile-card label.meta { color:#c6c6c6; font-size:14px; }
+button.profile-card label.profile-spec { color:#a6c8ff; font-size:15px; font-weight:600; }
 .violet-icon { color:#a6c8ff; }
 .profile-feedback { padding:1px 2px; color:#a6c8ff; }
-.profile-feedback label { font-size:13px; }
+.profile-feedback label { font-size:15px; }
 .change-details { background:#262626; border:1px solid transparent; border-radius:6px; }
 button.disclosure { padding:6px; min-height:32px; background:transparent; border-color:transparent; }
-button.disclosure label { color:#e0d8ff; font-weight:600; font-size:15px; }
+button.disclosure label { color:#e0d8ff; font-weight:600; font-size:17px; }
 button.disclosure:hover { background:#26222f; }
 .apply-dock { background:#262626; border:0; border-top:1px solid #525252; border-radius:6px; padding:13px 16px; }
-label.dock-title { font-weight:700; font-size:15px; }
+label.dock-title { font-weight:700; font-size:17px; }
 button.applied { background:#203d31; color:#a4e9c5; border-color:#365f4c; }
 button.applied label { color:#a4e9c5; }
 button.applied:disabled { opacity:1; }
-button.task { padding:14px 16px; border-radius:6px; }
-button.task label.task-title { color:@text; font-size:14px; font-weight:600; }
-button.task label.meta { color:@dim; font-size:12px; font-weight:400; }
+button.task { padding:12px 14px; border-radius:6px; }
+button.task label.task-title { color:@text; font-size:18px; font-weight:600; }
+button.task label.meta { color:@dim; font-size:15px; font-weight:400; }
 button.task.amber { background:#25201c; border-color:transparent; }
 button.task.amber:hover { background:#352a20; border-color:#94714a; }
 button.task.cyan { background:#1b2429; border-color:transparent; }
@@ -171,9 +174,10 @@ entry.controller-focus, switch.controller-focus, scale.controller-focus {
   box-shadow:inset 0 0 0 1px #4589ff;
 }
 menuitem:selected, menuitem:selected label { background:#24344d; color:#ffffff; }
-label.control-glyph { background:#393939; border:1px solid #6f6f6f; border-radius:6px; padding:3px 7px; color:#ffffff; font-size:12px; font-weight:700; }
+combobox.controller-focus button { outline:2px solid #ffffff; outline-offset:-2px; background:#24344d; }
+label.control-glyph { background:#393939; border:1px solid #6f6f6f; border-radius:6px; padding:3px 7px; color:#ffffff; font-size:14px; font-weight:700; }
 label.control-stick { border-radius:14px; min-width:16px; padding:3px 5px; }
-label.control-caption { color:#c6c6c6; font-size:12px; }
+label.control-caption { color:#c6c6c6; font-size:14px; }
 '''
 
 TONES={'play':'play','danger':'danger','presets':'violet','steam':'steam','controls':'amber'}

@@ -3,7 +3,7 @@ import threading
 from gi.repository import Gtk,GLib
 from .inline_pages import InlineDialog
 from .community import Client
-from . import presets,profile_display
+from . import presets,profile_display,motion
 from .ui_components import ActionButton,text
 
 class CommunityMixin:
@@ -15,7 +15,7 @@ class CommunityMixin:
         alive=[True];busy=[False];selected=[None];prepared=[None]
         header=Gtk.Box(spacing=12);header.pack_start(text('Ajustes comunitarios','section-title'),True,True,0);account=text('','meta');header.pack_end(account,False,False,0);box.pack_start(header,False,False,0)
         tabs=Gtk.Box(spacing=8);box.pack_start(tabs,False,False,0)
-        stack=Gtk.Stack();stack.set_homogeneous(False);stack.set_vexpand(True);stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE);stack.set_transition_duration(120);box.pack_start(stack,True,True,0)
+        stack=Gtk.Stack();stack.set_homogeneous(False);stack.connect('notify::visible-child',self.refresh_layout);stack.set_vexpand(True);stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if motion.page_transitions() else Gtk.StackTransitionType.NONE);stack.set_transition_duration(120 if motion.page_transitions() else 0);box.pack_start(stack,True,True,0)
         def add_page(widget,name):
             viewport=self.new_scroll();viewport.set_vexpand(True);viewport.add(widget);stack.add_named(viewport,name)
         status=text('','status',100);box.pack_end(status,False,False,0)

@@ -17,9 +17,9 @@ class ShellMixin:
         self.ui_closed=False;self.ui_sources=[];self.library_focus_id=None;self.library_targets={};self.controller_mode=False
         self.connect('destroy',Gtk.main_quit);self.connect('destroy',self.close_ui_sources);self.connect('delete-event',lambda *_:not self.discard_game_edits());self.connect('key-press-event',self.library_key);self.connect('set-focus',self.library_focus_changed);self.connect('map',self.fit_window);self.connect('size-allocate',self.update_game_size);self.connect('size-allocate',lambda *_:self.update_controller_hints(self))
         root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.add(root);self.build_navigation(root)
-        overlay=Gtk.Overlay();root.pack_start(overlay,True,True,0);self.pages=PageStack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);self.inline_workflows=[];self.workflow_stack=Gtk.Stack();self.workflow_stack.set_homogeneous(False);self.workflow_stack.add_named(self.pages,'main');overlay.add(self.workflow_stack);self.toast_widget=motion.Toast();overlay.add_overlay(self.toast_widget)
+        overlay=Gtk.Overlay();root.pack_start(overlay,True,True,0);self.pages=PageStack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);self.inline_workflows=[];self.workflow_stack=Gtk.Stack();self.workflow_stack.set_homogeneous(False);self.workflow_stack.connect('notify::visible-child',self.refresh_layout);self.workflow_stack.add_named(self.pages,'main');overlay.add(self.workflow_stack);self.toast_widget=motion.Toast();overlay.add_overlay(self.toast_widget)
         self.build_library_page();self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.detail.set_border_width(20);self.pages.add_named(self.detail,'detail');self.settings_box=self.scrolled_page('settings');self.updates_box=self.scrolled_page('updates');self.catalog_box=self.scrolled_page('catalog');self.add_box=self.scrolled_page('add');self.pending_box=self.scrolled_page('pending')
-        self.wizard_box=Gtk.Stack();self.wizard_box.set_homogeneous(False);wizard_scroll=self.new_scroll();wizard_scroll.add(self.wizard_box);self.pages.add_named(wizard_scroll,'welcome')
+        self.wizard_box=Gtk.Stack();self.wizard_box.set_homogeneous(False);self.wizard_box.connect('notify::visible-child',self.refresh_layout);wizard_scroll=self.new_scroll();wizard_scroll.add(self.wizard_box);self.pages.add_named(wizard_scroll,'welcome')
         footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);footer.set_margin_start(24);footer.set_margin_end(24);footer.set_margin_bottom(8);root.pack_end(footer,False,False,0)
         self.build_pending_banner(footer)
         self.artwork_bar=Gtk.Box(spacing=8);self.artwork_bar.set_no_show_all(True);self.artwork_spinner=Gtk.Spinner();self.artwork_label=label('','meta');self.artwork_bar.pack_start(self.artwork_spinner,False,False,0);self.artwork_bar.pack_start(self.artwork_label,True,True,0);footer.pack_start(self.artwork_bar,False,False,0)
@@ -42,12 +42,22 @@ class ShellMixin:
         for ident in self.ui_sources:
             if GLib.MainContext.default().find_source_by_id(ident):GLib.source_remove(ident)
         self.ui_sources.clear()
+    def refresh_layout(self,*_):
+        # Fullscreen X11 hosts may map a stack's new child without running its
+        # queued allocation. Coalesce changes and flush at the window root.
+        if self.ui_closed or getattr(self,'layout_pending',False):return
+        self.layout_pending=True
+        def flush():
+            self.layout_pending=False
+            if not self.ui_closed and self.get_mapped():self.queue_resize();self.check_resize()
+            return False
+        GLib.idle_add(flush)
     def asset(self,name):return pathlib.Path(__file__).resolve().parent.parent/'assets'/name
     def build_navigation(self,root):
         from .gui import label,button
         from .ui_components import Icon
         bar=Gtk.Box(spacing=8);bar.get_style_context().add_class('app-header');bar.set_border_width(12);root.pack_start(bar,False,False,0)
-        icon=Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(str(self.asset('icon.png')),32,32,True));bar.pack_start(icon,False,False,8);brand=label('Deck Library','brand');brand.set_margin_end(8);bar.pack_start(brand,False,False,0)
+        icon=Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(str(self.asset('icon.png')),32,32,True));bar.pack_start(icon,False,False,8);brand=label('Deck Library','brand');brand.set_margin_end(8);brand.set_no_show_all(True);brand.hide();bar.pack_start(brand,False,False,0)
         self.nav_buttons={};self.update_badge=label('','badge');self.update_badge.set_no_show_all(True);self.update_badge.set_valign(Gtk.Align.CENTER);self.update_badge.set_halign(Gtk.Align.CENTER)
         for name,callback in [('Biblioteca',lambda _:self.open_library()),('Catálogo de ports',lambda _:self.catalog_page()),('Actualizaciones',lambda _:self.updates_page()),('Ajustes',lambda _:self.settings_page())]:
             control=button(name,lambda w,action=callback:self.navigate_from_game(action,w));control.get_style_context().add_class('nav');bar.pack_start(control,False,False,0);self.nav_buttons[name]=control
@@ -78,15 +88,15 @@ class ShellMixin:
         page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=14);page.set_border_width(24);self.pages.add_named(page,'library')
         head=Gtk.Box(spacing=12);title=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=3);title.pack_start(label('Biblioteca','hero'),False,False,0);self.library_count=label('','meta');title.pack_start(self.library_count,False,False,0);head.pack_start(title,False,False,0)
         self.search=Gtk.SearchEntry();self.search.set_placeholder_text('Buscar juegos · X: teclado');self.bind_search_keyboard(self.search);self.search.set_width_chars(16);self.search.set_hexpand(True);self.search.connect('search-changed',lambda _:self.render());head.pack_start(self.search,True,True,12);head.pack_end(button('Agregar juegos',lambda _:self.add_hub(),True),False,False,0);page.pack_start(head,False,False,0)
-        filters=Gtk.Box(spacing=8);self.platform_picker=Gtk.ComboBoxText();self.platform_picker.append('all','Todas las plataformas');self.platform_picker.set_active_id('all');self.platform_picker.connect('changed',self.filter_changed);filters.pack_start(self.platform_picker,False,False,0)
-        self.type_picker=Gtk.ComboBoxText();self.type_picker.append('all','Todos los tipos')
+        filters=Gtk.Box(spacing=8);self.platform_picker=Gtk.ComboBoxText();self.platform_picker.get_accessible().set_name('Plataforma');self.platform_picker.append('all','Todas las plataformas');self.platform_picker.set_active_id('all');self.platform_picker.connect('changed',self.filter_changed);filters.pack_start(self.platform_picker,False,False,0)
+        self.type_picker=Gtk.ComboBoxText();self.type_picker.get_accessible().set_name('Tipo de juego');self.type_picker.append('all','Todos los tipos')
         for key,title in TYPES:self.type_picker.append(key,title)
         self.type_picker.set_active_id('all');self.type_picker.connect('changed',lambda w:self.type_changed(w.get_active_id() or 'all'));filters.pack_start(self.type_picker,False,False,0)
-        self.view_picker=Gtk.ComboBoxText()
+        self.view_picker=Gtk.ComboBoxText();self.view_picker.get_accessible().set_name('Vista de biblioteca')
         for key,title in [('covers','Carátulas'),('list','Lista'),('platforms','Por plataforma')]:self.view_picker.append(key,title)
-        self.view_picker.set_active_id(self.view);self.view_picker.connect('changed',self.change_view);filters.pack_end(self.view_picker,False,False,0);self.select_button=button('Seleccionar',lambda _:self.toggle_selection());filters.pack_end(self.select_button,False,False,0);page.pack_start(filters,False,False,0)
-        self.originals_bar=Gtk.Box(spacing=10);self.originals_bar.set_no_show_all(True);self.originals_label=label('','muted');self.originals_bar.pack_start(self.originals_label,True,True,0);self.originals_bar.pack_end(button('Revisar originales',lambda _:self.originals_dialog()),False,False,0);page.pack_start(self.originals_bar,False,False,0)
-        self.library_stack=Gtk.Stack();self.library_stack.set_vexpand(True);page.pack_start(self.library_stack,True,True,0)
+        self.view_picker.set_active_id(self.view);self.view_picker.connect('changed',self.change_view);filters.pack_end(self.view_picker,False,False,0);self.select_button=button('Seleccionar',lambda _:self.toggle_selection());filters.pack_end(self.select_button,False,False,0);filter_scroll=self.new_scroll();filter_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);filter_scroll.add(filters);page.pack_start(filter_scroll,False,False,0)
+        self.originals_bar=Gtk.Box(spacing=10);self.originals_bar.set_no_show_all(True);self.originals_label=label('','muted');self.originals_button=button('Revisar originales',lambda _:self.originals_dialog());self.originals_bar.pack_end(self.originals_button,False,False,0);filters.pack_end(self.originals_bar,False,False,0)
+        self.library_stack=Gtk.Stack();self.library_stack.set_vexpand(True);self.library_stack.connect('notify::visible-child',self.refresh_layout);page.pack_start(self.library_stack,True,True,0)
         self.list=Gtk.ListBox();self.list.set_selection_mode(Gtk.SelectionMode.NONE);self.list.connect('row-activated',lambda _,row:self.select_game(row.entry) if hasattr(row,'entry') else None)
         self.covers=self.poster_grid();self.platform_groups=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=20)
         for name,child in [('list',self.list),('covers',self.covers),('platforms',self.platform_groups)]:
@@ -114,7 +124,7 @@ class ShellMixin:
         from .originals import pairs
         originals=[(o,p) for o,p in pairs(self.entries) if o.id not in self.preferences.get('hidden_originals',[])]
         if originals:
-            self.originals_label.set_text(str(len(originals))+' originales con un port instalado.');self.originals_bar.set_no_show_all(False);self.originals_bar.show_all();self.originals_bar.set_no_show_all(True)
+            self.originals_label.set_text(str(len(originals))+' originales con un port instalado.');self.originals_button.set_tooltip_text(self.originals_label.get_text());self.originals_bar.set_no_show_all(False);self.originals_bar.show_all();self.originals_bar.set_no_show_all(True)
         else:self.originals_bar.hide()
         from .gui import label,Poster
         self.reset_page(self.list);self.reset_page(self.covers);self.reset_page(self.platform_groups);self.new_tiles=[];entries=self.visible();total=len(self.shown_entries()[0]);self.library_count.set_text(str(total)+' juegos'+(' · '+str(len(entries))+' visibles' if len(entries)!=total else ''))
@@ -136,13 +146,14 @@ class ShellMixin:
         if not entries and total:
             for container in (self.covers,self.list,self.platform_groups):container.add(label('No hay juegos con esos filtros.','muted'))
         self.library_stack.show_all();self.library_stack.set_visible_child_name(self.view if total else 'empty');self.update_selection()
+        self.refresh_layout()
         if previous_focus:GLib.idle_add(self.focus_library,previous_focus)
         if getattr(self,'animate_next',False):self.animate_next=False;motion.stagger(self.new_tiles,rise=0)
     def add_cover_card(self,e,target=None):
         from .gui import label,Poster
         tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);tile.get_style_context().add_class('library-game');tile.set_size_request(164,-1);action=Gtk.Button();action.get_style_context().add_class('poster');action.add(Poster(e,find_cover(e),164,246));action.connect('clicked',lambda _:self.select_game(e));action.set_tooltip_text(e.name);self.bind_library_focus(action,e,tile)
         if e.id in self.checked:action.get_style_context().add_class('selected')
-        tile.pack_start(action,False,False,0);name=label(e.name,'cover-title');name.set_line_wrap(False);name.set_ellipsize(Pango.EllipsizeMode.END);name.set_max_width_chars(19);name.set_tooltip_text(e.name);tile.pack_start(name,False,False,0);tile.pack_start(label(e.platform+(' · Steam' if self.in_steam(e) else ''),'meta'),False,False,0);(target if target is not None else self.covers).add(tile);tile.get_parent().set_can_focus(False);self.new_tiles.append(tile)
+        tile.pack_start(action,False,False,0);name=label(e.name,'cover-title');name.set_line_wrap(True);name.set_lines(2);name.set_ellipsize(Pango.EllipsizeMode.END);name.set_max_width_chars(19);name.set_size_request(-1,44);name.set_tooltip_text(e.name);tile.pack_start(name,False,False,0);tile.pack_start(label(e.platform+(' · Steam' if self.in_steam(e) else ''),'meta'),False,False,0);(target if target is not None else self.covers).add(tile);tile.get_parent().set_can_focus(False);self.new_tiles.append(tile)
     def open_library(self):
         if not self.discard_game_edits():return
         if getattr(self,'library_dirty',False):self.render()

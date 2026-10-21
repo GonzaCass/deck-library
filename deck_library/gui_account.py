@@ -2,7 +2,7 @@
 import json,pathlib,subprocess,threading,time
 from gi.repository import Gtk,GLib,GdkX11
 from .inline_pages import InlineDialog
-from . import auth_runtime
+from . import auth_runtime,motion
 from .auth_policy import account_uri
 from .community import Client
 from .ui_components import ActionButton,text
@@ -14,6 +14,10 @@ class AccountSocket(Gtk.Socket):
     def do_get_preferred_height(self):return (180,420)
 
 class AccountPane(Gtk.Box):
+    def refresh_layout(self,*_):
+        window=self.get_toplevel()
+        if window is not self and hasattr(window,'refresh_layout'):window.refresh_layout()
+
     def __init__(self,client,on_change=lambda:None):
         super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=12)
         self.client=client;self.on_change=on_change;self.alive=True;self.generation=0;self.process=None;self.timer=None;self.wait=None;self.uri=None;self.deadline=0;self.install_cancel=threading.Event()
@@ -23,7 +27,7 @@ class AccountPane(Gtk.Box):
         self.login=ActionButton('Iniciar sesión','community',lambda _:self.start('login'),'steam');self.register=ActionButton('Crear cuenta','plus',lambda _:self.start('register'),'violet-outline');self.logout=ActionButton('Cerrar sesión','undo',lambda _:self.signout(),'quiet')
         for button in (self.login,self.register,self.logout):
             button.show_all();button.set_no_show_all(True);self.actions.pack_start(button,False,False,0)
-        self.stack=Gtk.Stack();self.stack.set_homogeneous(False);self.stack.set_vexpand(True);self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE);self.stack.set_transition_duration(120);self.pack_start(self.stack,True,True,0)
+        self.stack=Gtk.Stack();self.stack.set_homogeneous(False);self.stack.set_vexpand(True);self.stack.connect('notify::visible-child',self.refresh_layout);self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if motion.page_transitions() else Gtk.StackTransitionType.NONE);self.stack.set_transition_duration(120 if motion.page_transitions() else 0);self.pack_start(self.stack,True,True,0)
         intro=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);intro.set_valign(Gtk.Align.CENTER);intro.pack_start(text('Publicá ajustes, valorá perfiles y compartí tus resultados.','muted',64),False,False,0);intro.pack_start(text('Podés consultar los perfiles sin una cuenta.','meta',64),False,False,0);intro.pack_start(text('Para crear una cuenta necesitás verificar tu correo.','meta',64),False,False,0);self.stack.add_named(intro,'intro')
         self.browser_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);self.stack.add_named(self.browser_box,'browser');self.socket=None
         self.fallback=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.stack.add_named(self.fallback,'fallback');self.reason=text('','muted',70);self.fallback.pack_start(self.reason,False,False,0)

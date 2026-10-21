@@ -23,11 +23,11 @@ Requires Python 3.11+, PyGObject and GTK 3 (available on the Steam Deck used for
 ## Open Deck Library directly from Steam
 
 1. Install and open Deck Library in Desktop Mode. Finish the first-run assistant.
-2. Open **Ajustes → Deck Library en Steam → Agregar a Steam**.
+2. Click **Añadir Deck Library a Steam** beside the top navigation tabs (also available under **Ajustes → Deck Library en Steam**).
 3. If Steam is open, the app shows a persistent pending-changes banner. Finish your other changes, exit Steam once and wait for the banner to disappear. The background worker saves the shortcut and its Deck controls; no per-change restart dialog is shown.
 4. Return to Gaming Mode, find **Deck Library** in Steam's library and press **Play**. The shortcut launches the native Linux app fullscreen, with `--gaming` and its navigation template.
 
-Use the right trackpad and right trigger for pointer/click, the D-pad or stick for navigation, **A** to activate, **B** to go back and **LB/RB** to change sections (**X** focuses search with native controller input). **Steam + X** opens Steam's on-screen keyboard. Physical controller validation in Gaming Mode is still pending; automated tests cover the shortcut, template and 1280×800 interface.
+Use the right trackpad and right trigger for pointer/click, the D-pad or stick for navigation, **A** to activate, **B** to go back and **LB/RB** to change sections (**X** opens the search keyboard with native controller input). **Steam + X** opens Steam's on-screen keyboard. Physical controller validation in Gaming Mode is still pending; automated tests cover the shortcut, template and 1280×800 interface.
 
 ### Add individual games to Steam
 
@@ -39,7 +39,7 @@ For a game already in Steam, **Jugar** uses its existing Steam shortcut and cont
 
 The first launch opens a four-step Spanish onboarding flow: welcome, installation/game detection, artwork provider and library handoff. Discovery runs in the background. Users can add a missing folder or configure an emulator instead of guessing where to start. Repeat onboarding from **Ajustes**.
 
-The library fills the window, with top navigation, 2:3 portrait cards, platform filters and search. Open a cover for the game overview: **Jugar** (green), **Agregar a Steam** (blue), selectable settings cards and a fixed **Aplicar ajustes** action. Selecting a card only previews the profile; changes are written, with a backup, after applying. Technical differences expand under **Ver cambios**. **Controles**, **Contenido** and **Ajustes manuales** open dedicated task pages with a return button. **Más opciones** contains import/export, artwork and shortcut tools. **Seleccionar** reveals batch controls only when needed. **Catálogo de ports** opens the downloadable port catalog directly. Use **Ajustes → Instalaciones y carpetas** to add discovery folders.
+The library fills the window, with top navigation, 2:3 portrait cards, platform filters and search. Open a cover for the game overview: **Jugar** (green), **Agregar a Steam** (blue), selectable settings cards and a fixed **Aplicar ajustes** action. Selecting a card only previews the profile; changes are written, with a backup, after applying. Technical differences expand under **Ver cambios**. The persistent **Controles**, **Contenido** and **Avanzados** tabs open dedicated task pages. Settings cards use the full width and **Comunidad** remains available in the same tab bar. **Más opciones** contains import/export, artwork and shortcut tools. **Seleccionar** reveals batch controls only when needed. **Catálogo de ports** opens the downloadable port catalog directly. Use **Ajustes → Instalaciones y carpetas** to add discovery folders.
 
 Steam changes accumulate in a persistent banner and are saved when Steam closes. No restart prompt interrupts each change. Settings → Add Deck Library to Steam prepares a fullscreen Gaming Mode shortcut with Deck navigation controls. The library also offers portrait cards, thumbnails in list view, platform groups and a read-only conflict report. See [Deck interface](docs/DECK-INTERFACE.md) and [optional community server](community/README.md). Physical Gaming Mode validation remains a separate check.
 
@@ -178,7 +178,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.19.4**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.19.5**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
@@ -214,7 +214,7 @@ On Steam Deck the embedded view reuses an installed GNOME Flatpak runtime when a
 
 ### Controller navigation (0.17)
 
-The focused game has a bright border and a highlighted title/card. The left stick and D-pad navigate the actual rows and columns; A opens the game, B returns to the same card, X focuses search and LB/RB change tabs. The right stick scrolls the current view. Moving through the library keeps the focused card visible and does not check games for batch operations. Focus survives artwork refreshes.
+The focused game has a bright border and a highlighted title/card. The left stick and D-pad navigate the actual rows and columns; A opens the game, B returns to the same card, X opens the search keyboard and LB/RB change tabs. The right stick scrolls the current view. Moving through the library keeps the focused card visible and does not check games for batch operations. Focus survives artwork refreshes.
 
 Deck Library’s Steam Deck layout now uses native gamepad input on both sticks, with mouse control on the right trackpad. Upgrading refreshes only Deck Library’s existing template, with a backup; it does not change Steam configsets or other games’ layouts. Close and reopen Deck Library from Steam to reload its layout. A custom layout remains selected if you chose one. The physical controls still require confirmation on the Deck; automated coverage includes a real SDL virtual controller driving the GTK interface.
 
