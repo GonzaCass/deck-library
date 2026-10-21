@@ -1,11 +1,12 @@
 """Community port catalog page: browse, install and update ports from GitHub releases."""
-import threading,time,datetime,json
+import pathlib,threading,time,datetime,json
 import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib,GdkPixbuf,Pango
 from .inline_pages import InlineDialog
 from . import ports
 from .installations import save_settings
+from .service import queue_removals
 
 ART_WIDTH=88
 CATALOG_PAGE=30
@@ -93,7 +94,7 @@ class CatalogMixin:
             if title.casefold()!=item['name'].casefold():texts.pack_start(label(item['name'],'subtitle'),False,False,0)
             if item.get('description'):
                 description=label(item['description'],'status');description.set_lines(1 if compact else 2);description.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(description,False,False,0)
-            tags=[t for t in (item['list'],'Constructor' if item.get('package_role')=='builder' else 'Solo código fuente' if item.get('package_role') in ('source-only','build-tool') else '', 'Requiere originales' if item.get('setup') or item.get('preparation')=='launcher' else '') if t]
+            tags=[t for t in (item['list'],'Revisado' if ports.is_reviewed(item) else 'Sin revisar','Constructor' if item.get('package_role')=='builder' else 'Solo código fuente' if item.get('package_role') in ('source-only','build-tool') else '', 'Requiere originales' if item.get('setup') or item.get('preparation')=='launcher' else '') if t]
             if record:texts.pack_start(label('Instalado · '+record['tag'],'muted'),False,False,0)
             when=item.get('added_at') or item.get('first_seen') or 0
             if when:tags.append(('Nuevo · ' if time.time()-when<30*86400 else 'Añadido ')+datetime.datetime.fromtimestamp(when).strftime('%d/%m/%Y'))
@@ -108,6 +109,7 @@ class CatalogMixin:
                 side.pack_start(button('Ver en biblioteca',lambda _,r=record:self.select_game(r['entry'])),False,False,0)
                 if record.get('alternative'):side.pack_start(button('Instalar alternativa',lambda _,i=item:self.install_port(i,False)),False,False,0)
             elif record and item['repository'] in updates:side.pack_start(button('Actualizar',lambda _,i=item:self.install_port(i,True),True),False,False,0)
+            elif record and item.get('multi_appimage') and installed.get(item['repository']) and not installed[item['repository']].get('games'):side.pack_start(button('Instalar todos los juegos',lambda _,i=item:self.install_port(i,True),True),False,False,0)
             elif record and record.get('setup') and not record.get('configured'):side.pack_start(button('Configurar',lambda _,i=item:self.configure_port(i),True),False,False,0)
             elif record and record.get('setup'):
                 side.pack_start(label('Configurado','good'),False,False,0)
@@ -120,6 +122,7 @@ class CatalogMixin:
                     side.pack_start(label('Asistente del port','meta'),False,False,0);side.pack_start(button('Abrir port',lambda _,r=record:self.open_installed_port(r)),False,False,0)
                 elif item.get('preparation')=='manual':side.pack_start(button('Ver preparación',lambda _,i=item:self.port_details(i)),False,False,0)
             else:side.pack_start(button('Instalar',lambda _,i=item:self.install_port(i,False)),False,False,0)
+            if installed.get(item['repository']) and item['repository']!='GenryTheFox0/Project-2099':side.pack_start(button('Desinstalar',lambda _,i=item:self.uninstall_port(i),tone='danger'),False,False,0)
             if 'Agregado' in item['source']:side.pack_start(button('Quitar de la lista',lambda _,i=item:self.remove_repository(i),tone='danger'),False,False,0)
             row.pack_end(side,False,False,0);card.catalog_open=open_;card.catalog_image=image;self.catalog_rows.pack_start(card,False,False,0)
             self.transfer_row(card,item['repository'])
@@ -220,6 +223,7 @@ class CatalogMixin:
             page.get_action_area().pack_start(button('Configurar',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.configure_port(item),False)[1])),True),False,False,0)
         elif record:
             box.pack_start(label('Instalado · '+record.get('tag',''),'good'),False,False,0)
+            if installed.get(item['repository']) and item['repository']!='GenryTheFox0/Project-2099':page.get_action_area().pack_start(button('Desinstalar',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.uninstall_port(item),False)[1])),tone='danger'),False,False,0)
             if item.get('preparation')=='launcher':page.get_action_area().pack_start(button('Abrir port',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.open_installed_port(record),False)[1]))),False,False,0)
         else:
             def install(_):page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.install_port(item,False),False)[1])
@@ -330,6 +334,9 @@ class CatalogMixin:
             else:self.project2099_dialog()
             return
         if item.get('package_role') in ('source-only','build-tool'):self.message('Requiere compilación',item.get('source_note','El proyecto solo publica código fuente.'));return
+        if not ports.is_reviewed(item) and not self.preferences.get('unreviewed_acknowledged'):
+            if not self.confirm('Port sin revisar','Este port viene de una lista externa y Deck Library no lo revisó. Se descarga el release de GitHub y se verifica el tamaño y, cuando el autor la publica, la suma SHA-256; el programa se ejecuta con los permisos del usuario. Esta advertencia se muestra una sola vez.','Instalar'):return
+            self.preferences['unreviewed_acknowledged']=True;save_settings(self.preferences,self.store)
         existing=self.catalog_installation(item)
         if existing and existing.get('external') and not replace and not self.confirm('Ya hay un port instalado',existing['entry'].name+' ya está en la biblioteca. ¿Instalar también '+item['name']+' como alternativa?','Instalar alternativa'):return
         needs_sdk=item.get('kit') and not buildenv.installed()
@@ -344,6 +351,24 @@ class CatalogMixin:
                 record=ports.install(item,self.store,progress=progress,transfer=progress,replace=replace,cancel=cancel,runtime=runtime);GLib.idle_add(self.port_installed,item,record)
             except Exception as error:GLib.idle_add(self.port_failed,item,str(error))
         threading.Thread(target=work,daemon=True).start()
+
+    def uninstall_port(self,item):
+        item=ports.clean(item);record=ports.records(self.store).get(item['repository'])
+        if not record:self.message('Sin instalación','Deck Library no instaló este port.');return
+        linked=[e for e in self.entries if e.metadata.get('port_repository')==item['repository']];in_steam=[e for e in linked if self.in_steam(e)]
+        steam='\n\nTambién se quita su acceso de Steam, con su carátula y su layout de mando.' if in_steam else ''
+        if not self.confirm('Desinstalar '+record.get('name',item['name']),'La carpeta ~/ports/'+record['folder']+' se mueve a ~/ports/'+ports.REMOVED+' y el juego sale de la biblioteca. Las partidas guardadas dentro de esa carpeta se van con ella y pueden recuperarse de ahí; nada se borra.'+steam,'Desinstalar',danger=True):return
+        try:result=ports.uninstall(item['repository'],self.store)
+        except (OSError,ValueError) as error:self.message('No se pudo desinstalar',str(error));return
+        accounts={e.metadata['steam_account'] for e in in_steam if e.metadata.get('steam_account')}
+        if in_steam and len(accounts)==1:
+            account=pathlib.Path(accounts.pop());ids=[e.metadata['steam_appid'] for e in in_steam if e.metadata.get('steam_appid')]
+            if ids:self.run_queue(lambda:queue_removals(ids,account,self.store),'Preparando la eliminación del acceso…')
+        self.entries=self.store.load();self.library_dirty=True;self.checked-={e.id for e in linked};self.refresh_platforms()
+        if self.selected and self.selected.id in result['ids']:self.selected=None
+        self.set_status(result['name']+' desinstalado. Carpeta guardada en ~/ports/'+ports.REMOVED+'.')
+        if self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
+        elif self.pages.get_visible_child_name()=='library':self.render()
 
     def port_installed(self,item,record):
         from . import updates

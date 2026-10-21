@@ -204,7 +204,7 @@ def clean(item,category='',source=''):
     name=item.get('name');icon=item.get('appIconUrl') or item.get('icon');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
     ai=bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
     result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','ctr_native','rom','zelda3','wwhd','project2099','original_data','b2recomp') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
-    for field in ('preparation','source_note','asset_prefix','windows_exe','package_role','original_data','preserve'):
+    for field in ('preparation','source_note','asset_prefix','windows_exe','package_role','original_data','preserve','multi_appimage'):
         if field in RECIPES.get(repo.lower(),{}):result[field]=RECIPES[repo.lower()][field]
     for key in ('added_at','release_at','first_seen'):
         if type(item.get(key)) in (int,float) and item[key]>=0:result[key]=item[key]
@@ -399,6 +399,12 @@ def release_for(repo,get=fetch_json):
     if not rows:raise ValueError('El proyecto no tiene releases publicados.')
     return rows[0]
 
+def is_reviewed(item):
+    """True for entries Deck Library itself reviewed: built-in recommendations and ports with a reviewed recipe."""
+    from .port_recipes import RECIPES
+    repository=str(item.get('repository','')).lower()
+    return repository in RECIPES or 'Recomendado' in str(item.get('source','')) or any(b['repository'].lower()==repository for b in BUILTIN)
+
 def records(store):
     try:return json.loads((store.root/'ports.json').read_text())
     except (OSError,ValueError):return {}
@@ -511,6 +517,23 @@ def is_elf(path):
         with open(path,'rb') as source:return source.read(4)==b'\x7fELF'
     except OSError:return False
 
+def game_label(filename,repository=''):
+    """Readable game name from a per-game AppImage name, e.g. OpenRA-Red-Alert-x86_64.AppImage -> Red Alert."""
+    stem=re.sub(r'\.appimage$','',str(filename),flags=re.I);stem=re.sub(r'[-_.](x86[-_]64|x64|amd64|linux)\b','',stem,flags=re.I)
+    project=repository.split('/')[-1] if repository else ''
+    if project and stem.lower().startswith(project.lower()):stem=stem[len(project):]
+    words=[w for w in re.split(r'[-_. ]+',stem) if w]
+    return ' '.join(w if any(c.isupper() for c in w) or w.isdigit() else w.capitalize() for w in words) or str(filename)
+
+def sibling_appimages(assets,primary):
+    """The other Linux AppImages of a release that ships one per game (OpenRA); only used when the recipe asks for it."""
+    names={primary['name']};found=[primary]
+    for asset in sorted(assets,key=lambda a:a.get('name','')):
+        name=asset.get('name','')
+        if name in names or not name.lower().endswith('.appimage'):continue
+        if pick_asset([asset]):names.add(name);found.append(asset)
+    return sorted(found,key=lambda a:a['name'].lower())
+
 def unwrap_nested_archive(staging,progress=print):
     """Some releases publish a ZIP that only wraps the real tar.gz; open it once so the port is not left without files."""
     from . import port_packages
@@ -586,6 +609,15 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
         if not archive.name.lower().endswith(port_packages.ARCHIVES):
             # AppImage or a single bare executable.
             shutil.copy2(archive,staging/archive.name);(staging/archive.name).chmod(0o755)
+            if item.get('multi_appimage') and not item['web'] and archive.name.lower().endswith('.appimage'):
+                for other in sibling_appimages(release.get('assets',[]),asset)[0:]:
+                    if other['name']==asset['name']:continue
+                    check_cancel(cancel);extra=temp/other['name'].replace('/','_');progress('Descargando '+other['name'])
+                    download(other['browser_download_url'],extra,progress=lambda done,total:None,**({'cancel':cancel} if cancel is not None else {}))
+                    if other.get('size') and extra.stat().st_size!=other['size']:raise ValueError('El tamaño descargado no coincide con el publicado; no se instaló.')
+                    other_digest=str(other.get('digest') or '')
+                    if other_digest.startswith('sha256:') and sha256_file(extra)!=other_digest[7:].lower():raise ValueError('La suma SHA-256 no coincide con la publicada; no se instaló.')
+                    shutil.copy2(extra,staging/extra.name);(staging/extra.name).chmod(0o755)
         else:
             progress('Extrayendo');extract(archive,staging);flatten(staging)
             unwrap_nested_archive(staging,progress)
@@ -612,11 +644,15 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
                 if len(matches)==1:executable=matches[0]
                 else:raise ValueError('El paquete no contiene el ejecutable esperado: '+executable.name+'. Se conserva la instalación anterior.')
         elif runtime=='proton':executable=port_packages.windows_executable(staging,item['repository'])
+        elif item.get('multi_appimage') and len([p for p in staging.iterdir() if p.suffix.lower()=='.appimage'])>1:
+            executable=sorted(p for p in staging.iterdir() if p.suffix.lower()=='.appimage')[0]
         else:executable=find_executable(staging,item['repository'])
         if runtime=='proton' and not executable:raise ValueError('El paquete Windows no contiene un juego portable identificable. Se conserva la instalación anterior; este port requiere una integración específica.')
         if executable and executable.exists():executable.chmod(executable.stat().st_mode|0o111)
         record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'runtime':runtime,'game_title':item.get('game_title') or item['cover_title'],'original_platform':platform_for(item['list']),'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'preparation':item.get('preparation',''),'source_note':item.get('source_note',''),'original_data':item.get('original_data'),'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
         if previous.get('inputs'):record['inputs']=dict(previous['inputs'])
+        images=sorted(p.name for p in staging.iterdir() if p.suffix.lower()=='.appimage') if item.get('multi_appimage') else []
+        if len(images)>1:record['games']=[{'executable':name,'title':game_label(name,item['repository'])} for name in images]
         if destination.exists():port_packages.preserve_saves(destination,staging,cancel,extra=item.get('preserve',()))
         atomic_json(staging/'.deck-library-port.json',record)
         check_cancel(cancel)
@@ -629,6 +665,24 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
             raise
     saved=records(store);saved[item['repository']]=record;atomic_json(store.root/'ports.json',saved)
     return record
+
+REMOVED='.deck-library-removed'
+
+def uninstall(repository,store=None,root=None):
+    """Move an installed catalog port to a recoverable folder and forget it. Nothing is deleted."""
+    store=store or Store();root=pathlib.Path(root or ports_root());saved=records(store);record=saved.get(repository)
+    if not record:raise ValueError('Este port no fue instalado por Deck Library.')
+    if repository.lower()=='genrythefox0/project-2099':raise ValueError('Project 2099 se administra desde su propio instalador.')
+    folder=root/record.get('folder','')
+    if not record.get('folder') or not FOLDER.fullmatch(record['folder']) or folder.parent.resolve()!=root.resolve():raise ValueError('La carpeta del port está fuera de ~/ports; no se modificó.')
+    if folder.is_symlink():raise ValueError('La carpeta del port es un enlace simbólico; no se modificó.')
+    ids=[e.id for e in entries_for(folder)] if folder.is_dir() else [port_id(repository)]
+    destination=None
+    if folder.is_dir():
+        destination=root/REMOVED/(record['folder']+'-'+time.strftime('%Y%m%dT%H%M%S'));destination.parent.mkdir(parents=True,exist_ok=True);folder.rename(destination)
+    saved.pop(repository,None);atomic_json(store.root/'ports.json',saved)
+    kept=[e for e in store.load() if e.id not in ids and e.metadata.get('port_repository')!=repository];store.save(kept)
+    return {'folder':record['folder'],'backup':str(destination) if destination else '','ids':ids,'name':record.get('name',repository)}
 
 def installed_updates(store,get=fetch_json):
     """Catalog ports whose recorded tag differs from the latest release."""
@@ -678,6 +732,24 @@ def entry_for(folder):
     title=record.get('game_title') or record.get('cover_title') or next((b.get('cover_title','') for b in BUILTIN if b['repository']==record['repository']),'')
     return Entry(record.get('name',folder.name),command,'port','Windows' if record.get('runtime')=='proton' else 'Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],**({'game_title':title} if title else {}),'original_platform':record.get('original_platform') or next((platform_for(b.get('category','')) for b in BUILTIN if b['repository']==record['repository']),''),'configured':bool(record.get('configured')) if record.get('setup') else True,'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
 
+
+def entries_for(folder):
+    """Every library entry of an installed port: one, or one per game when the release ships several."""
+    import copy
+    folder=pathlib.Path(folder);primary=entry_for(folder)
+    if primary is None:return []
+    try:record=json.loads((folder/'.deck-library-port.json').read_text())
+    except (OSError,ValueError):return [primary]
+    games=record.get('games') or []
+    if len(games)<2:return [primary]
+    result=[]
+    for game in games:
+        exe=folder/game['executable']
+        if not exe.is_file():continue
+        entry=copy.deepcopy(primary);entry.name=f"{record.get('name',folder.name)} · {game['title']}";entry.command=[str(exe),*list(record.get('args') or [])];entry.source=str(exe)
+        entry.id=port_id(record['repository']+('#'+game['executable'] if game['executable']!=games[0]['executable'] else ''));entry.metadata={**entry.metadata,'port_game':game['executable'],'game_title':game['title']}
+        result.append(entry)
+    return result or [primary]
 
 DATA_CTR=pathlib.Path('.local/share/ctr-turbocharged')
 
