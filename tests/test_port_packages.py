@@ -60,6 +60,59 @@ class PackageTests(unittest.TestCase):
                     wrapper=pathlib.Path(tmp)/'openmw-launcher';wrapper.write_bytes(b'#!/bin/sh\nexec "$0.x86_64"\n');wrapper.chmod(0o755)
                 found=ports.find_executable(tmp,'OpenMW/openmw');self.assertEqual(found.name if found else '',expected)
 
+    def test_a_release_with_one_appimage_per_game_installs_all_and_lists_each(self):
+        from deck_library import discovery
+        with tempfile.TemporaryDirectory() as tmp:
+            root=pathlib.Path(tmp);names=['OpenRA-Red-Alert-x86_64.AppImage','OpenRA-Dune-2000-x86_64.AppImage','OpenRA-Tiberian-Dawn-x86_64.AppImage']
+            assets=[{'name':n,'size':16,'browser_download_url':'https://github.com/OpenRA/OpenRA/releases/download/r/'+n} for n in names]+[{'name':'OpenRA-Red-Alert-x86_64.AppImage.zsync','size':3,'browser_download_url':'https://github.com/OpenRA/OpenRA/releases/download/r/z'}]
+            release={'tag_name':'r','assets':assets};store=Store(root/'private');downloaded=[]
+            def download(url,path,**kw):downloaded.append(path.name);path.write_bytes(b'\x7fELF'+url.encode()[-12:])
+            for asset in assets[:3]:asset['size']=16
+            with patch.object(ports,'download',side_effect=download):
+                record=ports.install({'repository':'OpenRA/OpenRA','folderName':'OpenRA','name':'OpenRA'},store,root/'ports',get=lambda _:release,progress=lambda _:None)
+            self.assertEqual(sorted(downloaded),sorted(names));self.assertEqual([g['title'] for g in record['games']],['Dune 2000','Red Alert','Tiberian Dawn'])
+            entries=ports.entries_for(root/'ports/OpenRA');self.assertEqual([e.name for e in entries],['OpenRA · Dune 2000','OpenRA · Red Alert','OpenRA · Tiberian Dawn']);self.assertEqual(len({e.id for e in entries}),3)
+            self.assertEqual(entries[0].id,ports.port_id('OpenRA/OpenRA'));self.assertTrue(all(pathlib.Path(e.command[0]).is_file() for e in entries))
+            scanned=[e for e in discovery.scan(home=root,preferences={}) if e.name.startswith('OpenRA')];self.assertEqual(len(scanned),3)
+            other={'repository':'a/Plain','folderName':'Plain'}
+            with patch.object(ports,'download',side_effect=lambda url,path,**kw:path.write_bytes(b'\x7fELF')):
+                ports.install(other,store,root/'ports',get=lambda _:{'tag_name':'1','assets':[{'name':'Plain-x86_64.AppImage','browser_download_url':'https://github.com/a/Plain/x'},{'name':'Plain-Extra-x86_64.AppImage','browser_download_url':'https://github.com/a/Plain/y'}]},progress=lambda _:None)
+            self.assertEqual(len(ports.entries_for(root/'ports/Plain')),1)
+
+    def test_uninstall_moves_the_folder_to_a_recoverable_place_and_forgets_the_port(self):
+        from deck_library import discovery
+        with tempfile.TemporaryDirectory() as tmp:
+            root=pathlib.Path(tmp);store=Store(root/'private')
+            with patch.object(ports,'download',side_effect=lambda url,path,**kw:path.write_bytes(b'\x7fELF')):
+                ports.install({'repository':'a/Game','folderName':'Game','name':'Game'},store,root/'ports',get=lambda _:{'tag_name':'1','assets':[{'name':'Game-x86_64.AppImage','browser_download_url':'https://github.com/a/Game/x'}]},progress=lambda _:None)
+            (root/'ports/Game/save.dat').write_text('progress')
+            store.save(store.merge(discovery.scan(home=root,preferences={}),overwrite=False))
+            self.assertEqual(len(store.load()),1)
+            result=ports.uninstall('a/Game',store,root/'ports')
+            self.assertFalse((root/'ports/Game').exists());self.assertEqual((pathlib.Path(result['backup'])/'save.dat').read_text(),'progress')
+            self.assertNotIn('a/Game',ports.records(store));self.assertEqual(store.load(),[])
+            self.assertEqual(discovery.scan(home=root,preferences={}),[])
+            with self.assertRaisesRegex(ValueError,'no fue instalado'):ports.uninstall('a/Game',store,root/'ports')
+
+    def test_uninstall_refuses_a_folder_outside_the_ports_root_and_project_2099(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root=pathlib.Path(tmp);store=Store(root/'private');(root/'elsewhere').mkdir()
+            from deck_library.models import atomic_json
+            atomic_json(store.root/'ports.json',{'a/Escape':{'repository':'a/Escape','folder':'../elsewhere'},'GenryTheFox0/Project-2099':{'repository':'GenryTheFox0/Project-2099','folder':'Project-2099'}})
+            with self.assertRaisesRegex(ValueError,'fuera de'):ports.uninstall('a/Escape',store,root/'ports')
+            with self.assertRaisesRegex(ValueError,'Project 2099'):ports.uninstall('GenryTheFox0/Project-2099',store,root/'ports')
+            self.assertTrue((root/'elsewhere').is_dir())
+
+    def test_only_recipes_and_built_in_recommendations_count_as_reviewed(self):
+        self.assertTrue(ports.is_reviewed({'repository':'OpenRA/OpenRA'}));self.assertTrue(ports.is_reviewed({'repository':'k0nl/b2recomp'}))
+        self.assertTrue(ports.is_reviewed({'repository':'someone/else','source':'Recomendado'}))
+        self.assertFalse(ports.is_reviewed({'repository':'someone/else','source':'Quiver'}));self.assertFalse(ports.is_reviewed({'repository':'x/y'}))
+
+    def test_game_labels_drop_the_project_prefix_and_architecture(self):
+        self.assertEqual(ports.game_label('OpenRA-Red-Alert-x86_64.AppImage','OpenRA/OpenRA'),'Red Alert')
+        self.assertEqual(ports.game_label('OpenRA-Dune-2000-x86_64.AppImage','OpenRA/OpenRA'),'Dune 2000')
+        self.assertEqual(ports.game_label('solo.AppImage'),'Solo')
+
     def test_unsafe_declared_executable_is_rejected_before_replacement(self):
         with tempfile.TemporaryDirectory() as tmp:
             root=pathlib.Path(tmp);data=io.BytesIO()

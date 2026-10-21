@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.19.10.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.20.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -111,7 +111,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.19.10**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.20.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 La ficha de cada port indica cómo se preparan sus archivos: desde Deck Library, desde el asistente del propio port o manualmente. Si hay adaptador, se puede elegir la ROM, el disco o la BIOS que falten y se comprueban antes de preparar. **Instalar con Proton** permite usar paquetes Windows portables cuando corresponde. La [tabla de proyectos revisados](docs/PORTS.md#proyectos-revisados-el-21-de-octubre-de-2026) detalla los casos de God of War, inFAMOUS, Sonic, Smash, Time Crisis, Lord of the Rings y Crash; no implica que todos se hayan probado en juego.
 
@@ -260,3 +260,11 @@ Se corrigió un bloqueo del lector del mando al abrir fichas de ports y otras ta
 ### Más fuentes de ports (0.19.3)
 
 PortIntegration se suma al catálogo con nombres, plataformas, repositorios y carátulas. Puede elegirse en el filtro de fuentes. Los repositorios repetidos se unifican y mantienen sus fuentes visibles. Los estados de ese sitio se muestran como declaraciones de la fuente; no son perfiles verificados ni pruebas de funcionamiento en Steam Deck. Las descargas se siguen consultando en el proyecto original.
+
+## Instalar, desinstalar y revisión (0.20)
+
+- **Varios juegos por release:** si un proyecto publica un AppImage por juego, la app instala todos y cada uno aparece en la biblioteca con su nombre. Hoy lo usa OpenRA (Red Alert, Tiberian Dawn y Dune 2000). Quien ya tenía OpenRA con un solo juego ve **Instalar todos los juegos** en el catálogo.
+- **Desinstalar:** el catálogo y la ficha de cada port instalado tienen **Desinstalar**. La carpeta se mueve a `~/ports/.deck-library-removed` (las partidas guardadas dentro van con ella y pueden recuperarse de ahí; no se borra nada), el juego sale de la biblioteca y, si estaba en Steam, se quita su acceso con su carátula y su layout de mando.
+- **Revisión:** cada tarjeta del catálogo indica **Revisado** (recomendaciones propias y proyectos con receta revisada) o **Sin revisar** (listas externas). La primera instalación de un port sin revisar pide confirmación una sola vez.
+- **Archivos anidados y varias herramientas:** un ZIP que solo envuelve un tar.gz se abre, y cuando un paquete trae varias herramientas se elige el lanzador del proyecto.
+- La lista de condiciones para publicar la 1.0 está en [docs/V1-CHECKLIST.md](docs/V1-CHECKLIST.md).

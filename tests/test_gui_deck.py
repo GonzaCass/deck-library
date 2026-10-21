@@ -540,6 +540,41 @@ class DeckUITests(unittest.TestCase):
         with patch.object(self.inline,'run',run),patch.object(ports,'icon_path',return_value=''),patch.object(ports,'requirements',return_value=[]),patch.object(self.w,'install_port') as install:open_.clicked();install.assert_not_called()
         self.assertTrue(all(seen));self.assertEqual(len(seen),5);self.assertFalse(self.w.inline_workflows)
 
+    def catalog_texts(self):
+        from gi.repository import Gtk
+        def walk(widget):
+            if isinstance(widget,Gtk.Label):yield widget.get_text()
+            if isinstance(widget,Gtk.Button) and widget.get_label():yield widget.get_label()
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from walk(child)
+        return list(walk(self.w.catalog_rows))
+
+    def test_catalog_marks_review_state_and_offers_uninstall_and_all_games(self):
+        from deck_library import ports
+        from deck_library.models import atomic_json
+        item=ports.clean({'repository':'OpenRA/OpenRA','name':'OpenRA','category':'PC','supported_os':['linux']});other=ports.clean({'repository':'someone/else','name':'Else','category':'PC'})
+        atomic_json(self.store.root/'ports.json',{item['repository']:{**item,'executable':'x.AppImage','tag':'r1','verified':True}})
+        self.w.catalog_page();self.w.catalog_apps=[item,other];self.w.catalog_search.set_text('')
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog()
+        joined='\n'.join(self.catalog_texts());self.assertIn('Desinstalar',joined);self.assertIn('Instalar todos los juegos',joined);self.assertIn('Revisado',joined);self.assertIn('Sin revisar',joined)
+
+    def test_an_unreviewed_port_asks_once_before_installing(self):
+        from deck_library import ports
+        item=ports.clean({'repository':'someone/else','name':'Else','category':'PC'})
+        with patch.object(ports,'install',side_effect=ValueError('stop')) as install,patch.object(self.w,'confirm',return_value=False) as confirm,patch.object(self.w,'port_failed'):
+            self.w.install_port(item,False);confirm.assert_called_once();install.assert_not_called();self.assertFalse(self.w.preferences.get('unreviewed_acknowledged'))
+        import time
+        with patch.object(ports,'install',side_effect=ValueError('stop')) as install,patch.object(self.w,'confirm',return_value=True) as confirm,patch.object(self.w,'port_failed') as failed:
+            self.w.install_port(item,False);until=time.monotonic()+3
+            while not failed.called and time.monotonic()<until:self.settle()
+            confirm.assert_called_once();self.assertTrue(self.w.preferences.get('unreviewed_acknowledged'))
+        self.w.port_busy=False;self.w.port_jobs.clear()
+        with patch.object(ports,'install',side_effect=ValueError('stop')),patch.object(self.w,'confirm') as confirm,patch.object(self.w,'port_failed') as failed:
+            self.w.install_port(item,False);until=time.monotonic()+3
+            while not failed.called and time.monotonic()<until:self.settle()
+            confirm.assert_not_called()
+        self.w.port_busy=False;self.w.port_jobs.clear()
+
     def test_catalog_artwork_is_displayed_from_the_downloaded_image(self):
         from gi.repository import GdkPixbuf,Gtk
         self.w.catalog_generation=1;path=pathlib.Path(self.temp.name)/'cover.png';pixbuf=GdkPixbuf.Pixbuf.new(GdkPixbuf.Colorspace.RGB,False,8,60,90);pixbuf.fill(0xff0000ff);pixbuf.savev(str(path),'png',[],[])

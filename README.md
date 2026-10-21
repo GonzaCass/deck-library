@@ -195,7 +195,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **0.19.10**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **0.20.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 ## Referencias
 
@@ -268,6 +268,14 @@ Completed changes and errors use a larger, dismissible eight-second notice insid
 Integrated profiles occupy the relevant Equilibrado/Rendimiento/Calidad slots and retain their original settings. WiiCompiled’s confirmed Quality profile remains the default selection; two lower-resolution variants are explicit untested proposals. Verification requires an exact match of the bundled game, adapter, settings and test metadata. An imported author's claim is shown separately and cannot inherit the integrated verification label.
 
 Community profiles have a dedicated, always-expanded preview with ratings and links to details/comments. Additional local and compatibility profiles are visible in a separate section. Profile changes remain close to the three primary cards. Community browsing stacks its panes on compact displays.
+
+## Installing, uninstalling and review (0.20)
+
+- **Several games per release:** when a project publishes one AppImage per game, the app installs all of them and each appears in the library under its own name. OpenRA uses this today (Red Alert, Tiberian Dawn and Dune 2000). Anyone who already had OpenRA with a single game sees **Instalar todos los juegos** (Install all games) in the catalog.
+- **Uninstall:** each installed port has **Desinstalar** (Uninstall) in the catalog and on its page. The folder moves to `~/ports/.deck-library-removed` (saves stored inside it go with it and can be recovered from there; nothing is deleted), the game leaves the library and, if it was in Steam, its shortcut, artwork and controller layout are removed.
+- **Review:** every catalog card says **Revisado** (reviewed: built-in recommendations and projects with a reviewed recipe) or **Sin revisar** (unreviewed: external lists). The first install of an unreviewed port asks for confirmation once.
+- **Nested archives and multi-tool packages:** a ZIP that only wraps a tar.gz is opened, and when a package ships several tools the project's launcher is chosen.
+- The conditions for publishing 1.0 are listed in [docs/V1-CHECKLIST.md](docs/V1-CHECKLIST.md) (in Spanish).
 
 ---
 
@@ -345,7 +353,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.19.10.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.20.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -387,7 +395,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.19.10**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.20.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 La ficha de cada port indica cómo se preparan sus archivos: desde Deck Library, desde el asistente del propio port o manualmente. Si hay adaptador, se puede elegir la ROM, el disco o la BIOS que falten y se comprueban antes de preparar. **Instalar con Proton** permite usar paquetes Windows portables cuando corresponde. La [tabla de proyectos revisados](docs/PORTS.md#proyectos-revisados-el-21-de-octubre-de-2026) detalla los casos de God of War, inFAMOUS, Sonic, Smash, Time Crisis, Lord of the Rings y Crash; no implica que todos se hayan probado en juego.
 
@@ -536,4 +544,12 @@ Se corrigió un bloqueo del lector del mando al abrir fichas de ports y otras ta
 ### Más fuentes de ports (0.19.3)
 
 PortIntegration se suma al catálogo con nombres, plataformas, repositorios y carátulas. Puede elegirse en el filtro de fuentes. Los repositorios repetidos se unifican y mantienen sus fuentes visibles. Los estados de ese sitio se muestran como declaraciones de la fuente; no son perfiles verificados ni pruebas de funcionamiento en Steam Deck. Las descargas se siguen consultando en el proyecto original.
+
+## Instalar, desinstalar y revisión (0.20)
+
+- **Varios juegos por release:** si un proyecto publica un AppImage por juego, la app instala todos y cada uno aparece en la biblioteca con su nombre. Hoy lo usa OpenRA (Red Alert, Tiberian Dawn y Dune 2000). Quien ya tenía OpenRA con un solo juego ve **Instalar todos los juegos** en el catálogo.
+- **Desinstalar:** el catálogo y la ficha de cada port instalado tienen **Desinstalar**. La carpeta se mueve a `~/ports/.deck-library-removed` (las partidas guardadas dentro van con ella y pueden recuperarse de ahí; no se borra nada), el juego sale de la biblioteca y, si estaba en Steam, se quita su acceso con su carátula y su layout de mando.
+- **Revisión:** cada tarjeta del catálogo indica **Revisado** (recomendaciones propias y proyectos con receta revisada) o **Sin revisar** (listas externas). La primera instalación de un port sin revisar pide confirmación una sola vez.
+- **Archivos anidados y varias herramientas:** un ZIP que solo envuelve un tar.gz se abre, y cuando un paquete trae varias herramientas se elige el lanzador del proyecto.
+- La lista de condiciones para publicar la 1.0 está en [docs/V1-CHECKLIST.md](docs/V1-CHECKLIST.md).
 <!-- END SPANISH -->
