@@ -181,7 +181,7 @@ def clean(item,category='',source=''):
     result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','rom','zelda3','wwhd','project2099') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
     for key in ('added_at','release_at','first_seen'):
         if type(item.get(key)) in (int,float) and item[key]>=0:result[key]=item[key]
-    for key in ('game_title','catalog_slug','release_version'):
+    for key in ('game_title','catalog_slug','release_version','source_status'):
         if isinstance(item.get(key),str):result[key]=item[key][:160]
     if isinstance(item.get('description'),str):result['description']=item['description'][:600]
     fallback=item.get('icon_fallback')
@@ -208,6 +208,12 @@ def fetch_catalog(get=fetch_json,extra=()):
             key=item['repository'].lower();previous=found.get(key)
             if previous is None:found[key]=item
             else:
+                if item['source']=='PortIntegration':
+                    # Preserve curated identities and finer platform categories from other sources.
+                    for field in ('game_title','icon','source_status'):
+                        if not previous.get(field) and item.get(field):previous[field]=item[field]
+                    previous['source']=', '.join(dict.fromkeys([*previous['source'].split(', '),'PortIntegration']))
+                    continue
                 # GithubLauncher's categories are finer than Quiver's; its AI-assisted flag is kept.
                 if item['source']=='GithubLauncher' and item['list']:previous['list']=item['list']
 
@@ -235,6 +241,8 @@ def fetch_catalog(get=fetch_json,extra=()):
     except (OSError,ValueError,KeyError,TypeError):pass
     if get is fetch_json:
         try:add(catalog_sources.independent(fetch(catalog_sources.INDEPENDENT).decode(),clean))
+        except (OSError,ValueError,UnicodeError):pass
+        try:add(catalog_sources.portintegration(fetch(catalog_sources.PORTINTEGRATION).decode(),clean))
         except (OSError,ValueError,UnicodeError):pass
     try:catalog_sources.enrich_games(found.values(),get)
     except (OSError,ValueError,KeyError,TypeError):pass
@@ -292,21 +300,21 @@ def catalog(store,force=False,get=fetch_json,extra=()):
     path=store.root/'catalog-ports.json'
     try:cached=json.loads(path.read_text())
     except (OSError,ValueError):cached={}
-    if not force and cached.get('schema')==4 and cached.get('apps') and time.time()-cached.get('time',0)<CACHE_SECONDS:return cached['apps']
+    if not force and cached.get('schema')==5 and cached.get('apps') and time.time()-cached.get('time',0)<CACHE_SECONDS:return cached['apps']
     try:apps=fetch_catalog(get,extra)
     except (OSError,ValueError,KeyError):
         if cached.get('apps'):
             cached['offline']=True;atomic_json(path,cached);return cached['apps']
         bundled=pathlib.Path(__file__).resolve().parent.parent/'catalog/ports.json'
         if bundled.is_file():
-            apps=parse_source(json.loads(bundled.read_text()),'Deck Library');atomic_json(path,{'schema':4,'time':0,'apps':apps,'offline':True});return apps
+            apps=parse_source(json.loads(bundled.read_text()),'Deck Library');atomic_json(path,{'schema':5,'time':0,'apps':apps,'offline':True});return apps
         raise
     if apps:
         seen=cached.get('first_seen',{});now=time.time()
         old={a['repository'].lower() for a in cached.get('apps',[])}
         for a in apps:
             key=a['repository'].lower();seen.setdefault(key,now if old and key not in old else 0);a['first_seen']=seen[key]
-        atomic_json(path,{'schema':4,'time':now,'apps':apps,'first_seen':seen,'last_added':len({a['repository'].lower() for a in apps}-old) if old else 0,'offline':False})
+        atomic_json(path,{'schema':5,'time':now,'apps':apps,'first_seen':seen,'last_added':len({a['repository'].lower() for a in apps}-old) if old else 0,'offline':False})
     return apps
 
 def pick_asset(assets):

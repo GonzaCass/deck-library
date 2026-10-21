@@ -688,3 +688,11 @@ class DeckUITests(unittest.TestCase):
         driver.poll_input=Mock(side_effect=[RuntimeError('temporary input failure'),True])
         with patch('sys.stderr',new_callable=io.StringIO) as log:
             self.assertTrue(driver.poll());self.assertIn('temporary input failure',log.getvalue());self.assertTrue(driver.poll())
+
+    def test_portintegration_source_can_be_filtered_in_catalog(self):
+        from deck_library import ports
+        self.w.catalog_page();self.w.catalog_apps=[ports.clean({'repository':'source/one','name':'New game'},source='PortIntegration'),ports.clean({'repository':'source/two','name':'Existing game'},source='Quiver actual')]
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):
+            self.w.fill_catalog();self.w.catalog_source.set_active_id('PortIntegration');self.settle()
+        self.assertEqual(self.w.catalog_source.get_active_id(),'PortIntegration');self.assertEqual(len(self.w.catalog_rows.get_children()),1)
+        self.assertEqual(self.w.catalog_rows.get_children()[0].catalog_open.get_accessible().get_name(),'Ver detalles de New game')

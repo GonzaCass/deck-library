@@ -1,7 +1,34 @@
 """Current public catalogs and an independent list; metadata never runs install scripts."""
-import re,urllib.parse,html
+import re,urllib.parse,html,json
 API='https://api.quiverlauncher.com/api/v1'
 INDEPENDENT='https://raw.githubusercontent.com/Sebastrion/awesome-unofficial-pc-ports/main/README.md'
+PORTINTEGRATION='https://raw.githubusercontent.com/Samuel-SSLabs/Port-Integration/main/app.js'
+
+def portintegration(document,clean):
+    """Read only the JSON literals in the site's catalog; never evaluate its JS."""
+    if not isinstance(document,str):return []
+    def literal(name):
+        match=re.search(r'\bconst\s+'+name+r'\s*=\s*',document)
+        if not match:raise ValueError('PortIntegration cambió el formato del catálogo.')
+        value,_=json.JSONDecoder().raw_decode(document[match.end():].lstrip())
+        if not isinstance(value,list):raise ValueError('Lista de PortIntegration inválida.')
+        return value
+    rows=literal('PORTS_DATABASE')
+    try:covers={s for s in literal('LOCAL_COVERS_MANIFEST') if isinstance(s,str)}
+    except ValueError:covers=set()
+    systems={'N64':'Nintendo 64','PS1':'PlayStation','PS2':'PlayStation 2','PS3':'PlayStation 3','PS4':'PlayStation 4','PS5':'PlayStation 5','XBOX360':'Xbox 360','XBOX':'Xbox','XONE':'Xbox One','GC':'GameCube','WII':'Wii','WIIU':'Wii U','SWITCH':'Switch','NDS':'Nintendo DS','GBA':'Game Boy Advance','PC':'PC'}
+    result=[]
+    for row in rows[:2000]:
+        if not isinstance(row,dict) or not isinstance(row.get('repo'),str) or not isinstance(row.get('nome'),str):continue
+        slug=row.get('id');cover=''
+        if isinstance(slug,str) and slug in covers and re.fullmatch(r'[a-zA-Z0-9_-]{1,160}',slug):cover='https://raw.githubusercontent.com/Samuel-SSLabs/Port-Integration/main/assets/covers/'+slug+'.webp'
+        value=clean({'repository':row['repo'],'name':row['nome'],'category':systems.get(str(row.get('console','')).upper(),str(row.get('consoleNome') or 'Otros')),'appIconUrl':cover},source='PortIntegration')
+        if value:
+            value['game_title']=row['nome'][:160]
+            # Upstream 'playable' and its edit date are not our verification or a release date.
+            value['source_status']=str(row.get('status') or '')[:120]
+            result.append(value)
+    return result
 
 def pages(path,get):
     rows=[];cursor='';seen=set()
