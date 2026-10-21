@@ -330,6 +330,10 @@ class InputMixin:
             elif isinstance(focus,Gtk.Button):focus.clicked()
             elif isinstance(focus,Gtk.ListBoxRow):focus.activate()
             elif not window.activate_focus():window.activate_default()
+            # Rendering a game/catalog page can outlast the echo suppression
+            # interval. Measure from completion so a second Steam Input event
+            # cannot activate an unrelated control in the newly opened page.
+            self.last_controller_action=(action,time.monotonic())
             return True
         if action in ('up','down','left','right'):
             if isinstance(focus,Gtk.SpinButton) and action in ('left','right'):
