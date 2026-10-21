@@ -80,7 +80,7 @@ class ReviewedPackageTests(unittest.TestCase):
         assets=[{'name':n} for n in ('Game-Linux-x86-64.zip','Game-Mac-x64.zip','Game.exe')]
         self.assertEqual(port_packages.select(assets)['runtime'],'linux')
         self.assertEqual(port_packages.select(assets,runtime='proton')['asset']['name'],'Game.exe')
-        self.assertIsNone(port_packages.select([{'name':'Unknown.zip'}]))
+        self.assertEqual(port_packages.select([{'name':'Unknown.zip'}])['runtime'],'detect')
         self.assertEqual(port_packages.select([{'name':'Unknown.zip'}],runtime='proton')['runtime'],'proton')
 
 class PortInputTests(unittest.TestCase):

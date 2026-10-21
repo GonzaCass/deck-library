@@ -82,9 +82,9 @@ class CatalogMixin:
             texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);texts.pack_start(label(title,'title'),False,False,0);record=installed.get(item['repository']) or self.catalog_installation(item,installed)
             if title.casefold()!=item['name'].casefold():texts.pack_start(label(item['name'],'subtitle'),False,False,0)
             if item.get('description'):
-                description=label(item['description'],'status');description.set_lines(3);description.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(description,False,False,0)
-            tags=[t for t in (item['list'],item['source'],'Asistido por IA' if item['ai'] else '') if t]
-            texts.pack_start(label(item['repository']+(' · instalado '+record['tag'] if record else ''),'muted'),False,False,0)
+                description=label(item['description'],'status');description.set_lines(2);description.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(description,False,False,0)
+            tags=[t for t in (item['list'],'Constructor' if item.get('package_role')=='builder' else 'Solo código fuente' if item.get('package_role') in ('source-only','build-tool') else '', 'Requiere originales' if item.get('setup') or item.get('preparation')=='launcher' else '') if t]
+            if record:texts.pack_start(label('Instalado · '+record['tag'],'muted'),False,False,0)
             when=item.get('added_at') or item.get('first_seen') or 0
             if when:tags.append(('Nuevo · ' if time.time()-when<30*86400 else 'Añadido ')+datetime.datetime.fromtimestamp(when).strftime('%d/%m/%Y'))
             if tags:texts.pack_start(label('  ·  '.join(tags),'pill'),False,False,0)
@@ -92,7 +92,8 @@ class CatalogMixin:
             if item.get('bios') or item.get('disc'):
                 checks=label('Comprobando requisitos…','status');texts.pack_start(checks,False,False,0);kits.append((item,checks))
             body.pack_start(texts,True,True,0);side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
-            if record and record.get('external'):
+            if item.get('package_role') in ('source-only','build-tool'):side.pack_start(button('Ver requisitos',lambda _,i=item:self.port_details(i)),False,False,0)
+            elif record and record.get('external'):
                 side.pack_start(label('Port ya instalado','good'),False,False,0)
                 side.pack_start(button('Ver en biblioteca',lambda _,r=record:self.select_game(r['entry'])),False,False,0)
                 if record.get('alternative'):side.pack_start(button('Instalar alternativa',lambda _,i=item:self.install_port(i,False)),False,False,0)
@@ -167,6 +168,12 @@ class CatalogMixin:
             from . import port_packages
             try:
                 if item['repository']=='GenryTheFox0/Project-2099':info='Instalador integrado · Xbox 360 → Project 2099 · respaldo completo al actualizar.'
+                elif item.get('package_role') in ('source-only','build-tool'):
+                    info=item.get('source_note','Solo código fuente. Requiere compilación.')
+                    def unavailable():
+                        if not page._closed and primary_action[0]:primary_action[0].set_label('Requiere compilación' if item.get('package_role')=='build-tool' else 'Sin paquete publicado');primary_action[0].set_sensitive(False)
+                        return False
+                    GLib.idle_add(unavailable)
                 elif item.get('web'):info='Instalador integrado · '+item['web']['kind']
                 else:
                     release=ports.release_for(item['repository']);plan=ports.package_plan(item,release.get('assets',[]));proton_plan=ports.package_plan(item,release.get('assets',[]),runtime='proton');info=port_packages.summary(plan)
@@ -307,6 +314,7 @@ class CatalogMixin:
             if any(e.metadata.get('adapter')=='project2099' for e in self.entries):self.update_project2099()
             else:self.project2099_dialog()
             return
+        if item.get('package_role') in ('source-only','build-tool'):self.message('Requiere compilación',item.get('source_note','El proyecto solo publica código fuente.'));return
         existing=self.catalog_installation(item)
         if existing and existing.get('external') and not replace and not self.confirm('Ya hay un port instalado',existing['entry'].name+' ya está en tu biblioteca. ¿Instalar también '+item['name']+' como alternativa?','Instalar alternativa'):return
         needs_sdk=item.get('kit') and not buildenv.installed()
@@ -357,6 +365,14 @@ class CatalogMixin:
             if not path:return
             try:ports.set_input(item['repository'],key,path,self.store);error.set_text('');refresh()
             except (ValueError,OSError) as exc:error.set_text(str(exc))
+        if record.get('original_data'):
+            def original_data(_,folder=False):
+                path=self.pick_file(('Elegir carpeta con exefs y romfs' if record['original_data'].get('kind')=='switch-dump' else 'Elegir carpeta extraída de Xbox') if folder else 'Elegir ISO de Xbox',folder=folder)
+                if not path:return
+                try:ports.set_input(item['repository'],'original_data',path,self.store);error.set_text('');refresh()
+                except (ValueError,OSError) as exc:error.set_text(str(exc))
+            body.pack_start(button('Elegir carpeta extraída',lambda w:original_data(w,True)),False,False,0)
+            if record['original_data'].get('iso'):body.pack_start(button('Elegir ISO de Xbox',original_data),False,False,0)
         for key,caption in (('rom','Elegir ROM'),('disc','Elegir disco'),('bios','Elegir BIOS'),('wiiu','Elegir imagen de Wii U')):
             if record.get(key):body.pack_start(button(caption,lambda w,k=key:select(w,k)),False,False,0)
         body.pack_start(button('Volver a detectar',lambda _:refresh()),False,False,0)
@@ -380,16 +396,21 @@ class CatalogMixin:
         question='Se va a configurar '+item['name']+' con lo que ya está en la Deck.\n\n'+'\n'.join(text for ok,text in lines)+'\n\n'+('Compila el juego dentro del SDK de KDE; el kit de Spider-Man tarda unos minutos. ' if record['setup'] in ('kit','openpete') else '')+('Antes se instalará el SDK de KDE de Flatpak (una sola vez). ' if needs_sdk else '')+'Los discos originales no se modifican.'
         if not automatic and not self.confirm('Configurar '+item['name'],question,'Configurar'):return
         self.port_busy=True;self.set_status('Configurando '+item['name']+'…')
+        cancel=threading.Event() if record['setup']=='b2recomp' else None
+        if cancel is not None:
+            if not hasattr(self,'port_jobs'):self.port_jobs={}
+            self.port_jobs[item['repository']]=cancel
         self.start_transfer(item['repository']);progress=self.port_progress(item['repository'])
         def work():
             try:
                 if needs_sdk:buildenv.install(lambda text:GLib.idle_add(self.set_status,'SDK de KDE: '+text))
-                done=ports.configure(item['repository'],self.store,games,progress)
+                done=ports.configure(item['repository'],self.store,games,progress,**({'cancel':cancel} if cancel is not None else {}))
                 GLib.idle_add(self.port_configured,item,done)
             except Exception as error:GLib.idle_add(self.port_failed,item,str(error))
         threading.Thread(target=work,daemon=True).start()
 
     def port_configured(self,item,record):
+        getattr(self,'port_jobs',{}).pop(item['repository'],None)
         self.finish_transfer(item['repository'])
         GLib.idle_add(self.run_next_auto_port)
         self.port_busy=False;self.set_status(item['name']+' configurado con «'+record.get('configured_with','')+'».');self.discover()
@@ -400,5 +421,6 @@ class CatalogMixin:
 
     def port_failed(self,item,text):
         getattr(self,'port_jobs',{}).pop(item['repository'],None)
-        self.finish_transfer(item['repository'],text)
+        if 'cancelad' in text.lower():self.transfer_event(item['repository'],{'phase':'cancelled','fraction':0,'text':text,'eta':None})
+        else:self.finish_transfer(item['repository'],text)
         self.port_busy=False;self.set_status(text if 'cancelad' in text.lower() else 'No se pudo instalar '+item['name']+': '+text);GLib.idle_add(self.run_next_auto_port);return False

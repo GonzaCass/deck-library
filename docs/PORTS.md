@@ -115,3 +115,18 @@ Se consultaron las publicaciones y las instrucciones originales. Identificar o i
 | [Crash Bandicoot Launcher](https://github.com/Matteo842/CrashBandicoot-Launcher/releases) | Binario Linux | Asistente propio; CHD o CUE y BIN. |
 | [Crash Warped Recompiled](https://github.com/alexbeavs-ps1-ports/crash-bandicoot-3-warped-recomp/releases) | ZIP Linux | Asistente del kit, disco y BIOS; compilación dentro del SDK de KDE. |
 | [CTR Native](https://github.com/CTR-tools/ctr-native/releases) | ZIP Windows x86 con Proton | Adaptador integrado: BIN crudo del disco SCUS-94426 en `assets/ctr-u.bin`. |
+
+## Instalación y preparación: revisión 0.19.8
+
+La selección cubre AppImage, ejecutables Linux, paquetes tar/ZIP y Windows portable con Proton. Los ZIP sin etiqueta de sistema ya no se rechazan por su nombre: se inspeccionan sus ejecutables antes de elegir Linux o Proton. Los paquetes 7z/RAR se leen mediante 7-Zip instalado localmente; sus miembros se validan y se escriben como archivos normales, sin ejecutar instrucciones del catálogo. Instalar un paquete no acredita que el juego sea jugable ni garantiza FPS.
+
+| Proyecto revisado | Ruta ofrecida |
+| --- | --- |
+| [Bayonetta 2 / B2recomp](https://github.com/K0NL/B2recomp/releases/tag/linux-test-5) | Constructor Linux de prueba, preferido al ZIP Windows. Selector de carpeta con `exefs/main` y `romfs` de v1.2. El Python incluido ejecuta `scripts/setup.py --dump … --jobs …`, con hasta cuatro trabajos y salida de progreso. La versión del dump la valida el constructor. No acepta NSP/XCI cifrados. Tras generar `build-linux/game_native`, el acceso inicia `scripts/play.sh`. |
+| [BLACK XBERecomp](https://github.com/TGP482/BLACK-XBERecomp/releases/tag/V2) | `BLACK.exe` con Proton. Deck Library permite elegir una ISO/XISO o una carpeta extraída y prepara `assets`, conservando el original. El port comprueba su versión y compila al iniciarse. |
+| [Black Definitive HD](https://github.com/euspring1/BlackDefinitiveHDPC/releases/tag/V1.3) | `black.exe` con Proton. Selector de carpeta extraída; verifica el SHA-256 NTSC-U publicado de `default.xbe` y copia los originales junto al port, sin reemplazar archivos distintos. |
+| [BLACK PC](https://github.com/Spark198rus/black-pc) | Paquete Windows de 32 bits con Proton; preparación manual según su distribución `game` / `port`. |
+| [BLACK 2006 Recomp](https://github.com/portingpete/Black-2006-Recomp) | Constructor con dependencias de compilación específicas, todavía sin automatización de ese entorno. La ficha muestra requisitos antes de ofrecer una instalación de juego. |
+| [LittleBigPlanet 3](https://github.com/TheNIKITO/LittleBigPlanet-3---PC) | El proyecto consultado no publica un paquete listo y documenta limitaciones de arranque. Se muestra como código fuente con requisitos, sin prometer una instalación jugable. |
+
+Bayonetta 2 conserva configuración, caché y partidas al actualizar. El juego generado se reconstruye con la nueva fuente, en vez de presentar un ejecutable viejo como actualizado. La compilación integrada puede cancelarse; solo se marca lista al encontrar el ejecutable final. Si faltan originales, la biblioteca muestra **Preparar** en lugar de **Jugar**. Los instaladores de formatos no integrados, paquetes sin ejecutable y proyectos con dependencias especiales siguen necesitando un adaptador; la app debe mostrarlo sin llamar a todo «incompatible».

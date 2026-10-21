@@ -160,6 +160,11 @@ def requirements(item,games,home=None):
     otherwise by Redump-style name, in which case ok is None (only a name check was possible).
     """
     lines=[];inputs=item.get('inputs') or {};games=[*games,*[(pathlib.Path(p).name,p) for k,p in inputs.items() if k in ('disc','wiiu') and p]]
+    if item.get('original_data'):
+        from .original_data import validate
+        try:
+            original=validate(inputs.get('original_data',''),item['original_data']);lines.append((True,'Archivos originales: '+str(original)))
+        except (ValueError,OSError):lines.append((False,'Archivos originales pendientes: elegí exefs y romfs de Bayonetta 2 v1.2.' if item['original_data'].get('kind')=='switch-dump' else 'Archivos originales de Xbox pendientes: elegí la carpeta extraída'+(' o ISO/XISO.' if item['original_data'].get('iso') else '.')))
     if item.get('bios'):
         found=find_bios(item['bios'].get('sha256',[]),home,[inputs.get('bios')])
         lines.append((True,'BIOS '+item['bios'].get('name','')+': encontrada en '+found) if found else (False,'BIOS '+item['bios'].get('name','')+': no se encontró un archivo con el hash exacto.'))
@@ -198,8 +203,8 @@ def clean(item,category='',source=''):
     if not isinstance(folder,str) or not FOLDER.fullmatch(folder):folder=re.sub(r'[^A-Za-z0-9._-]','',repo.split('/')[1]) or 'port'
     name=item.get('name');icon=item.get('appIconUrl') or item.get('icon');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
     ai=bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
-    result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','ctr_native','rom','zelda3','wwhd','project2099') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
-    for field in ('preparation','source_note','asset_prefix','windows_exe','package_role'):
+    result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','ctr_native','rom','zelda3','wwhd','project2099','original_data','b2recomp') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
+    for field in ('preparation','source_note','asset_prefix','windows_exe','package_role','original_data','preserve'):
         if field in RECIPES.get(repo.lower(),{}):result[field]=RECIPES[repo.lower()][field]
     for key in ('added_at','release_at','first_seen'):
         if type(item.get(key)) in (int,float) and item[key]>=0:result[key]=item[key]
@@ -344,18 +349,18 @@ def pick_asset(assets):
     best=None;best_score=0
     for asset in assets:
         name=str(asset.get('name',''));low=name.lower()
-        if re.search(r'\.(sha256|sig|txt|md5|json|asc|exe|msi|dmg|apk|deb|rpm|pkg|7z|rar)$|source|src\b|symbols|debug|flatpak',low):continue
+        if re.search(r'\.(sha256|sig|txt|md5|json|asc|exe|msi|dmg|apk|deb|rpm|pkg)$|source|src\b|symbols|debug|flatpak',low):continue
         # 'win' and 'mac' only as whole words: "WindWakerHD" and "machine" are not Windows or macOS.
         if re.search(r'(?<![a-z])(?:win|windows|win32|win64|mac|macos)(?![a-z])|osx|darwin|android|arm64|aarch64|armv|(?<![a-z])arm(?![a-z])|ppc64|riscv|i386|(?<![a-z0-9])x86(?![_-]?64)|32-?bit',low):continue
         linux=bool(re.search(r'linux|steamos|steamdeck|steam-deck|deck',low))
         if not linux and not low.endswith('.appimage'):continue
-        if not low.endswith(('.appimage','.tar.gz','.tgz','.tar.xz','.tar.bz2','.tbz2','.tar.zst','.tar','.zip')) and '.' in name:continue
+        if not low.endswith(('.appimage','.tar.gz','.tgz','.tar.xz','.tar.bz2','.tbz2','.tar.zst','.tar','.zip','.7z','.rar')) and '.' in name:continue
         score=1
         if re.search(r'steamos|steamdeck|steam-deck',low):score+=3
         if re.search(r'x86[_-]64|amd64|x64',low):score+=2
         if re.search(r'(?<![a-z])(?:jp|japan|japanese)(?![a-z])',low):score-=1
         bare='.' not in low.rsplit('-',1)[-1]
-        score+={'.appimage':4,'.tar.gz':3,'.tgz':3,'.tar.xz':3,'.tar.bz2':3,'.tbz2':3,'.tar.zst':3,'.tar':3,'.zip':2}.get(next((e for e in ('.appimage','.tar.gz','.tgz','.tar.xz','.tar.bz2','.tbz2','.tar.zst','.tar','.zip') if low.endswith(e)),''),3 if bare and linux else 0)
+        score+={'.appimage':4,'.tar.gz':3,'.tgz':3,'.tar.xz':3,'.tar.bz2':3,'.tbz2':3,'.tar.zst':3,'.tar':3,'.zip':2,'.7z':2,'.rar':1}.get(next((e for e in ('.appimage','.tar.gz','.tgz','.tar.xz','.tar.bz2','.tbz2','.tar.zst','.tar','.zip','.7z','.rar') if low.endswith(e)),''),3 if bare and linux else 0)
         if score>best_score and score>2:best,best_score=asset,score
     return best
 
@@ -382,6 +387,11 @@ def resolve_web(web,page=None):
 
 def release_for(repo,get=fetch_json):
     """Latest release, or the newest pre-release when the project has no stable one."""
+    from .port_recipes import RECIPES
+    if RECIPES.get(repo.lower(),{}).get('prefer_native_preview'):
+        rows=get(f'https://api.github.com/repos/{repo}/releases?per_page=20')
+        native=next((r for r in rows if not r.get('draft') and pick_asset(r.get('assets',[]))),None)
+        if native:return native
     try:return get(f'https://api.github.com/repos/{repo}/releases/latest')
     except urllib.error.HTTPError as error:
         if error.code!=404:raise
@@ -396,15 +406,18 @@ def records(store):
 def package_plan(item,assets,runtime='auto'):
     from .port_packages import select
     item=clean(item)
-    if not item or item.get('package_role')=='build-tool':return None
+    if not item or item.get('package_role') in ('build-tool','source-only'):return None
     return select(assets,runtime=runtime,platforms=item.get('supported_os',[]),asset_prefix=item.get('asset_prefix',''))
 
 def set_input(repository,key,path,store=None):
     """Remember a manually selected original only after checking the adapter's identity."""
     store=store or Store();saved=records(store);record=saved.get(repository)
-    if not record or key not in ('rom','disc','bios','wiiu') or not record.get(key):raise ValueError('Este instalador no admite ese tipo de archivo.')
+    if not record or key not in ('rom','disc','bios','wiiu','original_data') or not record.get(key):raise ValueError('Este instalador no admite ese tipo de archivo.')
     path=pathlib.Path(path).expanduser().resolve()
-    if not path.is_file():raise ValueError('El archivo elegido no está disponible.')
+    if key=='original_data':
+        from .original_data import validate
+        validate(path,record[key])
+    elif not path.is_file():raise ValueError('El archivo elegido no está disponible.')
     spec=record[key]
     if key=='rom' and not match_rom(spec,path):raise ValueError('La ROM no coincide con el tamaño y el SHA-1 requeridos por este port.')
     if key=='bios' and not (path.stat().st_size==BIOS_SIZE and sha256_file(path) in spec.get('sha256',[])):raise ValueError('La BIOS no coincide con el hash requerido por este port.')
@@ -443,6 +456,9 @@ def sha256_file(path):
 
 def extract(archive,destination):
     destination=pathlib.Path(destination).resolve();name=str(archive).lower()
+    if name.endswith(('.7z','.rar')):
+        from .archive7z import extract as unpack
+        unpack(archive,destination);return
     if name.endswith('.tar.zst'):
         tool=shutil.which('zstd')
         if not tool:raise ValueError('Falta zstd para extraer este paquete de Linux.')
@@ -554,6 +570,11 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
             for path in staging.rglob('*'):
                 if path.is_symlink() and not path.resolve().is_relative_to(staging.resolve()):raise ValueError('Un enlace del paquete sale de la carpeta del port.')
         from . import buildenv
+        if runtime=='detect':
+            runtime=port_packages.detect_runtime(staging)
+            if runtime=='proton':
+                from .project2099 import proton_path
+                proton_path()
         kit=buildenv.looks_like_kit(staging)
         declared=(item.get('windows_exe') or (item['exe'] if item.get('exe','').lower().endswith('.exe') else '')) if runtime=='proton' else item.get('exe')
         if item['setup']=='zelda3':kit=True  # built from source, runs inside the SDK
@@ -564,14 +585,17 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
         elif declared:
             executable=(staging/declared).resolve()
             if not executable.is_relative_to(staging.resolve()):raise ValueError('La ruta del ejecutable sale del paquete.')
-            if not executable.is_file():raise ValueError('El paquete no contiene el ejecutable esperado: '+executable.name+'. Se conserva la instalación anterior.')
+            if not executable.is_file():
+                matches=[p for p in staging.rglob(pathlib.Path(declared).name) if p.is_file() and len(p.relative_to(staging).parts)<=3]
+                if len(matches)==1:executable=matches[0]
+                else:raise ValueError('El paquete no contiene el ejecutable esperado: '+executable.name+'. Se conserva la instalación anterior.')
         elif runtime=='proton':executable=port_packages.windows_executable(staging,item['repository'])
         else:executable=find_executable(staging,item['repository'])
         if runtime=='proton' and not executable:raise ValueError('El paquete Windows no contiene un juego portable identificable. Se conserva la instalación anterior; este port requiere una integración específica.')
         if executable and executable.exists():executable.chmod(executable.stat().st_mode|0o111)
-        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'runtime':runtime,'game_title':item.get('game_title') or item['cover_title'],'original_platform':platform_for(item['list']),'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'preparation':item.get('preparation',''),'source_note':item.get('source_note',''),'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
+        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'runtime':runtime,'game_title':item.get('game_title') or item['cover_title'],'original_platform':platform_for(item['list']),'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'preparation':item.get('preparation',''),'source_note':item.get('source_note',''),'original_data':item.get('original_data'),'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
         if previous.get('inputs'):record['inputs']=dict(previous['inputs'])
-        if destination.exists():port_packages.preserve_saves(destination,staging,cancel)
+        if destination.exists():port_packages.preserve_saves(destination,staging,cancel,extra=item.get('preserve',()))
         atomic_json(staging/'.deck-library-port.json',record)
         check_cancel(cancel)
         old=None
@@ -623,6 +647,8 @@ def entry_for(folder):
         exe=built;cwd=str(built.parent)
         if (built.parent/'bios.cfg').is_file():args=[*args,'--no-launcher']
     env=[f'{k}={v}' for k,v in (record.get('env') or {}).items()]
+    if record['repository'].lower()=='k0nl/b2recomp' and record.get('runtime')=='linux' and (folder/'build-linux/game_native').is_file() and (folder/'scripts/play.sh').is_file():
+        exe=folder/'scripts/play.sh';cwd=str(folder);exe.chmod(exe.stat().st_mode|0o111)
     command=buildenv.wrap([str(exe),*args],record.get('env')) if record.get('sandbox') else [*(['env',*env] if env else []),str(exe),*args]
     if record.get('runtime')=='proton':
         import sys
@@ -1050,7 +1076,7 @@ def maintain(store=None,home=None):
                 if (folder/'.deck-library-port.json').is_file():atomic_json(folder/'.deck-library-port.json',record)
     return list(dict.fromkeys(changed))
 
-def configure(repository,store=None,games=(),progress=print,home=None,run=None):
+def configure(repository,store=None,games=(),progress=print,home=None,run=None,cancel=None):
     """Prepare an installed port with what the Deck already has: the disc from the library and, for kits, the BIOS found by hash.
 
     kit: verify the disc, generate the recompiled code and build it inside the SDK, then store the BIOS choice.
@@ -1071,6 +1097,25 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None):
     disc=find_disc(record['disc'],games) if record.get('disc') else None
     if record.get('disc') and not disc:raise ValueError('No se encontró el disco '+record['disc']['serial']+' en un formato legible (BIN, ISO o CUE).')
     kind=record['setup'];executable=folder/record['executable']
+    if kind=='b2recomp':
+        from .original_data import validate
+        source=validate(inputs.get('original_data',''),record['original_data'])
+        python=next((p for p in sorted((folder/'deps/python/bin').glob('python3.*'),reverse=True) if re.fullmatch(r'python3\.\d+',p.name)),folder/'deps/python/bin/python3');script=folder/'scripts/setup.py'
+        if not python.is_file() or not script.is_file():raise ValueError('El paquete no contiene el constructor Linux completo de Bayonetta 2.')
+        for executable in [*list((folder/'deps/python/bin').glob('*')),folder/'deps/zig/zig']:
+            if executable.is_file():executable.chmod(executable.stat().st_mode|0o111)
+        progress('Compilando Bayonetta 2. Los archivos originales se conservan en su carpeta.')
+        check_cancel(cancel)
+        run([str(python),str(script),'--dump',str(source),'--jobs',str(min(4,os.cpu_count() or 2))],cwd=str(folder),progress=progress,sandbox=False,**({'until':cancel.is_set} if cancel is not None else {}))
+        check_cancel(cancel)
+        if not (folder/'build-linux/game_native').is_file():raise ValueError('El constructor terminó sin generar game_native. Revisá el registro de compilación.')
+        record.update(configured=True,configured_with=source.name)
+        saved=records(store);saved[repository]=record;atomic_json(store.root/'ports.json',saved);atomic_json(folder/'.deck-library-port.json',record);return record
+    if kind=='original_data':
+        from .original_data import prepare
+        original=prepare(folder,inputs.get('original_data',''),record['original_data'],progress)
+        record.update(configured=True,configured_with=pathlib.Path(original).name)
+        saved=records(store);saved[repository]=record;atomic_json(store.root/'ports.json',saved);atomic_json(folder/'.deck-library-port.json',record);return record
     if kind=='kit':
         if not disc['cue']:raise ValueError('El kit necesita el archivo .cue del disco.')
         bios=find_bios(record['bios']['sha256'],home,[inputs.get('bios')]);cli='psxrecomp/psxrecomp_cli.py';base=['python3',cli]

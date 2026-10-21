@@ -178,6 +178,25 @@ combobox.controller-focus button { outline:2px solid #ffffff; outline-offset:-2p
 label.control-glyph { background:#393939; border:1px solid #6f6f6f; border-radius:6px; padding:3px 7px; color:#ffffff; font-size:14px; font-weight:700; }
 label.control-stick { border-radius:14px; min-width:16px; padding:3px 5px; }
 label.control-caption { color:#c6c6c6; font-size:14px; }
+
+.deck-density button { padding:4px 10px; min-height:24px; }
+.deck-density button.poster,.deck-density button.hero-cover { padding:0; }
+.deck-density button.action { padding:5px 10px; min-height:24px; }
+.deck-density button.play { min-height:32px; padding:5px 12px; }
+.deck-density button.nav { padding:4px 8px; }
+.deck-density entry,.deck-density combobox button { padding:5px 9px; min-height:26px; }
+.deck-density .app-header button { min-height:28px; }
+.deck-density .app-header { padding:0; }
+.deck-density .apply-dock { padding:7px 10px; }
+.deck-density .card,.deck-density .surface-panel { padding:10px; }
+.deck-density button.task { padding:7px 10px; }
+.deck-density button.profile-card { padding:10px; }
+.deck-density button.profile-card label.profile-title { font-size:18px; }
+.deck-density .settings-row { padding:8px 2px; }
+.deck-density .banner { padding:5px 10px; }
+.deck-density label.hero { font-size:24px; }
+.deck-density .inline-page-heading { font-size:22px; }
+.deck-density .community-profile-row { min-height:50px; padding:8px 10px; }
 '''
 
 TONES={'play':'play','danger':'danger','presets':'violet','steam':'steam','controls':'amber'}

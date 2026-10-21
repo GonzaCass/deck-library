@@ -8,11 +8,11 @@ class InlineDialog(Gtk.Box):
     __gsignals__={'response':(GObject.SignalFlags.RUN_LAST,None,(int,))}
 
     def __init__(self,title='',transient_for=None,modal=False,**kwargs):
-        super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=12)
+        super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         self.owner=transient_for.owner if isinstance(transient_for,InlineDialog) else transient_for
         self._loop=None;self._answer=None;self._mounted=False;self._closed=False;self._deletable=True;self._buttons={};self._default_size=(640,480)
-        self.set_border_width(20);self.set_hexpand(True);self.set_vexpand(True)
-        heading=Gtk.Label(label=title,xalign=0);heading.set_line_wrap(True);heading.get_style_context().add_class('hero');self.pack_start(heading,False,False,0)
+        self.set_border_width(12);self.set_hexpand(True);self.set_vexpand(True)
+        heading=Gtk.Label(label=title,xalign=0);heading.set_line_wrap(True);heading.get_style_context().add_class('inline-page-heading');self.pack_start(heading,False,False,0)
         self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
         self.scroll=self.owner.new_scroll();self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC);self.scroll.set_overlay_scrolling(False);self.scroll.set_vexpand(True);self.scroll.add(self.content);self.pack_start(self.scroll,True,True,0)
         self.actions=Gtk.ButtonBox(orientation=Gtk.Orientation.HORIZONTAL);self.actions.set_layout(Gtk.ButtonBoxStyle.END);self.actions.set_spacing(10);self.pack_end(self.actions,False,False,0)

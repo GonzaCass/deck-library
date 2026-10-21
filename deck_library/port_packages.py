@@ -1,8 +1,8 @@
 """Release package families. Catalog metadata never supplies executable install commands."""
 import pathlib,re,shutil,sys
 
-ARCHIVES=('.zip','.tar.gz','.tgz','.tar.xz','.tar.bz2','.tbz2','.tar.zst','.tar')
-SAVES=('UserData','userdata','saves','Saves','savegames','SaveGames')
+ARCHIVES=('.zip','.7z','.rar','.tar.gz','.tgz','.tar.xz','.tar.bz2','.tbz2','.tar.zst','.tar')
+SAVES=('UserData','userdata','saves','Saves','savegames','SaveGames','savedata')
 
 def select(assets,runtime='auto',platforms=(),asset_prefix=''):
     from .ports import pick_asset
@@ -12,26 +12,44 @@ def select(assets,runtime='auto',platforms=(),asset_prefix=''):
     if runtime=='linux':return None
     platforms={p.lower() for p in platforms}
     windows_only='windows' in platforms and not any(p in platforms for p in ('linux','steamos'))
-    candidates=[]
+    candidates=[];unlabelled=[]
     for asset in assets:
         name=asset.get('name','').lower()
         if re.search(r'arm64|aarch64|armv|(?<![a-z])arm(?![a-z])|setup|installer|uninstall|source|symbols|debug|runtime|readme|patch|manifest',name):continue
         if re.search(r'linux|steamos|macos|darwin|osx|android|flatpak|(?<![a-z])mac(?![a-z])',name):continue
-        if not name.endswith(('.zip','.exe')):continue
+        if not name.endswith(('.zip','.7z','.rar','.exe')):continue
         windows=bool(re.search(r'(?<![a-z])(?:win|windows|win32|win64)(?![a-z])',name))
-        if not (windows or name.endswith('.exe') or windows_only or runtime=='proton'):continue
+        if not (windows or name.endswith('.exe') or windows_only or runtime=='proton'):
+            if name.endswith(('.zip','.7z','.rar')):unlabelled.append(asset)
+            continue
         score=3 if re.search(r'x64|x86[_-]64|amd64|win64',name) else 1 if re.search(r'x86|win32|i386',name) else 2
         if re.search(r'(?<![a-z])(?:jp|japan|japanese)(?![a-z])',name):score-=1
         candidates.append((score,asset))
     if candidates:
         asset=max(candidates,key=lambda pair:pair[0])[1]
-        return {'asset':asset,'runtime':'proton','kind':'archive' if asset['name'].lower().endswith('.zip') else 'binary'}
+        return {'asset':asset,'runtime':'proton','kind':'archive' if asset['name'].lower().endswith(('.zip','.7z','.rar')) else 'binary'}
+    if runtime=='auto' and unlabelled:
+        return {'asset':unlabelled[0],'runtime':'detect','kind':'archive'}
     return None
 
 def summary(plan):
     if not plan:return 'Sin paquete compatible: requiere una integración específica o una compilación desde código fuente.'
     if plan['runtime']=='proton':return 'Windows portable · Proton · compatibilidad del juego sin comprobar.'
+    if plan['runtime']=='detect':return 'Paquete sin etiqueta de sistema · se comprobará su contenido; Windows usa Proton.'
     return {'appimage':'AppImage de Linux','archive':'Paquete de Linux','binary':'Ejecutable de Linux'}[plan['kind']]+' · instalación y actualización desde Deck Library.'
+
+def detect_runtime(folder):
+    """Inspect executable headers instead of guessing Windows/Linux from a ZIP filename."""
+    root=pathlib.Path(folder);native=False;windows=False
+    for path in root.rglob('*'):
+        if not path.is_file() or len(path.relative_to(root).parts)>3:continue
+        if re.search(r'(^|/)(deps|tools|compiler|redist|third.party)(/|$)',path.relative_to(root).as_posix(),re.I):continue
+        with path.open('rb') as source:magic=source.read(4)
+        native|=magic==b'\x7fELF'
+        windows|=path.suffix.lower()=='.exe' and magic[:2]==b'MZ'
+    if native:return 'linux'
+    if windows:return 'proton'
+    raise ValueError('El paquete no contiene una aplicación Linux o Windows identificable. Puede ser código fuente o un constructor; revisá los requisitos de su ficha.')
 
 def windows_executable(folder,repository=''):
     from .ports import SKIP_NAMES
@@ -45,11 +63,14 @@ def windows_executable(folder,repository=''):
     named=[p for p in files if key and key==re.sub('[^a-z0-9]','',p.stem.lower())]
     return named[0] if len(named)==1 else ''
 
-def preserve_saves(old,new,cancel=None):
+def preserve_saves(old,new,cancel=None,extra=()):
     from .ports import check_cancel
-    for name in SAVES:
+    for name in dict.fromkeys((*SAVES,*extra)):
+        if pathlib.PurePath(name).is_absolute() or '..' in pathlib.PurePath(name).parts:raise ValueError('Destino de conservación inválido.')
         source=old/name
         if source.is_symlink():raise ValueError('La carpeta de partidas es un enlace; se conserva la instalación anterior.')
+        if source.is_file():
+            target=new/name;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(source,target);continue
         if not source.is_dir():continue
         for path in source.rglob('*'):
             check_cancel(cancel)

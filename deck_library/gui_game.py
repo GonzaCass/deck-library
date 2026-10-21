@@ -175,7 +175,14 @@ class GameMixin:
         name.set_tooltip_text(entry.name)
         info.pack_start(name, False, False, 0)
         actions = Gtk.Box(spacing=10)
-        self.game_play_button = ActionButton('Jugar', 'play', lambda b: self.launch_from_game(entry, b), 'play')
+        needs_setup=entry.metadata.get('configured') is False and bool(entry.metadata.get('port_repository'))
+        def primary_action(control):
+            if needs_setup:
+                from . import ports
+                record=ports.records(self.store).get(entry.metadata['port_repository'])
+                if record and record.get('setup'):self.configure_port(ports.clean(record));return
+            self.launch_from_game(entry,control)
+        self.game_play_button = ActionButton('Preparar' if needs_setup else 'Jugar', 'sliders' if needs_setup else 'play', primary_action, 'play')
         self.game_play_button.set_size_request(140, -1)
         actions.pack_start(self.game_play_button, False, False, 0)
         steam = ActionButton('Agregar a Steam','steam',lambda _:self.activate_game_steam(entry),'steam')

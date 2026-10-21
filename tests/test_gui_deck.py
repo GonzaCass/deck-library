@@ -54,6 +54,7 @@ class DeckUITests(unittest.TestCase):
             self.w.last_keyboard_request=0;self.w.search.emit('icon-press',Gtk.EntryIconPosition.PRIMARY,None);self.assertEqual(launch.call_count,2)
 
     def test_gamepad_reaches_filters_and_changes_the_library_view(self):
+        self.w.filter_toggle.clicked();self.settle()
         from gi.repository import Gtk
         targets=self.w.control_targets(self.w)
         for picker in (self.w.platform_picker,self.w.type_picker,self.w.view_picker):
@@ -105,7 +106,7 @@ class DeckUITests(unittest.TestCase):
         for control in self.w.navigation_controls:
             x,y=control.translate_coordinates(self.w,0,0)
             self.assertGreaterEqual(x,0);self.assertLessEqual(x+control.get_allocated_width(),1280)
-            self.assertGreaterEqual(control.get_allocated_height(),44)
+            self.assertGreaterEqual(control.get_allocated_height(),36)
         self.w.select_game(self.w.entries[0]);self.settle()
         self.assertGreaterEqual(self.w.game_play_button.get_allocated_height(),44)
         for card in self.w.profile_cards[:3]:
@@ -332,6 +333,28 @@ class DeckUITests(unittest.TestCase):
         self.w.type_filter='emulator';self.assertEqual(self.w.visible(),[original])
         self.w.focus_library(original.id);self.settle()
         self.assertEqual(self.w.get_focus().library_entry_id,port.id)
+
+    def test_install_and_prepare_workers_start_and_clear_their_progress(self):
+        import threading,time
+        from deck_library import ports
+        from deck_library.models import atomic_json
+        item=ports.clean({'repository':'K0NL/B2recomp'})
+        record={**item,'configured':False,'executable':'B2recomp'}
+        with patch.object(ports,'install',return_value=record) as install,patch.object(self.w,'port_installed',return_value=False) as installed:
+            self.w.install_port(item,False)
+            until=time.monotonic()+3
+            while not installed.called and time.monotonic()<until:self.settle()
+            installed.assert_called_once();self.assertIsInstance(install.call_args.kwargs['cancel'],threading.Event)
+        self.w.port_busy=False;self.w.port_jobs.clear()
+        for setup in ('b2recomp','original_data'):
+            record.update(setup=setup);atomic_json(self.store.root/'ports.json',{item['repository']:record})
+            with patch.object(ports,'requirements',return_value=[]),patch.object(ports,'configure',return_value={**record,'configured':True}) as configure:
+                self.w.configure_port(item,automatic=True)
+                until=time.monotonic()+3
+                while self.w.port_busy and time.monotonic()<until:self.settle()
+                configure.assert_called_once();self.assertFalse(self.w.port_busy);self.assertNotIn(item['repository'],self.w.port_jobs)
+                self.assertEqual('cancel' in configure.call_args.kwargs,setup=='b2recomp')
+                self.assertEqual(self.w.transfers[item['repository']].state['phase'],'done')
 
     def test_port_input_picker_validates_before_preparing_without_a_native_dialog(self):
         import hashlib
@@ -993,4 +1016,47 @@ class DeckUITests(unittest.TestCase):
                 return False
             GLib.timeout_add(300,check);return original(page)
         with patch.object(Client,'search',return_value=[result]),patch.object(Client,'comments',return_value=[]),patch.object(self.inline,'run',run):self.w.community_dialog(self.w.entries[0])
+        self.assertEqual(seen,[True])
+
+    def test_deck_library_hides_secondary_filters_until_requested(self):
+        self.assertFalse(self.w.filter_scroll.get_mapped());self.assertTrue(self.w.filter_toggle.get_mapped())
+        for view in ('covers','list'):
+            self.w.view=view;self.w.render();self.settle();self.w.focus_library(self.w.entries[0].id)
+            self.w.last_controller_action=('',0);self.w.controller_action('up');self.settle()
+            self.assertIs(self.w.get_focus(),self.w.search)
+            self.w.last_controller_action=('',0);self.w.controller_action('right');self.settle()
+            self.assertIs(self.w.get_focus(),self.w.filter_toggle)
+        self.w.filter_toggle.clicked();self.settle();self.assertTrue(self.w.platform_picker.get_mapped())
+        self.w.type_picker.set_active_id('port');self.settle();self.assertIn('1',self.w.filter_toggle.get_label())
+        self.w.filter_toggle.clicked();self.settle();self.assertFalse(self.w.filter_scroll.get_mapped());self.assertTrue(self.w.filter_toggle.has_focus())
+
+    def test_community_list_and_profile_use_full_width_and_circle_returns_to_list(self):
+        from gi.repository import Gtk,GLib
+        from deck_library import presets
+        from deck_library.community import Client
+        profile=presets.recommended(self.w.entries[0],self.store)[0];value={'id':'test-profile','preset':profile,'author':'Player','rating':4.5,'ratings':2}
+        original=self.inline.run;seen=[]
+        def walk(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from walk(child)
+        def run(page):
+            def check():
+                try:
+                    stack=next(w for w in walk(page) if isinstance(w,Gtk.Stack));row=next(w for w in walk(page) if isinstance(w,Gtk.ListBoxRow))
+                    self.assertGreater(row.get_allocated_width(),1000);row.get_child().clicked()
+                    self.assertEqual(stack.get_visible_child_name(),'profile')
+                    use=next(w for w in walk(page) if isinstance(w,Gtk.Button) and w.get_label()=='Usar este perfil')
+                    def back():
+                        try:
+                            self.assertTrue(use.get_mapped());x,y=use.translate_coordinates(self.w,0,0);self.assertGreaterEqual(y,0);self.assertLess(y+use.get_allocated_height(),self.w.get_allocated_height())
+                            self.w.controller_action('back');self.assertEqual(stack.get_visible_child_name(),'browse');self.assertIn(page,self.w.inline_workflows);seen.append(True)
+                        finally:page.response(Gtk.ResponseType.CLOSE)
+                        return False
+                    GLib.timeout_add(180,back)
+                except Exception:
+                    page.response(Gtk.ResponseType.CLOSE);raise
+                return False
+            GLib.timeout_add(250,check);return original(page)
+        with patch.object(Client,'search',return_value=[value]),patch.object(Client,'comments',return_value=[]),patch.object(self.inline,'run',run):self.w.community_dialog(self.w.entries[0])
         self.assertEqual(seen,[True])

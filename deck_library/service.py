@@ -14,8 +14,43 @@ def pending_lock(store):
 def queue_entries(entries,account,store=None,start_worker=True):
     entries=[e for e in entries if not e.metadata.get('steam_store')]
     if not entries:return {'state':'idle','count':0}
-    store=store or Store(); store.merge(entries)
+    store=store or Store()
+    old={e.id:e for e in store.load()}
+    for entry in entries:
+        if entry.metadata.get('library_app') and entry.id in old:entry.metadata={**old[entry.id].metadata,**entry.metadata}
+    store.merge(entries)
+    entries=[e for e in entries if not self_shortcut_matches(e,account,store)]
+    if not entries:return {'state':'idle','count':0}
     return _queue(account,store,[e.id for e in entries],[],start_worker)
+
+def self_shortcut_matches(entry,account,store):
+    """Only our own unchanged shortcut can be removed from an old queue automatically."""
+    if not entry.metadata.get('library_app'):return False
+    from .steam_inventory import shortcuts
+    try:
+        launcher=store.root/'launchers'/(entry.id+'.sh')
+        import shlex
+        lines=launcher.read_text().splitlines()
+        command=shlex.split(lines[1]) if len(lines)==2 else []
+        if len(command)<3 or command[0]!='exec' or command[2:]!=[entry.source,'launch',entry.id,'--data-dir',str(store.root)]:return False
+        if not os.path.samefile(command[1],entry.command[0]):return False
+        expected={'name':entry.name,'exe':'"'+str(launcher)+'"','startdir':'"'+str(launcher.parent)+'"','options':'','icon':entry.icon}
+        return any(all(row.get(k,'')==v for k,v in expected.items()) for row in shortcuts(account)) and launcher.is_file()
+    except (OSError,ValueError):return False
+
+def reconcile_pending(store=None):
+    """Drop redundant self-shortcut updates, preserving every unrelated queued operation."""
+    store=store or Store();path=store.root/'pending.json'
+    with pending_lock(store):
+        if not path.exists():return 0
+        value=json.loads(path.read_text())
+        if not value.get('account'):return 0
+        by_id={e.id:e for e in store.load()}
+        old=value.get('ids',[]);value['ids']=[i for i in old if i not in by_id or not self_shortcut_matches(by_id[i],value['account'],store)]
+        if value['ids']==old:return 0
+        if any(value.get(k) for k in ('ids','remove','controllers','art')):atomic_json(path,value)
+        else:path.unlink()
+        return len(old)-len(value['ids'])
 
 def queue_removals(appids,account,store=None,start_worker=True):
     """Queue shortcut removals by app ID; they run once Steam is closed."""

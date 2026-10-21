@@ -69,7 +69,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-0.19.7.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-0.19.8.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -111,7 +111,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **0.19.7**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **0.19.8**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 La ficha de cada port indica cómo se preparan sus archivos: desde Deck Library, desde el asistente del propio port o manualmente. Si hay adaptador, podés elegir la ROM, el disco o la BIOS que falten y se comprueban antes de preparar. **Instalar con Proton** permite usar paquetes Windows portables cuando corresponde. La [tabla de proyectos revisados](docs/PORTS.md#proyectos-revisados-el-21-de-octubre-de-2026) detalla los casos de God of War, inFAMOUS, Sonic, Smash, Time Crisis, Lord of the Rings y Crash; no implica que todos se hayan probado en juego.
 

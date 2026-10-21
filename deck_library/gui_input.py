@@ -215,7 +215,9 @@ class InputMixin:
             if point and widget.get_mapped():rectangles[identifier]=(*point,widget.get_allocated_width(),widget.get_allocated_height())
         target=neighbour(rectangles,current,action)
         if target:self.focus_library(target)
-        elif action=='up':self.platform_picker.set_can_focus(True);self.platform_picker.grab_focus()
+        elif action=='up':
+            control=self.platform_picker if self.platform_picker.get_mapped() else self.search
+            control.set_can_focus(True);control.grab_focus();self.mark_controller_focus(self,control)
         elif action=='down' and self.selection_mode:self.select_button.grab_focus()
         return True
 
@@ -256,12 +258,15 @@ class InputMixin:
         if not point:return
         axis=1 if vertical else 0;adjustment=scroll.get_vadjustment() if vertical else scroll.get_hadjustment();value=adjustment.get_value();page=adjustment.get_page_size()
         size=visual.get_allocated_height() if vertical else visual.get_allocated_width()
-        if point[axis]+size>value and point[axis]<value+page:return
+        focus_point=focus.translate_coordinates(content,0,0)
+        focus_size=focus.get_allocated_height() if vertical else focus.get_allocated_width()
+        if focus_point and focus_point[axis]+focus_size>value and focus_point[axis]<value+page:return
         candidates=[]
         for index,widget in enumerate(self.control_targets(scroll)):
             view=getattr(widget,'library_focus_visual',widget);pos=view.translate_coordinates(content,0,0)
             length=view.get_allocated_height() if vertical else view.get_allocated_width()
-            if pos and pos[axis]+length>value and pos[axis]<value+page:
+            hit=widget.translate_coordinates(content,0,0);hit_length=widget.get_allocated_height() if vertical else widget.get_allocated_width()
+            if pos and hit and hit[axis]+hit_length>value and hit[axis]<value+page:
                 full=value<=pos[axis] and pos[axis]+length<=value+page
                 candidates.append((not full,abs(pos[1-axis]-point[1-axis]),abs(pos[axis]-value),index,widget))
         if candidates:

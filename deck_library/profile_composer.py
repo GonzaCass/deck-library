@@ -27,7 +27,12 @@ class ProfileComposer(Gtk.Box):
             self.pack_start(ActionButton('Leer otro archivo de configuración','folder',load_file,'quiet'),False,False,0)
         self.status=text('Lee las opciones guardadas y sus valores globales heredados. No incluye controles, rutas ni cuentas.','muted',85)
         self.pack_start(self.status,False,False,0)
-        self.settings=self.editor('Ajustes detectados · JSON editable',100)
+        before=len(self.get_children());self.settings=self.editor('Ajustes detectados · JSON editable',130)
+        from .ui_components import Reveal
+        advanced=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+        for child in self.get_children()[before:]:
+            self.remove(child);advanced.pack_start(child,False,False,0)
+        self.settings_reveal=Reveal('Ver y editar las opciones detectadas',advanced);self.pack_start(self.settings_reveal,False,False,0)
         self.instructions=self.editor('Pasos, ajustes manuales o comandos (solo texto)',110)
         self.instructions.set_tooltip_text('Las instrucciones se muestran al usar el perfil. Deck Library no ejecuta estos comandos.')
         self.notes=self.editor('Resultado de las pruebas y observaciones',70)
