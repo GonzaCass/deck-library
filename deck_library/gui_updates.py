@@ -136,12 +136,12 @@ class UpdatesMixin:
             self.transfer_row(card,'wiicompiled' if kind=='wii' else data.get('repository') or 'wiicompiled')
             expander=Gtk.Expander(label='Novedades de '+str(data['latest']));notes=label(updates.notes_text(data.get('notes','')) or 'Abrir para consultar las notas del autor.','muted');notes.set_selectable(True);notes.set_max_width_chars(95);notes.set_margin_top(12);expander.add(notes);card.pack_start(expander,False,False,0)
             loaded=['notes' in data]
-            if loaded[0] and not data.get('notes'):notes.set_text('Esta fuente no incluye notas para la versión. Podés consultar la publicación original.')
+            if loaded[0] and not data.get('notes'):notes.set_text('Esta fuente no incluye notas para la versión. Se puede consultar la publicación original.')
             def expanded(widget,_,data=data,target=notes,loaded=loaded):
                 if not widget.get_expanded() or loaded[0]:return
                 loaded[0]=True;target.set_text('Consultando las notas…')
                 def work():
-                    try:body=updates.notes_text(updates.release_notes(data)) or 'No se encontraron notas para esta versión. Consultá la publicación original.'
+                    try:body=updates.notes_text(updates.release_notes(data)) or 'No se encontraron notas para esta versión. Consultar la publicación original.'
                     except Exception as error:body='No se pudieron descargar las notas: '+str(error)
                     GLib.idle_add(target.set_text,body)
                 threading.Thread(target=work,daemon=True).start()

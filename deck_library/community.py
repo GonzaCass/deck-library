@@ -6,7 +6,7 @@ from .models import atomic_json
 class Client:
     def __init__(self,store,url):
         parsed=urllib.parse.urlsplit(url)
-        if parsed.scheme!='https' or not parsed.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment:raise ValueError('Ingresá una dirección HTTPS del servicio.')
+        if parsed.scheme!='https' or not parsed.netloc or parsed.username or parsed.password or parsed.query or parsed.fragment:raise ValueError('Ingresar una dirección HTTPS del servicio.')
         self.store=store;self.url=url.rstrip('/');self.path=store.root/'community-session.json'
     def session(self):
         try:
@@ -49,7 +49,7 @@ class Client:
         finally:self.path.unlink(missing_ok=True)
     def search(self,entry,mine=False):
         query=urllib.parse.urlencode({'game':presets.public_game_id(entry).lower(),'adapter':presets.adapter_for(entry)})
-        if not presets.public_game_id(entry):raise ValueError('Completá el ID del juego antes de buscar perfiles.')
+        if not presets.public_game_id(entry):raise ValueError('Completar el ID del juego antes de buscar perfiles.')
         rows=self.request(('/v1/me/presets?' if mine else '/v1/presets?')+query).get('presets',[])
         for row in rows:
             if not presets.compatible(entry,row['preset']):raise ValueError('El servicio devolvió un perfil de otro juego.')

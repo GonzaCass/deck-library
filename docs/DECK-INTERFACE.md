@@ -16,3 +16,13 @@
 - Comunidad es opcional. Funciona el catálogo local/GitHub sin cuenta; el servicio añade publicación autenticada y feedback. Ver [servicio](../community/README.md).
 
 El catálogo abre directamente. Los perfiles muestran estrellas reales y una publicación guiada; la cuenta propia usa Keycloak en el navegador. Las actualizaciones tienen una barra por port y ETA medida durante la descarga. La biblioteca y el catálogo se reutilizan al navegar. SDL2 agrega soporte nativo para mandos, repetición de direcciones y protección frente a la doble activación de Steam Input.
+
+## Pantalla de la Deck (0.19.9)
+
+- En pantallas de hasta 1400×900 la ventana se abre maximizada y las filas ganan densidad: la lista de la Biblioteca usa miniaturas de 36×54 (unas ocho filas visibles en 1280×800 en lugar de cuatro) y las tarjetas del catálogo bajan a unos 88 px de alto.
+- El mensaje de estado inferior es transitorio: se oculta a los 7 segundos y no reserva espacio mientras está vacío (antes tapaba el final de Ajustes y de la ficha).
+- El botón de cabecera pasó a «Añadir a Steam» en estilo discreto (el texto completo está en su ayuda); el botón azul principal de la pantalla queda para la acción de cada vista.
+- Catálogo: el encabezado ocupa una sola fila y la lista carga de 30 en 30 con **Mostrar más** en lugar de cortar en 60. La ficha de un port muestra título, nombre del port y una línea con plataforma, sistemas y fuente; el botón de reintentar imagen solo aparece si falló.
+- Los botones de sección de la ficha de juego (Controles, Archivos y Steam, Avanzados, Comunidad) comparten un estilo neutro; el color queda para **Jugar**, Steam y **Aplicar ajustes**.
+- El texto de la interfaz y de los documentos usa español impersonal: se retiraron las formas con voseo («elegí», «podés», «revisá») de los mensajes, las recetas y LEEME.
+

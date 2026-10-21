@@ -15,7 +15,7 @@ def extract(archive,destination):
         seen.add(name)
         target=root/name
         if not target.resolve().is_relative_to(root):raise ValueError('El paquete contiene rutas inseguras.')
-        if fields.get('Encrypted')=='+':raise ValueError('El paquete está cifrado; elegí una descarga pública sin contraseña.')
+        if fields.get('Encrypted')=='+':raise ValueError('El paquete está cifrado; usar una descarga pública sin contraseña.')
         if fields.get('Symbolic Link') or fields.get('Hard Link') or re.search(r'\bl[rwx-]{9}',fields.get('Attributes','')):raise ValueError('Este paquete contiene enlaces no admitidos por el extractor 7z.')
         records.append((fields['Path'],target,fields.get('Folder')=='+'))
     if not records:raise ValueError('El archivo comprimido está vacío o no se pudo interpretar.')

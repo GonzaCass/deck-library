@@ -111,7 +111,7 @@ def update_shortcuts(config,entries,launcher_for,is_running=None):
             if entry.icon:set_value(match,'icon',entry.icon)
             result.append({'id':entry.id,'appid':get(match,'appid'),'name':entry.name})
         new=write_kv(root); read_kv(new)
-        if is_running() or path.exists()!=existed or (path.exists() and path.read_bytes()!=old):raise SteamRunningError('Steam o la biblioteca cambió durante el guardado; intentá nuevamente.')
+        if is_running() or path.exists()!=existed or (path.exists() and path.read_bytes()!=old):raise SteamRunningError('Steam o la biblioteca cambió durante el guardado; intentar nuevamente.')
         backup=None
         if existed and new!=old:
             stamp=datetime.datetime.now().strftime('%Y%m%dT%H%M%S%f')

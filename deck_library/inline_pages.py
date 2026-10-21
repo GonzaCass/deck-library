@@ -126,11 +126,11 @@ class InlineFileChooser(InlineDialog):
     def response(self,value):
         if value==Gtk.ResponseType.OK:
             path=pathlib.Path(self.get_filename())
-            if self.action==Gtk.FileChooserAction.OPEN and not path.is_file():self.status.set_text('Elegí un archivo.');return
-            if self.action==Gtk.FileChooserAction.SELECT_FOLDER and not path.is_dir():self.status.set_text('Elegí una carpeta.');return
+            if self.action==Gtk.FileChooserAction.OPEN and not path.is_file():self.status.set_text('Elegir un archivo.');return
+            if self.action==Gtk.FileChooserAction.SELECT_FOLDER and not path.is_dir():self.status.set_text('Elegir una carpeta.');return
             if self.action==Gtk.FileChooserAction.SAVE:
                 name=self.filename.get_text().strip()
-                if not name or pathlib.Path(name).name!=name:self.status.set_text('Escribí un nombre de archivo sin carpetas.');return
+                if not name or pathlib.Path(name).name!=name:self.status.set_text('Escribir un nombre de archivo sin carpetas.');return
                 if path.exists() and self.overwrite and not self.owner.confirm('Reemplazar archivo',str(path),'Reemplazar',danger=True):return
         super().response(value)
 

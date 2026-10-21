@@ -34,8 +34,13 @@ class ActionsMixin:
         if value.get('layouts'):parts.append(f'layout de mando asignado a {len(value["layouts"])}')
         return (', '.join(parts) or 'Cambios guardados').capitalize()+'. Abrir Steam para verlos.'
     def set_status(self,text):
-        self.status.set_text(text)
+        self.status.set_text(text);self.status.set_visible(bool(text))
+        ident=getattr(self,'status_timer',0)
+        if ident:GLib.source_remove(ident);self.status_timer=0
+        if text and not getattr(self,'ui_closed',False):self.status_timer=GLib.timeout_add_seconds(7,self.clear_status)
         if hasattr(self,'toast_widget') and re.search(r'guardad|aplicad|actualizad|instalad|configurad|restaurad|exportad|importad|cancelad|descartad|no se pudo|no se pudieron|falló|error',text,re.I):self.toast(text)
+    def clear_status(self):
+        self.status_timer=0;self.status.set_text('');self.status.set_visible(False);return False
     def message(self,title,text):
         page=InlineDialog(title=title,transient_for=self);page.get_content_area().pack_start(label(text,'subtitle'),False,False,0);page.add_button('Volver',Gtk.ResponseType.CLOSE);page.connect('response',lambda *_:page.destroy());page._mount()
     def confirm(self,title,text,accept='Continuar',danger=False):

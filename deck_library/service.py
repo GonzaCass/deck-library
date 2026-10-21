@@ -223,7 +223,7 @@ def cancel_pending(store=None):
     """Cancel the waiting batch; never race an already-running write to Steam."""
     store=store or Store()
     with pending_lock(store):
-        if not steam_running():raise RuntimeError('Steam ya se está cerrando o guardando cambios. Esperá a que termine.')
+        if not steam_running():raise RuntimeError('Steam ya se está cerrando o guardando cambios. Esperar a que termine.')
         path=store.root/'pending.json'
         if not path.exists():return False
         path.unlink();return True

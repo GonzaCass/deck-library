@@ -143,7 +143,7 @@ def launch_plan(executable,preferred=None,*,launcher=False,store=None):
             try:proton_path(preferred='Proton 9.0 (Beta)');preferred='Proton 9.0 (Beta)'
             except ValueError:pass
         data=folder/'Data/Original'
-        if not (data/'Default.xex').is_file():raise ValueError('Faltan los datos instalados de Xbox 360. Revisá la instalación de Project 2099.')
+        if not (data/'Default.xex').is_file():raise ValueError('Faltan los datos instalados de Xbox 360. Revisar la instalación de Project 2099.')
         language='es'
         try:
             receipt=json.loads((folder/'Support/Install/INSTALL_RECEIPT.json').read_text(encoding='utf-8-sig'))

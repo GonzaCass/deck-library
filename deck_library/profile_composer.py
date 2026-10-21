@@ -65,9 +65,9 @@ class ProfileComposer(Gtk.Box):
             self.instructions.get_buffer().set_text(value.get('instructions','') if value.get('instructions')!='Describí aquí los ajustes que probaste y los pasos para reproducirlos.' else '')
             info=value.get('runtime',{});self.runtime.set_active_id(info.get('kind','native'));self.version.set_text(info.get('version',''));self.program_version.set_text(', '.join(value['adapter']['versions']))
             count=sum(len(v) for v in value['settings'].values())
-            self.status.set_text(f'{count} opciones leídas. Podés editarlas y agregar instrucciones.' if count else 'No hay opciones reconocidas para capturar. Escribí los pasos y el entorno de ejecución.')
+            self.status.set_text(f'{count} opciones leídas. Se pueden editar y agregar instrucciones.' if count else 'No hay opciones reconocidas para capturar. Escribir los pasos y el entorno de ejecución.')
         except Exception as error:
-            self.draft=None;self.status.set_text(str(error)+' Podés crear una guía manual.')
+            self.draft=None;self.status.set_text(str(error)+' Se puede crear una guía manual.')
             self.settings.get_buffer().set_text('{}')
             from .profile_capture import runtime_info
             info=runtime_info(self.entry);self.runtime.set_active_id(info['kind']);self.version.set_text(info['version'])
@@ -77,7 +77,7 @@ class ProfileComposer(Gtk.Box):
         value=copy.deepcopy(self.draft)
         if value is None:
             game_id=presets.public_game_id(self.entry)
-            if not game_id:raise ValueError('Completá el ID del juego antes de compartir.')
+            if not game_id:raise ValueError('Completar el ID del juego antes de compartir.')
             value={'schema_version':1,'id':'draft-'+hashlib.sha256((self.entry.id+datetime.datetime.now().isoformat()).encode()).hexdigest()[:24],'game':{'id':game_id,'name':self.entry.name,'platform':self.entry.platform},'adapter':{'id':presets.adapter_for(self.entry),'versions':['unknown']},'hardware':['steam-deck-lcd','steam-deck-oled'],'license':'MIT','tested':{'status':'proposal','date':datetime.date.today().isoformat()},'sources':[]}
         value.update(name=self.title.get_text().strip(),objective=self.objective.get_active_id(),author=author,settings=json.loads(self.read(self.settings) or '{}'),instructions=self.read(self.instructions),notes=self.read(self.notes),runtime={'kind':self.runtime.get_active_id(),'version':self.version.get_text().strip(),'launch_options':self.launch.get_text().strip()})
         value['adapter']['versions']=[s.strip() for s in self.program_version.get_text().split(',') if s.strip()] or ['unknown']
@@ -85,5 +85,5 @@ class ProfileComposer(Gtk.Box):
         lines=[value['name'],'Autor: '+author,'Programa: '+value['adapter']['id']+' · '+', '.join(value['adapter']['versions']),'Entorno: '+value['runtime']['kind']+' '+value['runtime']['version'],'']
         for section,options in value['settings'].items():
             lines.extend(section+'.'+key+': '+str(setting) for key,setting in options.items())
-        lines.extend(['',value['instructions'],value['runtime']['launch_options'],value['notes'],'','Revisá el texto antes de compartirlo: no incluyas rutas personales, correos ni credenciales.'])
+        lines.extend(['',value['instructions'],value['runtime']['launch_options'],value['notes'],'','Revisar el texto antes de compartirlo: no incluir rutas personales, correos ni credenciales.'])
         self.review.set_text('\n'.join(lines));return value

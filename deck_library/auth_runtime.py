@@ -16,7 +16,7 @@ def command(helper,socket_id,run=subprocess.run):
 
 def install(progress,cancel):
     from .setup_wii import run_logged
-    if not shutil.which('flatpak'):raise MissingRuntime('Falta Flatpak para instalar el componente de acceso. Podés usar el navegador.')
+    if not shutil.which('flatpak'):raise MissingRuntime('Falta Flatpak para instalar el componente de acceso. Se puede usar el navegador.')
     # Keep system remotes and runtimes untouched; this installs for the current user.
     commands=[['flatpak','remote-add','--user','--if-not-exists','flathub','https://flathub.org/repo/flathub.flatpakrepo'],['flatpak','install','--user','--noninteractive','-y','flathub','org.gnome.Platform//50']]
     import io

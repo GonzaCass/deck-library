@@ -197,6 +197,19 @@ label.control-caption { color:#c6c6c6; font-size:14px; }
 .deck-density label.hero { font-size:24px; }
 .deck-density .inline-page-heading { font-size:22px; }
 .deck-density .community-profile-row { min-height:50px; padding:8px 10px; }
+button.steam-add { background:transparent; border-color:#525252; }
+button.steam-add label { color:@dim; font-weight:600; }
+button.steam-add:hover { background:@raised; border-color:@accent; }
+button.violet,button.violet-outline,button.amber,button.cyan,button.steam-outline { color:@text; background:@raised; border-color:transparent; }
+button.violet label,button.violet-outline label,button.amber label,button.cyan label,button.steam-outline label { color:@text; font-weight:600; }
+button.violet:hover,button.violet-outline:hover,button.amber:hover,button.cyan:hover,button.steam-outline:hover { background:#4c4c4c; border-color:@accent; }
+.deck-density list row { padding:2px 4px; }
+.deck-density label.title { font-size:18px; }
+.deck-density .card { padding:8px 10px; }
+.deck-density label.hero { font-size:22px; }
+.apply-dock button.violet { background:@accent; }
+.apply-dock button.violet label { color:#10233e; font-weight:700; }
+.apply-dock button.violet:hover { background:#a6c8ff; }
 '''
 
 TONES={'play':'play','danger':'danger','presets':'violet','steam':'steam','controls':'amber'}
