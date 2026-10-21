@@ -62,7 +62,10 @@ class API:
                 db.execute("INSERT INTO presets VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body,login=excluded.login WHERE presets.uid='builtin' AND presets.body!=excluded.body",(identifier,'builtin',value['author'],game.lower(),adapter,json.dumps(value,ensure_ascii=False),'approved',time.time()))
     def handle(self,method,path,query,body,token='',remote='local'):
         now=time.time()
-        if method=='GET' and path=='/health':return {'ok':True,'schema_version':1,'login_available':bool(self.client_id or self.oidc)}
+        if method=='GET' and path=='/health':
+            from deck_library import __version__
+            from deck_library.presets import REGISTRY
+            return {'ok':True,'schema_version':1,'version':__version__,'profile_adapters':list(REGISTRY),'profile_instructions':True,'login_available':bool(self.client_id or self.oidc)}
         if method=='GET' and path=='/v1/auth/providers':return {'providers':([{'id':'keycloak','name':'Cuenta propia'}] if self.oidc else [])+([{'id':'github','name':'GitHub'}] if self.client_id else [])}
         if path.startswith('/v1/auth/'):
             self.rate('auth:'+remote,40)

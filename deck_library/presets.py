@@ -4,6 +4,11 @@ from .models import Store,atomic_json
 from .content import switch_id,eden_paths,emulator_busy
 
 REGISTRY={
+ 'instructions':{},
+ 'pcsx2':{'EmuCore/GS':{'upscale_multiplier':(1.0,8.0),'VsyncEnable':bool,'MaxAnisotropy':(0,16),'fxaa':bool,'ShadeBoost':bool},'EmuCore':{'EnableWideScreenPatches':bool,'EnableNoInterlacingPatches':bool}},
+ 'azahar':{'Renderer':{'graphics_api':(0,2),'resolution_factor':(1,10),'use_vsync_new':bool,'use_hw_shader':bool,'shaders_accurate_mul':bool,'use_disk_shader_cache':bool,'async_shader_compilation':bool,'async_presentation':bool},'Layout':{'layout_option':(0,6),'swap_screen':bool}},
+ 'mgba':{'ports.qt':{'videoScale':(1,8),'lockAspectRatio':bool,'interframeBlending':bool,'resampleVideo':bool,'fpsTarget':(30.0,120.0)},'General':{'videoScale':(1,8),'lockAspectRatio':bool,'interframeBlending':bool,'resampleVideo':bool,'fpsTarget':(30.0,120.0)}},
+ 'ppsspp':{'Graphics':{'InternalResolution':(0,10),'TextureFiltering':(1,5),'AnisotropyLevel':(0,4),'FrameSkip':(0,8),'AutoFrameSkip':bool}},
  'project2099':{'runtime':{'window_width':(640,1920),'window_height':(360,1200),'fullscreen':bool,'gpu_backend':('d3d12',),'resolution_scale':(1,1),'eot_internal_scale':(1,1),'genry_eot_target_fps':(30,120),'d3d12_present_frame_limiter':bool,'d3d12_present_frame_limiter_fps':(30.0,120.0),'vsync':bool,'anisotropic_override':(0,5),'async_shader_compilation':bool,'store_shaders':bool,'input_backend':('xinput',),'mnk_mode':bool,'present_effect':('bilinear','cas','fsr','fsr2','fsr3'),'eot_pc_raster_glyphs':bool,'eot_pc_prompt_labels':bool,'show_fps_counter':bool}},
  'eden':{
   'Core':{'use_multi_core':bool,'use_speed_limit':bool,'speed_limit':(100,100),'sync_core_speed':bool},
@@ -21,7 +26,8 @@ REGISTRY={
 }
 
 def adapter_for(entry):
-    return entry.metadata.get('adapter') or {'Switch':'eden','WiiCompiled':'wiicompiled','Minecraft':'prism','Wii':'dolphin','GameCube':'dolphin','PlayStation':'duckstation'}.get(entry.platform,'')
+    if entry.metadata.get('adapter')=='project2099' and entry.metadata.get('engine')=='reeot':return 'instructions'
+    return entry.metadata.get('adapter') or {'Switch':'eden','WiiCompiled':'wiicompiled','Minecraft':'prism','Wii':'dolphin','GameCube':'dolphin','PlayStation':'duckstation','PlayStation 2':'pcsx2','Nintendo 3DS':'azahar','Game Boy Advance':'mgba','Game Boy':'mgba','Game Boy Color':'mgba','PSP':'ppsspp'}.get(entry.platform,'instructions')
 
 SERIAL=re.compile(rb'BOOT\s*=\s*cdrom:\\?([A-Z]{4})_(\d{3})\.(\d{2})',re.I)
 
@@ -39,7 +45,7 @@ def ps1_serial(path):
     match=SERIAL.search(data)
     return (match[1]+b'-'+match[2]+match[3]).decode().upper() if match else ''
 
-PROCESSES={'eden':('eden',),'wiicompiled':('WiiCompiled',),'dolphin':('dolphin-emu',),'prism':('java',),'project2099':('SpiderManEOT.exe','SpiderManEOT.ex','Project2099.exe','Project 2099.exe'),'duckstation':('duckstation-qt','duckstation-nogui')}
+PROCESSES={'pcsx2':('pcsx2-qt','pcsx2'),'azahar':('azahar','citra-qt'),'mgba':('mgba','mgba-qt'),'ppsspp':('PPSSPPSDL','PPSSPPQt'),'eden':('eden',),'wiicompiled':('WiiCompiled',),'dolphin':('dolphin-emu',),'prism':('java',),'project2099':('SpiderManEOT.exe','SpiderManEOT.ex','Project2099.exe','Project 2099.exe'),'duckstation':('duckstation-qt','duckstation-nogui')}
 
 def busy(adapter):return any(emulator_busy(name) for name in PROCESSES.get(adapter,('unknown',)))
 
@@ -49,16 +55,26 @@ def public_game_id(entry):
     if entry.game_id:return entry.game_id
     if adapter_for(entry)=='wiicompiled':return 'RMCP01'
     if adapter_for(entry)=='duckstation':return ps1_serial(entry.source)
+    if adapter_for(entry) in ('pcsx2','ppsspp'):
+        from .profile_capture import serial,fallback_id
+        return serial(entry,adapter_for(entry)) or fallback_id(entry)
+    if adapter_for(entry)=='azahar':
+        from .profile_capture import game_target,fallback_id
+        try:return game_target(entry,'azahar').stem
+        except ValueError:return fallback_id(entry)
     if entry.source.lower().endswith('.iso') and entry.platform in ('Wii','GameCube'):
         try:
             with open(entry.source,'rb') as source:disc=source.read(6).decode('ascii')
             if re.fullmatch('[A-Z0-9]{6}',disc):return disc
         except (OSError,UnicodeError):pass
+    if adapter_for(entry) in ('instructions','mgba'):
+        from .profile_capture import fallback_id
+        return fallback_id(entry)
     return ''
 
 def validate(value):
     if not isinstance(value,dict) or value.get('schema_version')!=1:raise ValueError('Versión de preset no compatible.')
-    allowed={'schema_version','id','name','game','adapter','hardware','objective','author','license','tested','settings','notes','sources','layout'}
+    allowed={'schema_version','id','name','game','adapter','hardware','objective','author','license','tested','settings','notes','sources','layout','instructions','runtime'}
     if set(value)-allowed:raise ValueError('El preset incluye campos desconocidos.')
     if not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,79}',value.get('id','')):raise ValueError('ID de preset inválido.')
     for key in ('name','objective','author','license'):
@@ -76,7 +92,14 @@ def validate(value):
     sources=value.get('sources',[])
     if not isinstance(sources,list) or len(sources)>20 or any(not isinstance(u,str) or len(u)>1000 or not u.startswith('https://') for u in sources):raise ValueError('Fuentes inválidas.')
     settings=value.get('settings');registry=REGISTRY[adapter['id']]
-    if not isinstance(settings,dict) or not settings:raise ValueError('El preset no tiene ajustes.')
+    if not isinstance(settings,dict) or (not settings and not value.get('instructions')):raise ValueError('El preset no tiene ajustes ni instrucciones.')
+    instructions=value.get('instructions','')
+    if not isinstance(instructions,str) or len(instructions)>12000:raise ValueError('Instrucciones inválidas.')
+    runtime=value.get('runtime')
+    if runtime is not None:
+        if not isinstance(runtime,dict) or set(runtime)-{'kind','version','launch_options'} or runtime.get('kind') not in ('native','proton','steam'):raise ValueError('Entorno de ejecución inválido.')
+        for key,limit in (('version',100),('launch_options',2000)):
+            if not isinstance(runtime.get(key,''),str) or len(runtime.get(key,''))>limit:raise ValueError('Información de ejecución inválida.')
     for section,options in settings.items():
         if section not in registry or not isinstance(options,dict) or not options:raise ValueError('Sección no permitida: '+section)
         for key,setting in options.items():
@@ -91,13 +114,12 @@ def validate(value):
         if not isinstance(layout,dict) or set(layout)-{'template','bindings','notes'} or layout.get('template') not in ('keyboard-mouse','gamepad'):raise ValueError('Layout inválido.')
         bindings=layout.get('bindings',{})
         if not isinstance(bindings,dict) or len(bindings)>30 or any(not isinstance(k,str) or not isinstance(v,str) or len(k)>60 or len(v)>100 for k,v in bindings.items()):raise ValueError('Bindings inválidos.')
-    # No paths, credentials or executable commands are allowed anywhere in the schema.
+    # Automatic settings are allowlisted. Instructions/launch options are inert text, never executed.
     if any(len(json.dumps(v))>12000 for v in (game,tested,layout or {})):raise ValueError('Metadata demasiado grande.')
     return value
 
 def compatible(entry,value):
     validate(value)
-    if entry.metadata.get('adapter')=='project2099' and entry.metadata.get('engine')=='reeot':return False
     return adapter_for(entry)==value['adapter']['id'] and public_game_id(entry).lower()==value['game']['id'].lower()
 
 def catalog(store=None):
@@ -116,7 +138,7 @@ def is_bundled(value):
     """Only exact game/adapter/settings matches inherit the bundled verification."""
     try:
         canonical=json.loads((pathlib.Path(__file__).resolve().parent.parent/'presets'/(value['id']+'.json')).read_text())
-        return all(canonical[key]==value[key] for key in ('game','adapter','settings','tested'))
+        return all(canonical[key]==value[key] for key in ('game','adapter','settings','tested')) and all(canonical.get(key)==value.get(key) for key in ('instructions','runtime'))
     except (OSError,ValueError,KeyError,TypeError):return False
 
 SWITCH_BASES=('eden-switch-default','eden-switch-performance','eden-switch-quality','eden-switch-compatibility')
@@ -185,6 +207,9 @@ def refresh_catalog(url,store=None):
 
 def target_for(entry,config_dir=None):
     adapter=adapter_for(entry);home=pathlib.Path.home()
+    if adapter in ('pcsx2','azahar','ppsspp'):
+        from .profile_capture import game_target
+        return game_target(entry,adapter)
     if adapter=='eden':
         tid=public_game_id(entry)
         if not re.fullmatch(r'010[0-9A-Fa-f]{13}',tid):raise ValueError('Falta el Title ID; completalo en Editar acceso.')
@@ -257,6 +282,7 @@ def patch_ini(text,updates,spaced=False):
 
 def preview(entry,value,config_dir=None):
     if not compatible(entry,value):raise ValueError('El preset no corresponde a este juego o programa.')
+    if not automatic(value):raise ValueError('Este perfil es una guía de aplicación manual; sus instrucciones no se ejecutan.')
     path=target_for(entry,config_dir);old=path.read_text() if path.exists() else '';adapter=adapter_for(entry)
     previous=tomllib.loads(old) if adapter in ('wiicompiled','project2099') else ini_parser(old);changes=[]
     for section,items in value['settings'].items():
@@ -278,7 +304,7 @@ def apply(entry,value,store=None,config_dir=None):
         for section,items in value['settings'].items():
             for key,setting in items.items():
                 updates.setdefault(section,{})[key]=setting
-                if adapter=='eden':updates[section][key+'\\default']='false';updates[section][key+'\\use_global']='false'
+                if adapter in ('eden','azahar'):updates[section][key+'\\default']='false';updates[section][key+'\\use_global']='false'
         new=patch_ini(old,updates,spaced=adapter=='duckstation')
     path.parent.mkdir(parents=True,exist_ok=True);fd,name=tempfile.mkstemp(prefix='.preset-',dir=path.parent)
     try:
@@ -300,25 +326,17 @@ def restore(entry,store=None):
     return str(backup)
 
 def export_current(entry,name,author,store=None,config_dir=None):
-    adapter=adapter_for(entry);target=target_for(entry,config_dir);text=target.read_text();parser=tomllib.loads(text) if adapter in ('wiicompiled','project2099') else ini_parser(text);values={}
-    for section,options in REGISTRY[adapter].items():
-        group=(parser if adapter=='project2099' else parser.get(section,{})) if isinstance(parser,dict) else parser[section] if parser.has_section(section) else {}
-        for key,rule in options.items():
-            if key not in group:continue
-            if adapter=='eden' and group.get(key+'\\use_global')=='true':continue
-            raw=group[key]
-            if rule is bool:
-                if str(raw).lower() not in ('true','false','0','1'):continue
-                value=str(raw).lower() in ('true','1')
-            elif isinstance(rule[0],str):value=str(raw)
-            else:
-                try:value=float(raw) if type(rule[0]) is float else int(raw)
-                except (TypeError,ValueError):continue
-            values.setdefault(section,{})[key]=value
+    adapter=adapter_for(entry);values=current_values(entry,config_dir)
     game_id=public_game_id(entry)
     if not game_id:raise ValueError('Falta el ID público del juego para exportar.')
     revision=datetime.datetime.now().strftime('%Y%m%d%H%M%S')
     result={'schema_version':1,'id':adapter+'-'+game_id.lower()+'-'+revision,'name':name,'game':{'id':game_id,'name':entry.name,'platform':entry.platform},'adapter':{'id':adapter,'versions':[entry.metadata.get('build') or entry.metadata.get('emulator_version') or 'unknown']},'hardware':['steam-deck-lcd','steam-deck-oled'],'objective':'Configuración compartida para recibir feedback','author':author,'license':'MIT','tested':{'status':'proposal','date':datetime.date.today().isoformat()},'settings':values,'notes':'Verificar la versión del programa y probar el perfil antes de recomendarlo.','sources':[]}
+    from .profile_capture import runtime_info
+    result['runtime']=runtime_info(entry)
+    if not values:
+        from .profile_capture import port_notes
+        result['instructions']=port_notes(entry) or 'Describí aquí los ajustes que probaste y los pasos para reproducirlos.'
+    if adapter=='mgba':result['instructions']='Valores leídos de mGBA. Son opciones globales: reproducirlos manualmente en el emulador.'
     return validate(result)
 
 def feedback(entry,value,result,notes,store=None):
@@ -346,12 +364,27 @@ def patch_root_toml(text,updates):
     result='\n'.join(out)+'\n';tomllib.loads(result);return result
 
 
-def global_values(entry):
-    """Emulator-wide values used when a game has no override of its own (DuckStation only)."""
-    if adapter_for(entry)!='duckstation':return {}
-    path=target_for(entry).parent.parent/'settings.ini'
-    try:return {s:dict(v) for s,v in ini_parser(path.read_text()).items()}
-    except OSError:return {}
+def global_values(entry,config_dir=None):
+    """Read allowlisted emulator defaults; per-game overrides take precedence."""
+    adapter=adapter_for(entry);home=pathlib.Path.home();result={}
+    if adapter=='eden':paths=[eden_paths(config_dir=config_dir)['config']/'qt-config.ini']
+    elif adapter=='duckstation':paths=[target_for(entry).parent.parent/'settings.ini']
+    elif adapter=='dolphin':
+        roots=[home/'.config/dolphin-emu',home/'.var/app/org.DolphinEmu.dolphin-emu/config/dolphin-emu',home/'.local/share/dolphin-emu/Config']
+        root=next((p for p in roots if (p/'GFX.ini').is_file()),roots[0]);paths=[root/'GFX.ini']
+    elif adapter in ('pcsx2','azahar','mgba','ppsspp'):
+        from .profile_capture import root_for,GLOBALS
+        paths=[root_for(entry,adapter)/GLOBALS[adapter]]
+    else:return {}
+    for path in paths:
+        try:result.update({s:dict(v) for s,v in ini_parser(path.read_text()).items() if s!='DEFAULT'})
+        except OSError:continue
+    if adapter=='dolphin':return {'Video_'+s:v for s,v in result.items()}
+    return result
+
+def automatic(value):
+    return value['adapter']['id'] not in ('instructions','mgba') and bool(value['settings'])
+
 
 def typed(rule,raw):
     """Convert an INI string to the registry's type, or None when it does not fit."""
@@ -360,23 +393,33 @@ def typed(rule,raw):
             if str(raw).lower() not in ('true','false','0','1'):return None
             return str(raw).lower() in ('true','1')
         if isinstance(rule[0],str):return str(raw) if str(raw) in rule else None
-        value=float(raw) if type(rule[0]) is float else int(float(raw))
+        value=float(raw) if type(rule[0]) is float else int(raw)
         return value if rule[0]<=value<=rule[1] else None
     except (TypeError,ValueError):return None
 
 def current_values(entry,config_dir=None):
-    """Effective values for the manual editor: game file over emulator-wide settings."""
-    adapter=adapter_for(entry);path=target_for(entry,config_dir);fallback=global_values(entry)
-    text=path.read_text() if path.exists() else ''
-    if adapter in ('wiicompiled','project2099'):raise ValueError('Este programa se edita solo con perfiles.')
-    local=ini_parser(text);result={}
+    """Effective values, including global inheritance, without copying paths or controls."""
+    adapter=adapter_for(entry)
+    if adapter=='instructions':return {}
+    fallback=global_values(entry,config_dir)
+    try:path=target_for(entry,config_dir)
+    except ValueError:
+        if adapter not in ('pcsx2','azahar','mgba','ppsspp'):raise
+        path=None
+    content=path.read_text() if path and path.exists() else ''
+    if adapter in ('wiicompiled','project2099'):
+        parsed=tomllib.loads(content);local={'runtime':parsed} if adapter=='project2099' else parsed
+    else:local={s:dict(v) for s,v in ini_parser(content).items() if s!='DEFAULT'}
+    result={}
     for section,options in REGISTRY[adapter].items():
+        group=local.get(section,{})
         for key,rule in options.items():
-            raw=local[section][key] if local.has_section(section) and key in local[section] else fallback.get(section,{}).get(key)
-            if adapter=='eden' and local.has_section(section) and local[section].get(key+'\\use_global')=='true':raw=None
+            inherited=adapter in ('eden','azahar') and group.get(key+'\\use_global','true' if adapter=='azahar' else 'false').lower()=='true'
+            raw=fallback.get(section,{}).get(key) if inherited or key not in group else group[key]
             value=None if raw is None else typed(rule,raw)
             if value is not None:result.setdefault(section,{})[key]=value
     return result
+
 
 def manual_profile(entry,changes,config_dir=None):
     """Wrap hand-edited values in a regular, validated profile so apply/backup/restore are shared."""

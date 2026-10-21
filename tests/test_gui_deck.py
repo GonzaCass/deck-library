@@ -898,3 +898,99 @@ class DeckUITests(unittest.TestCase):
             self.w.fill_catalog();self.w.catalog_source.set_active_id('PortIntegration');self.settle()
         self.assertEqual(self.w.catalog_source.get_active_id(),'PortIntegration');self.assertEqual(len(self.w.catalog_rows.get_children()),1)
         self.assertEqual(self.w.catalog_rows.get_children()[0].catalog_open.get_accessible().get_name(),'Ver detalles de New game')
+
+    def test_profile_composer_captures_edits_and_saves_without_login(self):
+        from gi.repository import Gtk,GLib
+        from deck_library.profile_composer import ProfileComposer
+        from deck_library.community import Client
+        from deck_library import presets
+        config=pathlib.Path(self.temp.name)/'eden';config.mkdir(exist_ok=True);(config/'qt-config.ini').write_text('[Renderer]\nresolution_setup=3\n')
+        original=self.inline.run;seen=[]
+        def widgets(root):
+            yield root
+            if isinstance(root,Gtk.Container):
+                for child in root.get_children():yield from widgets(child)
+        def run(page):
+            def check():
+                try:
+                    composer=next(w for w in widgets(page) if isinstance(w,ProfileComposer));self.assertIn('resolution_setup',composer.read(composer.settings))
+                    composer.instructions.get_buffer().set_text('Usar Proton 9.0; comando de referencia: echo prueba')
+                    composer.runtime.set_active_id('proton');composer.version.set_text('Proton 9.0')
+                    composer.notes.get_buffer().set_text('Prueba local de la interfaz')
+                    save=next(w for w in widgets(page) if isinstance(w,Gtk.Button) and w.get_label()=='Guardar localmente');save.clicked()
+                    values=[v for v in presets.catalog(self.store) if v['author']=='Usuario']
+                    self.assertEqual(len(values),1);self.assertIn('echo prueba',values[0]['instructions']);self.assertEqual(values[0]['runtime']['version'],'Proton 9.0')
+                    self.assertLessEqual(page.get_size().width,1280);seen.append(True)
+                finally:page.response(Gtk.ResponseType.CLOSE)
+                return False
+            GLib.timeout_add(250,check);return original(page)
+        with patch.object(Client,'search',return_value=[]),patch.object(Client,'session',return_value={}),patch.object(Client,'publish') as publish,patch.object(self.inline,'run',run):
+            self.w.community_dialog(self.w.entries[0],mode='publish');publish.assert_not_called()
+        self.assertEqual(seen,[True])
+
+    def test_manual_port_profile_shows_instructions_without_apply(self):
+        from deck_library.models import Entry,atomic_json
+        from deck_library import presets
+        e=Entry('Native Port',['port']);value=presets.export_current(e,'Native Port — manual','Player',self.store);value['instructions']='Elegir pantalla completa en el juego.'
+        atomic_json(self.store.root/'presets'/(value['id']+'.json'),value)
+        self.w.entries.append(e);self.w.select_game(e);self.settle()
+        self.assertFalse(self.w.profile_apply.get_sensitive());self.assertTrue(self.w.profile_disclosure.revealer.get_reveal_child())
+        self.assertEqual(self.w.profile_disclosure.control.get_label(),'Ver instrucciones')
+
+    def test_original_separation_and_reassociation_persist_from_ui(self):
+        from gi.repository import Gtk,GLib
+        from deck_library.models import Entry
+        from deck_library.installations import settings
+        port=Entry('Game',['port']);rom=pathlib.Path(self.temp.name)/'game.iso';rom.write_bytes(b'RMCP01')
+        original=Entry('Game',['emulator'],kind='emulated',platform='Wii',source=str(rom));self.w.entries=[port,original];self.w.render()
+        run_original=self.inline.run;seen=[]
+        def walk(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from walk(child)
+        def run(page):
+            def check():
+                try:
+                    next(w for w in walk(page) if isinstance(w,Gtk.Button) and w.get_label()=='Mostrar separado').clicked()
+                    self.assertEqual(len(self.w.visible()),2);self.assertIn(original.id,settings(self.store)['unlinked_originals'])
+                    next(w for w in walk(page) if isinstance(w,Gtk.Button) and w.get_label()=='Asociar al port').clicked()
+                    self.assertEqual(self.w.visible(),[port]);self.assertNotIn(original.id,settings(self.store)['unlinked_originals']);self.assertTrue(rom.exists());seen.append(True)
+                finally:page.response(Gtk.ResponseType.CLOSE)
+                return False
+            GLib.timeout_add(200,check);return run_original(page)
+        with patch.object(self.inline,'run',run):self.w.originals_dialog(port)
+        self.assertEqual(seen,[True])
+
+    def test_gaming_settings_also_hide_adding_the_app_to_steam(self):
+        from gi.repository import Gtk
+        from deck_library import motion
+        def labels(root):
+            result=[root.get_text()] if isinstance(root,Gtk.Label) else []
+            if isinstance(root,Gtk.Container):
+                for child in root.get_children():result.extend(labels(child))
+            return result
+        with patch.object(motion,'gaming_mode',return_value=True):self.w.settings_page()
+        self.assertNotIn('Deck Library en Steam',labels(self.w.settings_box))
+        with patch.object(motion,'gaming_mode',return_value=False):self.w.settings_page()
+        self.assertIn('Deck Library en Steam',labels(self.w.settings_box))
+
+    def test_async_community_results_receive_visible_row_allocations(self):
+        from gi.repository import Gtk,GLib
+        from deck_library import presets
+        from deck_library.community import Client
+        value=presets.recommended(self.w.entries[0],self.store)[0]
+        result={'id':'test','preset':value,'author':'Player','rating':None,'ratings':0}
+        original=self.inline.run;seen=[]
+        def rows(widget):
+            if isinstance(widget,Gtk.ListBoxRow):yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from rows(child)
+        def run(page):
+            def check():
+                try:
+                    row=next(rows(page));self.assertTrue(row.get_mapped());self.assertGreater(row.get_allocated_width(),100);self.assertGreater(row.get_allocated_height(),40);seen.append(True)
+                finally:page.response(Gtk.ResponseType.CLOSE)
+                return False
+            GLib.timeout_add(300,check);return original(page)
+        with patch.object(Client,'search',return_value=[result]),patch.object(Client,'comments',return_value=[]),patch.object(self.inline,'run',run):self.w.community_dialog(self.w.entries[0])
+        self.assertEqual(seen,[True])

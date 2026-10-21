@@ -51,7 +51,8 @@ class ExperienceMixin:
             self.preferences.update(artwork_provider=combo.get_active_id(),steamgriddb_key=key.get_text().strip(),animations=animations.get_active());save_settings(self.preferences,self.store);self.apply_motion();self.artwork_attempted.clear();self.set_status('Ajustes guardados.');self.fetch_covers()
         panel.pack_start(button('Guardar y buscar carátulas',save,True),False,False,0)
         row=wrap_row()
-        row.pack_start(button('Agregar Deck Library a Steam',self.add_library_to_steam),False,False,0)
+        from . import motion
+        if not motion.gaming_mode():row.pack_start(button('Agregar Deck Library a Steam',self.add_library_to_steam),False,False,0)
         row.pack_start(button('Instalaciones y carpetas',lambda _:self.installation_dialog()),False,False,0)
         row.pack_start(button('Repetir configuración inicial',lambda _:self.start_wizard()),False,False,0)
         row.pack_start(button('Aplicar ajustes máximos para Steam Deck',lambda _:self.apply_deck_max()),False,False,0)

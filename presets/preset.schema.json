@@ -42,11 +42,17 @@
       "properties": {
         "id": {
           "enum": [
+            "instructions",
+            "pcsx2",
+            "azahar",
+            "mgba",
+            "ppsspp",
+            "project2099",
             "eden",
             "wiicompiled",
             "dolphin",
-            "prism",
-            "project2099"
+            "duckstation",
+            "prism"
           ]
         },
         "versions": {
@@ -113,7 +119,7 @@
     },
     "settings": {
       "type": "object",
-      "minProperties": 1
+      "minProperties": 0
     },
     "notes": {
       "type": "string",
@@ -150,6 +156,34 @@
         "template"
       ],
       "additionalProperties": false
+    },
+    "instructions": {
+      "type": "string",
+      "maxLength": 12000
+    },
+    "runtime": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "enum": [
+            "native",
+            "proton",
+            "steam"
+          ]
+        },
+        "version": {
+          "type": "string",
+          "maxLength": 100
+        },
+        "launch_options": {
+          "type": "string",
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "kind"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
@@ -167,6 +201,402 @@
   ],
   "additionalProperties": false,
   "allOf": [
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "instructions"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "properties": {},
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "pcsx2"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "properties": {
+              "EmuCore/GS": {
+                "type": "object",
+                "properties": {
+                  "upscale_multiplier": {
+                    "type": "number",
+                    "minimum": 1.0,
+                    "maximum": 8.0
+                  },
+                  "VsyncEnable": {
+                    "type": "boolean"
+                  },
+                  "MaxAnisotropy": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 16
+                  },
+                  "ShadeBoost": {
+                    "type": "boolean"
+                  },
+                  "fxaa": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              },
+              "EmuCore": {
+                "type": "object",
+                "properties": {
+                  "EnableWideScreenPatches": {
+                    "type": "boolean"
+                  },
+                  "EnableNoInterlacingPatches": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "azahar"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "properties": {
+              "Renderer": {
+                "type": "object",
+                "properties": {
+                  "graphics_api": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 2
+                  },
+                  "resolution_factor": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  },
+                  "use_vsync_new": {
+                    "type": "boolean"
+                  },
+                  "use_hw_shader": {
+                    "type": "boolean"
+                  },
+                  "shaders_accurate_mul": {
+                    "type": "boolean"
+                  },
+                  "use_disk_shader_cache": {
+                    "type": "boolean"
+                  },
+                  "async_shader_compilation": {
+                    "type": "boolean"
+                  },
+                  "async_presentation": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              },
+              "Layout": {
+                "type": "object",
+                "properties": {
+                  "layout_option": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 6
+                  },
+                  "swap_screen": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "mgba"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "properties": {
+              "ports.qt": {
+                "type": "object",
+                "properties": {
+                  "videoScale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "lockAspectRatio": {
+                    "type": "boolean"
+                  },
+                  "interframeBlending": {
+                    "type": "boolean"
+                  },
+                  "resampleVideo": {
+                    "type": "boolean"
+                  },
+                  "fpsTarget": {
+                    "type": "number",
+                    "minimum": 30.0,
+                    "maximum": 120.0
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              },
+              "General": {
+                "type": "object",
+                "properties": {
+                  "videoScale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 8
+                  },
+                  "lockAspectRatio": {
+                    "type": "boolean"
+                  },
+                  "interframeBlending": {
+                    "type": "boolean"
+                  },
+                  "resampleVideo": {
+                    "type": "boolean"
+                  },
+                  "fpsTarget": {
+                    "type": "number",
+                    "minimum": 30.0,
+                    "maximum": 120.0
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "ppsspp"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "properties": {
+              "Graphics": {
+                "type": "object",
+                "properties": {
+                  "InternalResolution": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 10
+                  },
+                  "TextureFiltering": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 5
+                  },
+                  "AnisotropyLevel": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 4
+                  },
+                  "FrameSkip": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 8
+                  },
+                  "AutoFrameSkip": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "project2099"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "properties": {
+              "runtime": {
+                "type": "object",
+                "properties": {
+                  "window_width": {
+                    "type": "integer",
+                    "minimum": 640,
+                    "maximum": 1920
+                  },
+                  "window_height": {
+                    "type": "integer",
+                    "minimum": 360,
+                    "maximum": 1200
+                  },
+                  "fullscreen": {
+                    "type": "boolean"
+                  },
+                  "gpu_backend": {
+                    "enum": [
+                      "d3d12"
+                    ]
+                  },
+                  "resolution_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1
+                  },
+                  "eot_internal_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1
+                  },
+                  "genry_eot_target_fps": {
+                    "type": "integer",
+                    "minimum": 30,
+                    "maximum": 120
+                  },
+                  "d3d12_present_frame_limiter": {
+                    "type": "boolean"
+                  },
+                  "d3d12_present_frame_limiter_fps": {
+                    "type": "number",
+                    "minimum": 30.0,
+                    "maximum": 120.0
+                  },
+                  "vsync": {
+                    "type": "boolean"
+                  },
+                  "anisotropic_override": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 5
+                  },
+                  "async_shader_compilation": {
+                    "type": "boolean"
+                  },
+                  "store_shaders": {
+                    "type": "boolean"
+                  },
+                  "input_backend": {
+                    "enum": [
+                      "xinput"
+                    ]
+                  },
+                  "mnk_mode": {
+                    "type": "boolean"
+                  },
+                  "present_effect": {
+                    "enum": [
+                      "bilinear",
+                      "cas",
+                      "fsr",
+                      "fsr2",
+                      "fsr3"
+                    ]
+                  },
+                  "eot_pc_raster_glyphs": {
+                    "type": "boolean"
+                  },
+                  "eot_pc_prompt_labels": {
+                    "type": "boolean"
+                  },
+                  "show_fps_counter": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "additionalProperties": false
+          }
+        }
+      }
+    },
     {
       "if": {
         "properties": {
@@ -311,8 +741,7 @@
                 "minProperties": 1
               }
             },
-            "additionalProperties": false,
-            "minProperties": 1
+            "additionalProperties": false
           }
         }
       }
@@ -384,8 +813,7 @@
                 "minProperties": 1
               }
             },
-            "additionalProperties": false,
-            "minProperties": 1
+            "additionalProperties": false
           }
         }
       }
@@ -449,8 +877,162 @@
                 "minProperties": 1
               }
             },
-            "additionalProperties": false,
-            "minProperties": 1
+            "additionalProperties": false
+          }
+        }
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "duckstation"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "properties": {
+              "GPU": {
+                "type": "object",
+                "properties": {
+                  "ResolutionScale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "Multisamples": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 16
+                  },
+                  "TextureFilter": {
+                    "enum": [
+                      "Nearest",
+                      "Bilinear",
+                      "BilinearBinAlpha",
+                      "JINC2",
+                      "JINC2BinAlpha",
+                      "xBR",
+                      "xBRBinAlpha"
+                    ]
+                  },
+                  "TrueColor": {
+                    "type": "boolean"
+                  },
+                  "ScaledDithering": {
+                    "type": "boolean"
+                  },
+                  "WidescreenHack": {
+                    "type": "boolean"
+                  },
+                  "DisableInterlacing": {
+                    "type": "boolean"
+                  },
+                  "ForceNTSCTimings": {
+                    "type": "boolean"
+                  },
+                  "ChromaSmoothing24Bit": {
+                    "type": "boolean"
+                  },
+                  "PGXPEnable": {
+                    "type": "boolean"
+                  },
+                  "PGXPCulling": {
+                    "type": "boolean"
+                  },
+                  "PGXPTextureCorrection": {
+                    "type": "boolean"
+                  },
+                  "PGXPColorCorrection": {
+                    "type": "boolean"
+                  },
+                  "PGXPDepthBuffer": {
+                    "type": "boolean"
+                  },
+                  "PGXPCPU": {
+                    "type": "boolean"
+                  },
+                  "PGXPPreserveProjFP": {
+                    "type": "boolean"
+                  },
+                  "PGXPVertexCache": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              },
+              "Display": {
+                "type": "object",
+                "properties": {
+                  "MaxFPS": {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 300.0
+                  },
+                  "VSync": {
+                    "type": "boolean"
+                  },
+                  "IntegerScaling": {
+                    "type": "boolean"
+                  },
+                  "LinearFiltering": {
+                    "type": "boolean"
+                  },
+                  "ShowFPS": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              },
+              "CPU": {
+                "type": "object",
+                "properties": {
+                  "OverclockEnable": {
+                    "type": "boolean"
+                  },
+                  "OverclockNumerator": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 500
+                  },
+                  "OverclockDenominator": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              },
+              "CDROM": {
+                "type": "object",
+                "properties": {
+                  "ReadSpeedup": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 10
+                  },
+                  "LoadImageToRAM": {
+                    "type": "boolean"
+                  },
+                  "LoadImagePatches": {
+                    "type": "boolean"
+                  }
+                },
+                "additionalProperties": false,
+                "minProperties": 1
+              }
+            },
+            "additionalProperties": false
           }
         }
       }
@@ -509,125 +1091,31 @@
                 "minProperties": 1
               }
             },
-            "additionalProperties": false,
-            "minProperties": 1
+            "additionalProperties": false
           }
         }
       }
     },
     {
-      "if": {
-        "properties": {
-          "adapter": {
-            "properties": {
-              "id": {
-                "const": "project2099"
-              }
+      "anyOf": [
+        {
+          "properties": {
+            "settings": {
+              "minProperties": 1
+            }
+          }
+        },
+        {
+          "required": [
+            "instructions"
+          ],
+          "properties": {
+            "instructions": {
+              "minLength": 1
             }
           }
         }
-      },
-      "then": {
-        "properties": {
-          "settings": {
-            "type": "object",
-            "properties": {
-              "runtime": {
-                "type": "object",
-                "properties": {
-                  "window_width": {
-                    "type": "integer",
-                    "minimum": 640,
-                    "maximum": 1920
-                  },
-                  "window_height": {
-                    "type": "integer",
-                    "minimum": 360,
-                    "maximum": 1200
-                  },
-                  "fullscreen": {
-                    "type": "boolean"
-                  },
-                  "gpu_backend": {
-                    "enum": [
-                      "d3d12"
-                    ]
-                  },
-                  "resolution_scale": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 1
-                  },
-                  "eot_internal_scale": {
-                    "type": "integer",
-                    "minimum": 1,
-                    "maximum": 1
-                  },
-                  "genry_eot_target_fps": {
-                    "type": "integer",
-                    "minimum": 30,
-                    "maximum": 120
-                  },
-                  "d3d12_present_frame_limiter": {
-                    "type": "boolean"
-                  },
-                  "d3d12_present_frame_limiter_fps": {
-                    "type": "number",
-                    "minimum": 30.0,
-                    "maximum": 120.0
-                  },
-                  "vsync": {
-                    "type": "boolean"
-                  },
-                  "anisotropic_override": {
-                    "type": "integer",
-                    "minimum": 0,
-                    "maximum": 5
-                  },
-                  "async_shader_compilation": {
-                    "type": "boolean"
-                  },
-                  "store_shaders": {
-                    "type": "boolean"
-                  },
-                  "input_backend": {
-                    "enum": [
-                      "xinput"
-                    ]
-                  },
-                  "mnk_mode": {
-                    "type": "boolean"
-                  },
-                  "present_effect": {
-                    "enum": [
-                      "bilinear",
-                      "cas",
-                      "fsr",
-                      "fsr2",
-                      "fsr3"
-                    ]
-                  },
-                  "eot_pc_raster_glyphs": {
-                    "type": "boolean"
-                  },
-                  "eot_pc_prompt_labels": {
-                    "type": "boolean"
-                  },
-                  "show_fps_counter": {
-                    "type": "boolean"
-                  }
-                },
-                "additionalProperties": false,
-                "minProperties": 1
-              }
-            },
-            "additionalProperties": false,
-            "required": [
-              "runtime"
-            ]
-          }
-        }
-      }
+      ]
     }
   ]
 }

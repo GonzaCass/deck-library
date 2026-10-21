@@ -14,9 +14,12 @@ SYSTEMS={
  'psp':('PSP','ppsspp',('--fullscreen',),{'.iso','.cso','.pbp'}),
  '3ds':('Nintendo 3DS','azahar',('-f',),{'.3ds','.cci','.cxi'}),
  'n3ds':('Nintendo 3DS','azahar',('-f',),{'.3ds','.cci','.cxi'}),
+ 'gba':('Game Boy Advance','mgba',('-f',),{'.gba'}),
+ 'gb':('Game Boy','mgba',('-f',),{'.gb'}),
+ 'gbc':('Game Boy Color','mgba',('-f',),{'.gbc'}),
  'wiiu':('Wii U','cemu',('-f','-g'),{'.wua','.wud','.wux','.rpx'}),
 }
-EMULATOR_FLATPAKS={'eden':'dev.eden_emu.eden','dolphin-emu':'org.DolphinEmu.dolphin-emu','duckstation':'org.duckstation.DuckStation','pcsx2-qt':'net.pcsx2.PCSX2','ppsspp':'org.ppsspp.PPSSPP','azahar':'org.azahar_emu.Azahar','cemu':'info.cemu.Cemu'}
+EMULATOR_FLATPAKS={'mgba':'io.mgba.mGBA','eden':'dev.eden_emu.eden','dolphin-emu':'org.DolphinEmu.dolphin-emu','duckstation':'org.duckstation.DuckStation','pcsx2-qt':'net.pcsx2.PCSX2','ppsspp':'org.ppsspp.PPSSPP','azahar':'org.azahar_emu.Azahar','cemu':'info.cemu.Cemu'}
 REJECT_PARTS={'updates','update','dlc','mods','duplicates','firmware','keys','sistemas','systems','bios'}
 
 def nice_name(path):

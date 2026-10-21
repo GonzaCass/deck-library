@@ -81,7 +81,7 @@ class GameMixin:
         self.game_section_controls={}
         sections=[('profiles','Ajustes','sliders','violet-outline'),('controls','Controles','controller','amber')]
         sections.append(('content','Contenido','folder','cyan') if entry.platform=='Switch' else ('files','Archivos y Steam','folder','cyan'))
-        if presets.adapter_for(entry) in ('eden','duckstation','dolphin','prism'):
+        if presets.adapter_for(entry) in ('eden','duckstation','dolphin','prism','pcsx2','azahar','ppsspp'):
             sections.append(('options','Avanzados','monitor','quiet'))
         for section,caption,icon,tone in sections:
             control=ActionButton(caption,icon,lambda _,s=section:self.open_game_section(s),tone)
@@ -116,7 +116,7 @@ class GameMixin:
         popover.add(options)
         rows = []
         adapter = presets.adapter_for(entry)
-        if adapter in ('duckstation', 'dolphin', 'eden', 'prism'):
+        if adapter in ('duckstation', 'dolphin', 'eden', 'prism','pcsx2','azahar','ppsspp'):
             rows.append(('Editar ajustes manualmente', 'sliders', lambda: self.open_game_section('options')))
         if adapter in presets.REGISTRY:
             rows.extend([
@@ -284,7 +284,7 @@ class GameMixin:
         adapter = presets.adapter_for(entry)
         if entry.metadata.get('gtaiv_root'):
             content.pack_start(TaskButton('Mejoras para GTA IV', 'FusionFix y DXVK', 'sliders', lambda _: self.gtaiv_dialog(entry)), False, False, 0)
-        elif adapter in presets.REGISTRY:
+        if adapter in presets.REGISTRY:
             self.build_profile_picker(entry, content, parent)
         else:
             panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
@@ -378,10 +378,17 @@ class GameMixin:
                 card.get_accessible().set_description('Seleccionado' if active else 'Seleccionar perfil')
             self.profile_dock_title.set_text(display.title(profile))
             provenance.set_text(profile['author']+' · '+display.verification(profile)+' · '+', '.join(profile['adapter']['versions']))
-            notes.set_text(profile.get('notes',''))
-            notes.set_visible(bool(profile.get('notes')))
+            guide='\n\n'.join(v for v in (profile.get('notes',''),profile.get('instructions',''),('Entorno: '+profile['runtime']['kind']+' '+profile['runtime'].get('version','')+'\n'+profile['runtime'].get('launch_options','')) if profile.get('runtime') else '') if v)
+            notes.set_text(guide)
+            notes.set_visible(bool(guide))
+            if not presets.automatic(profile):
+                self.profile_status.set_text('Guía manual · Los pasos y comandos se muestran como texto.')
+                self.profile_dock_note.set_text('Revisá las instrucciones del perfil.');self.profile_apply.set_sensitive(False)
+                self.profile_disclosure.control.set_label('Ver instrucciones');self.profile_disclosure.revealer.set_reveal_child(True)
+                changes.show_all();return
             self.reset_page(changes)
             self.profile_apply.get_style_context().remove_class('applied')
+            self.profile_disclosure.revealer.set_reveal_child(False)
             try:
                 _, differences = display.differences(entry,profile,self.preferences.get('eden_config') or None)
                 from .gui_tools import SETTING_LABELS
@@ -438,9 +445,10 @@ class GameMixin:
             if entry.metadata.get('engine')=='reeot':empty.pack_start(text('Project 2099 Beta 5 cambió de motor. Los perfiles verificados de Beta 4.1 se conservan para esa versión; no se aplican a la nueva.','muted'),False,False,0)
             row = Gtk.Box(spacing=10)
             row.pack_start(ActionButton('Buscar en la comunidad','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0)
+            row.pack_start(ActionButton('Crear mis ajustes','upload',lambda _:self.community_dialog(entry,mode='publish'),'cyan'),False,False,0)
             row.pack_start(ActionButton('Importar archivo','download',lambda _:self.import_game_profile(entry)),False,False,0)
             empty.pack_start(row,False,False,0)
-            if presets.adapter_for(entry) in ('eden','duckstation','dolphin','prism'):
+            if presets.adapter_for(entry) in ('eden','duckstation','dolphin','prism','pcsx2','azahar','ppsspp'):
                 empty.pack_start(ActionButton('Editar ajustes manualmente','sliders',lambda _:self.open_game_section('options')),False,False,0)
             content.pack_start(empty,False,False,0)
             self.profile_dock_title.set_text('Sin perfil seleccionado')

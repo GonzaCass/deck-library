@@ -1,6 +1,6 @@
 # Presets portables — esquema v1
 
-Los perfiles son datos JSON. Nunca contienen comandos, scripts, destinos de archivos, ROMs, claves ni un INI/TOML completo. La app determina el destino usando la instalación local y un adaptador explícito.
+Los perfiles son datos JSON. Los ajustes automáticos nunca contienen scripts, destinos de archivos, ROMs, claves ni un INI/TOML completo. Las instrucciones manuales pueden incluir comandos como texto informativo, que la app no ejecuta. La app determina el destino usando la instalación local y un adaptador explícito.
 
 El esquema validable está en [preset.schema.json](../presets/preset.schema.json). El catálogo inicial está en [catalog.json](../presets/catalog.json). El registro de opciones aceptadas por cada adaptador está en `deck_library/presets.py`.
 
@@ -31,7 +31,7 @@ El esquema validable está en [preset.schema.json](../presets/preset.schema.json
 
 Versiones declaradas y hardware se muestran para evaluar compatibilidad. Si la versión instalada se conoce y no coincide, la app rechaza aplicar el preset. La versión de Eden puede no detectarse automáticamente en todos los AppImages: hay que contrastarla con la versión declarada. Los perfiles disponibles para ambos modelos de Deck no significan que todos fueron probados en ambos.
 
-Los estados son `proposal` (para probar), `boot-tested` (arranque comprobado) y `user-confirmed` (confirmación reportada). Son declaraciones del autor; esta versión local no dispone de verificación central, votos ni moderación. Ningún preset promete FPS universales.
+Los estados son `proposal` (para probar), `boot-tested` (arranque comprobado) y `user-confirmed` (confirmación reportada). Son declaraciones del autor; el servicio comunitario agrega revisión, votos y comentarios. Ningún preset promete FPS universales.
 
 ## Opciones de Switch para juegos sin perfil
 
@@ -75,3 +75,29 @@ Para un catálogo común sin servidor: cada amigo puede apuntar **Catálogo GitH
 ## Pruebas
 
 Probar preservación de opciones ajenas al preset, rechazo de claves desconocidas/rutas/comandos, compatibilidad por juego/versión, programa abierto, rollback y feedback sin datos privados. Al recomendar un perfil, registrar el escenario probado (menú/partida), actualización, mod y modelo de Deck.
+
+## Capturar, editar y compartir (0.19.7)
+
+Abrí un juego → **Comunidad → Compartir mis ajustes**. **Leer configuración del juego** captura las opciones reconocidas, incluidos los valores globales heredados. **Leer otro archivo de configuración** permite elegir un INI o TOML; solo importa las claves permitidas para ese adaptador. No copia el archivo completo.
+
+Podés editar los valores JSON, escribir instrucciones, registrar resultados de prueba y declarar Linux nativo, Proton o Steam, su versión y opciones de lanzamiento. **Revisar mis ajustes** muestra el contenido antes de compartirlo. **Guardar localmente** funciona sin cuenta. **Publicar perfil** requiere iniciar sesión; el servicio asigna el autor autenticado y mantiene el aporte pendiente de revisión. **Mis aportes** muestra los perfiles propios para ese juego y adaptador. Publicar no concede una marca de verificado.
+
+| Programa | Lectura | Aplicación |
+| --- | --- | --- |
+| Eden | Global + personalizado del juego | INI del juego, con respaldo |
+| DuckStation | Global + archivo del serial | INI del juego, con respaldo |
+| Dolphin | GFX global + GameSettings | GameSettings, con respaldo |
+| PCSX2 | Global + archivo serial/CRC identificado | Solo archivo por juego identificado; nunca el global |
+| Azahar / Citra | Global + personalizado del Title ID | INI del juego, con respaldo |
+| PPSSPP | Global + archivo del ID de PSP | INI del juego, con respaldo |
+| mGBA | Opciones gráficas globales reconocidas | Referencia manual; no modifica el global |
+| WiiCompiled / Project 2099 antiguo | TOML conocido del adaptador | Opciones permitidas, con respaldo |
+| Project 2099 Beta 5 y demás ports / juegos de PC | Guía manual; GTA IV puede leer opciones conocidas de FusionFix/DXVK | Pasos manuales; no ejecuta comandos |
+
+Los archivos se buscan en instalaciones nativas y Flatpak conocidas. Una instalación personalizada puede usar `emulator_config_dir` en sus metadatos o el selector de archivo. La aplicación de PCSX2 exige una configuración existente inequívoca o serial + CRC explícitos. Un serial, Title ID o versión desconocidos se deben completar antes de aplicar. No se exportan rutas, cuentas, controles ni claves de los archivos leídos.
+
+`instructions` admite hasta 12.000 caracteres. `runtime` declara `kind` (`native`, `proton`, `steam`), `version` y `launch_options`. Ambos son texto informativo: importar, descargar o aplicar un perfil **no ejecuta comandos ni cambia Proton**. Una guía sin ajustes automáticos muestra **Ver instrucciones** y mantiene deshabilitado Aplicar. Revisá los textos escritos manualmente antes de publicarlos.
+
+Los juegos sin identificador público usan una identidad derivada del repositorio del port o del nombre y plataforma. Renombrarlos puede cambiar esa identidad; un ID público explícito es preferible. Los perfiles de Project 2099 Beta 4.1 no se aplican al motor distinto de Beta 5. Las referencias documentadas de DMC3 Crimson y Shattered Dimensions no instalan automáticamente esos fixes.
+
+Fuentes de los formatos revisados: [PCSX2](https://github.com/PCSX2/pcsx2/blob/master/pcsx2/VMManager.cpp), [Azahar](https://github.com/azahar-emu/azahar/blob/master/src/citra_qt/configuration/config.cpp), [mGBA](https://github.com/mgba-emu/mgba/blob/master/src/core/config.c), [PPSSPP](https://github.com/hrydgard/ppsspp/blob/master/Core/Config.cpp).

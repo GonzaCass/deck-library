@@ -31,14 +31,9 @@ class CommunityMixin:
         right.pack_start(text('Comentario (opcional)','meta'),False,False,0);note=Gtk.TextView();note.set_wrap_mode(Gtk.WrapMode.WORD_CHAR);note_scroll=self.new_scroll();note_scroll.set_size_request(-1,70);note_scroll.add(note);right.pack_start(note_scroll,False,False,0)
         post=Gtk.Box(spacing=8);right.pack_start(post,False,False,0)
         publish_page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);add_page(publish_page,'publish')
-        publish_page.pack_start(text('Compartir mi configuración actual','section-title'),False,False,0)
-        publish_page.pack_start(text('Se comparten las opciones permitidas del juego, sin rutas, claves ni archivos personales. El aporte queda pendiente de revisión.','muted',100),False,False,0)
-        title=Gtk.Entry();title.set_text(e.name+' — mis ajustes');publish_page.pack_start(text('Nombre del perfil'),False,False,0);publish_page.pack_start(title,False,False,0)
-        objective=Gtk.ComboBoxText()
-        for key in ('Equilibrado','Rendimiento','Calidad','Personalizado'):objective.append(key,key)
-        objective.set_active_id('Equilibrado');publish_page.pack_start(text('Objetivo'),False,False,0);publish_page.pack_start(objective,False,False,0)
-        description=Gtk.Entry();description.set_placeholder_text('Qué probaste y cómo funcionó');publish_page.pack_start(text('Descripción'),False,False,0);publish_page.pack_start(description,False,False,0)
-        review=text('','muted',100);review_scroll=self.new_scroll();review_scroll.add(review);publish_page.pack_start(review_scroll,True,True,0)
+        from .profile_composer import ProfileComposer
+        composer=ProfileComposer(e,self.store,self.preferences.get('eden_config') or None,self.pick_file)
+        publish_page.pack_start(composer,False,False,0)
         publication=Gtk.Box(spacing=10);publish_page.pack_start(publication,False,False,0)
         from .gui_account import AccountPane
         def refresh_account():account.set_text('Sesión: '+client.session()['login'] if client.session().get('login') else 'Sin sesión')
@@ -61,7 +56,7 @@ class CommunityMixin:
             for item in value:
                 panel=self.card(comments,(item.get('author') or 'Usuario')+(' · '+str(item['rating'])+' ★' if item.get('rating') else ''))
                 panel.pack_start(text(item.get('notes') or ('Le funcionó' if item['result']=='works' else 'Informó problemas'),'muted',65),False,False,0)
-            comments.show_all()
+            comments.show_all();self.refresh_layout()
         def chosen(_,row):
             selected[0]=getattr(row,'value',None)
             if not selected[0]:return
@@ -73,7 +68,7 @@ class CommunityMixin:
             selected[0]=None;self.reset_page(rows)
             for value in values:
                 row=Gtk.ListBoxRow();row.value=value;body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);body.set_border_width(10);body.pack_start(text(profile_display.title(value['preset']),'title',34),False,False,0);body.pack_start(text(rating_caption(value),'rating'),False,False,0);body.pack_start(text(value['author']+(' · Pendiente de revisión' if value.get('status')=='pending' else ''),'meta'),False,False,0);row.add(body);rows.add(row)
-            rows.show_all()
+            rows.show_all();self.refresh_layout()
             wanted=next((r for r in rows.get_children() if r.value['preset']['id']==profile_id or 'community-'+r.value['id']==profile_id),rows.get_row_at_index(0))
             if wanted:rows.select_row(wanted)
             else:name.set_text('No hay perfiles publicados para este juego.');show_comments([])
@@ -93,21 +88,22 @@ class CommunityMixin:
             def done(_):status.set_text('Valoración guardada.');self.community_rating_cache.pop(e.id,None) if hasattr(self,'community_rating_cache') else None;search(None)
             run(lambda:client.rate(value,int(rating.get_active_id()),notes),done)
         def review_profile(_):
-            if auth_needed():return
             try:
-                value=presets.export_current(e,title.get_text().strip(),client.session()['login'],self.store,self.preferences.get('eden_config') or None);value['objective']=objective.get_active_id();value['notes']=description.get_text().strip();presets.validate(value);prepared[0]=value
-                lines=[profile_display.title(value),'Objetivo: '+value['objective'],'Autor: '+value['author'],'Licencia: MIT','']
-                for section,options in value['settings'].items():
-                    for key,setting in options.items():lines.append(key+': '+profile_display.value_text(value['adapter']['id'],key,setting))
-                review.set_text('\n'.join(lines));submit.set_sensitive(True)
+                prepared[0]=composer.profile(client.session().get('login') or 'Usuario');submit.set_sensitive(True);status.set_text('Perfil revisado. Podés guardarlo localmente o publicarlo con tu cuenta.')
+            except Exception as error:prepared[0]=None;submit.set_sensitive(False);status.set_text(str(error))
+        def save_local(_):
+            try:
+                value=composer.profile(client.session().get('login') or 'Usuario');client._save(value);status.set_text('Perfil guardado en este dispositivo.');self.toast('Perfil guardado')
             except Exception as error:status.set_text(str(error))
         def submit_profile(_):
-            if auth_needed() or not prepared[0]:return
-            def done(_):submit.set_sensitive(False);status.set_text('Perfil enviado. Podés ver su estado en Mis aportes.');prepared[0]=None
-            value=prepared[0];run(lambda:client.publish(value),done)
-        def changed(*_):prepared[0]=None;submit.set_sensitive(False)
-        publication.pack_start(ActionButton('Revisar mis ajustes','sliders',review_profile,'violet-outline'),False,False,0);submit=ActionButton('Publicar perfil','upload',submit_profile,'violet');submit.set_sensitive(False);publication.pack_start(submit,False,False,0)
-        title.connect('changed',changed);objective.connect('changed',changed);description.connect('changed',changed)
+            if auth_needed():return
+            try:value=composer.profile(client.session()['login'])
+            except Exception as error:status.set_text(str(error));return
+            def done(_):submit.set_sensitive(False);status.set_text('Perfil enviado. Podés ver su estado en Mis aportes.');prepared[0]=None;self.toast('Perfil enviado para revisión')
+            run(lambda:client.publish(value),done)
+        publication.pack_start(ActionButton('Revisar mis ajustes','sliders',review_profile,'violet-outline'),False,False,0)
+        publication.pack_start(ActionButton('Guardar localmente','check',save_local,'cyan'),False,False,0)
+        submit=ActionButton('Publicar perfil','upload',submit_profile,'violet');submit.set_sensitive(False);publication.pack_start(submit,False,False,0)
         account_page=AccountPane(client,refresh_account);add_page(account_page,'account')
         dialog.account_controller=lambda action:account_page.handle_controller(action,dialog) if stack.get_visible_child_name()=='account' else False
         for caption,page,icon in [('Perfiles','browse','community'),('Compartir mis ajustes','publish','upload'),('Mi cuenta','account','controller')]:tabs.pack_start(ActionButton(caption,icon,lambda _,p=page:stack.set_visible_child_name(p),'violet-outline' if page=='publish' else 'quiet'),False,False,0)
@@ -116,6 +112,7 @@ class CommunityMixin:
         refresh_account();dialog.show_all();stack.set_visible_child_name(mode);search(None);dialog.run();alive[0]=False
         account_page.close()
         dialog.destroy()
+        if self.selected and self.selected.id==e.id:self.show_detail(e)
 
 
 def rating_caption(value):
