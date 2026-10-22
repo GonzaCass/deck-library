@@ -3,7 +3,7 @@ import json
 from gi.repository import Gtk, GLib, Pango
 from . import presets, motion, profile_display as display
 from .artwork import find_cover
-from .ui_components import ActionButton, TaskButton, Icon, Reveal, GameBackdrop, styled, text
+from .ui_components import ActionButton, TaskButton, Icon, Reveal, GameBackdrop, styled, text, tooltip_when_cut
 
 
 class GameMixin:
@@ -172,7 +172,7 @@ class GameMixin:
         name = text(entry.name, 'game-title', 44)
         name.set_lines(2)
         name.set_ellipsize(Pango.EllipsizeMode.END)
-        name.set_tooltip_text(entry.name)
+        tooltip_when_cut(name, entry.name)
         info.pack_start(name, False, False, 0)
         actions = Gtk.Box(spacing=10)
         needs_setup=entry.metadata.get('configured') is False and bool(entry.metadata.get('port_repository'))

@@ -6,13 +6,20 @@ class InputMixin:
         focus=window.get_focus()
         return (focus.get_ancestor(Gtk.ComboBox) or focus) if focus else None
 
+    def disable_tooltips(self):
+        """With a controller there is no hover: a tooltip would stay over whatever page opens under the idle pointer."""
+        try:
+            Gtk.Settings.get_default().set_property('gtk-enable-tooltips',False)
+            display=Gdk.Display.get_default()
+            if display:Gtk.Tooltip.trigger_tooltip_query(display)
+        except (TypeError,AttributeError):pass
     def start_gamepad(self):
         import os,sys
         if not ('--gaming' in sys.argv or os.environ.get('SteamAppId') or os.environ.get('SteamGameId')):return
         try:
             from .gamepad import Driver
             self.gamepad_driver=Driver(self)
-            self.controller_mode=True
+            self.controller_mode=True;self.disable_tooltips()
             if hasattr(self,'controller_hint'):self.controller_hint.show()
             GLib.idle_add(self.focus_library)
         except OSError as error:self.set_status('Mando: '+str(error))
@@ -318,7 +325,7 @@ class InputMixin:
         now=time.monotonic();previous=getattr(self,'last_controller_action',('',0))
         if previous[0]==action and now-previous[1]<.09:return True
         self.last_controller_action=(action,now)
-        self.controller_mode=True
+        self.controller_mode=True;self.disable_tooltips()
         if hasattr(self,'controller_hint'):self.controller_hint.show()
         window=window or self
         self.prepare_controller_window(window)

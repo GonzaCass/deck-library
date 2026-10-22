@@ -6,6 +6,7 @@ from .models import Store
 from .installations import settings,save_settings
 from .steam import find_accounts,active_account
 from .library_view import TYPES,entry_type,visible_entries
+from .ui_components import tooltip_when_cut
 from .artwork import find_cover
 from . import motion,__version__,presets
 
@@ -212,7 +213,7 @@ class ShellMixin:
         from .gui import label,Poster
         tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);tile.get_style_context().add_class('library-game');tile.set_size_request(164,-1);action=Gtk.Button();action.get_style_context().add_class('poster');action.add(Poster(e,find_cover(e),164,246));action.connect('clicked',lambda _:self.select_game(e));action.set_tooltip_text(e.name);self.bind_library_focus(action,e,tile)
         if e.id in self.checked:action.get_style_context().add_class('selected')
-        tile.pack_start(action,False,False,0);name=label(e.name,'cover-title');name.set_line_wrap(True);name.set_lines(2);name.set_ellipsize(Pango.EllipsizeMode.END);name.set_max_width_chars(19);name.set_size_request(-1,44);name.set_tooltip_text(e.name);tile.pack_start(name,False,False,0);tile.pack_start(label(e.platform+(' · Steam' if self.in_steam(e) else ''),'meta'),False,False,0);(target if target is not None else self.covers).add(tile);tile.get_parent().set_can_focus(False);self.new_tiles.append(tile)
+        tile.pack_start(action,False,False,0);name=label(e.name,'cover-title');name.set_line_wrap(True);name.set_lines(2);name.set_ellipsize(Pango.EllipsizeMode.END);name.set_max_width_chars(19);name.set_size_request(-1,44);tooltip_when_cut(name,e.name);tile.pack_start(name,False,False,0);tile.pack_start(label(e.platform+(' · Steam' if self.in_steam(e) else ''),'meta'),False,False,0);(target if target is not None else self.covers).add(tile);tile.get_parent().set_can_focus(False);self.new_tiles.append(tile)
         linked=getattr(self,'rom_associations',{}).get(e.id,[])
         if linked:
             from .originals import rom_caption

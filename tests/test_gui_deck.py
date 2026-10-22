@@ -562,6 +562,19 @@ class DeckUITests(unittest.TestCase):
         self.w.refresh_account_button();self.assertEqual(self.w.account_button.get_label(),'jugador');self.assertTrue(self.w.signed_in())
         path.unlink()
 
+    def test_game_names_show_a_tooltip_only_when_cut_and_never_with_a_controller(self):
+        from gi.repository import Gtk
+        from deck_library.ui_components import tooltip_when_cut
+        label=Gtk.Label(label='Nombre muy corto');tooltip_when_cut(label,'Nombre muy corto')
+        class Tip:
+            text=''
+            def set_text(self,value):self.text=value
+        label.set_ellipsize(3);label.set_max_width_chars(4);window=Gtk.Window();window.add(label);window.show_all();self.settle()
+        tip=Tip();self.assertTrue(label.tooltip_query(label,0,0,False,tip));self.assertEqual(tip.text,'Nombre muy corto')
+        window.controller_mode=True;self.assertFalse(label.tooltip_query(label,0,0,False,Tip()))
+        window.destroy()
+        self.w.controller_mode=False;self.w.disable_tooltips();self.assertFalse(Gtk.Settings.get_default().get_property('gtk-enable-tooltips'));Gtk.Settings.get_default().set_property('gtk-enable-tooltips',True)
+
     def catalog_texts(self):
         from gi.repository import Gtk
         def walk(widget):

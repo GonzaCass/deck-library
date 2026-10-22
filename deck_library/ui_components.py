@@ -211,3 +211,13 @@ class GameBackdrop(Gtk.DrawingArea):
         for x,y,a,b in [(w-radius,radius,-math.pi/2,0),(w-radius,h-radius,0,math.pi/2),(radius,h-radius,math.pi/2,math.pi),(radius,radius,math.pi,math.pi*1.5)]:cr.arc(x,y,radius,a,b)
         cr.close_path();cr.clip();cr.set_source_rgb(0.149,0.149,0.149);cr.paint();cr.restore()
         return False
+
+def tooltip_when_cut(widget,value):
+    """Full-name tooltip only while the text is actually shortened with an ellipsis, so it never pops up over a page for no reason."""
+    widget.set_has_tooltip(True)
+    def query(label,x,y,keyboard,tip):
+        if keyboard or getattr(label.get_toplevel(),'controller_mode',False):return False
+        layout=label.get_layout()
+        if layout is None or not layout.is_ellipsized():return False
+        tip.set_text(value);return True
+    widget.tooltip_query=query;widget.connect('query-tooltip',query)
