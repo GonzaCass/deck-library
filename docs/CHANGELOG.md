@@ -4,6 +4,7 @@ Every release has its notes on [GitHub](https://github.com/GonzaCass/deck-librar
 
 | Version | Date | Title |
 | --- | --- | --- |
+| [1.0.1](https://github.com/GonzaCass/deck-library/releases/tag/v1.0.1) | 2026-10-22 | Gaming Mode fixes, sign-in button and new icon |
 | [1.0.0](https://github.com/GonzaCass/deck-library/releases/tag/v1.0.0) | 2026-10-21 | English and Spanish interface |
 | [0.20.0](https://github.com/GonzaCass/deck-library/releases/tag/v0.20.0) | 2026-10-21 | Release candidate for 1.0 |
 | [0.19.10](https://github.com/GonzaCass/deck-library/releases/tag/v0.19.10) | 2026-10-21 |  |
