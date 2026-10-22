@@ -540,6 +540,28 @@ class DeckUITests(unittest.TestCase):
         with patch.object(self.inline,'run',run),patch.object(ports,'icon_path',return_value=''),patch.object(ports,'requirements',return_value=[]),patch.object(self.w,'install_port') as install:open_.clicked();install.assert_not_called()
         self.assertTrue(all(seen));self.assertEqual(len(seen),5);self.assertFalse(self.w.inline_workflows)
 
+    def test_update_notes_and_options_are_reachable_with_the_controller(self):
+        from gi.repository import Gtk
+        self.w.update_state={'catalog':[{'name':'Test port','repository':'example/test','installed':'v1','latest':'v2','notes':'- First change\n- Second change\n- Third change\n- Fourth change'}]}
+        self.w.updates_page();self.settle()
+        targets=self.w.control_targets(self.w);expanders=[c for c in targets if isinstance(c,Gtk.Expander)]
+        self.assertEqual(len(expanders),2);notes=next(c for c in expanders if 'v2' in c.get_label());self.assertFalse(notes.get_expanded())
+        self.w.last_controller_action=('',0);notes.grab_focus();self.w.controller_action('activate');self.settle();self.assertTrue(notes.get_expanded())
+        self.w.last_controller_action=('',0);self.w.controller_action('activate');self.settle();self.assertFalse(notes.get_expanded())
+        def labels(widget):
+            if isinstance(widget,Gtk.Label):yield widget.get_text()
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from labels(child)
+        shown='\n'.join(labels(self.w.updates_box));self.assertIn('First change',shown);self.assertIn('Third change',shown)
+
+    def test_a_signed_out_user_sees_a_register_or_sign_in_button_and_a_signed_in_one_sees_the_name(self):
+        import json
+        path=self.store.root/'community-session.json';path.unlink(missing_ok=True)
+        self.w.refresh_account_button();self.assertEqual(self.w.account_button.get_label(),'Registrarse o iniciar sesión');self.assertFalse(self.w.signed_in())
+        url=self.w.preferences.get('community_url','https://presets.jokerlan.xyz');path.write_text(json.dumps({'server':url,'token':'t','login':'jugador'}))
+        self.w.refresh_account_button();self.assertEqual(self.w.account_button.get_label(),'jugador');self.assertTrue(self.w.signed_in())
+        path.unlink()
+
     def catalog_texts(self):
         from gi.repository import Gtk
         def walk(widget):
@@ -584,7 +606,7 @@ class DeckUITests(unittest.TestCase):
         import time
         from deck_library import presets
         from gi.repository import Gtk
-        entry=self.w.entries[0];profile=presets.recommended(entry,self.store)[0];self.w.community_rating_cache={entry.id:(time.monotonic(),[{'id':'shared-1','preset':profile,'author':'Player','rating':4.5,'ratings':2}])}
+        entry=self.w.entries[0];profile={**presets.recommended(entry,self.store)[0],'id':'player-profile'};self.w.community_rating_cache={entry.id:(time.monotonic(),[{'id':'shared-1','preset':profile,'author':'Player','rating':4.5,'ratings':2}])}
         self.w.select_game(entry);self.settle();panel=self.w.community_profile_box
         self.assertTrue(panel.get_mapped());self.assertEqual(len(panel.get_children()),1);self.assertIsNone(panel.get_ancestor(Gtk.Revealer))
         self.assertGreater(len(self.w.profile_cards),3)
@@ -1039,7 +1061,7 @@ class DeckUITests(unittest.TestCase):
         from gi.repository import Gtk,GLib
         from deck_library import presets
         from deck_library.community import Client
-        value=presets.recommended(self.w.entries[0],self.store)[0]
+        value={**presets.recommended(self.w.entries[0],self.store)[0],'id':'player-profile'}
         result={'id':'test','preset':value,'author':'Player','rating':None,'ratings':0}
         original=self.inline.run;seen=[]
         def rows(widget):
@@ -1072,7 +1094,7 @@ class DeckUITests(unittest.TestCase):
         from gi.repository import Gtk,GLib
         from deck_library import presets
         from deck_library.community import Client
-        profile=presets.recommended(self.w.entries[0],self.store)[0];value={'id':'test-profile','preset':profile,'author':'Player','rating':4.5,'ratings':2}
+        profile={**presets.recommended(self.w.entries[0],self.store)[0],'id':'player-profile'};value={'id':'test-profile','preset':profile,'author':'Player','rating':4.5,'ratings':2}
         original=self.inline.run;seen=[]
         def walk(widget):
             yield widget

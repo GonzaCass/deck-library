@@ -207,6 +207,7 @@ button.violet:hover,button.violet-outline:hover,button.amber:hover,button.cyan:h
 .deck-density label.title { font-size:18px; }
 .deck-density .card { padding:8px 10px; }
 .deck-density label.hero { font-size:22px; }
+expander:focus title { background:#24344d; border-radius:6px; outline:2px solid @accent; outline-offset:0; }
 .apply-dock button.violet { background:@accent; }
 .apply-dock button.violet label { color:#10233e; font-weight:700; }
 .apply-dock button.violet:hover { background:#a6c8ff; }

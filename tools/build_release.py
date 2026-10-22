@@ -9,6 +9,8 @@ for folder in ('deck_library','tests'):
     files.extend(sorted((ROOT/folder).glob('*.py')))
 files.extend(sorted((ROOT/'presets').glob('*.json')))
 files.extend(sorted((ROOT/'deck_library/i18n_en').glob('*.json')))
+files.extend(sorted((ROOT/'assets/steam').glob('*.png')))
+files.append(ROOT/'tools/render_art.py')
 files.append(ROOT/'tools/i18n_extract.py')
 files.extend([ROOT/'.dockerignore',ROOT/'docs/DECK-INTERFACE.md',ROOT/'docs/V1-CHECKLIST.md',ROOT/'docs/CHANGELOG.md',ROOT/'docs/HISTORIAL.md',ROOT/'tools/sync_readme.py'])
 files.extend(sorted(p for p in (ROOT/'community').iterdir() if p.is_file() and p.name in ('__init__.py','server.py','oidc.py','keycloak-client.json','Dockerfile','compose.yaml','.env.example','README.md')))

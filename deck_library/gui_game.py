@@ -270,11 +270,13 @@ class GameMixin:
             control.set_sensitive(True)
             self.message('No se pudo abrir el juego', str(error))
             return
-        self.toast('Se solicitó abrir '+entry.name)
+        # No banner over the page: the button says "Abriendo…" and the footer line names the game. In Gaming Mode Steam
+        # takes several seconds to start another app, and a notice would cover the page meanwhile.
         def ready():
             if not control.in_destruction():
                 control.set_label('Jugar')
                 control.set_sensitive(True)
+                control.grab_focus();self.mark_controller_focus(self,control)
             return False
         GLib.timeout_add(1800, ready)
 
@@ -437,12 +439,17 @@ class GameMixin:
             self.community_profile_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
             community_head=Gtk.Box(spacing=10);community_head.pack_start(text('Ajustes de la comunidad','section-title'),True,True,0);community_head.pack_end(ActionButton('Ver todos','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0);content.pack_start(community_head,False,False,10)
             content.pack_start(self.community_profile_box,False,False,0)
+            if not self.signed_in():
+                from .gui_account import account_dialog
+                content.pack_start(text('Publicar ajustes y valorar perfiles requiere una cuenta.','muted'),False,False,0)
+                content.pack_start(ActionButton('Registrarse o iniciar sesión','community',lambda _:account_dialog(self),'steam'),False,False,0)
             content.pack_start(ActionButton('Compartir mis ajustes','upload',lambda _:self.community_dialog(entry,mode='publish'),'violet-outline'),False,False,0)
             self.community_profile_box.pack_start(text('Consultar perfiles, valoraciones y comentarios.','muted'),False,False,0)
-            if len(profiles)>3:
+            others = [p for p in profiles[3:] if not presets.is_bundled(p)]  # only the three standard profiles are ours; the rest are imported or saved by the user
+            if others:
                 extra = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
-                for profile in profiles[3:]:extra.pack_start(self.profile_card(profile,choose,profile['id']==best),False,False,0)
-                content.pack_start(text('Otros perfiles · '+str(len(profiles)-3),'section-title'),False,False,10)
+                for profile in others:extra.pack_start(self.profile_card(profile,choose,profile['id']==best),False,False,0)
+                content.pack_start(text('Otros perfiles · '+str(len(others)),'section-title'),False,False,10)
                 content.pack_start(extra,False,False,0)
             selected = self.profile_choice.get(entry.id,best)
             choose(next((value for value in profiles if value['id']==selected),profiles[0]))
@@ -475,7 +482,9 @@ class GameMixin:
                 self.reset_page(panel)
                 if error:panel.pack_start(text('No se pudo consultar la comunidad. Ver todos permite reintentar.','muted'),False,False,0)
                 elif not values:panel.pack_start(text('Todavía no hay perfiles publicados para este juego.','muted'),False,False,0)
-                for value in values[:3]:
+                shown=[v for v in values if not presets.is_packaged(v,self.store)]
+                if values and not shown:panel.pack_start(text('Todavía no hay perfiles publicados para este juego.','muted'),False,False,0)
+                for value in shown[:3]:
                     caption=display.title(value['preset'])+' · '+rating_caption(value)
                     card=TaskButton(caption,'Por '+value.get('author','Usuario')+' · Ver ajustes y comentarios','community',lambda _,v=value:self.community_dialog(entry,'community-'+v['id']),'violet-outline');panel.pack_start(card,False,False,0)
                 panel.show_all()

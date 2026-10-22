@@ -84,8 +84,9 @@ class CommunityMixin:
             GLib.idle_add(lambda:(detail_back.grab_focus(),self.mark_controller_focus(self,detail_back),False)[-1])
             if value.get('status')=='pending':status.set_text('Pendiente de revisión.');return
             run(lambda:client.comments(value),lambda result:show_comments(result) if selected[0] is value else None)
+        state={'mine':False}
         def found(values):
-            self.reset_page(rows)
+            self.reset_page(rows);everything=values;values=[v for v in values if state['mine'] or not presets.is_packaged(v,self.store)]
             if not values:rows.add(text('No hay perfiles para este juego. Se pueden compartir perfiles propios.','muted',95))
             for value in values:
                 row=Gtk.ListBoxRow();row.value=value
@@ -95,9 +96,10 @@ class CommunityMixin:
                 control.body.pack_end(summary,False,False,0);row.add(control);rows.add(row)
             rows.show_all();self.refresh_layout()
             if profile_id:
-                wanted=next((v for v in values if v['preset']['id']==profile_id or 'community-'+v['id']==profile_id),None)
+                wanted=next((v for v in everything if v['preset']['id']==profile_id or 'community-'+v['id']==profile_id),None)
                 if wanted:open_profile(wanted)
-        def search(_,mine=False):run(lambda:client.search(e,mine=mine),found)
+        def search(_,mine=False):
+            state['mine']=mine;run(lambda:client.search(e,mine=mine),found)
         def auth_needed():
             if client.session().get('login'):return False
             stack.set_visible_child_name('account');status.set_text('Iniciar sesión para continuar.');return True
