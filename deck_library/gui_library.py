@@ -63,7 +63,14 @@ class LibraryToolsMixin:
         app=pathlib.Path(__file__).resolve().parent.parent/'app.py'
         from .library_app import entry as self_entry
         entry=self_entry(app)
-        self.run_queue(lambda:queue_entries([entry],account,self.store),'Preparando Deck Library para Steam…')
+        from .library_app import art_items
+        from .service import queue_art
+        def job():
+            result=queue_entries([entry],account,self.store)
+            items=art_items(account,self.store,app)
+            if items:queue_art(items,account,self.store)
+            return result
+        self.run_queue(job,'Preparando Deck Library para Steam…')
     def emulator_dialog(self,e):
         from .gui import label,button
         from .emulator_settings import inspect_emulator,set_language

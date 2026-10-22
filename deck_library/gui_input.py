@@ -64,6 +64,7 @@ class InputMixin:
             elif getattr(focus,'profile_id',None):activate='Ver perfil'
             elif isinstance(focus,Gtk.Entry):activate='Abrir teclado'
             elif isinstance(focus,Gtk.MenuButton):activate='Abrir menú'
+            elif isinstance(focus,Gtk.Expander):activate='Cerrar' if focus.get_expanded() else 'Abrir'
             elif isinstance(focus,(Gtk.CheckButton,Gtk.Switch)):activate='Cambiar'
             elif isinstance(focus,Gtk.Button):
                 caption=focus.get_label()
@@ -103,6 +104,12 @@ class InputMixin:
             children=[]
             for child in root.get_children():children.extend(self.control_targets(child))
             if children:return children
+        if isinstance(root,Gtk.Expander):
+            # The header is a control of its own; the content is reachable only while it is open.
+            result=[root] if root.get_can_focus() else []
+            child=root.get_child()
+            if child is not None and root.get_expanded():result.extend(self.control_targets(child))
+            return result
         kinds=(Gtk.Button,Gtk.ComboBox,Gtk.Entry,Gtk.TextView,Gtk.Switch,Gtk.Scale,Gtk.TreeView,Gtk.ListBoxRow,Gtk.Socket)
         if isinstance(root,kinds) and root.get_can_focus():return [root]
         result=[]
@@ -363,6 +370,7 @@ class InputMixin:
             if isinstance(focus,Gtk.Entry):self.open_keyboard(focus)
             elif isinstance(focus,Gtk.ComboBox):focus.popup()
             elif isinstance(focus,Gtk.Switch):focus.set_active(not focus.get_active())
+            elif isinstance(focus,Gtk.Expander):focus.set_expanded(not focus.get_expanded())
             elif isinstance(focus,Gtk.Button):focus.clicked()
             elif isinstance(focus,Gtk.ListBoxRow):focus.activate()
             elif not window.activate_focus():window.activate_default()

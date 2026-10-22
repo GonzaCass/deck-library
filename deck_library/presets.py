@@ -141,6 +141,14 @@ def is_bundled(value):
         return all(canonical[key]==value[key] for key in ('game','adapter','settings','tested')) and all(canonical.get(key)==value.get(key) for key in ('instructions','runtime'))
     except (OSError,ValueError,KeyError,TypeError):return False
 
+def is_packaged(value,store=None):
+    """True for a community-service entry that only mirrors a profile Deck Library already ships (the service lists them as proposals)."""
+    preset=value.get('preset') or {}
+    if str(value.get('author',''))=='Deck Library':return True
+    try:bundled={v['id'] for v in catalog(store) if is_bundled(v)}
+    except (OSError,ValueError,KeyError,TypeError):bundled=set()
+    return preset.get('id') in bundled
+
 SWITCH_BASES=('eden-switch-default','eden-switch-performance','eden-switch-quality','eden-switch-compatibility')
 
 def recommended(entry,store=None):

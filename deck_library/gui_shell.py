@@ -36,10 +36,37 @@ class ShellMixin:
         else:GLib.idle_add(self.discover)
         if self.preferences.get('check_updates',True):self.ui_sources.append(GLib.timeout_add_seconds(5,self.check_updates))
         path=self.store.root/'last-sync.json';self.last_sync_seen=path.stat().st_mtime if path.exists() else 0;self.ui_sources.append(GLib.timeout_add_seconds(3,self.poll_sync));self.refresh_pending()
-        self.start_gamepad()
+        self.start_gamepad();GLib.timeout_add_seconds(12,self.top_up_library_art)
     def compact_screen(self):
         screen=Gdk.Screen.get_default()
         return bool(screen) and screen.get_height()<=900 and screen.get_width()<=1400
+    def top_up_library_art(self):
+        """Desktop Mode only: give the existing Deck Library shortcut its cover, banner, background, logo and icon when it has none."""
+        if motion.gaming_mode() or self.ui_closed:return False
+        try:
+            from .library_app import art_items
+            from .service import queue_art
+            account=self.current_account()
+            if account:
+                items=art_items(account,self.store)
+                if items:queue_art(items,account,self.store)
+        except (OSError,ValueError,KeyError):pass
+        return False
+    def community_login(self):
+        from .community import Client
+        try:return Client(self.store,self.preferences.get('community_url','https://presets.jokerlan.xyz')).session().get('login') or ''
+        except ValueError:return ''
+    def signed_in(self):return bool(self.community_login())
+    def refresh_account_button(self):
+        """Signed out: a visible Register / Sign in button. Signed in: the account name. The session itself lives in community-session.json."""
+        button=getattr(self,'account_button',None)
+        if button is None:return
+        login=self.community_login();style=button.get_style_context()
+        caption=login or 'Registrarse o iniciar sesión'
+        button.caption.set_text(caption);button.caption.set_no_show_all(False);button.caption.show()
+        button.set_tooltip_text(('Cuenta · '+login) if login else 'Registrarse o iniciar sesión');button.get_accessible().set_name(caption)
+        for name in ('steam','quiet'):style.remove_class(name)
+        style.add_class('quiet' if login else 'steam')
     def update_density(self,_,allocation):
         compact=allocation.height<=900 and allocation.width<=1400
         if getattr(self,'deck_density',None)==compact:return
@@ -80,7 +107,7 @@ class ShellMixin:
         self.steam_library_button.set_visible(not gaming)
         from .gui_account import account_dialog
         from .ui_components import ActionButton
-        account_button=ActionButton('Cuenta','community',lambda _:account_dialog(self),'quiet');account_button.caption.set_no_show_all(True);account_button.caption.hide();account_button.get_accessible().set_name('Cuenta');account_button.set_tooltip_text('Cuenta');bar.pack_end(account_button,False,False,0)
+        account_button=ActionButton('Cuenta','community',lambda _:account_dialog(self),'quiet');self.account_button=account_button;bar.pack_end(account_button,False,False,0);self.refresh_account_button()
         self.navigation_controls=[*self.nav_buttons.values(),self.steam_library_button,account_button]
         # Keep all tabs and the Steam action reachable at compact widths.
         header_scroll=self.new_scroll();header_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);header_scroll.set_overlay_scrolling(False);root.remove(bar);header_scroll.add(bar);root.pack_start(header_scroll,False,False,0);root.reorder_child(header_scroll,0)

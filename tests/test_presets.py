@@ -4,6 +4,12 @@ from deck_library.models import Entry,Store
 from deck_library import presets
 
 class PresetTests(unittest.TestCase):
+    def test_the_service_listing_of_a_packaged_profile_is_not_a_community_profile(self):
+        bundled=next(v for v in presets.catalog(Store(self.root/'private')) if presets.is_bundled(v))
+        self.assertTrue(presets.is_packaged({'author':'Deck Library','preset':{'id':'anything'}},Store(self.root/'private')))
+        self.assertTrue(presets.is_packaged({'author':'Player','preset':bundled},Store(self.root/'private')))
+        self.assertFalse(presets.is_packaged({'author':'Player','preset':{**bundled,'id':'player-profile'}},Store(self.root/'private')))
+
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.root=pathlib.Path(self.tmp.name);self.store=Store(self.root/'data')
         self.catalog=presets.catalog(self.store)

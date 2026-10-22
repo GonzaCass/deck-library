@@ -185,6 +185,6 @@ def account_dialog(window):
     dialog=InlineDialog(title='Cuenta · Deck Library',transient_for=window,modal=True)
     width,height=window.get_size();dialog.set_default_size(min(900,width-32),min(720,height-48));dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
     content=dialog.get_content_area();content.set_border_width(18)
-    pane=AccountPane(Client(window.store,window.preferences.get('community_url','https://presets.jokerlan.xyz')));scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);scroll.add(pane);content.pack_start(scroll,True,True,0)
+    pane=AccountPane(Client(window.store,window.preferences.get('community_url','https://presets.jokerlan.xyz')),on_change=getattr(window,'refresh_account_button',lambda:None));scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);scroll.add(pane);content.pack_start(scroll,True,True,0)
     dialog.account_controller=lambda action:pane.handle_controller(action,dialog)
     dialog.show();pane.show();dialog.run();pane.close();dialog.destroy()

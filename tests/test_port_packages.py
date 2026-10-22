@@ -108,6 +108,14 @@ class PackageTests(unittest.TestCase):
         self.assertTrue(ports.is_reviewed({'repository':'someone/else','source':'Recomendado'}))
         self.assertFalse(ports.is_reviewed({'repository':'someone/else','source':'Quiver'}));self.assertFalse(ports.is_reviewed({'repository':'x/y'}))
 
+    def test_shipped_steam_art_fills_only_the_empty_slots(self):
+        from deck_library import library_app
+        with tempfile.TemporaryDirectory() as tmp:
+            root=pathlib.Path(tmp);account=root/'userdata/1/config';account.mkdir(parents=True);store=Store(root/'private')
+            items=library_app.art_items(account,store);self.assertEqual({i['slot'] for i in items},{'portrait','banner','hero','logo','icon'});self.assertTrue(all(pathlib.Path(i['file']).is_file() for i in items))
+            appid=items[0]['appid'];(account/'grid').mkdir();(account/'grid'/f'{appid}p.png').write_bytes(b'\x89PNG\r\n\x1a\nchosen')
+            again=library_app.art_items(account,store);self.assertEqual({i['slot'] for i in again},{'banner','hero','logo','icon'})
+
     def test_game_labels_drop_the_project_prefix_and_architecture(self):
         self.assertEqual(ports.game_label('OpenRA-Red-Alert-x86_64.AppImage','OpenRA/OpenRA'),'Red Alert')
         self.assertEqual(ports.game_label('OpenRA-Dune-2000-x86_64.AppImage','OpenRA/OpenRA'),'Dune 2000')

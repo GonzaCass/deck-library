@@ -7,6 +7,15 @@ from .inline_pages import InlineFileChooser
 from . import __version__,updates
 from .installations import save_settings
 
+def notes_preview(text,lines=3,width=110):
+    """The first lines of the release notes, so the change summary is visible without opening anything."""
+    rows=[]
+    for row in str(text).splitlines():
+        row=row.strip().lstrip('-*#• ').strip()
+        if row:rows.append(row if len(row)<=width else row[:width-1].rstrip()+'…')
+        if len(rows)>=lines:break
+    return '\n'.join(rows)
+
 class UpdatesMixin:
     def check_updates(self,force=False):
         """Run due checks off the GTK thread; `force` ignores the cache interval."""
@@ -124,6 +133,7 @@ class UpdatesMixin:
         for key in getattr(self,'transfers',{}):
             if key not in active_keys:
                 card=self.card(box,key.rsplit('/',1)[-1]);self.transfer_row(card,key)
+        prefetched=[0]
         for kind,text,data in unique:
             card=self.card(box);row=Gtk.Box(spacing=16);card.pack_start(row,False,False,0);entry=next((e for e in self.entries if normalized(e.name)==normalized(data['name'])),None)
             if entry:row.pack_start(Poster(entry,find_cover(entry),44,66),False,False,0)
@@ -134,6 +144,7 @@ class UpdatesMixin:
             if data.get('page'):row.pack_end(Gtk.LinkButton.new_with_label(data['page'],'Publicación original'),False,False,0)
             if data.get('repository')==updates.PROJECT2099_REPO:card.pack_start(label('Actualización con respaldo completo. Conserva partidas; el cambio de motor deja los mods y ajustes anteriores en la copia de seguridad.','muted'),False,False,0)
             self.transfer_row(card,'wiicompiled' if kind=='wii' else data.get('repository') or 'wiicompiled')
+            preview=label('','muted');preview.set_margin_top(4);card.pack_start(preview,False,False,0)
             expander=Gtk.Expander(label='Novedades de '+str(data['latest']));notes=label(updates.notes_text(data.get('notes','')) or 'Abrir para consultar las notas del autor.','muted');notes.set_selectable(True);notes.set_max_width_chars(95);notes.set_margin_top(12);expander.add(notes);card.pack_start(expander,False,False,0)
             loaded=['notes' in data]
             if loaded[0] and not data.get('notes'):notes.set_text('Esta fuente no incluye notas para la versión. Se puede consultar la publicación original.')
@@ -146,6 +157,21 @@ class UpdatesMixin:
                     GLib.idle_add(target.set_text,body)
                 threading.Thread(target=work,daemon=True).start()
             expander.connect('notify::expanded',expanded)
+            if 'notes' in data:
+                body=updates.notes_text(data.get('notes',''));preview.set_text(notes_preview(body) if body else 'Sin notas disponibles en la fuente. Se puede consultar la publicación original.')
+            elif prefetched[0]<6:
+                prefetched[0]+=1
+                def prefetch(data=data,target=notes,loaded=loaded,preview=preview):
+                    try:body=updates.notes_text(updates.release_notes(data))
+                    except Exception:body=''
+                    def show():
+                        if body:
+                            preview.set_text(notes_preview(body))
+                            if not loaded[0]:loaded[0]=True;target.set_text(body)
+                        else:preview.set_text('Sin notas disponibles en la fuente. Se puede consultar la publicación original.')
+                        return False
+                    GLib.idle_add(show)
+                threading.Thread(target=prefetch,daemon=True).start()
         options=Gtk.Expander(label='Opciones de actualización');settings_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);options.add(settings_box);box.pack_start(options,False,False,0)
         for key,text,default in (('check_updates','Buscar al abrir',True),('auto_update','Actualizar Deck Library automáticamente',True),('catalog_auto','Mantener el catálogo de ajustes actualizado',True),('community_ratings','Consultar valoraciones comunitarias por juego',True),('auto_update_ports','Actualizar ports automáticamente',False)):
             check=Gtk.CheckButton(label=text);check.set_active(self.preferences.get(key,default))
