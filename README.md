@@ -184,7 +184,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **1.0.1**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **1.0.2**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 Version 1.0 covers the catalog with install and uninstall, the library, per-game settings, Steam integration and the English and Spanish interface, all covered by automated tests. **Not yet validated:** navigation with a physical gamepad in Gaming Mode and playing an installed port from start to finish; see `docs/V1-CHECKLIST.md` (in Spanish). Release history: [docs/CHANGELOG.md](docs/CHANGELOG.md) and the [published releases](https://github.com/GonzaCass/deck-library/releases).
 
@@ -269,6 +269,7 @@ Community profiles have a dedicated, always-expanded preview with ratings and li
 - **Account:** while nobody is signed in, the top bar shows **Sign up or sign in** and each game page repeats the button next to "Share my settings". Once signed in, the bar shows the user name. The session is stored in `~/.local/share/deck-library/community-session.json` (mode 0600) and survives closing and reopening the app, until the user signs out or the service rejects it.
 - **Community settings:** a game page shows Deck Library's three standard profiles on top, with the verified mark where it applies. The community section lists only profiles people uploaded; the profiles Deck Library already ships are not repeated there. "Other profiles" is left for ones the user imported or saved.
 - **Updates:** each port shows the first lines of its notes, and **What's new** opens with the gamepad (collapsible sections now take focus and open with A, including **Update options** and the cover provider).
+- **Floating labels:** with a gamepad (Gaming Mode) tooltips are turned off, because without a mouse they stayed stuck over the page that opened under the idle pointer; with a mouse, a game's full name only appears when the title is cut off.
 - **Opening a game:** no banner covers the game page any more; the button says "Opening…" and the footer names the game. A game that is in Steam is opened through Steam, which may show its own "Starting game" notice while it starts.
 - **Icon and Steam artwork:** Deck Library ships a new icon and its own artwork (portrait cover, banner, background and logo) for its Steam shortcut; it is applied when the shortcut is added and, in Desktop Mode, to the existing one, and it only fills empty slots: an image the user chose is never replaced. `tools/render_art.py` redraws everything.
 
@@ -352,7 +353,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-1.0.1.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-1.0.2.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -394,7 +395,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **1.0.1**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **1.0.2**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 La 1.0 incluye el catálogo con instalación y desinstalación, la biblioteca, los ajustes por juego, la integración con Steam y la interfaz en español e inglés, todo cubierto por pruebas automáticas. **Sin validar todavía:** la navegación con mando físico en modo Juego y jugar de punta a punta un port instalado; ver [docs/V1-CHECKLIST.md](docs/V1-CHECKLIST.md). El historial de versiones está en [docs/HISTORIAL.md](docs/HISTORIAL.md) y en las [versiones publicadas](https://github.com/GonzaCass/deck-library/releases).
 
@@ -524,6 +525,7 @@ PortIntegration se suma al catálogo con nombres, plataformas, repositorios y ca
 - **Cuenta:** mientras no haya sesión, la barra superior muestra **Registrarse o iniciar sesión** y la ficha de cada juego repite el botón junto a «Compartir mis ajustes». Con sesión iniciada, la barra muestra el nombre de usuario. La sesión se guarda en `~/.local/share/deck-library/community-session.json` (permisos 0600) y se mantiene al cerrar y abrir la app, hasta que se cierra sesión o el servicio la rechaza.
 - **Ajustes de la comunidad:** la ficha muestra arriba los tres perfiles estándar de Deck Library, con su marca de verificado cuando corresponde. La sección comunitaria lista solo perfiles que subió la gente; los perfiles que Deck Library ya incluye no se repiten ahí. «Otros perfiles» queda para los importados o guardados por el usuario.
 - **Actualizaciones:** cada port muestra las primeras líneas de sus notas y **Novedades** se abre con el mando (las secciones plegables ahora se enfocan y se abren con A; también **Opciones de actualización** y el proveedor de carátulas).
+- **Etiquetas flotantes:** con mando (modo Juego) los textos de ayuda emergentes se desactivan, porque sin ratón quedaban pegados sobre la ficha que se abría debajo del puntero; con ratón, el nombre completo de un juego solo aparece cuando el título está recortado.
 - **Abrir un juego:** ya no aparece un aviso encima de la ficha; el botón dice «Abriendo…» y el pie de pantalla nombra el juego. Un juego que está en Steam se abre a través de Steam, que puede mostrar su propio aviso «Starting game» mientras arranca.
 - **Icono y arte de Steam:** Deck Library trae icono nuevo y arte propio (portada vertical, banner, fondo y logotipo) para su acceso de Steam; se aplica al agregarlo y, en modo Escritorio, al acceso existente, y solo rellena los espacios vacíos: una imagen elegida por el usuario nunca se reemplaza. `tools/render_art.py` redibuja todo.
 
