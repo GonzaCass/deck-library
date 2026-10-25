@@ -63,7 +63,7 @@ def windows_executable(folder,repository=''):
     named=[p for p in files if key and key==re.sub('[^a-z0-9]','',p.stem.lower())]
     return named[0] if len(named)==1 else ''
 
-def preserve_saves(old,new,cancel=None,extra=()):
+def preserve_saves(old,new,cancel=None,extra=(),exclude=()):
     from .ports import check_cancel
     for name in dict.fromkeys((*SAVES,*extra)):
         if pathlib.PurePath(name).is_absolute() or '..' in pathlib.PurePath(name).parts:raise ValueError('Destino de conservación inválido.')
@@ -77,4 +77,6 @@ def preserve_saves(old,new,cancel=None,extra=()):
             if path.is_symlink():raise ValueError('Hay un enlace en las partidas; se conserva la instalación anterior.')
         target=new/name
         if target.exists() and not target.is_dir():raise ValueError('La nueva versión cambió la carpeta de partidas; se conserva la instalación anterior.')
-        shutil.copytree(source,target,dirs_exist_ok=True)
+        def ignore(directory,names):
+            return [n for n in names if (pathlib.Path(directory)/n).relative_to(old).as_posix() in exclude]
+        shutil.copytree(source,target,dirs_exist_ok=True,ignore=ignore)

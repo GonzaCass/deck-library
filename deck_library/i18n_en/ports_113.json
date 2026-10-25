@@ -1,0 +1,23 @@
+{
+  "Elegir la ISO de Xbox 360 o la carpeta extraída de Dante’s Inferno.": "Choose your Xbox 360 ISO or extracted Dante’s Inferno folder.",
+  "La carpeta no contiene un default.xex de Dante’s Inferno de Xbox 360 (454108CF).": "The folder does not contain an Xbox 360 Dante’s Inferno default.xex (454108CF).",
+  "Esta ISO es de PS3. Dante’s Inferno requiere la versión de Xbox 360.": "This is a PS3 ISO. Dante’s Inferno requires the Xbox 360 version.",
+  "Elegir una ISO/XISO de Xbox 360 o una carpeta extraída con default.xex.": "Choose an Xbox 360 ISO/XISO or an extracted folder containing default.xex.",
+  "Elegir una carpeta original fuera de la instalación del port.": "Choose an original game folder outside the port installation.",
+  "Falta extract-xiso.exe en el paquete de Dante’s Inferno. Reinstalar el port o elegir una carpeta extraída.": "The Dante’s Inferno package is missing extract-xiso.exe. Reinstall the port or choose an extracted game folder.",
+  "Extrayendo la ISO de Dante’s Inferno…": "Extracting the Dante’s Inferno ISO…",
+  "Los datos extraídos contienen enlaces no admitidos.": "The extracted data contains unsupported links.",
+  "La carpeta game es un enlace; no se modificó.": "The game folder is a symbolic link; it was not changed.",
+  "Elegir ISO de Xbox 360": "Choose Xbox 360 ISO",
+  "Elegir ISO de ": "Choose ISO for ",
+  "Elegir carpeta extraída de ": "Choose extracted folder for ",
+  "Archivos originales de Dante’s Inferno pendientes: elegir una ISO de Xbox 360 o una carpeta extraída con default.xex.": "Dante’s Inferno original files needed: choose an Xbox 360 ISO or an extracted folder with default.xex.",
+  "Usa Proton y el motor directamente. Elegir la ISO de Xbox 360 de Dante’s Inferno o una carpeta extraída con default.xex. Deck Library prepara los datos originales y conserva las partidas al actualizar.": "Uses Proton and the game engine directly. Choose your Dante’s Inferno Xbox 360 ISO or an extracted folder with default.xex. Deck Library prepares the original data and preserves saves when updating.",
+  "Se prefiere el AppImage x86_64 de Linux, aunque una publicación posterior solo tenga Windows. En el primer inicio, el asistente del port pide exefs y romfs extraídos de Switch con la actualización 1.9.0 integrada. No acepta NSP/XCI cifrados. Es una versión alfa; la jugabilidad completa sigue sin comprobar.": "Prefers the Linux x86_64 AppImage, even when a newer release is Windows-only. On first launch, the port’s setup asks for extracted Switch exefs and romfs with update 1.9.0 merged. Encrypted NSP/XCI files are not supported. This is an alpha; complete playability remains untested.",
+  "Proyecto de decompilación para estudiar el juego. No publica un port ejecutable y su README aclara que no sirve para jugar. Para el port de Breath of the Wild, buscar Savage Wind Recomp.": "A decompilation project for studying the game. It does not publish an executable port and its README states it cannot be used to play. For the Breath of the Wild port, search for Savage Wind Recomp.",
+  "--": "--",
+  "--dante_resolution=": "--dante_resolution=",
+  "--input_backend=": "--input_backend=",
+  "--ultrawide_target_aspect=": "--ultrawide_target_aspect=",
+  "=": "="
+}
