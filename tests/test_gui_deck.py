@@ -357,15 +357,41 @@ class DeckUITests(unittest.TestCase):
             while not installed.called and time.monotonic()<until:self.settle()
             installed.assert_called_once();self.assertIsInstance(install.call_args.kwargs['cancel'],threading.Event)
         self.w.port_busy=False;self.w.port_jobs.clear()
-        for setup in ('b2recomp','original_data'):
+        for setup in ('b2recomp','original_data','dante'):
             record.update(setup=setup);atomic_json(self.store.root/'ports.json',{item['repository']:record})
             with patch.object(ports,'requirements',return_value=[]),patch.object(ports,'configure',return_value={**record,'configured':True}) as configure:
                 self.w.configure_port(item,automatic=True)
                 until=time.monotonic()+3
                 while self.w.port_busy and time.monotonic()<until:self.settle()
                 configure.assert_called_once();self.assertFalse(self.w.port_busy);self.assertNotIn(item['repository'],self.w.port_jobs)
-                self.assertEqual('cancel' in configure.call_args.kwargs,setup=='b2recomp')
+                self.assertEqual('cancel' in configure.call_args.kwargs,setup in ('b2recomp','dante'))
                 self.assertEqual(self.w.transfers[item['repository']].state['phase'],'done')
+
+    def test_dante_install_requires_a_valid_original_before_preparing(self):
+        from deck_library import ports
+        from deck_library.models import atomic_json
+        from test_dante_savage import xex
+        from gi.repository import Gtk,GLib
+        item=ports.clean({'repository':'florinp93/hells-gate-recomp','name':'Dante’s Inferno'})
+        record={**item,'executable':'dantes_inferno.exe','tag':'test'};atomic_json(self.store.root/'ports.json',{item['repository']:record})
+        original=pathlib.Path(self.temp.name)/'own-dump';original.mkdir();xex(original/'default.xex')
+        run_original=self.inline.run;seen=[];errors=[]
+        def run(page):
+            def check():
+                try:
+                    ready=page._buttons[Gtk.ResponseType.OK];seen.append(ready.get_sensitive())
+                    controls=self.w.control_targets(page);names=[c.get_accessible().get_name() for c in controls]
+                    self.assertIn('Elegir ISO de Xbox 360',names)
+                    self.assertNotIn('Elegir ISO de Xbox',names)
+                    next(c for c in controls if c.get_accessible().get_name()=='Elegir carpeta extraída').clicked()
+                    seen.append(ready.get_sensitive())
+                except Exception as e:errors.append(str(e))
+                page.response(Gtk.ResponseType.CANCEL);return False
+            GLib.timeout_add(150,check);return run_original(page)
+        with patch.object(self.w,'pick_file',return_value=str(original)),patch.object(self.inline,'run',run),patch.object(ports,'configure') as configure,patch.object(self.w,'play') as play:
+            self.w.port_installed(item,record);configure.assert_not_called();play.assert_not_called()
+        self.assertEqual(errors,[]);self.assertEqual(seen,[False,True]);self.assertFalse(self.w.port_busy)
+        self.assertEqual(self.w.transfers[item['repository']].state['phase'],'awaiting_input')
 
     def test_port_input_picker_validates_before_preparing_without_a_native_dialog(self):
         import hashlib

@@ -11,7 +11,11 @@ def command_for(folder,store=None):
     from .ports import port_id
     prefix=store.root/'runtimes/ports'/port_id(record['repository']);prefix.mkdir(parents=True,exist_ok=True)
     env=project2099.proton_env(store);env['STEAM_COMPAT_DATA_PATH']=str(prefix)
-    return [str(project2099.proton_path()),'run',str(exe),*record.get('args',[])],env
+    args=record.get('args',[])
+    if record['repository'].lower()=='florinp93/hells-gate-recomp':
+        from .dante import arguments
+        args=arguments(folder)
+    return [str(project2099.proton_path()),'run',str(exe),*args],env
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('folder');args=parser.parse_args()

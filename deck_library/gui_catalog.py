@@ -414,12 +414,13 @@ class CatalogMixin:
             except (ValueError,OSError) as exc:error.set_text(str(exc))
         if record.get('original_data'):
             def original_data(_,folder=False):
-                path=self.pick_file(('Elegir carpeta con exefs y romfs' if record['original_data'].get('kind')=='switch-dump' else 'Elegir carpeta extraída de Xbox') if folder else 'Elegir ISO de Xbox',folder=folder)
+                xbox='Xbox 360' if record['original_data'].get('kind')=='xbox360-dante' else 'Xbox'
+                path=self.pick_file(('Elegir carpeta con exefs y romfs' if record['original_data'].get('kind')=='switch-dump' else 'Elegir carpeta extraída de '+xbox) if folder else 'Elegir ISO de '+xbox,folder=folder)
                 if not path:return
                 try:ports.set_input(item['repository'],'original_data',path,self.store);error.set_text('');refresh()
                 except (ValueError,OSError) as exc:error.set_text(str(exc))
             body.pack_start(button('Elegir carpeta extraída',lambda w:original_data(w,True)),False,False,0)
-            if record['original_data'].get('iso'):body.pack_start(button('Elegir ISO de Xbox',original_data),False,False,0)
+            if record['original_data'].get('iso'):body.pack_start(button('Elegir ISO de Xbox 360' if record['original_data'].get('kind')=='xbox360-dante' else 'Elegir ISO de Xbox',original_data),False,False,0)
         for key,caption in (('rom','Elegir ROM'),('disc','Elegir disco'),('bios','Elegir BIOS'),('wiiu','Elegir imagen de Wii U')):
             if record.get(key):body.pack_start(button(caption,lambda w,k=key:select(w,k)),False,False,0)
         body.pack_start(button('Volver a detectar',lambda _:refresh()),False,False,0)
@@ -443,7 +444,7 @@ class CatalogMixin:
         question='Se va a configurar '+item['name']+' con lo que ya está en la Deck.\n\n'+'\n'.join(text for ok,text in lines)+'\n\n'+('Compila el juego dentro del SDK de KDE; el kit de Spider-Man tarda unos minutos. ' if record['setup'] in ('kit','openpete') else '')+('Antes se instalará el SDK de KDE de Flatpak (una sola vez). ' if needs_sdk else '')+'Los discos originales no se modifican.'
         if not automatic and not self.confirm('Configurar '+item['name'],question,'Configurar'):return
         self.port_busy=True;self.set_status('Configurando '+item['name']+'…')
-        cancel=threading.Event() if record['setup']=='b2recomp' else None
+        cancel=threading.Event() if record['setup'] in ('b2recomp','dante') else None
         if cancel is not None:
             if not hasattr(self,'port_jobs'):self.port_jobs={}
             self.port_jobs[item['repository']]=cancel
