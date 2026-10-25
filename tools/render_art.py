@@ -14,20 +14,24 @@ def cards(x,y,scale=1.0,play=BG):
      f'<rect x="{s(232)}" y="{s(80)}" width="{s(100)}" height="{s(192)}" rx="{s(14)}" fill="{EMBER}"/>'
      f'<rect x="{s(-20)}" y="{s(272)}" width="{s(372)}" height="{s(16)}" rx="{s(8)}" fill="{SHELF}"/></g>')
 
-DECKW,DECKH=440,200
+DECKW,DECKH=440,165
 
 def deck(x,y,scale=1.0):
-    """A Steam Deck seen from the front with the library (cards on a shelf) on its screen; flat shapes only."""
-    body='#2b2b2b';edge='#5c5c5c';glass='#0d0d0d';grey='#9a9a9a'
-    def stick(cx,cy):return f'<circle cx="{cx}" cy="{cy}" r="25" fill="{BG}" stroke="{edge}" stroke-width="5"/><circle cx="{cx}" cy="{cy}" r="11" fill="{grey}"/>'
-    def dpad(cx,cy):return f'<rect x="{cx-5}" y="{cy-22}" width="10" height="44" fill="{grey}"/><rect x="{cx-22}" y="{cy-5}" width="44" height="10" fill="{grey}"/>'
-    def face(cx,cy):return ''.join(f'<circle cx="{cx+dx}" cy="{cy+dy}" r="8" fill="{c}"/>' for dx,dy,c in ((0,-20,grey),(20,0,grey),(0,20,grey),(-20,0,BLUE)))
-    k=0.40;cw,ch=332*k,288*k
+    """A Steam Deck seen from the front, after Valve's own layout: D-pad and left stick on the left, face buttons and right stick on the right,
+    both above their square trackpads, with the library (cards on a shelf) on the screen. Flat shapes only."""
+    body='#232323';edge='#5c5c5c';glass='#0d0d0d';pad='#3a3a3a';grey='#9a9a9a'
+    def stick(cx,cy):return f'<circle cx="{cx}" cy="{cy}" r="17" fill="{BG}" stroke="{edge}" stroke-width="4"/><circle cx="{cx}" cy="{cy}" r="8" fill="{grey}"/>'
+    def trackpad(cx,cy):return f'<rect x="{cx-27}" y="{cy-22}" width="54" height="44" rx="6" fill="{pad}"/>'
+    def pill(cx,cy):return f'<rect x="{cx-14}" y="{cy-4}" width="28" height="8" rx="4" fill="{pad}"/>'
+    def dpad(cx,cy):return f'<rect x="{cx-4}" y="{cy-15}" width="8" height="30" fill="{grey}"/><rect x="{cx-15}" y="{cy-4}" width="30" height="8" fill="{grey}"/>'
+    def face(cx,cy):return ''.join(f'<circle cx="{cx+dx}" cy="{cy+dy}" r="6" fill="{c}"/>' for dx,dy,c in ((0,-13,grey),(13,0,grey),(0,13,grey),(-13,0,BLUE)))
+    k=0.36;cw,ch=332*k,288*k
     return (f'<g transform="translate({x} {y}) scale({scale})">'
-      f'<rect width="{DECKW}" height="{DECKH}" rx="52" fill="{body}" stroke="{edge}" stroke-width="5"/>'
-      f'<rect x="96" y="22" width="248" height="156" rx="8" fill="{glass}"/>'
-      +cards(96+(248-cw)/2+3,22+(156-ch)/2,k)
-      +stick(48,66)+dpad(48,138)+stick(DECKW-48,138)+face(DECKW-48,66)+'</g>')
+      f'<rect width="{DECKW}" height="{DECKH}" rx="40" fill="{body}" stroke="{edge}" stroke-width="4"/>'
+      f'<rect x="92" y="8" width="256" height="140" rx="5" fill="{glass}"/>'
+      +cards(92+(256-cw)/2+2,8+(140-ch)/2,k)
+      +dpad(32,28)+stick(68,34)+trackpad(62,86)+pill(68,126)
+      +face(408,28)+stick(372,34)+trackpad(378,86)+pill(372,126)+'</g>')
 
 def svg(width,height,body):return f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}" viewBox="0 0 {width} {height}">{body}</svg>'
 
@@ -40,13 +44,13 @@ def stacked(x,y,size,anchor='middle'):
             f'<text x="{x}" y="{y+size*1.05}" font-family="Noto Sans" font-weight="800" font-size="{size}" letter-spacing="6" text-anchor="{anchor}" fill="{BLUE}">LIBRARY</text>')
 
 ART={
- 'icon':svg(512,512,f'<rect width="512" height="512" rx="112" fill="{BG}"/>'+deck(36,156,1.0)),
- 'portrait':svg(600,900,f'<rect width="600" height="900" fill="{BG}"/>'+deck(25,230,1.1)+stacked(300,690,104)),
- 'banner':svg(920,430,f'<rect width="920" height="430" fill="{BG}"/>'+deck(40,135,0.8)+stacked(430,205,76,'start')),
+ 'icon':svg(512,512,f'<rect width="512" height="512" rx="112" fill="{BG}"/>'+deck(18,167,1.08)),
+ 'portrait':svg(600,900,f'<rect width="600" height="900" fill="{BG}"/>'+deck(14,290,1.3)+stacked(300,690,104)),
+ 'banner':svg(920,430,f'<rect width="920" height="430" fill="{BG}"/>'+deck(40,149,0.8)+stacked(430,205,76,'start')),
  'hero':svg(3840,1240,f'<rect width="3840" height="1240" fill="{BG}"/><rect y="1000" width="3840" height="20" fill="{SHELF}"/>'
             +''.join(f'<rect x="{x}" y="{1000-h}" width="{w}" height="{h}" rx="22" fill="{c}" opacity="0.10"/>' for x,w,h,c in ((200,150,380,BLUE),(380,190,470,WHITE),(600,170,330,EMBER),(1000,160,420,WHITE),(1190,210,520,BLUE),(1430,150,360,EMBER),(1700,170,400,BLUE),(1900,200,500,WHITE),(2130,160,350,EMBER)))
-            +deck(2560,330,2.7)),
- 'logo':svg(1280,360,deck(20,70,0.8)+stacked(400,170,110,'start')),
+            +deck(2560,400,2.7)),
+ 'logo':svg(1280,360,deck(20,114,0.8)+stacked(400,170,110,'start')),
 }
 
 def render():

@@ -489,3 +489,8 @@ Al recorrer la lista con el mando y pulsar X para abrir un juego, el puntero ina
 ### 1.1.1 - Icono nuevo
 
 - **Icono y arte de Steam:** la biblioteca (tres estuches sobre un estante) ahora aparece dentro de la pantalla de una Steam Deck dibujada de frente con formas planas, sin degradados. Se regeneraron el icono (512 y 256 px) y la portada, el banner, el hero y el logo con `tools/render_art.py`, y se revisó cada imagen a simple vista. No se probó cómo se ve en la biblioteca de Steam: `library_app.art_items` solo rellena huecos vacíos, de modo que quien ya tenga el arte anterior en Steam lo conserva hasta cambiarlo a mano. El icono del menú de aplicaciones se actualiza al instalar.
+
+### 1.1.2 - Icono fiel a la Deck y cambios pendientes de Steam
+
+- **Icono rehecho:** la versión anterior colocaba mal los controles. Se tomó como referencia una foto frontal de la Steam Deck (Wikimedia Commons): cruceta arriba a la izquierda y botones ABXY arriba a la derecha, un stick a cada lado de la pantalla y un panel táctil cuadrado debajo de cada uno, con los botones STEAM y «…» debajo, y la pantalla ocupando casi todo el alto. Se regeneraron icono, portada, banner, hero y logo y se comprobó cada imagen a simple vista; sigue sin comprobarse cómo se ven en la biblioteca de Steam.
+- **«5 cambios pendientes en Steam»:** eran las cinco imágenes del propio acceso de Deck Library. Steam solo toma los cambios con el cliente cerrado y un proceso en segundo plano los escribe en ese momento; reiniciar Deck Library no los aplica. Ahora la página de cambios lo explica y, en modo Escritorio, ofrece «Cerrar Steam y aplicar ahora» (cierra Steam, espera a que se escriban y lo abre de nuevo). Probado con Steam simulado; no se ejecutó con el Steam real de esta Deck.

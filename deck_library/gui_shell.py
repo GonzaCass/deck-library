@@ -278,6 +278,10 @@ class ShellMixin:
         else:self.pending_bar.hide()
         self.refresh_game_steam()
         return False
+    def after_apply_closing(self,done):
+        self.refresh_pending();self.pending_details()
+        self.toast('Cambios aplicados' if done else 'Steam se reabrió; los cambios siguen pendientes')
+        return False
     def pending_details(self):
         from .gui import label,button
         from .service import pending_changes,cancel_pending
@@ -286,7 +290,17 @@ class ShellMixin:
             card=self.card(self.pending_box,row['description']);card.pack_start(label(row['detail'],'muted'),False,False,0)
         if not rows:self.pending_box.pack_start(label('No hay cambios pendientes.','muted'),False,False,0)
         else:
-            self.pending_box.pack_start(label('Se guardan al cerrar Steam.','muted'),False,False,0)
+            self.pending_box.pack_start(label('Steam solo toma estos cambios cuando está cerrado; volver a abrir Deck Library no los aplica.','muted'),False,False,0)
+            if not motion.gaming_mode():
+                def apply_now(_):
+                    from .service import apply_closing_steam
+                    if not self.confirm('Cerrar Steam','Se cierra Steam (y cualquier juego abierto desde Steam), se aplican los cambios y Steam vuelve a abrirse.','Cerrar y aplicar'):return
+                    def work():
+                        try:done=apply_closing_steam(self.store,lambda text:GLib.idle_add(self.set_status,text))
+                        except Exception as error:GLib.idle_add(self.message,'No se pudieron aplicar',str(error));return
+                        GLib.idle_add(self.after_apply_closing,done)
+                    threading.Thread(target=work,daemon=True).start()
+                self.pending_box.pack_start(button('Cerrar Steam y aplicar ahora',apply_now,True),False,False,0)
             def cancel(_):
                 if not self.confirm('Descartar cambios pendientes','Se cancelan las operaciones listadas. Los juegos y los accesos que ya existen se conservan.','Descartar'):return
                 try:cancel_pending(self.store);self.refresh_pending();self.pending_details();self.toast('Cambios descartados')

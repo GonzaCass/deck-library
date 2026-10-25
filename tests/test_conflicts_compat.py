@@ -29,3 +29,17 @@ class EnvironmentTests(unittest.TestCase):
     def test_a_clean_home_reports_nothing(self):
         with tempfile.TemporaryDirectory() as folder,patch('deck_library.conflicts.shutil.which',return_value=None):
             self.assertEqual(analyze([],home=pathlib.Path(folder)),[])
+
+class ApplyClosingSteamTests(unittest.TestCase):
+    def test_closes_steam_waits_for_the_queue_and_reopens(self):
+        from deck_library import service
+        from deck_library.models import Store
+        with tempfile.TemporaryDirectory() as folder:
+            store=Store(folder);(store.root/'pending.json').write_text('{}')
+            state={'running':True};calls=[]
+            def runner(cmd,**kw):calls.append(cmd[1]);state['running']=False
+            def starter(cmd,**kw):calls.append(cmd[1])
+            def fake_sync(store,wait=True,timeout=0):(store.root/'pending.json').unlink();return {}
+            with patch.object(service.shutil,'which',return_value='/usr/bin/steam'),patch.object(service,'steam_running',side_effect=lambda:state['running']),patch.object(service,'sync',fake_sync):
+                self.assertTrue(service.apply_closing_steam(store,runner=runner,starter=starter,wait_close=3,wait_apply=3))
+            self.assertEqual(calls,['-shutdown','-silent'])
