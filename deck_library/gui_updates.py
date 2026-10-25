@@ -122,7 +122,8 @@ class UpdatesMixin:
         info=state.get('app')
         if info:
             card=self.card(box,'Deck Library '+info['version']);card.pack_start(label(info.get('notes') or 'No hay notas disponibles para esta versión.','muted'),False,False,0)
-            if info.get('archive') and info.get('checksum'):card.pack_start(button('Actualizar Deck Library',lambda _:self.install_app_update(),True),False,False,0)
+            if getattr(self,'update_installed',None):card.pack_start(button('Reiniciar para usar la versión instalada',lambda _:self.restart_app(),True),False,False,0)
+            elif info.get('archive') and info.get('checksum'):card.pack_start(button('Actualizar Deck Library',lambda _:self.install_app_update(),True),False,False,0)
         items=[item for item in self.pending_updates() if item[0] in ('port','catalog','wii')];seen=set();unique=[]
         for item in items:
             key=(item[2].get('repository') or item[2]['name']).lower()
