@@ -468,3 +468,9 @@ El README de GitHub pasó a tener una sección completa en inglés seguida de ot
 ### 1.0.2 - Etiqueta flotante sobre la ficha
 
 Al recorrer la lista con el mando y pulsar X para abrir un juego, el puntero inactivo quedaba sobre el título de la ficha y aparecía la ayuda emergente con el nombre completo, tapando las pestañas y los perfiles. Con mando ahora se desactivan las ayudas emergentes (`gtk-enable-tooltips`) y, con ratón, el nombre completo solo aparece cuando el título está recortado. Se probó el comportamiento con pruebas automáticas (la ayuda solo se ofrece con el texto recortado y nunca en modo mando; el ajuste global se apaga); no se reprodujo el cartel original en el modo Juego real, que sigue sin probarse en esta sesión.
+
+### 1.0.3 - Actualización de la app
+
+- **Aviso azul que no desaparecía:** la búsqueda de actualizaciones se guarda en caché durante 6 horas; tras actualizar y reiniciar, la oferta de la versión ya instalada seguía en esa caché y el aviso «disponible» reaparecía. La oferta se descarta al leer la caché si no es más nueva que la versión en ejecución (prueba automática añadida).
+- **App bloqueada tras actualizar:** no se logró reproducir (se instaló y reinició desde la sesión remota y la app nueva abrió su ventana). Como causa probable, el instalador reemplaza archivos mientras la app en ejecución todavía importa módulos nuevos, mezclando dos versiones; ahora se importan todos los módulos antes de instalar. En la ficha de actualizaciones, tras instalar, se ofrece «Reiniciar» en lugar de volver a instalar. Pendiente de confirmar en la Deck real.
+- **No comprobado:** la configuración de controles de Eden (los perfiles no tocan controles a propósito) y Mario Party Jamboree no se tocaron en esta versión.

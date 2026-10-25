@@ -104,6 +104,8 @@ def cached(store):
     try:state=json.loads(cache_path(store).read_text())
     except (OSError,ValueError):return {}
     if not isinstance(state,dict):return {}
+    # The search is cached for hours: once the app itself is at or beyond the cached release, the offer is stale.
+    if state.get('app') and not is_newer(state['app'].get('version'),__version__):state['app']=None
     from .ports import records
     installed=records(store)
     previous=state.get('catalog') or []
@@ -147,9 +149,18 @@ def safe_extract(archive,destination):
             if not target.is_relative_to(destination):raise ValueError('El paquete contiene rutas inseguras.')
         tar.extractall(destination,filter='data')
 
+def preload():
+    import importlib,pkgutil
+    package=importlib.import_module(__package__)
+    for module in pkgutil.iter_modules(package.__path__):
+        try:importlib.import_module(f'{__package__}.{module.name}')
+        except Exception:pass
+
 def install_update(info,store=None,progress=print,runner=subprocess.run):
     """Download, verify and install a release. Returns the installed version."""
     if not info.get('archive') or not info.get('checksum'):raise ValueError('La versión publicada no incluye paquete verificable (.tar.gz y .sha256).')
+    # The running process keeps using the files it loaded; load the rest now so replacing them cannot mix two versions.
+    preload()
     store=store or Store();work=store.root/'downloads/update';work.mkdir(parents=True,exist_ok=True)
     expected=fetch(info['checksum'],limit=4096).decode().split()[0].lower()
     if not re.fullmatch(r'[0-9a-f]{64}',expected):raise ValueError('Suma SHA-256 publicada inválida.')

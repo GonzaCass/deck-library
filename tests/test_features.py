@@ -116,6 +116,13 @@ class UpdateTests(unittest.TestCase):
         (q/'apps.json').write_text(json.dumps({'apps':[{'name':'Game','folderName':'Game-Port','repository':'a/game'},{'name':'Uninstalled','folderName':'Nope','repository':'a/none'},{'name':'Other','folderName':'Other','repository':'a/other'}]}))
         found=updates.check_quiver({},lambda url:self.release('v1.2.0'),home);self.assertEqual([(u['name'],u['latest']) for u in found],[('Game','v1.2.0')])
         self.assertEqual(updates.check_quiver({},lambda url:self.release('v1.0.0'),home),[])
+    def test_cached_offer_for_the_running_version_is_dropped(self):
+        from deck_library import __version__
+        updates.atomic_json(updates.cache_path(self.store),{'checked':1,'app':{'version':__version__}})
+        self.assertIsNone(updates.cached(self.store)['app'])
+        updates.atomic_json(updates.cache_path(self.store),{'checked':1,'app':{'version':'99.0.0'}})
+        self.assertEqual(updates.cached(self.store)['app']['version'],'99.0.0')
+
     def test_checks_are_cached_and_one_failure_does_not_hide_others(self):
         calls=[]
         def get(url):
