@@ -543,6 +543,7 @@ class GameMixin:
                 self.profile_status.set_text('Ajustes guardados. Se usan al volver a abrir el juego.')
                 self.profile_restore.set_sensitive(True)
                 self.toast('Ajustes aplicados · respaldo guardado')
+                GLib.idle_add(self.offer_deck_controls,entry)
                 motion.fade_in(self.profile_feedback,duration=240)
             return False
         GLib.timeout_add(40,apply_)

@@ -209,5 +209,13 @@
  "Registrarse o iniciar sesión": "Sign up or sign in",
  "Cuenta · ": "Account · ",
  "Publicar ajustes y valorar perfiles requiere una cuenta.": "Publishing settings and rating profiles requires an account.",
- "Reiniciar para usar la versión instalada": "Restart to use the installed version"
+ "Reiniciar para usar la versión instalada": "Restart to use the installed version",
+ "Eden debe estar cerrado para actualizar el mando.": "Eden must be closed to update the controller.",
+ "Mando de la Steam Deck en Eden": "Steam Deck controller in Eden",
+ "\nActualizar el mando del jugador 1 con los controles de la Deck (se guarda una copia de qt-config.ini)?": "\nUpdate player 1 with the Deck controls (a copy of qt-config.ini is kept)?",
+ "Eden no tiene mapeados los controles de la Steam Deck.": "Eden doesn't have the Steam Deck controls mapped.",
+ "Eden usa otro dispositivo para el jugador 1, no los controles de la Steam Deck.": "Eden uses another device for player 1, not the Steam Deck controls.",
+ "Mando de la Deck actualizado en Eden": "Deck controller updated in Eden",
+ "No se pudo actualizar el mando": "Could not update the controller",
+ "Actualizar el mando del jugador 1 con los controles de la Deck (se guarda una copia de qt-config.ini)?": "Update player 1 with the Deck controls (a copy of qt-config.ini is kept)?"
 }

@@ -13,10 +13,21 @@ class DeckUITests(unittest.TestCase):
         self.gui=gui;self.temp=tempfile.TemporaryDirectory();self.store=Store(self.temp.name)
         self.store.save([Entry('Juego de prueba',['/bin/true'],kind='emulated',platform='Switch',source='/tmp/test.nsp',game_id='0100000000000000')])
         self.patches=[patch.object(gui_shell,'Store',return_value=self.store),patch.object(gui_shell,'settings',return_value={**DEFAULTS,'onboarding_complete':True,'check_updates':False,'artwork_provider':'off','animations':False,'community_ratings':False,'eden_config':str(pathlib.Path(self.temp.name)/'eden')}),patch.object(gui.Window,'discover',return_value=False),patch.object(gui.Window,'load_catalog',return_value=None),patch.object(gui_shell,'find_accounts',return_value=[]),patch.object(gui_shell,'active_account',return_value=None)]
+        from deck_library import eden_controls
+        self.patches.append(patch.object(eden_controls,'status',return_value='ok'))
         for p in self.patches:p.start()
         from gi.repository import Gtk,Gdk
         provider=Gtk.CssProvider();provider.load_from_data(gui.CSS);Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.w=gui.Window();self.w.resize(1280,760);self.w.show_all();self.settle()
+    def test_offer_deck_controls_asks_once_and_applies_or_remembers_refusal(self):
+        from deck_library import eden_controls
+        entry=self.w.entries[0]
+        with patch.object(eden_controls,'status',return_value='missing'),patch.object(eden_controls,'apply') as apply,patch.object(self.w,'confirm',return_value=True) as confirm:
+            self.w.offer_deck_controls(entry);confirm.assert_called_once();apply.assert_called_once()
+        with patch.object(eden_controls,'status',return_value='missing'),patch.object(eden_controls,'apply') as apply,patch.object(self.w,'confirm',return_value=False),patch('deck_library.installations.save_settings'):
+            self.w.offer_deck_controls(entry);apply.assert_not_called();self.assertEqual(self.w.preferences['eden_controls_declined'],'missing')
+        with patch.object(eden_controls,'status',return_value='missing'),patch.object(self.w,'confirm') as confirm:
+            self.w.offer_deck_controls(entry);confirm.assert_not_called()
     def settle(self):
         from gi.repository import GLib
         loop=GLib.MainLoop();GLib.timeout_add(150,lambda:(loop.quit(),False)[1]);loop.run()
