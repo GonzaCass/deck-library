@@ -251,5 +251,17 @@
  "Eden está abierto": "Eden is open",
  "Con Eden en ejecución no se pueden aplicar perfiles ni cambiar el mando; cerrarlo antes.": "While Eden is running, profiles cannot be applied and the controller cannot be changed; close it first.",
  " (en uso)": " (in use)",
- " (esta)": " (this one)"
+ " (esta)": " (this one)",
+ "Steam se reabrió; los cambios siguen pendientes": "Steam reopened; the changes are still pending",
+ "Steam solo toma estos cambios cuando está cerrado; volver a abrir Deck Library no los aplica.": "Steam only takes these changes while it is closed; reopening Deck Library does not apply them.",
+ "Cerrar Steam y aplicar ahora": "Close Steam and apply now",
+ "Cerrar Steam": "Close Steam",
+ "Se cierra Steam (y cualquier juego abierto desde Steam), se aplican los cambios y Steam vuelve a abrirse.": "Steam is closed (along with any game opened from Steam), the changes are applied and Steam opens again.",
+ "Cerrar y aplicar": "Close and apply",
+ "No se pudieron aplicar": "Could not apply",
+ "No se encontró el comando de Steam.": "The Steam command was not found.",
+ "Steam no se cerró a tiempo; los cambios siguen pendientes.": "Steam did not close in time; the changes are still pending.",
+ "Cerrando Steam…": "Closing Steam…",
+ "Aplicando cambios…": "Applying changes…",
+ "Abriendo Steam…": "Opening Steam…"
 }

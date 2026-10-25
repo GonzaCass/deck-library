@@ -1,4 +1,4 @@
-import datetime,json,os,pathlib,shutil,subprocess,sys,time,fcntl
+import datetime,json,os,pathlib,shutil,subprocess,sys,threading,time,fcntl
 from contextlib import contextmanager
 from .models import Store,Entry,atomic_json
 from .runtime import clean_environment,make_launcher
@@ -196,6 +196,24 @@ def _controllers(account,appids,store,special=(),library=()):
         controllers.apply(account,appids,special=special,library=library)
     except Exception as error:_log(store,'controles: '+str(error))
 
+
+def apply_closing_steam(store=None,progress=lambda text:None,wait_close=90,wait_apply=90,runner=subprocess.run,starter=subprocess.Popen):
+    """Desktop Mode: ask Steam to exit, let the waiting worker write the queue, then start Steam again. Returns True when the queue was applied."""
+    store=store or Store();binary=shutil.which('steam')
+    if not binary:raise RuntimeError('No se encontró el comando de Steam.')
+    if steam_running():
+        progress('Cerrando Steam…');runner([binary,'-shutdown'],env=clean_environment(),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,timeout=30)
+        end=time.monotonic()+wait_close
+        while steam_running() and time.monotonic()<end:time.sleep(1)
+        if steam_running():raise RuntimeError('Steam no se cerró a tiempo; los cambios siguen pendientes.')
+    progress('Aplicando cambios…')
+    if (store.root/'pending.json').exists():
+        threading.Thread(target=lambda:sync(store,wait=False),daemon=True).start()
+    end=time.monotonic()+wait_apply
+    while (store.root/'pending.json').exists() and time.monotonic()<end:time.sleep(1)
+    done=not (store.root/'pending.json').exists()
+    progress('Abriendo Steam…');starter([binary,'-silent'],env=clean_environment(),stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
+    return done
 
 def pending_changes(store=None):
     """Human-readable, per-operation queue details; no Steam writes or network calls."""
