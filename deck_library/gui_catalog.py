@@ -12,6 +12,11 @@ ART_WIDTH=88
 CATALOG_PAGE=30
 ART_HEIGHT=132
 
+def fit_badge(fit,long=False):
+    s=fit['score']
+    if long:return {'alta':f'Compatibilidad estimada: {s}% · Alta','media':f'Compatibilidad estimada: {s}% · Media','baja':f'Compatibilidad estimada: {s}% · Baja','muy baja':f'Compatibilidad estimada: {s}% · Muy baja'}[fit['level']]
+    return {'alta':f'Compatibilidad {s}% · Alta','media':f'Compatibilidad {s}% · Media','baja':f'Compatibilidad {s}% · Baja','muy baja':f'Compatibilidad {s}% · Muy baja'}[fit['level']]
+
 class CatalogMixin:
     def catalog_page(self):
         from .gui import label,button
@@ -94,7 +99,7 @@ class CatalogMixin:
             if title.casefold()!=item['name'].casefold():texts.pack_start(label(item['name'],'subtitle'),False,False,0)
             if item.get('description'):
                 description=label(item['description'],'status');description.set_lines(1 if compact else 2);description.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(description,False,False,0)
-            tags=[t for t in (item['list'],'Revisado' if ports.is_reviewed(item) else 'Sin revisar','Constructor' if item.get('package_role')=='builder' else 'Solo código fuente' if item.get('package_role') in ('source-only','build-tool') else '', 'Requiere originales' if item.get('setup') or item.get('preparation')=='launcher' else '') if t]
+            fit=ports.compatibility(item);tags=[t for t in (item['list'],fit_badge(fit),'Revisado' if ports.is_reviewed(item) else 'Sin revisar','Constructor' if item.get('package_role')=='builder' else 'Solo código fuente' if item.get('package_role') in ('source-only','build-tool') else '', 'Requiere originales' if item.get('setup') or item.get('preparation')=='launcher' else '') if t]
             if record:texts.pack_start(label('Instalado · '+record['tag'],'muted'),False,False,0)
             when=item.get('added_at') or item.get('first_seen') or 0
             if when:tags.append(('Nuevo · ' if time.time()-when<30*86400 else 'Añadido ')+datetime.datetime.fromtimestamp(when).strftime('%d/%m/%Y'))
@@ -143,6 +148,8 @@ class CatalogMixin:
         if heading.casefold()!=item['name'].casefold():text.pack_start(label('Port: '+item['name'],'subtitle'),False,False,0)
         facts=[item['list'] or 'Plataforma sin especificar',', '.join(item.get('supported_os',[])) or 'Sistemas por consultar',item['source']]
         text.pack_start(label('  ·  '.join(f for f in facts if f),'pill'),False,False,0)
+        fit=ports.compatibility(item);text.pack_start(label(fit_badge(fit,True),'pill'),False,False,0)
+        text.pack_start(label(' '.join(fit['reasons'])+' Estimación a partir de los datos del catálogo; no es una prueba de juego.','muted'),False,False,0)
         if item.get('release_version'):text.pack_start(label('Versión disponible: '+item['release_version'],'muted'),False,False,0)
         if item.get('release_at'):text.pack_start(label('Publicada el '+datetime.datetime.fromtimestamp(item['release_at']).strftime('%d/%m/%Y'),'muted'),False,False,0)
         hero.pack_start(text,True,True,0);box.pack_start(hero,False,False,0)
