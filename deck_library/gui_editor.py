@@ -1,5 +1,5 @@
 """Manual options inside the game page, with a fixed save action."""
-from gi.repository import Gtk
+from gi.repository import Gtk,GLib
 from .inline_pages import InlineDialog
 from . import presets
 from .gui_tools import SETTING_LABELS,SECTION_LABELS
@@ -39,7 +39,7 @@ class EditorMixin:
             try:
                 result=presets.apply(e,presets.manual_profile(e,changes),self.store,self.preferences.get('eden_config') or None)
                 for ident,(widget,read,initial) in list(controls.items()):controls[ident]=(widget,read,read(widget))
-                touched.clear();self.editor_dirty=False;status.set_text(str(result['changes'])+' opciones guardadas con respaldo.');self.toast('Opciones guardadas');self.show_detail(e)
+                touched.clear();self.editor_dirty=False;status.set_text(str(result['changes'])+' opciones guardadas con respaldo.');self.toast('Opciones guardadas');self.show_detail(e);GLib.idle_add(self.offer_deck_controls,e)
             except Exception as error:self.message('No se pudo guardar',str(error))
         from .ui_components import ActionButton
         save_button=ActionButton('Guardar cambios','check',save,'violet');save_button.set_sensitive(False);actions.pack_end(save_button,False,False,0)

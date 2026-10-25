@@ -4,7 +4,7 @@ import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib
 from .inline_pages import InlineFileChooser
-from . import __version__,updates
+from . import __version__,motion,updates
 from .installations import save_settings
 
 def notes_preview(text,lines=3,width=110):
@@ -85,6 +85,7 @@ class UpdatesMixin:
         else:self.updates_page()
 
     def restart_app(self):
+        if motion.gaming_mode():Gtk.main_quit();return  # a copy started from here would live outside Steam's session and stay without a window
         installed=pathlib.Path.home()/'Applications/DeckLibrary/launch.sh'
         launcher=installed if installed.is_file() else pathlib.Path(__file__).resolve().parent.parent/'launch.sh'
         subprocess.Popen([str(launcher)],start_new_session=True);Gtk.main_quit()
@@ -92,7 +93,7 @@ class UpdatesMixin:
     def install_app_update(self,automatic=False):
         info=(getattr(self,'update_state',{}) or {}).get('app')
         if not info or getattr(self,'update_installing',False):return
-        if os.environ.get('SteamAppId') or os.environ.get('SteamGameId'):
+        if motion.gaming_mode():
             if not automatic:self.message('Actualización','Abrir Deck Library desde el modo Escritorio para instalar la actualización.')
             return
         self.update_installing=True;self.set_status(f'Instalando Deck Library {info["version"]}…')

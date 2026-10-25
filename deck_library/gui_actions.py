@@ -49,6 +49,20 @@ class ActionsMixin:
         if danger:action.get_style_context().add_class('danger')
         else:action.get_style_context().add_class('primary')
         self.fit_dialog(dialog);dialog.show_all();response=dialog.run();dialog.destroy();return response==Gtk.ResponseType.OK
+    def offer_deck_controls(self,entry):
+        """After a setting is applied to a Switch game, offer to map Eden's player 1 to the Deck when it is not."""
+        from . import eden_controls,presets
+        from .installations import save_settings
+        try:
+            if presets.adapter_for(entry)!='eden':return
+            state=eden_controls.status(self.preferences.get('eden_config') or None)
+        except (OSError,ValueError):return
+        if state=='ok' or self.preferences.get('eden_controls_declined')==state:return
+        text=('Eden no tiene mapeados los controles de la Steam Deck.' if state=='missing' else 'Eden usa otro dispositivo para el jugador 1, no los controles de la Steam Deck.')+'\nActualizar el mando del jugador 1 con los controles de la Deck (se guarda una copia de qt-config.ini)?'
+        if self.confirm('Mando de la Steam Deck en Eden',text,'Actualizar mando'):
+            try:backup=eden_controls.apply(self.preferences.get('eden_config') or None);self.toast('Mando de la Deck actualizado en Eden')
+            except Exception as error:self.message('No se pudo actualizar el mando',str(error))
+        else:self.preferences['eden_controls_declined']=state;save_settings(self.preferences,self.store)
     def discover(self):
         if self.discover_busy:return False
         self.discover_busy=True;self.set_status('Buscando juegos e instalaciones…');preferences=dict(self.preferences)
