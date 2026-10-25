@@ -405,6 +405,31 @@ def is_reviewed(item):
     repository=str(item.get('repository','')).lower()
     return repository in RECIPES or 'Recomendado' in str(item.get('source','')) or any(b['repository'].lower()==repository for b in BUILTIN)
 
+def compatibility(item,now=None):
+    """Estimated chance that a catalog port installs and runs on the Deck, from catalog metadata only (no download, no play test).
+    Returns {'score': 0-100, 'level': 'alta'|'media'|'baja'|'muy baja', 'reasons': [...]}."""
+    import time
+    now=now or time.time();item=clean(item) or {};reasons=[]
+    role=item.get('package_role');systems={s.lower() for s in item.get('supported_os',[])}
+    if role in ('source-only','build-tool'):return {'score':8,'level':'muy baja','reasons':['Solo código fuente: no hay paquete listo para instalar.']}
+    if role=='builder':score=25;reasons.append('Herramienta que construye el juego a partir de archivos propios.')
+    elif is_reviewed(item):score=88;reasons.append('Revisado por Deck Library.')
+    elif systems&{'linux','steamos'}:score=72;reasons.append('Declara versión para Linux.')
+    elif 'windows' in systems:score=50;reasons.append('Solo Windows: se instala con Proton, sin comprobar.')
+    elif systems:score=8;reasons.append('Sus sistemas declarados no incluyen Linux ni Windows.')
+    else:score=40;reasons.append('Sistemas sin declarar: se comprobará el paquete al instalar.')
+    status=str(item.get('source_status','')).casefold()
+    if 'totalmente' in status or 'nativo' in status:score+=8;reasons.append('La fuente lo marca como totalmente jugable.')
+    elif 'jog' in status:score+=3
+    elif 'desenvolvimento' in status:score-=8;reasons.append('La fuente lo marca en desarrollo.')
+    when=item.get('release_at')
+    if not item.get('release_version') and not when and not is_reviewed(item):score-=15;reasons.append('Sin versión publicada conocida.')
+    elif when and now-when>2*365*86400:score-=8;reasons.append('Última versión de hace más de dos años.')
+    elif when and now-when<180*86400:score+=3
+    if item.get('setup') or item.get('preparation') or item.get('original_data') or item.get('bios') or item.get('disc') or item.get('rom'):score-=5;reasons.append('Requiere archivos originales del juego.')
+    score=max(0,min(100,score))
+    return {'score':score,'level':'alta' if score>=80 else 'media' if score>=55 else 'baja' if score>=30 else 'muy baja','reasons':reasons}
+
 def records(store):
     try:return json.loads((store.root/'ports.json').read_text())
     except (OSError,ValueError):return {}
