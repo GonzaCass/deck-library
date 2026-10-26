@@ -39,3 +39,10 @@ La Biblioteca ofrece carátulas verticales, lista con miniaturas y agrupación p
 Cada tarjeta del catálogo muestra el requisito de originales cuando está revisado: por ejemplo SLUS-00875, SLUS-01378 Rev 1, SCUS-94426, RMCP01 PAL, CUSA00223 con actualización 1.07 o una versión de Switch. El buscador incluye esa etiqueta. La ficha amplía región, formato y revisión y enlaza al proyecto. Las entradas sin requisito revisado muestran «ROM por confirmar»; un nombre parecido o un campo recibido de una lista externa no se convierte en un requisito confirmado. Un Title ID de Xbox 360 se distingue de una revisión concreta del disco.
 
 LB/RB recorre las cinco pestañas, la palanca izquierda mueve el selector y la derecha desplaza la vista. B vuelve desde una tarea al juego y luego al origen; desde una ficha abierta en Inicio vuelve al mismo port de Inicio. X abre el teclado de forma explícita y, desde Inicio, lleva al buscador de Biblioteca. Se conservan la inhibición del teclado automático, el desplazamiento táctil y las animaciones opcionales; las transiciones de página siguen deshabilitadas en Gamescope por la limitación documentada de GTK Stack.
+
+
+## Etiquetas y perfiles compactos (1.2.1)
+
+Las etiquetas del catálogo separan por color sistemas, categoría, revisión, fecha de incorporación, requisitos de originales e instalación. La compatibilidad estimada conserva su cálculo, porcentaje y nivel; se muestra en verde, amarillo, naranja o rojo según sea alta, media, baja o muy baja. Los colores tienen texto propio y contraste comprobado. La ficha usa las mismas etiquetas.
+
+Las tarjetas de perfiles muestran nombre, resumen, verificación y valoración. Objetivo, procedencia, autor, versiones, notas e instrucciones aparecen en el desplegable del perfil seleccionado, junto con los cambios previstos. El desplegable empieza cerrado; los perfiles manuales mantienen sus instrucciones abiertas. Seleccionar o desplegar no aplica ajustes. El botón Aplicar sigue fijo y el control del desplegable funciona con mando.

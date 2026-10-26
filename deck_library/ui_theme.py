@@ -26,6 +26,15 @@ label.meta,label.status,label.muted,label.subtitle { color:@dim; font-weight:400
 label.meta,label.status { font-size:14px; }
 label.library-count { font-size:15px; }
 label.original-required { color:#f1ce90; font-size:14px; font-weight:700; }
+label.tag,button label.tag { font-size:13px; font-weight:600; border:1px solid #46515e; border-radius:6px; padding:2px 6px; color:#c8d0da; background:#20262e; }
+flowbox.tag-row > flowboxchild { padding:0; }
+label.tag-green,button label.tag-green { color:#a4e9be; background:#182e24; border-color:#365e48; }
+label.tag-blue,button label.tag-blue { color:#b6d7ff; background:#1d2c41; border-color:#3b5475; }
+label.tag-violet,button label.tag-violet { color:#dbcbff; background:#2a243b; border-color:#55476e; }
+label.tag-yellow,button label.tag-yellow { color:#f5df9a; background:#302b1c; border-color:#645333; }
+label.tag-orange,button label.tag-orange { color:#ffc199; background:#35271e; border-color:#735039; }
+label.tag-red,button label.tag-red { color:#ffb8b2; background:#352225; border-color:#704147; }
+label.compatibility-badge,button label.compatibility-badge { font-size:14px; font-weight:700; padding:4px 8px; }
 label.hero,label.welcome-title,label.game-title,.inline-page-heading { font-family:"Space Grotesk Light","Noto Sans",Sans; font-size:28px; font-weight:700; letter-spacing:-0.4px; }
 label.title,label.section-title { font-size:18px; font-weight:700; }
 label.brand { font-family:"Space Grotesk Light",Sans; font-size:21px; font-weight:700; }
@@ -108,11 +117,11 @@ button.game-section.active { background:#29323d; border-color:@accent; }
 label.game-title { font-size:28px; }
 .compact label.game-title { font-size:25px; }
 button.hero-cover { padding:0; border:0; border-radius:10px; }
-button.profile-card { background:@surface; border:1px solid @line; border-radius:11px; padding:14px; }
+button.profile-card { background:@surface; border:1px solid @line; border-radius:11px; padding:10px; }
 button.profile-card:hover { background:@raised; border-color:#79828d; }
 button.profile-card.chosen { background:#25201e; border-color:@accent; }
 button.profile-card label { font-weight:400; }
-button.profile-card label.profile-title { color:@text; font-size:19px; font-weight:700; }
+button.profile-card label.profile-title { color:@text; font-size:18px; font-weight:700; }
 button.profile-card label.profile-spec,.violet-icon { color:#f1b99b; font-size:14px; font-weight:600; }
 button.profile-card label.meta { font-size:14px; }
 label.rating { color:#f1ce90; font-size:14px; }
@@ -155,7 +164,7 @@ label.control-glyph { background:#1c2025; border:1px solid #616b78; border-radiu
 label.control-stick { border-radius:14px; min-width:16px; padding:3px 5px; }
 label.control-caption { color:@dim; font-size:13px; }
 .deck-density .card,.deck-density .surface-panel { padding:12px; }
-.deck-density button.profile-card { padding:11px; }
+.deck-density button.profile-card { padding:10px; }
 .deck-density .app-header button { min-height:26px; }
 .deck-density .app-header { padding:3px 8px; }
 .deck-density .settings-row { padding:10px 2px; }

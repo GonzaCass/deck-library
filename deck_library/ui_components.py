@@ -38,6 +38,23 @@ def text(value, style=None, limit=None):
     return widget
 
 
+def badge(value, tone='neutral', limit=32):
+    widget=styled(text(value),'tag','tag-'+tone)
+    widget.set_line_wrap(False);widget.set_ellipsize(Pango.EllipsizeMode.END)
+    widget.set_max_width_chars(limit);widget.set_halign(Gtk.Align.START)
+    widget.set_tooltip_text(value)
+    return widget
+
+
+def badge_row(values):
+    row=styled(Gtk.FlowBox(),'tag-row');row.set_selection_mode(Gtk.SelectionMode.NONE);row.set_can_focus(False)
+    row.set_min_children_per_line(1);row.set_max_children_per_line(12)
+    row.set_column_spacing(6);row.set_row_spacing(5)
+    for value,tone in values:
+        row.add(badge(value,tone));row.get_children()[-1].set_can_focus(False)
+    return row
+
+
 class Icon(Gtk.DrawingArea):
     """Own line icons, drawn at the current text colour. Hover motion has a finite lifetime."""
     def __init__(self, name, size=20):

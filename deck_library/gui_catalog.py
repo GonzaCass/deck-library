@@ -7,6 +7,7 @@ from .inline_pages import InlineDialog
 from . import ports
 from .installations import save_settings
 from .service import queue_removals
+from .ui_components import badge,badge_row
 
 ART_WIDTH=88
 CATALOG_PAGE=30
@@ -16,6 +17,15 @@ def fit_badge(fit,long=False):
     s=fit['score']
     if long:return {'alta':f'Compatibilidad estimada: {s}% · Alta','media':f'Compatibilidad estimada: {s}% · Media','baja':f'Compatibilidad estimada: {s}% · Baja','muy baja':f'Compatibilidad estimada: {s}% · Muy baja'}[fit['level']]
     return {'alta':f'Compatibilidad {s}% · Alta','media':f'Compatibilidad {s}% · Media','baja':f'Compatibilidad {s}% · Baja','muy baja':f'Compatibilidad {s}% · Muy baja'}[fit['level']]
+
+def compatibility_badge(fit,long=False):
+    tone={'alta':'green','media':'yellow','baja':'orange','muy baja':'red'}[fit['level']]
+    widget=badge(fit_badge(fit,long),tone,60 if long else 32)
+    widget.get_style_context().add_class('compatibility-badge')
+    widget.set_tooltip_text(fit_badge(fit,True));return widget
+
+def system_tags(item):
+    return [('Linux / Steam Deck' if name.lower()=='linux' else name.capitalize(),{'linux':'green','windows':'blue','macos':'violet','mac':'violet','android':'yellow'}.get(name.lower(),'neutral')) for name in item.get('supported_os',[])] or [('Sistemas por consultar','neutral')]
 
 class CatalogMixin:
     def catalog_page(self):
@@ -103,16 +113,18 @@ class CatalogMixin:
                 project=label(item['name'],'meta');project.set_lines(1);project.set_ellipsize(Pango.EllipsizeMode.END);project.set_max_width_chars(26);texts.pack_start(project,False,False,0)
             if item.get('description'):
                 description=label(item['description'],'status');description.set_lines(1 if compact else 2);description.set_max_width_chars(30);description.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(description,False,False,0)
-            from .port_requirements import original_requirement
-            original=original_requirement(item);requirement=label(('ROM · '+original['label']) if original['known'] else original['label'],'original-required' if original['known'] else 'meta');requirement.set_lines(1);requirement.set_max_width_chars(30);requirement.set_ellipsize(Pango.EllipsizeMode.END);requirement.set_tooltip_text(original['details']);texts.pack_start(requirement,False,False,0)
-            fit=ports.compatibility(item);tags=[t for t in (item['list'],'Revisado' if ports.is_reviewed(item) else 'Sin revisar','Constructor' if item.get('package_role')=='builder' else 'Solo código fuente' if item.get('package_role') in ('source-only','build-tool') else '') if t]
-            os=label(' · '.join('Linux / Steam Deck' if s.lower()=='linux' else s.capitalize() for s in item.get('supported_os',[])) or 'Sistemas por consultar','os-badge');os.set_lines(1);os.set_ellipsize(Pango.EllipsizeMode.END);os.set_max_width_chars(27);texts.pack_start(os,False,False,0)
-            if record:texts.pack_start(label('Instalado · '+record['tag'],'install-state'),False,False,0)
+            original=original_requirement(item);requirement=badge(('ROM · '+original['label']) if original['known'] else original['label'],'yellow' if original['known'] else 'neutral');requirement.set_tooltip_text(original['details']);texts.pack_start(requirement,False,False,0)
+            fit=ports.compatibility(item);reviewed=ports.is_reviewed(item);tags=([(item['list'],'violet')] if item['list'] else [])+[('Revisado','green') if reviewed else ('Sin revisar','neutral')]
+            role=item.get('package_role')
+            if role=='builder':tags.append(('Constructor','yellow'))
+            elif role in ('source-only','build-tool'):tags.append(('Solo código fuente','orange'))
+            texts.pack_start(badge_row(system_tags(item)),False,False,0)
+            if record:texts.pack_start(badge('Instalado · '+record['tag'],'green'),False,False,0)
             when=item.get('added_at') or item.get('first_seen') or 0
-            if when:tags.append(('Nuevo · ' if time.time()-when<30*86400 else 'Añadido ')+datetime.datetime.fromtimestamp(when).strftime('%d/%m/%Y'))
-            if tags:
-                meta=label(' · '.join(tags),'pill');meta.set_lines(2);meta.set_max_width_chars(30);meta.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(meta,False,False,0)
-            estimate=label(fit_badge(fit),'meta');estimate.set_tooltip_text(fit_badge(fit,True));estimate.set_max_width_chars(30);texts.pack_start(estimate,False,False,0)
+            if when:
+                recent=time.time()-when<30*86400;tags.append((('Nuevo · ' if recent else 'Añadido ')+datetime.datetime.fromtimestamp(when).strftime('%d/%m/%Y'),'blue' if recent else 'neutral'))
+            texts.pack_start(badge_row(tags),False,False,0)
+            texts.pack_start(compatibility_badge(fit),False,False,0)
             if item['note']:
                 note=label(item['note'],'status');note.set_lines(2);note.set_max_width_chars(30);note.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(note,False,False,0)
             if item.get('bios') or item.get('disc'):
@@ -156,9 +168,10 @@ class CatalogMixin:
         tool='utilit' in item.get('list','').casefold()
         heading=item.get('game_title') or ('Herramienta para ports' if tool else item['name']);text.pack_start(label(heading,'game-title'),False,False,0)
         if heading.casefold()!=item['name'].casefold():text.pack_start(label('Port: '+item['name'],'subtitle'),False,False,0)
-        facts=[item['list'] or 'Plataforma sin especificar',', '.join(item.get('supported_os',[])) or 'Sistemas por consultar',item['source']]
-        text.pack_start(label('  ·  '.join(f for f in facts if f),'pill'),False,False,0)
-        fit=ports.compatibility(item);text.pack_start(label(fit_badge(fit,True),'pill'),False,False,0)
+        facts=[(item['list'] or 'Plataforma sin especificar','violet'),*system_tags(item)]
+        if item['source']:facts.append((item['source'],'neutral'))
+        text.pack_start(badge_row(facts),False,False,0)
+        fit=ports.compatibility(item);text.pack_start(compatibility_badge(fit,True),False,False,0)
         text.pack_start(label(' '.join(fit['reasons'])+' Estimación a partir de los datos del catálogo; no es una prueba de juego.','muted'),False,False,0)
         if item.get('release_version'):text.pack_start(label('Versión disponible: '+item['release_version'],'muted'),False,False,0)
         if item.get('release_at'):text.pack_start(label('Publicada el '+datetime.datetime.fromtimestamp(item['release_at']).strftime('%d/%m/%Y'),'muted'),False,False,0)

@@ -153,6 +153,48 @@ class DeckUITests(unittest.TestCase):
             viewport=card.get_ancestor(Gtk.ScrolledWindow);point=card.translate_coordinates(viewport,0,0)
             self.assertGreaterEqual(point[1],0)
             self.assertLessEqual(point[1]+card.get_allocated_height(),viewport.get_allocated_height())
+
+    def test_compact_profiles_keep_full_details_behind_a_controller_disclosure(self):
+        from gi.repository import Gtk
+        self.w.resize(1280,800);self.w.select_game(self.w.entries[0]);self.settle()
+        self.assertEqual(len(self.w.profile_card_box.get_children()),3)
+        self.assertTrue(all(card.get_allocated_height()<=135 for card in self.w.profile_cards[:3]))
+        disclosure=self.w.profile_disclosure
+        self.assertFalse(disclosure.revealer.get_reveal_child())
+        with patch('deck_library.presets.apply',side_effect=AssertionError('Preview must not apply settings')):
+            disclosure.control.grab_focus();self.w.last_controller_action=('',0);self.w.controller_action('activate');self.settle()
+            self.assertTrue(disclosure.revealer.get_child_revealed())
+            def labels(widget):
+                if isinstance(widget,Gtk.Label):yield widget
+                if isinstance(widget,Gtk.Container):
+                    for child in widget.get_children():yield from labels(child)
+            self.assertTrue(any(l.get_mapped() and l.get_text()==self.w.profile_selection['objective'] for l in labels(disclosure)))
+            self.w.profile_cards[1].clicked();self.settle()
+            self.assertFalse(disclosure.revealer.get_reveal_child())
+            disclosure.control.clicked();self.settle()
+            self.assertTrue(any(l.get_text()==self.w.profile_selection['objective'] for l in labels(disclosure)))
+        self.w.resize(840,640);self.settle();self.assertLessEqual(self.w.get_size().width,840)
+        x,y=self.w.profile_apply.translate_coordinates(self.w,0,0)
+        self.assertLessEqual(y+self.w.profile_apply.get_allocated_height(),640)
+
+    def test_coloured_compatibility_badges_keep_the_percentage_and_readable_contrast(self):
+        from gi.repository import Gtk
+        from deck_library.gui_catalog import compatibility_badge
+        self.w.reset_page(self.w.catalog_box);badges=[]
+        for score,level in ((88,'alta'),(72,'media'),(50,'baja'),(8,'muy baja')):
+            label=compatibility_badge({'score':score,'level':level});self.w.catalog_box.pack_start(label,False,False,0);badges.append(label)
+            self.assertIn(str(score)+'%',label.get_text())
+        self.w.catalog_box.get_ancestor(Gtk.ScrolledWindow).show_all();self.w.pages.set_visible_child_name('catalog');self.settle()
+        def luminance(color):
+            values=[v/12.92 if v<=.04045 else ((v+.055)/1.055)**2.4 for v in (color.red,color.green,color.blue)]
+            return .2126*values[0]+.7152*values[1]+.0722*values[2]
+        backgrounds=[]
+        for label in badges:
+            style=label.get_style_context();fg=style.get_color(Gtk.StateFlags.NORMAL);bg=style.get_background_color(Gtk.StateFlags.NORMAL)
+            bright,dark=sorted((luminance(fg),luminance(bg)),reverse=True)
+            self.assertGreaterEqual((bright+.05)/(dark+.05),4.5);self.assertGreater(bg.alpha,.99)
+            backgrounds.append(bg.to_string())
+        self.assertEqual(len(set(backgrounds)),4)
     def test_deck_game_sections_keep_the_full_width_and_visible_navigation(self):
         from gi.repository import Gtk
         self.w.resize(1280,800);self.w.select_game(self.w.entries[0]);self.settle()
