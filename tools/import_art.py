@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Import the supplied Deck Library PNG pack without changing the image pixels."""
-import argparse,base64,pathlib,struct,zipfile
+import argparse,base64,hashlib,json,pathlib,struct,zipfile
 
 ROOT=pathlib.Path(__file__).resolve().parent.parent
 SOURCES={
@@ -22,6 +22,13 @@ def main():
             data=archive.read(name)
             if not data.startswith(b'\x89PNG\r\n\x1a\n') or data[12:16]!=b'IHDR' or struct.unpack('>II',data[16:24])!=size:raise ValueError('Unexpected PNG dimensions: '+name)
             images[name]=data
+    history_file=ROOT/'assets/steam/previous-defaults.json'
+    history=json.loads(history_file.read_text()) if history_file.exists() else {'schema':1,'slots':{}}
+    for slot,filename in {'portrait':'portrait.png','banner':'banner.png','hero':'hero.png','logo':'logo.png','icon':'icon.png'}.items():
+        previous=ROOT/'assets/steam'/filename
+        if previous.is_file():
+            values=set(history['slots'].get(slot,[]));values.add(hashlib.sha256(previous.read_bytes()).hexdigest());history['slots'][slot]=sorted(values)
+    history_file.write_text(json.dumps(history,indent=2)+'\n')
     for name,(_,targets) in SOURCES.items():
         for relative in targets:
             target=ROOT/relative;target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(images[name]);print(relative)

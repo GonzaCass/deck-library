@@ -6,7 +6,7 @@ def load_sync():
     spec=importlib.util.spec_from_file_location('sync_readme',ROOT/'tools/sync_readme.py');module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module);return module
 
 class DocsLanguageTests(unittest.TestCase):
-    def test_readme_spanish_half_is_generated_from_leeme(self):
+    def test_quick_starts_are_short_and_link_to_each_language(self):
         self.assertTrue(load_sync().main(check=True),'ejecutar tools/sync_readme.py')
 
     def test_english_half_has_no_spanish_prose(self):
@@ -16,9 +16,10 @@ class DocsLanguageTests(unittest.TestCase):
         found=sorted(set(re.findall(r'[A-Za-z]*[áéíóúñÁÉÍÓÚÑ¿¡][A-Za-z]*',english)))
         self.assertEqual(found,[])
 
-    def test_spanish_half_is_complete_and_impersonal(self):
-        text=(ROOT/'README.md').read_text();spanish=text.split('<!-- BEGIN SPANISH')[1]
-        self.assertIn('# Español',spanish);self.assertGreater(len(spanish.splitlines()),200)
+    def test_spanish_quick_start_is_complete_and_detailed_notes_remain_available(self):
+        spanish=(ROOT/'LEEME.md').read_text()
+        for heading in ('Instalar','Abrir desde Steam','¿Ya está instalado?'):self.assertIn(heading,spanish)
+        self.assertGreater(len((ROOT/'docs/REFERENCE.es.md').read_text().splitlines()),200)
         voseo=re.compile(r'\b(podés|tenés|querés|elegí|abrí|pulsá|revisá|vos|tu|tus)\b',re.I)
         for path in (ROOT/'LEEME.md',*sorted((ROOT/'docs').glob('*.md'))):
             if path.name=='DECK-INTERFACE.md':continue  # describes the removed forms

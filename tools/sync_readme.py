@@ -1,25 +1,11 @@
 #!/usr/bin/env python3
-"""Rebuild the Spanish half of README.md from LEEME.md, so GitHub shows a full English section followed by a full Spanish one."""
-import pathlib,re,sys
+"""Check the separate English/Spanish quick starts. The old combined README is no longer generated."""
+import pathlib,sys
 ROOT=pathlib.Path(__file__).resolve().parent.parent
-BEGIN='<!-- BEGIN SPANISH: generated from LEEME.md by tools/sync_readme.py; edit LEEME.md instead -->'
-END='<!-- END SPANISH -->'
-
-def spanish_section(leeme):
-    body=leeme.strip().split('\n',1)[1].strip() if leeme.lstrip().startswith('# ') else leeme.strip()
-    return '# Español\n\n**[English](#deck-library)** · Español\n\n'+body
-
-def build(readme,leeme):
-    block=BEGIN+'\n'+spanish_section(leeme)+'\n'+END
-    if BEGIN in readme:
-        return re.sub(re.escape(BEGIN)+r'.*?'+re.escape(END),lambda _:block,readme,flags=re.S)
-    return readme.rstrip('\n')+'\n\n---\n\n'+block+'\n'
 
 def main(check=False):
-    readme=(ROOT/'README.md').read_text();updated=build(readme,(ROOT/'LEEME.md').read_text())
-    if check:return updated==readme
-    (ROOT/'README.md').write_text(updated);return True
+    english=(ROOT/'README.md').read_text();spanish=(ROOT/'LEEME.md').read_text()
+    return 'href="LEEME.md"' in english and 'href="README.md"' in spanish and '<!-- BEGIN SPANISH' not in english and len(english.splitlines())<140 and len(spanish.splitlines())<140
 
 if __name__=='__main__':
-    ok=main('--check' in sys.argv)
-    if not ok:print('README.md está desactualizado: ejecutar tools/sync_readme.py');sys.exit(1)
+    if not main('--check' in sys.argv):print('Check the language links and keep each quick start below 140 lines.');sys.exit(1)
