@@ -3,7 +3,7 @@ import json
 from gi.repository import Gtk, GLib, Pango
 from . import presets, motion, profile_display as display
 from .artwork import find_cover
-from .ui_components import ActionButton, TaskButton, Icon, Reveal, GameBackdrop, styled, text, tooltip_when_cut
+from .ui_components import ActionButton, TaskButton, Icon, Reveal, GameBackdrop, styled, text, tooltip_when_cut, badge
 
 
 class GameMixin:
@@ -308,10 +308,10 @@ class GameMixin:
         card = Gtk.Button()
         styled(card, 'profile-card')
         card.profile_id = profile['id']
-        body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
         top = Gtk.Box(spacing=8)
         icon_name, description = display.intent(profile)
-        top.pack_start(styled(Icon(icon_name,22),'violet-icon'), False, False, 0)
+        top.pack_start(styled(Icon(icon_name,20),'violet-icon'), False, False, 0)
         title = text(display.title(profile), 'profile-title', 26)
         title.set_lines(2)
         title.set_ellipsize(Pango.EllipsizeMode.END)
@@ -319,19 +319,14 @@ class GameMixin:
         card.selection_icon = Icon('radio',18)
         top.pack_end(card.selection_icon, False, False, 0)
         body.pack_start(top, False, False, 0)
-        subtitle = text(description,'muted',40)
-        subtitle.set_lines(2)
-        subtitle.set_ellipsize(Pango.EllipsizeMode.END)
-        body.pack_start(subtitle, True, True, 0)
         values = display.highlights(profile)
         summary = ' · '.join(value for _,value in values)
-        body.pack_start(text(summary or profile['author'], 'profile-spec', 40), False, False, 0)
+        spec=text(summary or description, 'profile-spec', 40);spec.set_line_wrap(False);spec.set_ellipsize(Pango.EllipsizeMode.END);body.pack_start(spec, False, False, 0)
         state = display.verification(profile)+(' · Favorito' if favourite else '')
-        source='Integrado en Deck Library' if presets.is_bundled(profile) else 'Comunidad' if profile['id'].startswith('community-') else 'Base de Deck Library' if profile['id'].endswith(('-default','-performance','-quality','-compatibility')) and profile['id'].startswith('eden-') else 'Perfil local'
-        body.pack_start(text(source,'meta',40),False,False,0)
-        body.pack_start(text(state, 'good' if profile['tested']['status']!='proposal' else 'meta', 40), False, False, 0)
-        card.rating_label=text('★ Sin valoraciones','rating',40)
-        body.pack_start(card.rating_label,False,False,0)
+        foot=Gtk.Box(spacing=8)
+        verified=badge(display.verification(profile),'green' if profile['tested']['status']!='proposal' else 'neutral',22);verified.set_tooltip_text(state);foot.pack_start(verified,False,False,0)
+        card.rating_label=text('★ Sin valoraciones','rating',20);card.rating_label.set_line_wrap(False);card.rating_label.set_ellipsize(Pango.EllipsizeMode.END)
+        foot.pack_end(card.rating_label,False,False,0);body.pack_start(foot,False,False,0)
         card.add(body)
         card.get_accessible().set_name(display.title(profile)+' · '+description+' · '+state)
         card.set_tooltip_text(profile['name']+'\n'+profile['objective'])
@@ -347,8 +342,10 @@ class GameMixin:
         details = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
         details.set_border_width(12)
         styled(details,'change-details')
+        objective=text('','title',100);details.pack_start(objective,False,False,0)
         provenance = text('', 'meta', 100)
         details.pack_start(provenance,False,False,0)
+        specifications=text('','profile-spec',100);details.pack_start(specifications,False,False,0)
         notes = text('', 'muted',100)
         details.pack_start(notes,False,False,0)
         changes = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
@@ -388,18 +385,22 @@ class GameMixin:
                 card.selection_icon.queue_draw()
                 card.get_accessible().set_description('Seleccionado' if active else 'Seleccionar perfil')
             self.profile_dock_title.set_text(display.title(profile))
-            provenance.set_text(profile['author']+' · '+display.verification(profile)+' · '+', '.join(profile['adapter']['versions']))
+            objective.set_text(profile['objective'])
+            source='Integrado en Deck Library' if presets.is_bundled(profile) else 'Comunidad' if profile['id'].startswith('community-') else 'Base de Deck Library' if profile['id'].endswith(('-default','-performance','-quality','-compatibility')) and profile['id'].startswith('eden-') else 'Perfil local'
+            provenance.set_text(source+' · '+profile['author']+' · '+display.verification(profile)+(' · Favorito' if profile['id']==best else '')+' · '+', '.join(profile['adapter']['versions']))
+            specifications.set_text(' · '.join(name+': '+value for name,value in display.highlights(profile)))
             guide='\n\n'.join(v for v in (profile.get('notes',''),profile.get('instructions',''),('Entorno: '+profile['runtime']['kind']+' '+profile['runtime'].get('version','')+'\n'+profile['runtime'].get('launch_options','')) if profile.get('runtime') else '') if v)
             notes.set_text(guide)
             notes.set_visible(bool(guide))
             if not presets.automatic(profile):
                 self.profile_status.set_text('Guía manual · Los pasos y comandos se muestran como texto.')
                 self.profile_dock_note.set_text('Revisar las instrucciones del perfil.');self.profile_apply.set_sensitive(False)
-                self.profile_disclosure.control.set_label('Ver instrucciones');self.profile_disclosure.revealer.set_reveal_child(True)
+                self.profile_disclosure.control.set_label('Ver instrucciones');self.profile_disclosure.revealer.set_reveal_child(True);self.profile_disclosure.control.set_icon('down')
                 changes.show_all();return
             self.reset_page(changes)
             self.profile_apply.get_style_context().remove_class('applied')
             self.profile_disclosure.revealer.set_reveal_child(False)
+            self.profile_disclosure.control.set_icon('chevron')
             try:
                 _, differences = display.differences(entry,profile,self.preferences.get('eden_config') or None)
                 from .gui_tools import SETTING_LABELS
@@ -420,7 +421,7 @@ class GameMixin:
                 self.profile_apply.set_sensitive(bool(count) and not getattr(self,'profile_job',False))
                 self.profile_feedback_icon.name = 'sliders' if count else 'check'
                 self.profile_feedback_icon.queue_draw()
-                self.profile_disclosure.control.set_label(f'Ver los {count} cambios' if count else 'Ver detalles del perfil')
+                self.profile_disclosure.control.set_label(f'Detalles del perfil · {count} cambios' if count else 'Ver detalles del perfil')
                 if not count:self.profile_apply.get_style_context().add_class('applied')
             except Exception as error:
                 self.profile_status.set_text('Falta completar la configuración: '+str(error))
