@@ -413,7 +413,7 @@ def is_reviewed(item):
     return repository in RECIPES or 'Recomendado' in str(item.get('source','')) or any(b['repository'].lower()==repository for b in BUILTIN)
 
 def compatibility(item,now=None):
-    """Estimated chance that a catalog port installs and runs on the Deck, from catalog metadata only (no download, no play test).
+    """Heuristic index from catalog metadata, not a measured probability (no download or play test).
     Returns {'score': 0-100, 'level': 'alta'|'media'|'baja'|'muy baja', 'reasons': [...]}."""
     import time
     now=now or time.time();item=clean(item) or {};reasons=[]

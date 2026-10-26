@@ -3,7 +3,7 @@
 import ast,json,pathlib,re,sys
 ROOT=pathlib.Path(__file__).resolve().parent.parent
 SPANISH=re.compile(r"[áéíóúñ¿¡Á-Ú]|\b(el|la|los|las|de|del|para|con|sin|una|un|que|se|no|en|por|es|su|al|y|o|desde|este|esta|más|ya|hay|solo|puede|tiene)\b",re.I)
-UI_CALLS={'label','button','set_text','set_label','message','confirm','set_status','toast','set_tooltip_text','set_placeholder_text','append','append_text','add_button','InlineDialog','ActionButton','Banner','set_title','pick_file','run_queue','Poster'}
+UI_CALLS={'badge','label','button','set_text','set_label','message','confirm','set_status','toast','set_tooltip_text','set_placeholder_text','append','append_text','add_button','InlineDialog','ActionButton','Banner','set_title','pick_file','run_queue','Poster'}
 
 def pieces(node):
     """Static text of a string expression: constants, the literal parts of f-strings (holes become {}) and concatenations."""
