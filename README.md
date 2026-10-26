@@ -73,7 +73,7 @@ An account is needed to publish or rate community settings. The local library an
 
 ## 📖 More
 
-[Documentation](docs/README.md) · [Ports and requirements](docs/PORTS.md) · [Profiles](docs/PRESETS.md) · [Release notes](docs/CHANGELOG.md) · [Validation](docs/VALIDATION.md)
+[Documentation](docs/README.md) · [Promo images](https://github.com/GonzaCass/deck-library/tree/main/promo) · [Ports and requirements](docs/PORTS.md) · [Profiles](docs/PRESETS.md) · [Release notes](docs/CHANGELOG.md) · [Validation](docs/VALIDATION.md)
 
 Found a problem? [Open an issue](https://github.com/GonzaCass/deck-library/issues) with the app version, game/port name and diagnostic details. Do not include tokens, keys or game files.
 

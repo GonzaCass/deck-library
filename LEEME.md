@@ -73,7 +73,7 @@ Hace falta una cuenta para publicar o valorar ajustes comunitarios. La bibliotec
 
 ## 📖 Más información
 
-[Documentación](docs/README.md) · [Ports y requisitos](docs/PORTS.md) · [Perfiles](docs/PRESETS.md) · [Novedades](docs/CHANGELOG.md) · [Validación](docs/VALIDATION.md)
+[Documentación](docs/README.md) · [Imágenes para compartir](https://github.com/GonzaCass/deck-library/tree/main/promo) · [Ports y requisitos](docs/PORTS.md) · [Perfiles](docs/PRESETS.md) · [Novedades](docs/CHANGELOG.md) · [Validación](docs/VALIDATION.md)
 
 Para informar un fallo, [abrir un issue](https://github.com/GonzaCass/deck-library/issues) con la versión de la app, el juego/port y el diagnóstico. No incluir tokens, claves ni archivos de juegos.
 
