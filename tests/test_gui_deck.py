@@ -276,6 +276,10 @@ class DeckUITests(unittest.TestCase):
         atomic_json(self.store.root/'pending.json',{'ids':['one'],'account':'test'})
         with patch.object(self.gui.Gtk.Dialog,'run',side_effect=AssertionError('Unexpected modal restart prompt')):
             self.w.queue_done({'state':'pending','count':1});self.assertTrue(self.w.pending_bar.get_visible());self.assertIn('Pendiente',self.w.pending_label.get_text())
+        self.w.updates_page();self.settle()
+        self.assertTrue(self.w.pending_bar.get_mapped())
+        self.assertFalse(any(child.get_style_context().has_class('banner') for child in self.w.updates_box.get_children()))
+        self.w.open_library();self.settle();self.assertTrue(self.w.pending_bar.get_mapped())
         (self.store.root/'pending.json').unlink();self.w.refresh_pending();self.assertFalse(self.w.pending_bar.get_visible())
     def test_dynamic_conflicts_keep_scroll_inside_dialog(self):
         from gi.repository import Gtk,GLib
