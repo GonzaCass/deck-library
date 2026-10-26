@@ -497,7 +497,7 @@ class DeckUITests(unittest.TestCase):
                 until=time.monotonic()+3
                 while self.w.port_busy and time.monotonic()<until:self.settle()
                 configure.assert_called_once();self.assertFalse(self.w.port_busy);self.assertNotIn(item['repository'],self.w.port_jobs)
-                self.assertEqual('cancel' in configure.call_args.kwargs,setup in ('b2recomp','dante'))
+                self.assertIn('cancel',configure.call_args.kwargs)
                 self.assertEqual(self.w.transfers[item['repository']].state['phase'],'done')
 
     def test_dante_install_requires_a_valid_original_before_preparing(self):
@@ -543,6 +543,29 @@ class DeckUITests(unittest.TestCase):
         with patch.object(self.w,'pick_file',return_value=str(rom)),patch.object(self.inline,'run',run):self.assertTrue(self.w.port_inputs({'repository':'a/test','name':'Test'}))
         self.assertEqual(seen,[False,True]);self.assertEqual(self.application_windows(),windows)
         self.assertEqual(ports.records(self.store)['a/test']['inputs']['rom'],str(rom));self.assertEqual(rom.read_bytes(),b'owned')
+
+    def test_naruto_iso_preparation_stays_inline_and_offers_the_right_original(self):
+        from gi.repository import Gtk,GLib
+        from deck_library import ports
+        from deck_library.models import atomic_json
+        item=ports.clean({'repository':'Auremana666/Naruto-The-Broken-Bond-PC-Port','name':'Naruto: The Broken Bond'})
+        atomic_json(self.store.root/'ports.json',{item['repository']:item})
+        iso=pathlib.Path(self.temp.name)/'owned.iso';data=bytearray(65636);data[65536:65554]=b'MICROSOFT*XBOX*MEDIA';iso.write_bytes(data)
+        original_run=self.inline.run;seen=[];errors=[];windows=self.application_windows()
+        def run(page):
+            def choose():
+                try:
+                    ready=page._buttons[Gtk.ResponseType.OK];seen.append(ready.get_sensitive())
+                    controls=self.w.control_targets(page);names=[c.get_accessible().get_name() for c in controls]
+                    self.assertNotIn('Elegir carpeta extraída',names);self.assertNotIn('Elegir ISO de Xbox',names)
+                    next(c for c in controls if c.get_accessible().get_name()=='Elegir ISO de Xbox 360').clicked()
+                    seen.append(ready.get_sensitive())
+                except Exception as error:errors.append(str(error))
+                page.response(Gtk.ResponseType.OK);return False
+            GLib.timeout_add(200,choose);return original_run(page)
+        with patch.object(self.w,'pick_file',return_value=str(iso)),patch.object(self.inline,'run',run):self.assertTrue(self.w.port_inputs(item))
+        self.assertEqual(errors,[]);self.assertEqual(seen,[False,True]);self.assertEqual(self.application_windows(),windows)
+        self.assertEqual(ports.records(self.store)[item['repository']]['inputs']['original_data'],str(iso));self.assertEqual(iso.read_bytes(),data)
 
     def test_port_detail_offers_proton_as_an_explicit_alternative(self):
         from gi.repository import Gtk,GLib

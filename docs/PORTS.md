@@ -1,5 +1,13 @@
 # Guía de ports y juegos configurados
 
+[Auditoría de instalaciones (751 entradas, 26/10/2026)](PORT-INSTALLATION-AUDIT.md) · [Resultados por repositorio](../catalog/installation-audit.json)
+
+## Naruto y paquetes Windows (1.2.5)
+
+The Broken Bond tiene dos integraciones: **PC Port de Auremana666** pide la ISO de Xbox 360 y la copia a `assets`; **Recomp de jorjbarbosa** pide la carpeta extraída con `default.xex` y comprueba Title ID y SHA-256. Se instala el paquete portable con Proton y se elige el lanzador correcto. Rise of a Ninja también tiene receta para su lanzador; la versión 0.3 incorpora los arreglos Vulkan para Wine/Proton publicados por su autor. Las dos variantes de Broken Bond siguen experimentales en la Deck: instalar sin error no comprueba que su renderizado funcione.
+
+El proceso común reconoce parejas de lanzador/motor y paquetes Windows tar, ZIP, 7z, RAR o EXE portable. Busca Proton en las bibliotecas de Steam, incluida la microSD, y contempla GE-Proton instalado como alternativa. Conserva las carpetas comunes de partidas y los originales/configuración declarados por cada receta. Los archivos para otras consolas, licencias, Android y los instaladores sin integración propia se distinguen de un juego portable. Las recetas nuevas se aplican al catálogo guardado al actualizar la app.
+
 Los ports se descargan desde **Catálogo de ports → Instalar**. La ficha distingue **Preparación integrada**, **Asistente del port**, **Preparación manual** y requisitos todavía sin integrar. Cuando hay adaptador, **Configurar** detecta o permite elegir ROM, disco y BIOS, valida sus hashes o seriales y prepara el juego. Los demás conservan el asistente o las instrucciones del proyecto. Agregar el acceso a Steam es una acción separada. Esta guía resume qué necesita cada juego, qué deja ajustado la app y qué límites hay. Ningún archivo de juego, BIOS ni clave se incluye en Deck Library ni se sube a ningún sitio.
 
 ## Dante’s Inferno y Breath of the Wild — 1.1.3

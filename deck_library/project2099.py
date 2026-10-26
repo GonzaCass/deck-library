@@ -56,19 +56,16 @@ def validate_source(path):
 def proton_path(home=None,preferred=None):
     names=('Proton 11.0','Proton - Experimental','Proton 10.0','Proton 9.0 (Beta)','Proton 8.0')
     if preferred and preferred not in names:raise ValueError('Versión de Proton no admitida.')
-    home=pathlib.Path(home or pathlib.Path.home())
-    for root in (home/'.local/share/Steam',home/'.steam/steam'):
-        for name in (preferred,) if preferred else names:
-            p=root/'steamapps/common'/name/'proton'
-            if p.is_file():return p
-    raise ValueError('Falta Proton 11.0: instalarlo desde Steam, Biblioteca, Herramientas.')
+    from .proton_tools import find
+    return find(names,home,preferred)
 
 def proton_env(store=None,preferred=None):
     if preferred and preferred not in ('Proton 11.0','Proton - Experimental','Proton 10.0','Proton 9.0 (Beta)','Proton 8.0'):raise ValueError('Versión de Proton no admitida.')
     store=store or Store();slug='project2099' if not preferred or preferred=='Proton 11.0' else 'project2099-'+preferred.lower().replace(' ','-')
     pfx=store.root/'runtimes'/slug;pfx.mkdir(parents=True,exist_ok=True)
     env=clean_environment();env['STEAM_COMPAT_DATA_PATH']=str(pfx)
-    env['STEAM_COMPAT_CLIENT_INSTALL_PATH']=str(pathlib.Path.home()/'.local/share/Steam')
+    from .proton_tools import steam_roots
+    roots=steam_roots();env['STEAM_COMPAT_CLIENT_INSTALL_PATH']=str(roots[0] if roots else pathlib.Path.home()/'.local/share/Steam')
     env['WINEDEBUG']='-all';return env
 
 def installer_environment(store):
