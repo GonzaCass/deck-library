@@ -10,6 +10,7 @@ for folder in ('deck_library','tests'):
 files.extend(sorted((ROOT/'presets').glob('*.json')))
 files.extend(sorted((ROOT/'deck_library/i18n_en').glob('*.json')))
 files.extend(sorted((ROOT/'assets/steam').glob('*.png')))
+files.extend(sorted(p for p in (ROOT/'assets/fonts').glob('*') if p.suffix in ('.woff2','.txt')))
 files.append(ROOT/'tools/render_art.py')
 files.append(ROOT/'tools/i18n_extract.py')
 files.extend([ROOT/'.dockerignore',ROOT/'docs/DECK-INTERFACE.md',ROOT/'docs/V1-CHECKLIST.md',ROOT/'docs/CHANGELOG.md',ROOT/'docs/HISTORIAL.md',ROOT/'tools/sync_readme.py'])

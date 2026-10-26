@@ -12,7 +12,7 @@ class DeckUITests(unittest.TestCase):
         self.inline=InlineDialog
         self.gui=gui;self.temp=tempfile.TemporaryDirectory();self.store=Store(self.temp.name)
         self.store.save([Entry('Juego de prueba',['/bin/true'],kind='emulated',platform='Switch',source='/tmp/test.nsp',game_id='0100000000000000')])
-        self.patches=[patch.object(gui_shell,'Store',return_value=self.store),patch.object(gui_shell,'settings',return_value={**DEFAULTS,'onboarding_complete':True,'check_updates':False,'artwork_provider':'off','animations':False,'community_ratings':False,'eden_config':str(pathlib.Path(self.temp.name)/'eden')}),patch.object(gui.Window,'discover',return_value=False),patch.object(gui.Window,'load_catalog',return_value=None),patch.object(gui_shell,'find_accounts',return_value=[]),patch.object(gui_shell,'active_account',return_value=None)]
+        self.patches=[patch.object(gui_shell,'Store',return_value=self.store),patch.object(gui_shell,'settings',return_value={**DEFAULTS,'onboarding_complete':True,'start_page':'library','check_updates':False,'artwork_provider':'off','animations':False,'community_ratings':False,'eden_config':str(pathlib.Path(self.temp.name)/'eden')}),patch.object(gui.Window,'discover',return_value=False),patch.object(gui.Window,'load_catalog',return_value=None),patch.object(gui_shell,'find_accounts',return_value=[]),patch.object(gui_shell,'active_account',return_value=None)]
         from deck_library import eden_controls
         self.patches.append(patch.object(eden_controls,'status',return_value='ok'))
         for p in self.patches:p.start()
@@ -106,6 +106,35 @@ class DeckUITests(unittest.TestCase):
         for page in ('covers','list','platforms'):
             self.w.view=page;self.w.render();self.settle();self.assertLessEqual(self.w.get_size().width,1280);self.assertLessEqual(self.w.get_size().height,760)
         row=self.w.list.get_row_at_index(0);self.assertTrue(any(isinstance(c,self.gui.Poster) for c in row.get_child().get_children()))
+
+    def test_home_uses_real_totals_and_returns_to_the_same_port_with_back(self):
+        from deck_library.models import Entry
+        self.w.entries.extend([Entry('Port A',['/bin/true']),Entry('Port B',['/bin/true','b'])]);self.w.render();self.w.home_page();self.settle()
+        self.assertEqual(self.w.pages.get_visible_child_name(),'home');self.assertEqual(self.w.home_counts['Juegos'].get_text(),'3');self.assertEqual(self.w.home_counts['Ports instalados'].get_text(),'2')
+        entry=self.w.entries[-1];self.w.home_targets[entry.id].clicked();self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'detail')
+        self.w.last_controller_action=('',0);self.w.controller_action('back');self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'home');self.assertIs(self.w.get_focus(),self.w.home_targets[entry.id])
+        self.w.resize(840,640);self.settle();self.assertLessEqual(self.w.get_size().width,840)
+        self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.assertEqual(self.w.pages.get_visible_child_name(),'library')
+
+    def test_home_remains_the_initial_page_when_the_window_is_first_mapped(self):
+        from deck_library import gui_shell
+        from gi.repository import Gtk
+        with patch.object(gui_shell,'settings',return_value={**self.w.preferences,'start_page':'home'}):other=self.gui.Window()
+        try:
+            other.show_all();self.settle();self.assertEqual(other.pages.get_visible_child_name(),'home');self.assertEqual(other.home_counts['Juegos'].get_text(),'1')
+        finally:other.disconnect_by_func(Gtk.main_quit);other.destroy();self.settle()
+
+    def test_port_cards_show_the_original_disc_id_without_opening_details(self):
+        from deck_library import ports
+        from gi.repository import Gtk
+        self.w.catalog_page();self.w.catalog_apps=[ports.clean(ports.BUILTIN[0])];self.w.catalog_search.set_text('SLUS-00875')
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog();self.settle()
+        def labels(widget):
+            if isinstance(widget,Gtk.Label):yield widget.get_text()
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from labels(child)
+        self.assertTrue(any('SLUS-00875' in value for value in labels(self.w.catalog_rows)))
+        row=self.w.catalog_rows.get_children()[0];self.assertGreaterEqual(row.catalog_image.get_allocated_height(),140)
 
     def test_deck_text_and_primary_actions_fit_at_readable_sizes(self):
         from gi.repository import Gtk,Gdk,Pango

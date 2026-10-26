@@ -73,6 +73,7 @@ class GameMixin:
     def back_from_game(self):
         if self.game_tab != 'profiles':
             self.open_game_section('profiles')
+        elif getattr(self,'detail_origin','library')=='home':self.home_page()
         else:
             self.open_library()
 
@@ -214,9 +215,10 @@ class GameMixin:
             self.profile_card_box.set_homogeneous(not narrow)
         cover,platform,info,name,actions = self.game_hero_parts
         artwork,compact_menu=self.game_header_secondary
-        for widget in (cover,platform,artwork,self.game_breadcrumb):
+        for widget in (platform,artwork,self.game_breadcrumb):
             widget.set_no_show_all(compact)
             widget.set_visible(not compact)
+        cover.get_child().set_size_request(*((44,66) if compact else (96,144)));cover.set_no_show_all(False);cover.show()
         for widget in (self.compact_game_back,compact_menu):
             widget.set_no_show_all(not compact)
             widget.set_visible(compact)

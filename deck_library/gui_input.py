@@ -63,7 +63,7 @@ class InputMixin:
         focus=self.navigation_focus(window);activate='Seleccionar';back='Volver'
         if window is self and getattr(self,'inline_workflows',[]):back='Volver'
         elif window is not self:back='Cerrar'
-        elif self.pages.get_visible_child_name()=='detail':back='Biblioteca' if self.game_tab=='profiles' else 'Volver al juego'
+        elif self.pages.get_visible_child_name()=='detail':back=('Inicio' if getattr(self,'detail_origin','library')=='home' else 'Biblioteca') if self.game_tab=='profiles' else 'Volver al juego'
         elif self.pages.get_visible_child_name()!='library':back='Biblioteca'
         if self.current_popover(window) or isinstance(Gtk.grab_get_current(),Gtk.MenuShell):back='Cerrar menú'
         if window is self and focus is not None:
@@ -349,7 +349,7 @@ class InputMixin:
             return True
         if workflow and action in ('previous_tab','next_tab'):return True
         if action in ('previous_tab','next_tab') and window is self:
-            names=list(self.nav_buttons);active={'library':0,'detail':0,'catalog':1,'updates':2,'settings':3}.get(self.pages.get_visible_child_name(),0);self.nav_buttons[names[(active+(-1 if action=='previous_tab' else 1))%len(names)]].clicked();return True
+            names=list(self.nav_buttons);tab={'home':'Inicio','library':'Biblioteca','detail':'Biblioteca','catalog':'Catálogo de ports','updates':'Actualizaciones','settings':'Ajustes'}.get(self.pages.get_visible_child_name(),'Biblioteca');active=names.index(tab);self.nav_buttons[names[(active+(-1 if action=='previous_tab' else 1))%len(names)]].clicked();return True
         if action=='back':
             popover=self.current_popover(window)
             if popover:
@@ -368,6 +368,7 @@ class InputMixin:
             return True
         if action.startswith('scroll_'):return self.scroll_controller(action,window)
         if action=='search' and window is self:
+            if self.pages.get_visible_child_name()=='home':self.open_library()
             entry=self.catalog_search if self.pages.get_visible_child_name()=='catalog' and hasattr(self,'catalog_search') else self.search
             self.open_keyboard(entry);return True
         if not workflow and window is self and self.move_library_focus(action):return True

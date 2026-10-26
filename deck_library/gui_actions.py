@@ -86,6 +86,7 @@ class ActionsMixin:
         self.checked&={e.id for e in entries}
         self.refresh_platforms();self.library_dirty=True
         if self.pages.get_visible_child_name()=='library':self.render()
+        elif self.pages.get_visible_child_name()=='home':self.home_page()
         self.set_status(f'{len(entries)} juegos encontrados.');self.wizard_detection_ready(found or report(preferences=self.preferences))
         if self.pages.get_visible_child_name()=='detail':
             if self.selected:self.show_detail(self.selected)
