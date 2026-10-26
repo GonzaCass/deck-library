@@ -527,3 +527,10 @@ Se superaron 837 pruebas únicas: 745 de núcleo, 91 de interfaz GTK y la prueba
 Se inspeccionaron las tarjetas compactas y sus detalles abiertos en la pantalla física de 1280×800, en una instancia privada durante la sesión de Escritorio. Un clic real de puntero sobre una etiqueta de sistema abrió correctamente la ficha del port dentro de la app. Se revisó el catálogo con imágenes y etiquetas por nivel; el cálculo de compatibilidad no cambió. Las capturas públicas siguen usando juegos ficticios. No se ejecutaron juegos, no se aplicaron ajustes del usuario y no se inició una nueva sesión de Gamescope.
 
 La guía de compatibilidad se abre desde el catálogo y desde cada ficha como página interna, con rangos de colores, bases y ajustes exactos del índice. Aclara que los pesos son criterios de Deck Library, no una probabilidad calibrada ni una medición de FPS o jugabilidad. Una prueba GTK verifica su contenido, la ausencia de otra ventana, límites a 1280×800 y 840×640 y regreso con B al botón de origen. No se modificó el cálculo.
+
+
+## 1.2.2 — Pack PNG de iconos y arte de Steam
+
+Se comprobaron la lectura de los PNG con GdkPixbuf, sus dimensiones y la igualdad de bytes con los archivos elegidos del ZIP. Los originales seleccionados no contienen metadatos textuales ni EXIF. El icono SVG del tema de escritorio contiene exactamente el PNG principal y se carga a 512×512. La cabecera usa el isotipo transparente a 28 píxeles; ventana y acceso de Steam conservan el icono principal. Se eligió el fondo limpio con logotipo separado y la portada vertical estándar de 600×900.
+
+Se superaron 745 pruebas de núcleo (837 descubiertas; 92 de GTK omitidas en esa ejecución) y la comprobación GTK de apertura inicial de Inicio. Se renderizaron y revisaron capturas de la biblioteca y la ficha con datos ficticios y el nuevo isotipo. La escritura de arte de Steam sigue usando la cola existente, con el cliente cerrado y respaldo de cada archivo reemplazado; no se modifica su acceso, configuración de Proton ni mando. No se ejecutaron juegos ni se inició una nueva sesión de Gamescope.
