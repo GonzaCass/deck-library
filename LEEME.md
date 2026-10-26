@@ -61,7 +61,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ### ROM necesaria para cada port
 
-Las tarjetas del catálogo muestran los requisitos revisados del original: identificador de disco (SLUS, SCUS, RMCP, CUSA, etc.), región, revisión o actualización, según el proyecto. Se puede buscar por esos identificadores. Al abrir la tarjeta se amplían el formato requerido y el enlace al proyecto. Cuando falta verificar esa información aparece **ROM por confirmar**; no se asume que cualquier versión sirva. Las etiquetas distinguen sistema, estado de revisión, original e instalación por color. El porcentaje de compatibilidad estimada usa verde (alta), amarillo (media), naranja (baja) o rojo (muy baja), acompañado de texto. La etiqueta no descarga originales ni cambia la preparación del port.
+Las tarjetas del catálogo muestran los requisitos revisados del original: identificador de disco (SLUS, SCUS, RMCP, CUSA, etc.), región, revisión o actualización, según el proyecto. Se puede buscar por esos identificadores. Al abrir la tarjeta se amplían el formato requerido y el enlace al proyecto. Cuando falta verificar esa información aparece **ROM por confirmar**; no se asume que cualquier versión sirva. Las etiquetas distinguen sistema, estado de revisión, original e instalación por color. El porcentaje de compatibilidad estimada usa verde (alta), amarillo (media), naranja (baja) o rojo (muy baja), acompañado de texto. **Guía de compatibilidad** abre dentro de la app los rangos y todos los pesos del cálculo: es un índice orientativo, no una probabilidad de éxito medida ni una medición de FPS. La etiqueta no descarga originales ni cambia la preparación del port.
 
 ### Diseño, movimiento y actualizaciones propias
 

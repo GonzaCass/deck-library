@@ -52,10 +52,28 @@ class CatalogMixin:
         self.catalog_search.set_width_chars(12)
         for picker in (self.catalog_category,self.catalog_source,self.catalog_sort):
             for cell in picker.get_cells():cell.set_property('ellipsize',Pango.EllipsizeMode.END);cell.set_property('max-width-chars',18)
-        self.catalog_status=label('Cargando catálogo…','status');box.pack_start(self.catalog_status,False,False,0)
+        status_row=Gtk.Box(spacing=12);self.catalog_status=label('Cargando catálogo…','status');self.catalog_status.set_line_wrap(False);self.catalog_status.set_ellipsize(Pango.EllipsizeMode.END);self.catalog_status.set_width_chars(1);status_row.pack_start(self.catalog_status,True,True,0)
+        self.catalog_guide_button=button('Guía de compatibilidad',self.compatibility_guide);status_row.pack_end(self.catalog_guide_button,False,False,0);box.pack_start(status_row,False,False,0)
         self.catalog_rows=Gtk.FlowBox();self.catalog_rows.set_selection_mode(Gtk.SelectionMode.NONE);self.catalog_rows.set_min_children_per_line(1);self.catalog_rows.set_max_children_per_line(4);self.catalog_rows.set_homogeneous(True);self.catalog_rows.set_column_spacing(14);self.catalog_rows.set_row_spacing(16);box.pack_start(self.catalog_rows,False,False,0)
         self.catalog_more_box=Gtk.Box();self.catalog_more_box.set_halign(Gtk.Align.CENTER);box.pack_start(self.catalog_more_box,False,False,0)
         box.show_all();self.pages.set_visible_child_name('catalog');self.load_catalog(False)
+
+    def compatibility_guide(self,*_):
+        from .gui import label
+        page=InlineDialog(title='Guía de compatibilidad',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE);box=page.get_content_area()
+        box.pack_start(label('Es un índice orientativo de 0 a 100 basado en los datos del catálogo. Se muestra como porcentaje para comparar proyectos; no es una probabilidad medida ni una tasa de éxito.','subtitle'),False,False,0)
+        box.pack_start(label('No mide FPS, calidad gráfica ni resultados de pruebas de juego. «Revisado» indica una integración revisada; no confirma que todas las versiones del juego funcionen.','muted'),False,False,0)
+        box.pack_start(badge_row([('Alta · 80–100%','green'),('Media · 55–79%','yellow'),('Baja · 30–54%','orange'),('Muy baja · 0–29%','red')]),False,False,0)
+        base=self.card(box,'Puntuación de partida')
+        base.pack_start(label('Se usa la primera condición que corresponda, en este orden:','meta'),False,False,0)
+        for caption,value in [('Solo código fuente o herramienta de compilación','8 · fijo'),('Constructor del juego a partir de archivos propios','25'),('Integración revisada por Deck Library','88'),('Versión declarada para Linux','72'),('Versión para Windows, con Proton sin comprobar','50'),('Otros sistemas, sin Linux ni Windows','8'),('Sistemas sin declarar','40')]:
+            row=Gtk.Box(spacing=12);row.pack_start(label(caption),True,True,0);row.pack_end(badge(value),False,False,0);base.pack_start(row,False,False,0)
+        modifiers=self.card(box,'Ajustes sobre esa puntuación')
+        for caption,value,tone in [('La fuente declara totalmente jugable o nativo','+8','green'),('La fuente declara jugable','+3','green'),('La fuente declara en desarrollo','−8','orange'),('Sin versión ni fecha conocidas, si no está revisado','−15','red'),('Última versión de hace más de dos años','−8','orange'),('Versión publicada en los últimos 180 días','+3','green'),('Requiere originales, BIOS o preparación según el catálogo','−5','orange')]:
+            row=Gtk.Box(spacing=12);row.pack_start(label(caption),True,True,0);row.pack_end(badge(value,tone),False,False,0);modifiers.pack_start(row,False,False,0)
+        modifiers.pack_start(label('El estado de la fuente y la antigüedad aplican una sola variante cada uno. El resultado se limita a 0–100. Las entradas de solo código fuente quedan en 8 y no reciben ajustes.','meta'),False,False,0)
+        box.pack_start(label('Los pesos son criterios de Deck Library; no se calibraron contra pruebas de instalación o rendimiento de todo el catálogo. Por ejemplo, Windows con versión publicada (50) y estado jugable (+3), sin otros ajustes, dan 53%, nivel bajo.','muted'),False,False,0)
+        page.show_all();page.run();page.destroy()
 
     def catalog_more(self):
         self.catalog_limit=getattr(self,'catalog_limit',CATALOG_PAGE)+CATALOG_PAGE;self.fill_catalog()
@@ -173,6 +191,7 @@ class CatalogMixin:
         text.pack_start(badge_row(facts),False,False,0)
         fit=ports.compatibility(item);text.pack_start(compatibility_badge(fit,True),False,False,0)
         text.pack_start(label(' '.join(fit['reasons'])+' Estimación a partir de los datos del catálogo; no es una prueba de juego.','muted'),False,False,0)
+        text.pack_start(button('Cómo se calcula',self.compatibility_guide),False,False,0)
         if item.get('release_version'):text.pack_start(label('Versión disponible: '+item['release_version'],'muted'),False,False,0)
         if item.get('release_at'):text.pack_start(label('Publicada el '+datetime.datetime.fromtimestamp(item['release_at']).strftime('%d/%m/%Y'),'muted'),False,False,0)
         hero.pack_start(text,True,True,0);box.pack_start(hero,False,False,0)

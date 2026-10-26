@@ -195,6 +195,28 @@ class DeckUITests(unittest.TestCase):
             self.assertGreaterEqual((bright+.05)/(dark+.05),4.5);self.assertGreater(bg.alpha,.99)
             backgrounds.append(bg.to_string())
         self.assertEqual(len(set(backgrounds)),4)
+
+    def test_compatibility_guide_explains_the_score_inside_the_app(self):
+        from gi.repository import Gtk,GLib
+        self.w.catalog_page();self.settle();windows=self.application_windows();original=self.inline.run;seen=[]
+        def labels(widget):
+            if isinstance(widget,Gtk.Label):yield widget.get_text()
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from labels(child)
+        def run(page):
+            def check():
+                content='\n'.join(labels(page))
+                seen.append(self.application_windows()==windows and self.w.workflow_stack.get_visible_child() is page)
+                seen.append(all(value in content for value in ('80–100%','55–79%','30–54%','0–29%','no es una probabilidad medida','No mide FPS','no se calibraron','+8','−15','180 días')))
+                seen.append(self.w.get_size().width<=1280 and self.w.get_size().height<=800)
+                self.w.last_controller_action=('',0);self.w.controller_action('back');return False
+            GLib.timeout_add(120,check);return original(page)
+        with patch.object(self.inline,'run',run):
+            for width,height in ((1280,800),(840,640)):
+                self.w.resize(width,height);self.settle();self.w.catalog_guide_button.grab_focus();self.w.catalog_guide_button.clicked();self.settle()
+                self.assertFalse(self.w.inline_workflows);self.assertIs(self.w.get_focus(),self.w.catalog_guide_button)
+                self.assertLessEqual(self.w.get_size().width,width);self.assertLessEqual(self.w.get_size().height,height)
+        self.assertEqual(seen,[True]*6)
     def test_deck_game_sections_keep_the_full_width_and_visible_navigation(self):
         from gi.repository import Gtk
         self.w.resize(1280,800);self.w.select_game(self.w.entries[0]);self.settle()
