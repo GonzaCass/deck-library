@@ -43,7 +43,7 @@ For a game already in Steam, **Play** uses its existing Steam shortcut and contr
 
 The first launch opens a four-step Spanish onboarding flow: welcome, installation/game detection, artwork provider and library handoff. Discovery runs in the background. Users can add a missing folder or configure an emulator instead of guessing where to start. Repeat onboarding from **Settings**.
 
-The library fills the window, with top navigation, 2:3 portrait cards, platform filters and search. Open a cover for the game overview: **Play** (green), **Add to Steam** (blue), selectable settings cards and a fixed **Apply settings** action. Selecting a card only previews the profile; changes are written, with a backup, after applying. Technical differences expand under **View changes**. The persistent **Controls**, **Content** and **Advanced** tabs open dedicated task pages. Settings cards use the full width and **Community** remains available in the same tab bar. **More options** contains import/export, artwork and shortcut tools. **Select** reveals batch controls only when needed. **Port catalog** opens the downloadable port catalog directly. Use **Settings → Installations and folders** to add discovery folders.
+The top tabs are **Home**, **Library**, **Port catalog**, **Updates** and **Settings**. Home shows installed ports, actual library totals, storage and discovery tools; choose Home or Library as the startup page under Covers and appearance. Library fills the window with 2:3 portrait cards, platform filters and search. Open a cover for the game overview: a highlighted **Play** button, blue **Add to Steam**, selectable settings cards and a fixed **Apply settings** action. Selecting a card only previews the profile; changes are written, with a backup, after applying. Technical differences expand under **View changes**. The persistent **Controls**, **Content** and **Advanced** tabs open dedicated task pages. Settings cards use the full width and **Community** remains available in the same tab bar. **More options** contains import/export, artwork and shortcut tools. **Select** reveals batch controls only when needed. **Port catalog** uses landscape cards with game artwork, project names and installation actions. Reviewed ROM requirements appear on the card and in search: disc IDs such as SLUS/SCUS, region, revision or required update, depending on the project. Open the card for format details and its source. Unreviewed requirements say **ROM requirements unconfirmed**; this is not a claim of universal ROM compatibility. Use **Settings → Installations and folders** to add discovery folders.
 
 Steam changes accumulate in a persistent banner and are saved when Steam closes. No restart prompt interrupts each change. Settings → Add Deck Library to Steam prepares a fullscreen Gaming Mode shortcut with Deck navigation controls. The library also offers portrait cards, thumbnails in list view, platform groups and a read-only conflict report. See [Deck interface](docs/DECK-INTERFACE.md) and [optional community server](community/README.md). Physical Gaming Mode validation remains a separate check.
 
@@ -184,7 +184,7 @@ GTK is imported only for the graphical interface. Core tests don't require a dis
 
 ## Status
 
-Version **1.1.3**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
+Version **1.2.0**. Core tests cover binary Steam preservation, malformed/concurrent writes, command quoting, discovery, launch errors and mod isolation. Desktop and Gaming Mode require separate integration validation; test results are recorded in `docs/VALIDATION.md`. Source and downloadable releases: [GonzaCass/deck-library](https://github.com/GonzaCass/deck-library).
 
 Version 1.0 covers the catalog with install and uninstall, the library, per-game settings, Steam integration and the English and Spanish interface, all covered by automated tests. **Not yet validated:** navigation with a physical gamepad in Gaming Mode and playing an installed port from start to finish; see `docs/V1-CHECKLIST.md` (in Spanish). Release history: [docs/CHANGELOG.md](docs/CHANGELOG.md) and the [published releases](https://github.com/GonzaCass/deck-library/releases).
 
@@ -343,9 +343,13 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 **Ajustes → Completar arte de todos los accesos de Steam** hace lo mismo para toda la biblioteca de una vez: solo llena los espacios vacíos, informa por juego qué se agregó y qué no se encontró, y deja los cambios preparados para guardarse al cerrar Steam. Hace falta una clave API propia de SteamGridDB: la clave del plugin de Decky va embebida en ese plugin y su autor advierte que usarla en otros proyectos provoca el bloqueo.
 
+### ROM necesaria para cada port
+
+Las tarjetas del catálogo muestran los requisitos revisados del original: identificador de disco (SLUS, SCUS, RMCP, CUSA, etc.), región, revisión o actualización, según el proyecto. Se puede buscar por esos identificadores. Al abrir la tarjeta se amplían el formato requerido y el enlace al proyecto. Cuando falta verificar esa información aparece **ROM por confirmar**; no se asume que cualquier versión sirva. La etiqueta no descarga originales ni cambia la preparación del port.
+
 ### Diseño, movimiento y actualizaciones propias
 
-- **Interfaz:** navegación superior, carátulas verticales y una ficha con Jugar en verde, Steam en azul y ajustes en violeta. Elegir una tarjeta y pulsar **Aplicar ajustes**; seleccionar no escribe cambios. **Ver cambios** despliega los detalles técnicos. Las pestañas **Controles**, **Contenido** y **Avanzados** permanecen visibles al cambiar de tarea. Importar, exportar, carátulas y archivos están en **Más opciones**.
+- **Interfaz:** pestañas superiores Inicio, Biblioteca, Catálogo de ports, Actualizaciones y Ajustes. Inicio reúne ports instalados, contadores reales, almacenamiento y herramientas. En Apariencia se puede elegir abrir Resumen o Biblioteca. La biblioteca conserva las carátulas verticales y la vista elegida; la ficha destaca Jugar y diferencia Steam y las tareas por color. Elegir una tarjeta y pulsar **Aplicar ajustes**; seleccionar no escribe cambios. **Ver cambios** despliega los detalles técnicos. Las pestañas **Controles**, **Contenido** y **Avanzados** permanecen visibles al cambiar de tarea. Importar, exportar, carátulas y archivos están en **Más opciones**.
 - **Movimiento:** entrada de la ficha y de las tarjetas, transiciones entre tareas, despliegue de detalles, estados de botones y confirmaciones al guardar. Se desactiva desde **Ajustes → Carátulas y apariencia → Animaciones**.
 - **Ajustes:** la vista previa compara valores del archivo del juego y distingue los perfiles pendientes de los que ya coinciden. Aplicar guarda un respaldo y **Deshacer** restaura la configuración anterior. La edición manual conserva los cambios sin guardar durante una actualización de carátulas o detección.
 - **Clave de SteamGridDB:** Ajustes explica cómo conseguirla (iniciar sesión en steamgriddb.com, Perfil → Preferencias → API), permite mostrarla u ocultarla y tiene un botón **Probar clave**.
@@ -353,7 +357,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-1.1.3.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-1.2.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -395,7 +399,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **1.1.3**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **1.2.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 La 1.0 incluye el catálogo con instalación y desinstalación, la biblioteca, los ajustes por juego, la integración con Steam y la interfaz en español e inglés, todo cubierto por pruebas automáticas. **Sin validar todavía:** la navegación con mando físico en modo Juego y jugar de punta a punta un port instalado; ver [docs/V1-CHECKLIST.md](docs/V1-CHECKLIST.md). El historial de versiones está en [docs/HISTORIAL.md](docs/HISTORIAL.md) y en las [versiones publicadas](https://github.com/GonzaCass/deck-library/releases).
 

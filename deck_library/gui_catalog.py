@@ -43,7 +43,8 @@ class CatalogMixin:
         for picker in (self.catalog_category,self.catalog_source,self.catalog_sort):
             for cell in picker.get_cells():cell.set_property('ellipsize',Pango.EllipsizeMode.END);cell.set_property('max-width-chars',18)
         self.catalog_status=label('Cargando catálogo…','status');box.pack_start(self.catalog_status,False,False,0)
-        self.catalog_rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);box.pack_start(self.catalog_rows,False,False,0)
+        self.catalog_rows=Gtk.FlowBox();self.catalog_rows.set_selection_mode(Gtk.SelectionMode.NONE);self.catalog_rows.set_min_children_per_line(1);self.catalog_rows.set_max_children_per_line(4);self.catalog_rows.set_homogeneous(True);self.catalog_rows.set_column_spacing(14);self.catalog_rows.set_row_spacing(16);box.pack_start(self.catalog_rows,False,False,0)
+        self.catalog_more_box=Gtk.Box();self.catalog_more_box.set_halign(Gtk.Align.CENTER);box.pack_start(self.catalog_more_box,False,False,0)
         box.show_all();self.pages.set_visible_child_name('catalog');self.load_catalog(False)
 
     def catalog_more(self):
@@ -67,14 +68,15 @@ class CatalogMixin:
 
     def fill_catalog(self):
         from .gui import label,button
+        from .port_requirements import original_requirement
         if not hasattr(self,'catalog_apps'):return
         everything=self.catalog_entries();categories=sorted({a['list'] for a in everything if a['list']},key=str.casefold);current=self.catalog_category.get_active_id() or ''
         known={row[0] for row in self.catalog_category.get_model()}
         for name in categories:
             if name not in known:self.catalog_category.append(name,name)
-        self.reset_page(self.catalog_rows);text=self.catalog_search.get_text().casefold().strip();category=self.catalog_category.get_active_id() or '';source=self.catalog_source.get_active_id() or ''
+        self.reset_page(self.catalog_rows);self.reset_page(self.catalog_more_box);text=self.catalog_search.get_text().casefold().strip();category=self.catalog_category.get_active_id() or '';source=self.catalog_source.get_active_id() or ''
         installed=ports.records(self.store);updates={u['repository'] for u in (getattr(self,'update_state',None) or {}).get('catalog') or []}
-        matches=[a for a in everything if text in (' '.join((a['name'],a.get('game_title',''),a['repository']))).casefold() and (not category or a['list']==category) and (not source or source in a['source'])]
+        matches=[a for a in everything if text in (' '.join((a['name'],a.get('game_title',''),a['repository'],original_requirement(a)['label']))).casefold() and (not category or a['list']==category) and (not source or source in a['source'])]
         order=self.catalog_sort.get_active_id() or 'recent'
         if self.preferences.get('catalog_sort')!=order:self.preferences['catalog_sort']=order;save_settings(self.preferences,self.store)
         if order=='installed':matches=[a for a in matches if self.catalog_installation(a,installed)]
@@ -89,25 +91,33 @@ class CatalogMixin:
             self.catalog_status.set_text(self.catalog_status.get_text()+' · '+('copia guardada' if snapshot.get('offline') else 'Actualizado '+datetime.datetime.fromtimestamp(stamp).strftime('%d/%m %H:%M')))
         except (OSError,ValueError):pass
         self.catalog_generation=getattr(self,'catalog_generation',0)+1;generation=self.catalog_generation;images=[];kits=[]
-        compact=self.compact_screen();art=(48,64) if compact else (ART_WIDTH,ART_HEIGHT)
+        from .ui_components import PortImage
+        compact=self.compact_screen()
         for item in matches[:limit]:
-            card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);row=Gtk.Box(spacing=14);card.pack_start(row,False,False,0);row.get_style_context().add_class('card');open_=button('',lambda _,i=item:self.port_details(i));open_.get_style_context().add_class('catalog-open');body=Gtk.Box(spacing=14);open_.remove(open_.get_child());open_.add(body);row.pack_start(open_,True,True,0)
-            image=Gtk.Image.new_from_icon_name('applications-games-symbolic',Gtk.IconSize.DIALOG);image.set_size_request(*art);image.set_valign(Gtk.Align.START);body.pack_start(image,False,False,0);images.append((item,image))
+            card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0);card.set_size_request(270,-1);card.get_style_context().add_class('port-card');open_=button('',lambda _,i=item:self.port_details(i));open_.get_style_context().add_class('catalog-open');body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0);open_.remove(open_.get_child());open_.add(body);card.pack_start(open_,False,False,0)
+            image=PortImage();body.pack_start(image,False,False,0);images.append((item,image))
             title=item.get('game_title') or item['name'];image.get_accessible().set_name('Carátula de '+title)
             open_.get_accessible().set_name('Ver detalles de '+title)
-            texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);texts.pack_start(label(title,'title'),False,False,0);record=installed.get(item['repository']) or self.catalog_installation(item,installed)
-            if title.casefold()!=item['name'].casefold():texts.pack_start(label(item['name'],'subtitle'),False,False,0)
+            texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.get_style_context().add_class('port-card-content');heading=label(title,'title');heading.set_lines(2);heading.set_max_width_chars(23);heading.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(heading,False,False,0);record=installed.get(item['repository']) or self.catalog_installation(item,installed)
+            if title.casefold()!=item['name'].casefold():
+                project=label(item['name'],'meta');project.set_lines(1);project.set_ellipsize(Pango.EllipsizeMode.END);project.set_max_width_chars(26);texts.pack_start(project,False,False,0)
             if item.get('description'):
-                description=label(item['description'],'status');description.set_lines(1 if compact else 2);description.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(description,False,False,0)
-            fit=ports.compatibility(item);tags=[t for t in (item['list'],fit_badge(fit),'Revisado' if ports.is_reviewed(item) else 'Sin revisar','Constructor' if item.get('package_role')=='builder' else 'Solo código fuente' if item.get('package_role') in ('source-only','build-tool') else '', 'Requiere originales' if item.get('setup') or item.get('preparation')=='launcher' else '') if t]
-            if record:texts.pack_start(label('Instalado · '+record['tag'],'muted'),False,False,0)
+                description=label(item['description'],'status');description.set_lines(1 if compact else 2);description.set_max_width_chars(30);description.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(description,False,False,0)
+            from .port_requirements import original_requirement
+            original=original_requirement(item);requirement=label(('ROM · '+original['label']) if original['known'] else original['label'],'original-required' if original['known'] else 'meta');requirement.set_lines(1);requirement.set_max_width_chars(30);requirement.set_ellipsize(Pango.EllipsizeMode.END);requirement.set_tooltip_text(original['details']);texts.pack_start(requirement,False,False,0)
+            fit=ports.compatibility(item);tags=[t for t in (item['list'],'Revisado' if ports.is_reviewed(item) else 'Sin revisar','Constructor' if item.get('package_role')=='builder' else 'Solo código fuente' if item.get('package_role') in ('source-only','build-tool') else '') if t]
+            os=label(' · '.join('Linux / Steam Deck' if s.lower()=='linux' else s.capitalize() for s in item.get('supported_os',[])) or 'Sistemas por consultar','os-badge');os.set_lines(1);os.set_ellipsize(Pango.EllipsizeMode.END);os.set_max_width_chars(27);texts.pack_start(os,False,False,0)
+            if record:texts.pack_start(label('Instalado · '+record['tag'],'install-state'),False,False,0)
             when=item.get('added_at') or item.get('first_seen') or 0
             if when:tags.append(('Nuevo · ' if time.time()-when<30*86400 else 'Añadido ')+datetime.datetime.fromtimestamp(when).strftime('%d/%m/%Y'))
-            if tags:texts.pack_start(label('  ·  '.join(tags),'pill'),False,False,0)
-            if item['note']:texts.pack_start(label(item['note'],'status'),False,False,0)
+            if tags:
+                meta=label(' · '.join(tags),'pill');meta.set_lines(2);meta.set_max_width_chars(30);meta.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(meta,False,False,0)
+            estimate=label(fit_badge(fit),'meta');estimate.set_tooltip_text(fit_badge(fit,True));estimate.set_max_width_chars(30);texts.pack_start(estimate,False,False,0)
+            if item['note']:
+                note=label(item['note'],'status');note.set_lines(2);note.set_max_width_chars(30);note.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(note,False,False,0)
             if item.get('bios') or item.get('disc'):
                 checks=label('Comprobando requisitos…','status');texts.pack_start(checks,False,False,0);kits.append((item,checks))
-            body.pack_start(texts,True,True,0);side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+            body.pack_start(texts,False,False,0);side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);side.get_style_context().add_class('port-card-actions');card.pack_end(side,False,False,0)
             if item.get('package_role') in ('source-only','build-tool'):side.pack_start(button('Ver requisitos',lambda _,i=item:self.port_details(i)),False,False,0)
             elif record and record.get('external'):
                 side.pack_start(label('Port ya instalado','good'),False,False,0)
@@ -129,11 +139,11 @@ class CatalogMixin:
             else:side.pack_start(button('Instalar',lambda _,i=item:self.install_port(i,False)),False,False,0)
             if installed.get(item['repository']) and item['repository']!='GenryTheFox0/Project-2099':side.pack_start(button('Desinstalar',lambda _,i=item:self.uninstall_port(i),tone='danger'),False,False,0)
             if 'Agregado' in item['source']:side.pack_start(button('Quitar de la lista',lambda _,i=item:self.remove_repository(i),tone='danger'),False,False,0)
-            row.pack_end(side,False,False,0);card.catalog_open=open_;card.catalog_image=image;self.catalog_rows.pack_start(card,False,False,0)
+            card.catalog_open=open_;card.catalog_image=image;self.catalog_rows.add(card);wrapper=card.get_parent();wrapper.set_can_focus(False);wrapper.catalog_open=open_;wrapper.catalog_image=image
             self.transfer_row(card,item['repository'])
         if len(matches)>limit:
-            more=button(f'Mostrar {min(CATALOG_PAGE,len(matches)-limit)} más',lambda _:self.catalog_more());more.set_halign(Gtk.Align.CENTER);self.catalog_rows.pack_start(more,False,False,6)
-        self.catalog_rows.show_all();self.load_icons(images,generation);self.check_kits(kits,generation)
+            more=button(f'Mostrar {min(CATALOG_PAGE,len(matches)-limit)} más',lambda _:self.catalog_more());self.catalog_more_box.pack_start(more,False,False,6)
+        self.catalog_rows.show_all();self.catalog_more_box.show_all();self.load_icons(images,generation);self.check_kits(kits,generation)
         self.queue_resize();GLib.idle_add(self.check_resize)
 
     def port_details(self,item):
@@ -155,6 +165,9 @@ class CatalogMixin:
         hero.pack_start(text,True,True,0);box.pack_start(hero,False,False,0)
         if item.get('description'):box.pack_start(label(item['description'],'subtitle'),False,False,0)
         if item.get('note'):box.pack_start(label(item['note'],'muted'),False,False,0)
+        from .port_requirements import original_requirement
+        requirement=original_requirement(item);originals=self.card(box,'ROM y versión necesarias');originals.pack_start(label(requirement['label'],'title'),False,False,0);originals.pack_start(label(requirement['details'],'muted'),False,False,0)
+        if requirement['source']:originals.pack_start(Gtk.LinkButton.new_with_label(requirement['source'],'Requisitos del proyecto'),False,False,0)
         status=label('Cargando imagen…','meta');box.pack_start(status,False,False,0)
         def artwork(force=False):
             status.set_text('Cargando imagen…');retry.hide()
@@ -278,7 +291,8 @@ class CatalogMixin:
     def show_icon(self,image,path,generation):
         if generation!=self.catalog_generation:return False
         try:
-            width,height=image.get_size_request();image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path,width if width>0 else ART_WIDTH,height if height>0 else ART_HEIGHT,True))
+            from .ui_components import PortImage
+            width,height=image.get_size_request();image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path,900 if isinstance(image,PortImage) else width if width>0 else ART_WIDTH,600 if isinstance(image,PortImage) else height if height>0 else ART_HEIGHT,True))
         except GLib.Error:pass
         return False
 

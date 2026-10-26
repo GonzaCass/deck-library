@@ -59,9 +59,13 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 **Ajustes → Completar arte de todos los accesos de Steam** hace lo mismo para toda la biblioteca de una vez: solo llena los espacios vacíos, informa por juego qué se agregó y qué no se encontró, y deja los cambios preparados para guardarse al cerrar Steam. Hace falta una clave API propia de SteamGridDB: la clave del plugin de Decky va embebida en ese plugin y su autor advierte que usarla en otros proyectos provoca el bloqueo.
 
+### ROM necesaria para cada port
+
+Las tarjetas del catálogo muestran los requisitos revisados del original: identificador de disco (SLUS, SCUS, RMCP, CUSA, etc.), región, revisión o actualización, según el proyecto. Se puede buscar por esos identificadores. Al abrir la tarjeta se amplían el formato requerido y el enlace al proyecto. Cuando falta verificar esa información aparece **ROM por confirmar**; no se asume que cualquier versión sirva. La etiqueta no descarga originales ni cambia la preparación del port.
+
 ### Diseño, movimiento y actualizaciones propias
 
-- **Interfaz:** navegación superior, carátulas verticales y una ficha con Jugar en verde, Steam en azul y ajustes en violeta. Elegir una tarjeta y pulsar **Aplicar ajustes**; seleccionar no escribe cambios. **Ver cambios** despliega los detalles técnicos. Las pestañas **Controles**, **Contenido** y **Avanzados** permanecen visibles al cambiar de tarea. Importar, exportar, carátulas y archivos están en **Más opciones**.
+- **Interfaz:** pestañas superiores Inicio, Biblioteca, Catálogo de ports, Actualizaciones y Ajustes. Inicio reúne ports instalados, contadores reales, almacenamiento y herramientas. En Apariencia se puede elegir abrir Resumen o Biblioteca. La biblioteca conserva las carátulas verticales y la vista elegida; la ficha destaca Jugar y diferencia Steam y las tareas por color. Elegir una tarjeta y pulsar **Aplicar ajustes**; seleccionar no escribe cambios. **Ver cambios** despliega los detalles técnicos. Las pestañas **Controles**, **Contenido** y **Avanzados** permanecen visibles al cambiar de tarea. Importar, exportar, carátulas y archivos están en **Más opciones**.
 - **Movimiento:** entrada de la ficha y de las tarjetas, transiciones entre tareas, despliegue de detalles, estados de botones y confirmaciones al guardar. Se desactiva desde **Ajustes → Carátulas y apariencia → Animaciones**.
 - **Ajustes:** la vista previa compara valores del archivo del juego y distingue los perfiles pendientes de los que ya coinciden. Aplicar guarda un respaldo y **Deshacer** restaura la configuración anterior. La edición manual conserva los cambios sin guardar durante una actualización de carátulas o detección.
 - **Clave de SteamGridDB:** Ajustes explica cómo conseguirla (iniciar sesión en steamgriddb.com, Perfil → Preferencias → API), permite mostrarla u ocultarla y tiene un botón **Probar clave**.
@@ -69,7 +73,7 @@ En la ficha de un juego con acceso en Steam, **Más opciones → Archivos y acce
 
 ## Instalación
 
-1. Descargar `DeckLibrary-1.1.3.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-1.2.0.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -111,7 +115,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **1.1.3**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **1.2.0**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 La 1.0 incluye el catálogo con instalación y desinstalación, la biblioteca, los ajustes por juego, la integración con Steam y la interfaz en español e inglés, todo cubierto por pruebas automáticas. **Sin validar todavía:** la navegación con mando físico en modo Juego y jugar de punta a punta un port instalado; ver [docs/V1-CHECKLIST.md](docs/V1-CHECKLIST.md). El historial de versiones está en [docs/HISTORIAL.md](docs/HISTORIAL.md) y en las [versiones publicadas](https://github.com/GonzaCass/deck-library/releases).
 

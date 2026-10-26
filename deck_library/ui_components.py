@@ -5,6 +5,21 @@ gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
 from . import motion
 
+class PortImage(Gtk.Image):
+    """Landscape artwork fills the card, independently of its allocation or source aspect ratio."""
+    def __init__(self):
+        super().__init__();self.set_from_icon_name('applications-games-symbolic',Gtk.IconSize.DIALOG)
+    def do_get_preferred_width(self):return (0,260)
+    def do_get_preferred_height(self):return (148,148)
+    def do_draw(self,cr):
+        width,height=self.get_allocated_width(),self.get_allocated_height();cr.save();cr.rectangle(0,0,width,height);cr.clip()
+        cr.set_source_rgb(.11,.125,.145);cr.paint()
+        pix=self.get_pixbuf() if self.get_storage_type()==Gtk.ImageType.PIXBUF else None
+        if pix:
+            scale=max(width/pix.get_width(),height/pix.get_height());cr.translate((width-pix.get_width()*scale)/2,(height-pix.get_height()*scale)/2);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,pix,0,0);cr.paint()
+        else:Gtk.Image.do_draw(self,cr)
+        cr.restore();return False
+
 
 def styled(widget, *classes):
     for name in classes:
@@ -76,6 +91,9 @@ class Icon(Gtk.DrawingArea):
             cr.move_to(7,4);cr.line_to(20,12);cr.line_to(7,20);cr.close_path();cr.fill()
         elif name == 'check':
             circle(12,12,9);line((7,12),(10.5,15.5),(17,8.5))
+        elif name == 'grid':
+            for x,y in ((3,3),(14,3),(3,14),(14,14)):cr.rectangle(x,y,7,7)
+            cr.stroke()
         elif name == 'radio':
             circle(12,12,8)
         elif name == 'back':
@@ -206,10 +224,10 @@ class GameBackdrop(Gtk.DrawingArea):
 
     def draw_backdrop(self,widget,cr):
         # Keep the workspace on the same flat charcoal surface as its controls.
-        w,h=widget.get_allocated_width(),widget.get_allocated_height();radius=6
+        w,h=widget.get_allocated_width(),widget.get_allocated_height();radius=12
         cr.save();cr.new_path()
         for x,y,a,b in [(w-radius,radius,-math.pi/2,0),(w-radius,h-radius,0,math.pi/2),(radius,h-radius,math.pi/2,math.pi),(radius,radius,math.pi,math.pi*1.5)]:cr.arc(x,y,radius,a,b)
-        cr.close_path();cr.clip();cr.set_source_rgb(0.149,0.149,0.149);cr.paint();cr.restore()
+        cr.close_path();cr.clip();cr.set_source_rgb(0.071,0.078,0.090);cr.paint();cr.restore()
         return False
 
 def tooltip_when_cut(widget,value):

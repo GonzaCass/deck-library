@@ -26,3 +26,16 @@ El catálogo abre directamente. Los perfiles muestran estrellas reales y una pub
 - Los botones de sección de la ficha de juego (Controles, Archivos y Steam, Avanzados, Comunidad) comparten un estilo neutro; el color queda para **Jugar**, Steam y **Aplicar ajustes**.
 - El texto de la interfaz y de los documentos usa español impersonal: se retiraron las formas con voseo («elegí», «podés», «revisá») de los mensajes, las recetas y LEEME.
 
+
+
+## TodoJuegos y navegación superior — 1.2.0
+
+La referencia entregada por el usuario es TodoJuegos 1.2 (React/Electron). Se trasladó su tema Negro, su jerarquía de títulos, sus superficies con borde discreto y sus tarjetas al frontend nativo GTK de Deck Library. Se conservan el motor Python, los instaladores, los presets, la cuenta comunitaria y los accesos de Steam. No se incorpora el ejecutable Windows, node_modules ni los datos de TodoJuegos.
+
+La cabecera mantiene Inicio, Biblioteca, Catálogo de ports, Actualizaciones y Ajustes en una fila superior, sin barra lateral. En ventanas estrechas se puede desplazar horizontalmente. La propia app se puede añadir a Steam desde Escritorio; esa acción permanece oculta en modo Juego. Inicio muestra contadores reales, ports instalados, espacio de la unidad personal y herramientas. En Apariencia se puede elegir abrir Resumen o Biblioteca. No se calcula un supuesto tamaño de colección a partir del espacio de la unidad.
+
+La Biblioteca ofrece carátulas verticales, lista con miniaturas y agrupación por plataforma; conserva la vista elegida por el usuario. El Catálogo usa tarjetas en una cuadrícula adaptable, con imágenes horizontales que llenan el área disponible, nombre del juego, proyecto, sistemas y acciones. El progreso de instalación sigue en la tarjeta correspondiente; los detalles y las confirmaciones permanecen dentro de la ventana. Las fuentes Manrope y Space Grotesk se cargan solo para este proceso, desde archivos locales con sus licencias OFL; no se instalan fuentes en SteamOS.
+
+Cada tarjeta del catálogo muestra el requisito de originales cuando está revisado: por ejemplo SLUS-00875, SLUS-01378 Rev 1, SCUS-94426, RMCP01 PAL, CUSA00223 con actualización 1.07 o una versión de Switch. El buscador incluye esa etiqueta. La ficha amplía región, formato y revisión y enlaza al proyecto. Las entradas sin requisito revisado muestran «ROM por confirmar»; un nombre parecido o un campo recibido de una lista externa no se convierte en un requisito confirmado. Un Title ID de Xbox 360 se distingue de una revisión concreta del disco.
+
+LB/RB recorre las cinco pestañas, la palanca izquierda mueve el selector y la derecha desplaza la vista. B vuelve desde una tarea al juego y luego al origen; desde una ficha abierta en Inicio vuelve al mismo port de Inicio. X abre el teclado de forma explícita y, desde Inicio, lleva al buscador de Biblioteca. Se conservan la inhibición del teclado automático, el desplazamiento táctil y las animaciones opcionales; las transiciones de página siguen deshabilitadas en Gamescope por la limitación documentada de GTK Stack.

@@ -4,6 +4,7 @@ Every release has its notes on [GitHub](https://github.com/GonzaCass/deck-librar
 
 | Version | Date | Title |
 | --- | --- | --- |
+| [1.2.0](https://github.com/GonzaCass/deck-library/releases/tag/v1.2.0) | 2026-10-25 | TodoJuegos-inspired native interface and reviewed original-media labels |
 | [1.1.3](https://github.com/GonzaCass/deck-library/releases/tag/v1.1.3) | 2026-10-25 | Dante's Inferno original-data preparation and Savage Wind Linux installation |
 | [1.0.1](https://github.com/GonzaCass/deck-library/releases/tag/v1.0.1) | 2026-10-22 | Gaming Mode fixes, sign-in button and new icon |
 | [1.0.0](https://github.com/GonzaCass/deck-library/releases/tag/v1.0.0) | 2026-10-21 | English and Spanish interface |
