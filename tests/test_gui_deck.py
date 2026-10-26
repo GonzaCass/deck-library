@@ -124,6 +124,33 @@ class DeckUITests(unittest.TestCase):
             other.show_all();self.settle();self.assertEqual(other.pages.get_visible_child_name(),'home');self.assertEqual(other.home_counts['Juegos'].get_text(),'1')
         finally:other.disconnect_by_func(Gtk.main_quit);other.destroy();self.settle()
 
+    def test_an_existing_install_without_a_start_page_opens_the_complete_library(self):
+        from deck_library import gui_shell
+        from gi.repository import Gtk
+        preferences={k:v for k,v in self.w.preferences.items() if k!='start_page'}
+        with patch.object(gui_shell,'settings',return_value=preferences):other=self.gui.Window()
+        try:
+            other.show_all();self.settle();self.assertEqual(other.pages.get_visible_child_name(),'library')
+        finally:other.disconnect_by_func(Gtk.main_quit);other.destroy();self.settle()
+
+    def test_home_shows_all_ports_in_portrait_and_mouse_wheel_keeps_working(self):
+        from gi.repository import Gtk,Gdk
+        from deck_library.models import Entry
+        self.w.entries.extend(Entry('Port '+str(i),['/bin/true',str(i)]) for i in range(12))
+        self.w.home_page();self.settle();self.settle()
+        self.assertEqual(len(self.w.home_targets),12)
+        for card in self.w.home_targets.values():
+            cover=card.get_child().get_children()[0]
+            self.assertAlmostEqual(cover.get_allocated_width()/cover.get_allocated_height(),2/3,delta=.01)
+        scroll=self.w.home_box.get_ancestor(Gtk.ScrolledWindow);adjustment=scroll.get_vadjustment()
+        self.assertEqual(adjustment.get_value(),0)
+        event=Gdk.Event.new(Gdk.EventType.SCROLL);event.direction=Gdk.ScrollDirection.DOWN;event.window=scroll.get_window();event.set_device(Gdk.Display.get_default().get_default_seat().get_pointer())
+        scroll.emit('scroll-event',event);self.settle();self.assertGreater(adjustment.get_value(),0)
+        position=adjustment.get_value();self.w.home_page();self.settle();self.settle()
+        self.assertAlmostEqual(adjustment.get_value(),position,delta=1)
+        self.w.open_library();self.settle();self.w.home_page();self.settle()
+        self.assertEqual(adjustment.get_value(),0)
+
     def test_port_cards_show_the_original_disc_id_without_opening_details(self):
         import time
         from deck_library import ports
@@ -1240,7 +1267,7 @@ class DeckUITests(unittest.TestCase):
             self.assertIs(self.w.get_focus(),self.w.filter_toggle)
         self.w.filter_toggle.clicked();self.settle();self.assertTrue(self.w.platform_picker.get_mapped())
         self.w.type_picker.set_active_id('port');self.settle();self.assertIn('1',self.w.filter_toggle.get_label())
-        self.w.filter_toggle.clicked();self.settle();self.assertFalse(self.w.filter_scroll.get_mapped());self.assertTrue(self.w.filter_toggle.has_focus())
+        self.w.filter_toggle.clicked();self.settle();self.assertFalse(self.w.filter_scroll.get_mapped());self.assertIs(self.w.get_focus(),self.w.filter_toggle)
 
     def test_community_list_and_profile_use_full_width_and_circle_returns_to_list(self):
         from gi.repository import Gtk,GLib
