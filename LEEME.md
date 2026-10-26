@@ -73,7 +73,7 @@ Las tarjetas del catálogo muestran los requisitos revisados del original: ident
 
 ## Instalación
 
-1. Descargar `DeckLibrary-1.2.1.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
+1. Descargar `DeckLibrary-1.2.2.tar.gz` desde [la última versión publicada](https://github.com/GonzaCass/deck-library/releases/latest) y extraerlo en modo Escritorio.
 2. Abrir la carpeta y hacer doble clic en **Instalar.sh**. Elegir **Ejecutar** cuando Dolphin pregunte.
 3. Se instala la aplicación y se abre. También queda **Deck Library** en el escritorio y en el menú de aplicaciones.
 
@@ -115,7 +115,7 @@ Steam se modifica cuando está cerrado, conservando los demás accesos. Se crea 
 
 ## Estado de esta versión
 
-Versión **1.2.1**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
+Versión **1.2.2**. Los resultados de las pruebas están en [docs/VALIDATION.md](docs/VALIDATION.md). El funcionamiento de cada juego depende de su emulador y configuración. El instalador puede volver a ejecutarse para actualizar la app sin borrar la biblioteca.
 
 La 1.0 incluye el catálogo con instalación y desinstalación, la biblioteca, los ajustes por juego, la integración con Steam y la interfaz en español e inglés, todo cubierto por pruebas automáticas. **Sin validar todavía:** la navegación con mando físico en modo Juego y jugar de punta a punta un port instalado; ver [docs/V1-CHECKLIST.md](docs/V1-CHECKLIST.md). El historial de versiones está en [docs/HISTORIAL.md](docs/HISTORIAL.md) y en las [versiones publicadas](https://github.com/GonzaCass/deck-library/releases).
 
@@ -247,7 +247,7 @@ PortIntegration se suma al catálogo con nombres, plataformas, repositorios y ca
 - **Actualizaciones:** cada port muestra las primeras líneas de sus notas y **Novedades** se abre con el mando (las secciones plegables ahora se enfocan y se abren con A; también **Opciones de actualización** y el proveedor de carátulas).
 - **Etiquetas flotantes:** con mando (modo Juego) los textos de ayuda emergentes se desactivan, porque sin ratón quedaban pegados sobre la ficha que se abría debajo del puntero; con ratón, el nombre completo de un juego solo aparece cuando el título está recortado.
 - **Abrir un juego:** ya no aparece un aviso encima de la ficha; el botón dice «Abriendo…» y el pie de pantalla nombra el juego. Un juego que está en Steam se abre a través de Steam, que puede mostrar su propio aviso «Starting game» mientras arranca.
-- **Icono y arte de Steam:** Deck Library trae icono nuevo y arte propio (portada vertical, banner, fondo y logotipo) para su acceso de Steam; se aplica al agregarlo y, en modo Escritorio, al acceso existente, y solo rellena los espacios vacíos: una imagen elegida por el usuario nunca se reemplaza. `tools/render_art.py` redibuja todo.
+- **Icono y arte de Steam:** Deck Library trae icono nuevo y arte propio (portada vertical, banner, fondo y logotipo) para su acceso de Steam; se aplica al agregarlo y, en modo Escritorio, al acceso existente, y solo rellena los espacios vacíos: una imagen elegida por el usuario nunca se reemplaza. El icono y las cinco imágenes de Steam usan el pack PNG de Deck Library. `tools/import_art.py` importa el ZIP conservando los PNG originales; [mapa de recursos](docs/ARTWORK.md).
 
 ## Idioma
 
