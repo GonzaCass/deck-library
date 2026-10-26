@@ -1,6 +1,9 @@
 """Original-media labels from reviewed local rules. Catalog names never prove a ROM's revision."""
 
 REVIEWED={
+    'auremana666/naruto-the-broken-bond-pc-port':('Xbox 360 · ISO propia','Naruto: The Broken Bond de Xbox 360. La ISO se copia a assets; el port verifica e importa los datos al arrancar. La comprobación del contenedor no garantiza la revisión del juego. Hay incidencias gráficas abiertas en Steam Deck.'),
+    'jorjbarbosa/broken-bond-recomp':('Xbox 360 · 55530825 · revisión verificada','Carpeta extraída de Naruto: The Broken Bond. Requiere Title ID 55530825 y default.xex con SHA-256 8f70e79443e36b38e44b6a105dad51fb8909fb615d982753cabaac9b15f0d576. El ZIP portable no incluye el importador de ISO.'),
+    'jorjbarbosa/naruto-rise-recomp':('Xbox 360 · 555307E5','Carpeta extraída de Naruto: Rise of a Ninja, con default.xex de Title ID 555307E5. El port confirma la revisión. La versión 0.3 incluye las correcciones Vulkan para Wine/Proton.'),
     'patchzyy/wiicompiled':('RMCP01 · PAL','Mario Kart Wii de Wii, edición PAL limpia RMCP01. La integración comprueba el identificador antes de preparar el port.'),
     'ctr-tools/ctr-native':('SCUS-94426 · NTSC-U','Crash Team Racing de PlayStation. Requiere CUE/BIN NTSC-U y BIN crudo MODE2/2352; una ISO de 2048 bytes por sector no sirve.'),
     'hayatog/iss_pc':('CUSA00223 · actualización 1.07','inFAMOUS Second Son de PS4, carpeta extraída CUSA00223 con la actualización 1.07 integrada.'),

@@ -33,6 +33,8 @@ BUILTIN=[
  {'name':'Crash Team Racing: Turbocharged','repository':'web/ctr-turbocharged','folderName':'CTRTurbocharged','category':'PlayStation','setup':'ctr','web':{'kind':'ctr'},'cover_title':'CTR - Crash Team Racing','disc':{'serial':'SCUS-94426','match':'crashteamracing','exclude':''},'note':'Descarga de ctr.cmzi.uk (el sitio no publica hash; se comprueba el tamaño). Necesita el BIN crudo MODE2/2352 del disco NTSC-U SCUS-94426, que se copia como ctr-u.bin en ~/.local/share/ctr-turbocharged.'},
 ]
 BUILTIN+=[
+ {'name':'Naruto: The Broken Bond (PC Port)','repository':'Auremana666/Naruto-The-Broken-Bond-PC-Port','folderName':'NarutoBrokenBond-PCPort','category':'Xbox 360','cover_title':'Naruto - The Broken Bond','note':'Windows con Proton. Permite elegir la ISO de Xbox 360 desde Deck Library. Ejecución en Steam Deck experimental; consultar los requisitos y las incidencias del proyecto.'},
+ {'name':'Naruto: The Broken Bond (Recomp)','repository':'jorjbarbosa/broken-bond-recomp','folderName':'NarutoBrokenBond-Recomp','category':'Xbox 360','cover_title':'Naruto - The Broken Bond','note':'Windows con Proton. Requiere archivos extraídos con default.xex de la revisión admitida; Deck Library comprueba Title ID y SHA-256 y abre el lanzador correcto.'},
  {'name':'Time Crisis','repository':'spacestate1/namco22-decompile','folderName':'TimeCrisis','category':'Arcade','cover_title':'Time Crisis','game_title':'Time Crisis','note':'Instala el AppImage de Time Crisis. Usa timecris.zip de MAME 0.271 o posterior.'},
  {'name':'Spider-Man: Edge of Time (Project 2099)','repository':'GenryTheFox0/Project-2099','folderName':'project2099','category':'Xbox 360','setup':'project2099','cover_title':'Spider-Man - Edge of Time','note':'Instala o actualiza con el instalador y los datos oficiales. Requiere una copia propia de Xbox 360. La versión PS3 no es compatible.'},
  {'name':'The Legend of Zelda: The Minish Cap','repository':'999sian/tmc','folderName':'TheLegendOfZeldaTheMinishCap-ProjectPicori','category':'Game Boy Advance','setup':'rom','cover_title':'Legend of Zelda, The - The Minish Cap',
@@ -161,15 +163,16 @@ def requirements(item,games,home=None):
     """
     lines=[];inputs=item.get('inputs') or {};games=[*games,*[(pathlib.Path(p).name,p) for k,p in inputs.items() if k in ('disc','wiiu') and p]]
     if item.get('original_data'):
-        from .original_data import validate
+        from .original_data import validate,find_source
         try:
             if item['original_data'].get('kind')=='xbox360-dante':
                 from .dante import find_source
                 original=validate(find_source(item,games,home),item['original_data'])
-            else:original=validate(inputs.get('original_data',''),item['original_data'])
+            else:original=validate(find_source(item,games,home),item['original_data'])
             lines.append((True,'Archivos originales: '+str(original)))
         except (ValueError,OSError):
             message='Archivos originales pendientes: elegir exefs y romfs de Bayonetta 2 v1.2.' if item['original_data'].get('kind')=='switch-dump' else 'Archivos originales de Dante’s Inferno pendientes: elegir una ISO de Xbox 360 o una carpeta extraída con default.xex.' if item['original_data'].get('kind')=='xbox360-dante' else 'Archivos originales de Xbox pendientes: elegir la carpeta extraída'+(' o ISO/XISO.' if item['original_data'].get('iso') else '.')
+            if item['original_data'].get('kind')=='xbox360':message='Archivos originales de Xbox 360 pendientes: elegir la ISO.' if item['original_data'].get('iso_only') else 'Archivos originales de Xbox 360 pendientes: elegir la carpeta extraída con default.xex de la revisión admitida.'
             lines.append((False,message))
     if item.get('bios'):
         found=find_bios(item['bios'].get('sha256',[]),home,[inputs.get('bios')])
@@ -208,9 +211,9 @@ def clean(item,category='',source=''):
     item={**item,**RECIPES.get(repo.lower(),{})}
     if not isinstance(folder,str) or not FOLDER.fullmatch(folder):folder=re.sub(r'[^A-Za-z0-9._-]','',repo.split('/')[1]) or 'port'
     name=item.get('name');icon=item.get('appIconUrl') or item.get('icon');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
-    ai=bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
+    ai=item.get('ai') is True or bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
     result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','ctr_native','rom','zelda3','wwhd','project2099','original_data','b2recomp','dante') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
-    for field in ('preparation','source_note','asset_prefix','windows_exe','package_role','original_data','preserve','multi_appimage'):
+    for field in ('preparation','source_note','asset_prefix','windows_exe','package_role','original_data','preserve','multi_appimage','runtime_status'):
         if field in RECIPES.get(repo.lower(),{}):result[field]=RECIPES[repo.lower()][field]
     for key in ('added_at','release_at','first_seen'):
         if type(item.get(key)) in (int,float) and item[key]>=0:result[key]=item[key]
@@ -284,7 +287,10 @@ def fetch_catalog(get=fetch_json,extra=()):
 
 def merged(apps,preferences=None):
     """Remote catalog plus the built-in recommendations and the user's own repositories; the latter two win on conflicts."""
-    result={a['repository'].lower():a for a in apps}
+    # Cached catalog rows predate app upgrades. Reapply our current recipes so
+    # new preparation flows appear immediately without waiting for a network refresh.
+    current=[{**a,**clean(a,source=a.get('source',''))} for a in apps if clean(a)]
+    result={a['repository'].lower():a for a in current}
     for raw,source in [(b,'Recomendado') for b in BUILTIN]+[(c,'Agregado') for c in (preferences or {}).get('custom_ports',[])]:
         item=clean(raw,'',source)
         if item:
@@ -434,6 +440,7 @@ def compatibility(item,now=None):
     elif when and now-when>2*365*86400:score-=8;reasons.append('Última versión de hace más de dos años.')
     elif when and now-when<180*86400:score+=3
     if item.get('setup') or item.get('preparation') or item.get('original_data') or item.get('bios') or item.get('disc') or item.get('rom'):score-=5;reasons.append('Requiere archivos originales del juego.')
+    if item.get('runtime_status')=='experimental':score=min(score,50);reasons.append('Instalación integrada; ejecución en Steam Deck todavía experimental.')
     score=max(0,min(100,score))
     return {'score':score,'level':'alta' if score>=80 else 'media' if score>=55 else 'baja' if score>=30 else 'muy baja','reasons':reasons}
 
@@ -610,6 +617,9 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
     store=store or Store();root=pathlib.Path(root or ports_root());item=clean(item)
     if item is None:raise ValueError('Entrada de catálogo inválida.')
     previous=records(store).get(item['repository'],{})
+    if replace and previous.get('folder'):
+        if not isinstance(previous['folder'],str) or not FOLDER.fullmatch(previous['folder']):raise ValueError('La carpeta registrada del port no es válida.')
+        item={**item,'folder':previous['folder']}
     from .port_recipes import RECIPES
     if replace and requested_runtime=='auto' and previous.get('runtime')=='proton' and not RECIPES.get(item['repository'].lower(),{}).get('prefer_native_release'):requested_runtime='proton'
     if item['web']:
@@ -685,6 +695,7 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
         record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'runtime':runtime,'game_title':item.get('game_title') or item['cover_title'],'original_platform':platform_for(item['list']),'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'preparation':item.get('preparation',''),'source_note':item.get('source_note',''),'original_data':item.get('original_data'),'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
         if item['repository'].lower()=='revivedx/savagewindrecomp' and runtime=='linux':record['args']=['--appimage-extract-and-run']
         if previous.get('inputs'):record['inputs']=dict(previous['inputs'])
+        if item['setup']=='original_data' and previous.get('configured_with'):record['configured_with']=previous['configured_with']
         images=sorted(p.name for p in staging.iterdir() if p.suffix.lower()=='.appimage') if item.get('multi_appimage') else []
         if len(images)>1:record['games']=[{'executable':name,'title':game_label(name,item['repository'])} for name in images]
         if destination.exists():port_packages.preserve_saves(destination,staging,cancel,extra=item.get('preserve',()),exclude=('game/default.xexp',) if item['repository'].lower()=='florinp93/hells-gate-recomp' and (staging/'game/default.xexp').is_file() else ())
@@ -1247,8 +1258,8 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None,c
         record.update(configured=True,configured_with=source.name)
         saved=records(store);saved[repository]=record;atomic_json(store.root/'ports.json',saved);atomic_json(folder/'.deck-library-port.json',record);return record
     if kind=='original_data':
-        from .original_data import prepare
-        original=prepare(folder,inputs.get('original_data',''),record['original_data'],progress)
+        from .original_data import prepare,find_source
+        original=prepare(folder,find_source(record,games,home),record['original_data'],progress,cancel=cancel)
         record.update(configured=True,configured_with=pathlib.Path(original).name)
         saved=records(store);saved[repository]=record;atomic_json(store.root/'ports.json',saved);atomic_json(folder/'.deck-library-port.json',record);return record
     if kind=='kit':

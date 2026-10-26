@@ -6,6 +6,7 @@
 | --- | --- |
 | Library, controls and Gaming Mode / Biblioteca, controles y modo Juego | [Deck interface](DECK-INTERFACE.md) |
 | Supported ports, originals and setup / Ports, originales y preparación | [Ports](PORTS.md) |
+| Installation audit and remaining integrations / Auditoría de instalaciones e integraciones pendientes | [Port audit](PORT-INSTALLATION-AUDIT.md) |
 | Profile format and importing/exporting settings / Formato e importación de ajustes | [Presets](PRESETS.md) |
 | Sharing profiles / Compartir perfiles | [Community profiles](COMMUNITY-PRESETS.md) |
 | Icons and automatic artwork refresh / Iconos y renovación del arte | [Artwork](ARTWORK.md) |
