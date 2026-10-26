@@ -125,10 +125,19 @@ class DeckUITests(unittest.TestCase):
         finally:other.disconnect_by_func(Gtk.main_quit);other.destroy();self.settle()
 
     def test_port_cards_show_the_original_disc_id_without_opening_details(self):
+        import time
         from deck_library import ports
         from gi.repository import Gtk
         self.w.catalog_page();self.w.catalog_apps=[ports.clean(ports.BUILTIN[0])];self.w.catalog_search.set_text('SLUS-00875')
-        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog();self.settle()
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):
+            self.w.fill_catalog();self.settle()
+            # SearchEntry may emit its debounced change after this explicit fill.
+            # Wait for the replacement card's allocation before inspecting its image.
+            deadline=time.monotonic()+3
+            while time.monotonic()<deadline:
+                rows=self.w.catalog_rows.get_children()
+                if rows and rows[0].catalog_image.get_allocated_height()>=140:break
+                self.settle()
         def labels(widget):
             if isinstance(widget,Gtk.Label):yield widget.get_text()
             if isinstance(widget,Gtk.Container):
