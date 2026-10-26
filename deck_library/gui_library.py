@@ -68,7 +68,7 @@ class LibraryToolsMixin:
         def job():
             result=queue_entries([entry],account,self.store)
             items=art_items(account,self.store,app)
-            if items:queue_art(items,account,self.store)
+            if items:queue_art(items,account,self.store,preserve_pending=True)
             return result
         self.run_queue(job,'Preparando Deck Library para Steam…')
     def emulator_dialog(self,e):

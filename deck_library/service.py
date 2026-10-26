@@ -64,20 +64,23 @@ def queue_controllers(appids,account,store=None,start_worker=True):
     if not appids:return {'state':'idle','count':0}
     return _queue(account,store or Store(),[],[],start_worker,appids)
 
-def queue_art(items,account,store=None,start_worker=True):
+def queue_art(items,account,store=None,start_worker=True,preserve_pending=False):
     """Queue chosen Steam artwork: items are {appid, slot, file}; written once Steam is closed."""
     from .steamart import SLOTS
     items=[{'appid':int(i['appid'])&0xffffffff,'slot':i['slot'],'file':str(i['file'])} for i in items if i.get('slot') in SLOTS]
     if not items:return {'state':'idle','count':0}
-    return _queue(account,store or Store(),[],[],start_worker,art=items)
+    return _queue(account,store or Store(),[],[],start_worker,art=items,preserve_art=preserve_pending)
 
-def _queue(account,store,ids,remove,start_worker,fix=(),art=()):
+def _queue(account,store,ids,remove,start_worker,fix=(),art=(),preserve_art=False):
     pending=store.root/'pending.json'
     with pending_lock(store):
         if pending.exists():
             previous=json.loads(pending.read_text())
             if previous['account']!=str(account):raise ValueError('Hay cambios pendientes para otra cuenta. Guardarlos antes de cambiar de cuenta.')
-            ids=list(dict.fromkeys(previous['ids']+ids));remove=list(dict.fromkeys(previous.get('remove',[])+remove));fix=list(dict.fromkeys(previous.get('controllers',[])+list(fix)));art=[a for a in previous.get('art',[]) if (a['appid'],a['slot']) not in {(n['appid'],n['slot']) for n in art}]+list(art)
+            ids=list(dict.fromkeys(previous['ids']+ids));remove=list(dict.fromkeys(previous.get('remove',[])+remove));fix=list(dict.fromkeys(previous.get('controllers',[])+list(fix)))
+            old_art=previous.get('art',[])
+            if preserve_art:art=old_art+[a for a in art if (a['appid'],a['slot']) not in {(p['appid'],p['slot']) for p in old_art}]
+            else:art=[a for a in old_art if (a['appid'],a['slot']) not in {(n['appid'],n['slot']) for n in art}]+list(art)
         # A shortcut queued for removal must not also be written, and vice versa.
         if remove:ids=[i for i in ids if i not in {e.id for e in store.load() if e.metadata.get('steam_appid') in remove}]
         value={'schema':1,'account':str(account),'ids':ids}

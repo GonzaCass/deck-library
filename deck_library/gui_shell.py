@@ -43,7 +43,7 @@ class ShellMixin:
         screen=Gdk.Screen.get_default()
         return bool(screen) and screen.get_height()<=900 and screen.get_width()<=1400
     def top_up_library_art(self):
-        """Desktop Mode only: give the existing Deck Library shortcut its cover, banner, background, logo and icon when it has none."""
+        """Desktop Mode: fill empty self-art slots or refresh previous bundled defaults, preserving custom images."""
         if motion.gaming_mode() or self.ui_closed:return False
         try:
             from .library_app import art_items
@@ -51,7 +51,7 @@ class ShellMixin:
             account=self.current_account()
             if account:
                 items=art_items(account,self.store)
-                if items:queue_art(items,account,self.store)
+                if items:queue_art(items,account,self.store,preserve_pending=True)
         except (OSError,ValueError,KeyError):pass
         return False
     def community_login(self):
