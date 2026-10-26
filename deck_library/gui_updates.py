@@ -116,10 +116,6 @@ class UpdatesMixin:
         box=self.updates_box;self.reset_page(box);state=getattr(self,'update_state',None) or updates.cached(self.store)
         head=Gtk.Box(spacing=14);head.pack_start(label('Actualizaciones','hero'),True,True,0);head.pack_end(button('Buscar actualizaciones',lambda _:self.check_updates(True),True),False,False,0);box.pack_start(head,False,False,0)
         checked=state.get('checked');box.pack_start(label('Última búsqueda: '+(datetime.datetime.fromtimestamp(checked).strftime('%d/%m/%Y %H:%M') if checked else 'sin revisar'),'meta'),False,False,0)
-        from .service import pending_changes
-        waiting=pending_changes(self.store)
-        if waiting:
-            row=Gtk.Box(spacing=12);row.get_style_context().add_class('banner');row.pack_start(label(waiting[0]['description'] if len(waiting)==1 else str(len(waiting))+' cambios de Steam pendientes'),True,True,0);row.pack_end(button('Ver detalle',lambda _:self.pending_details()),False,False,0);box.pack_start(row,False,False,0)
         info=state.get('app')
         if info:
             card=self.card(box,'Deck Library '+info['version']);card.pack_start(label(info.get('notes') or 'No hay notas disponibles para esta versión.','muted'),False,False,0)

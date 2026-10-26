@@ -547,6 +547,8 @@ README.md y LEEME.md tienen 80 líneas cada uno y enlaces recíprocos. La portad
 
 ## 1.2.4 — Inicio con cuatro ports y portadas recortadas
 
+Actualizaciones conserva únicamente el aviso global de cambios de Steam, con acceso al detalle. Se retiró la segunda copia dentro de la página. La comprobación de la cola verifica que el aviso siga visible al entrar en Actualizaciones y volver a Biblioteca, sin añadir otro banner dentro de la página.
+
 Se reprodujo la pantalla real abierta en Escritorio: el usuario estaba al final de Inicio, que ofrecía solo cuatro miniaturas horizontales de ports. Ese resumen no contenía el resto de los juegos, aunque la rueda ya hubiera llegado al final. La biblioteca completa seguía en otra pestaña. La nueva versión abre Biblioteca por defecto cuando no existe una elección explícita de inicio; mantiene Resumen si se eligió en Apariencia. Inicio muestra todos sus ports, con imágenes verticales 2:3; sus contadores excluyen las copias de la propia app que tampoco se muestran allí.
 
 Se superaron 842 pruebas únicas: 748 de núcleo, 93 de interfaz GTK y la prueba GTK de traducción. Las nuevas pruebas cubren instalaciones antiguas sin página de inicio guardada, los doce ports de una colección de prueba sin límite de cuatro, proporción 2:3 de las imágenes, eventos nativos de rueda y conservación del desplazamiento después de refrescar la detección. La comprobación de regreso del filtro usa el foco lógico de GTK, sin depender de la activación global de una ventana en Xvfb.
