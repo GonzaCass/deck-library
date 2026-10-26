@@ -46,3 +46,10 @@ LB/RB recorre las cinco pestañas, la palanca izquierda mueve el selector y la d
 Las etiquetas del catálogo separan por color sistemas, categoría, revisión, fecha de incorporación, requisitos de originales e instalación. La compatibilidad estimada conserva su cálculo, porcentaje y nivel; se muestra en verde, amarillo, naranja o rojo según sea alta, media, baja o muy baja. Los colores tienen texto propio y contraste comprobado. La ficha usa las mismas etiquetas. **Guía de compatibilidad** en el catálogo y **Cómo se calcula** en la ficha abren una página interna con los rangos, las bases y los ajustes exactos. Explica que el porcentaje es un índice orientativo con pesos elegidos por Deck Library; no es una probabilidad medida, una tasa de éxito ni una medición de FPS.
 
 Las tarjetas de perfiles muestran nombre, resumen, verificación y valoración. Objetivo, procedencia, autor, versiones, notas e instrucciones aparecen en el desplegable del perfil seleccionado, junto con los cambios previstos. El desplegable empieza cerrado; los perfiles manuales mantienen sus instrucciones abiertas. Seleccionar o desplegar no aplica ajustes. El botón Aplicar sigue fijo y el control del desplegable funciona con mando.
+
+
+## Inicio y biblioteca completa (1.2.4)
+
+Las instalaciones sin una elección explícita de página inicial abren Biblioteca. La elección Resumen de Apariencia se respeta. Inicio muestra todos los ports del resumen, con carátulas verticales 2:3 y desplazamiento normal con rueda; desaparece el límite de cuatro miniaturas horizontales. El contador de ports excluye las copias del propio programa que tampoco aparecen en esa sección.
+
+Abrir Inicio empieza arriba. Una actualización de la detección conserva su posición de desplazamiento y regresar desde una ficha conserva el port seleccionado. El inicio del mando enfoca la página visible. No se modifican ROMs, ajustes de juegos ni la vista de biblioteca elegida por el usuario.

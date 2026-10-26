@@ -21,7 +21,10 @@ class InputMixin:
             self.gamepad_driver=Driver(self)
             self.controller_mode=True;self.disable_tooltips()
             if hasattr(self,'controller_hint'):self.controller_hint.show()
-            GLib.idle_add(self.focus_library)
+            def initial_focus():
+                if self.pages.get_visible_child_name()=='library':return self.focus_library()
+                return self.ensure_controller_focus(self)
+            GLib.idle_add(initial_focus)
         except OSError as error:self.set_status('Mando: '+str(error))
 
     def bind_search_keyboard(self,entry):

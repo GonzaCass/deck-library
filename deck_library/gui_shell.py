@@ -33,7 +33,7 @@ class ShellMixin:
         self.apply_motion();self.refresh_platforms();self.animate_next=True;self.render();self.pages.set_visible_child_name('library')
         from . import updates
         self.update_state=updates.cached(self.store);self.refresh_update_badges()
-        if self.preferences.get('onboarding_complete') and (self.preferences.get('start_page') or 'home')=='home':self.home_page()
+        if self.preferences.get('onboarding_complete') and self.preferences.get('start_page')=='home':self.home_page()
         if not self.preferences.get('onboarding_complete'):self.start_wizard()
         else:GLib.idle_add(self.discover)
         if self.preferences.get('check_updates',True):self.ui_sources.append(GLib.timeout_add_seconds(5,self.check_updates))
@@ -263,10 +263,10 @@ class ShellMixin:
         language=Gtk.ComboBoxText();language.get_accessible().set_name('Idioma · Language')
         for key_,title_ in (('auto','Automático'),('es','Español'),('en','English')):language.append(key_,title_)
         current_language=self.preferences.get('language') or ('es' if self.preferences.get('onboarding_complete') else 'auto');language.set_active_id(current_language)
-        first_page=Gtk.ComboBoxText();first_page.get_accessible().set_name('Al abrir Deck Library');first_page.append('home','Resumen');first_page.append('library','Biblioteca');first_page.set_active_id(self.preferences.get('start_page') or 'home');first_row=Gtk.Box(spacing=12);first_row.pack_start(label('Al abrir Deck Library'),True,True,0);first_row.pack_end(first_page,False,False,0);box.pack_start(first_row,False,False,0)
+        first_page=Gtk.ComboBoxText();first_page.get_accessible().set_name('Al abrir Deck Library');first_page.append('library','Biblioteca');first_page.append('home','Resumen');first_page.set_active_id(self.preferences.get('start_page') or 'library');first_row=Gtk.Box(spacing=12);first_row.pack_start(label('Al abrir Deck Library'),True,True,0);first_row.pack_end(first_page,False,False,0);box.pack_start(first_row,False,False,0)
         language_row=Gtk.Box(spacing=12);language_row.pack_start(label('Idioma · Language'),True,True,0);language_row.pack_end(language,False,False,0);box.pack_start(language_row,False,False,0);self.fit_dialog(dialog);dialog.show_all()
         if dialog.run()==Gtk.ResponseType.OK:
-            self.preferences.update(artwork_provider=combo.get_active_id(),steamgriddb_key=key.get_text().strip(),animations=animations.get_active(),start_page=first_page.get_active_id() or 'home')
+            self.preferences.update(artwork_provider=combo.get_active_id(),steamgriddb_key=key.get_text().strip(),animations=animations.get_active(),start_page=first_page.get_active_id() or 'library')
             chosen_language=language.get_active_id() or current_language;changed_language=chosen_language!=current_language
             if changed_language:self.preferences['language']=chosen_language
             save_settings(self.preferences,self.store);self.apply_motion();self.toast('Idioma guardado · Language saved. Reabrir Deck Library para aplicarlo · Reopen Deck Library to apply it.' if changed_language else 'Apariencia guardada');self.fetch_covers()
