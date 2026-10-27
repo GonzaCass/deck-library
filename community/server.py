@@ -1,10 +1,19 @@
 """WSGI JSON service. SQLite, validated presets and device authentication."""
-import contextlib,hashlib,json,os,pathlib,re,secrets,sqlite3,time,urllib.parse,urllib.request
+import contextlib,hashlib,ipaddress,json,os,pathlib,re,secrets,sqlite3,time,urllib.parse,urllib.request
 from deck_library.presets import validate
 from .oidc import DeviceAuth
 LIMIT=128*1024
 
 def digest(value):return hashlib.sha256(value.encode()).hexdigest()
+
+def client_address(environ,trusted_proxies=()):
+    remote=environ.get('REMOTE_ADDR','unknown')
+    try:
+        address=ipaddress.ip_address(remote)
+        if any(address in network for network in trusted_proxies):
+            return str(ipaddress.ip_address(environ.get('HTTP_X_REAL_IP','')))
+    except ValueError:pass
+    return remote
 
 def github(url,data=None,token=None):
     headers={'Accept':'application/json','User-Agent':'DeckLibrary-Community'}
@@ -20,6 +29,7 @@ class API:
         issuer=oidc_issuer or os.environ.get('OIDC_ISSUER','');client=oidc_client or os.environ.get('OIDC_CLIENT_ID','')
         self.oidc=DeviceAuth(issuer,client) if issuer and client else None
         self.review_required=(os.environ.get('COMMUNITY_REVIEW_REQUIRED','false').lower()=='true') if review_required is None else review_required
+        self.trusted_proxies=tuple(ipaddress.ip_network(value.strip()) for value in os.environ.get('COMMUNITY_TRUST_PROXY_CIDRS','').split(',') if value.strip())
         pathlib.Path(self.path).parent.mkdir(parents=True,exist_ok=True)
         with self.db() as db:
             db.executescript('''PRAGMA journal_mode=WAL;
@@ -171,7 +181,7 @@ class API:
             if method in ('POST','PUT') and not environ.get('CONTENT_TYPE','').startswith('application/json'):raise ValueError('Se requiere JSON.')
             raw=environ['wsgi.input'].read(size) if size else b'{}';body=json.loads(raw)
             if not isinstance(body,dict):raise ValueError('Se requiere un objeto JSON.')
-            value=self.handle(method,environ.get('PATH_INFO','/'),urllib.parse.parse_qs(environ.get('QUERY_STRING','')),body,environ.get('HTTP_AUTHORIZATION','').removeprefix('Bearer '),environ.get('REMOTE_ADDR','unknown'));status='200 OK'
+            value=self.handle(method,environ.get('PATH_INFO','/'),urllib.parse.parse_qs(environ.get('QUERY_STRING','')),body,environ.get('HTTP_AUTHORIZATION','').removeprefix('Bearer '),client_address(environ,self.trusted_proxies));status='200 OK'
         except PermissionError as error:status='401 Unauthorized';value={'error':str(error)}
         except FileNotFoundError as error:status='404 Not Found';value={'error':str(error)}
         except (ValueError,TypeError,KeyError) as error:status='400 Bad Request';value={'error':str(error)}

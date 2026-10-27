@@ -2,7 +2,7 @@ import copy,json,os,pathlib,secrets,tempfile,time,unittest,urllib.parse,zipfile
 from unittest.mock import patch
 from deck_library import bug_report,validated_games,presets
 from deck_library.models import Store,Entry
-from community.server import API,digest
+from community.server import API,digest,client_address
 
 class DiagnosticsTests(unittest.TestCase):
     def setUp(self):
@@ -35,6 +35,16 @@ class DiagnosticsTests(unittest.TestCase):
         with self.assertRaises(ValueError):bug_report.validate_report(value)
 
 class CommunityPublicationTests(unittest.TestCase):
+    def test_rate_limits_use_forwarded_clients_only_from_an_explicit_trusted_proxy(self):
+        import ipaddress
+        trusted=(ipaddress.ip_network('192.0.2.0/24'),)
+        request={'REMOTE_ADDR':'192.0.2.10','HTTP_X_REAL_IP':'198.51.100.12'}
+        self.assertEqual(client_address(request,trusted),'198.51.100.12')
+        self.assertEqual(client_address(request),'192.0.2.10')
+        self.assertEqual(client_address({**request,'REMOTE_ADDR':'203.0.113.1'},trusted),'203.0.113.1')
+        self.assertEqual(client_address({**request,'HTTP_X_REAL_IP':'not-an-address'},trusted),'192.0.2.10')
+        self.assertEqual(client_address({**request,'HTTP_X_REAL_IP':'198.51.100.12, 198.51.100.13'},trusted),'192.0.2.10')
+
     def setUp(self):
         self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup);self.root=pathlib.Path(self.tmp.name);self.api=API(self.root/'community.db',client_id='test',review_required=False)
         with self.api.db() as db:
