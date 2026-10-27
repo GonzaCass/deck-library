@@ -449,6 +449,27 @@ class DeckUITests(unittest.TestCase):
             self.w.controller_action('back');self.settle()
             self.assertFalse(self.w.inline_workflows);self.assertTrue(resize.called)
 
+    def test_naruto_profiles_and_proton_selector_fit_the_game_page(self):
+        from deck_library.models import Entry
+        from deck_library import proton_selection,proton_tools
+        root=pathlib.Path(self.temp.name);exe=root/'narutorise_launcher.exe';exe.write_bytes(b'MZ');(root/'narutorise.version').write_text('0.3.0-beta');(root/'narutorise.toml').write_text('renderer = "native"\nnative_backend = "vulkan"\nframe_rate = 60\n')
+        entry=Entry('Naruto: Rise of a Ninja',['python3','-m','deck_library.port_runtime',str(root)],source=str(exe),platform='Windows',metadata={'port_repository':'jorjbarbosa/naruto-rise-recomp'})
+        self.store.save([entry]);self.w.entries=[entry]
+        tools={'Proton 11.0':root/'Proton 11.0/proton','Proton 9.0 (Beta)':root/'Proton 9.0 (Beta)/proton'}
+        with patch.object(proton_tools,'installed',return_value=tools),patch.object(proton_selection,'default_tool',return_value=tools['Proton 11.0']),patch.object(proton_selection,'busy',return_value=False):
+            for width,height in ((1280,800),(840,640)):
+                self.w.resize(width,height);self.w.select_game(entry);self.settle()
+                self.assertEqual(len(self.w.profile_cards),3)
+                self.assertEqual(self.w.proton_combo.get_active_id(),'')
+                self.w.proton_combo.set_active_id('Proton 9.0 (Beta)');self.assertTrue(self.w.proton_save_button.get_sensitive())
+                control=self.w.proton_save_button
+                self.assertFalse(control.caption.get_line_wrap())
+                self.assertLessEqual(self.w.get_allocated_width(),width)
+            self.w.proton_save_button.clicked();self.settle()
+            self.assertEqual(self.store.load()[0].metadata['proton_version'],'Proton 9.0 (Beta)')
+            self.assertFalse((self.store.root/'pending.json').exists())
+            self.assertEqual(self.w.proton_combo.get_active_id(),'Proton 9.0 (Beta)')
+
     def test_steam_button_never_wraps_at_deck_and_compact_sizes(self):
         from deck_library.models import Entry,atomic_json
         entry=Entry('Naruto: Rise of a Ninja',['/bin/true'],platform='Xbox 360',kind='port')

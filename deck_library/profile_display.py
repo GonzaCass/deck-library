@@ -40,7 +40,10 @@ def intent(profile):
 def value_text(adapter, key, value):
     if value == 'predeterminado' or value is None:
         return 'Del programa'
+    if adapter=='narutorise' and key=='frame_rate':return f'{value} FPS objetivo'
     choices = {
+        ('narutorise', 'internal_resolution_scale'): {0.0: '1× (720p)',1.0: '1× (720p)',1.5: '1,5× (1080p)',2.0: '2× (1440p)'},
+        ('narutorise', 'swap_post_effect'): {'none': 'Sin suavizado','fxaa': 'FXAA'},
         ('eden', 'backend'): {0: 'OpenGL', 1: 'Vulkan'},
         ('eden', 'resolution_setup'): {1: '0,5×', 2: '0,75×', 3: '1×', 4: '1,25×', 5: '1,5×', 6: '2×'},
         ('eden', 'anti_aliasing'): {0: 'Sin suavizado', 1: 'FXAA', 2: 'SMAA'},
@@ -62,6 +65,7 @@ def highlights(profile):
     adapter = profile['adapter']['id']
     settings = profile['settings']
     keys = {
+        'narutorise': [('runtime','internal_resolution_scale','Resolución'),('runtime','frame_rate','Objetivo de FPS'),('runtime','native_backend','Gráficos')],
         'eden': [('Renderer', 'resolution_setup', 'Resolución'), ('System', 'use_docked_mode', 'Modo'), ('Renderer', 'backend', 'Gráficos')],
         'wiicompiled': [('video', 'resolution_multiplier', 'Resolución'), ('video', 'graphics_api', 'Gráficos'), ('video', 'display_mode', 'Pantalla')],
         'duckstation': [('GPU', 'ResolutionScale', 'Resolución'), ('GPU', 'PGXPEnable', 'Geometría precisa'), ('Display', 'MaxFPS', 'Límite de FPS')],

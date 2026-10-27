@@ -17,11 +17,12 @@ def clean_environment(env=None):
 
 def diagnostics(entry,store=None):
     store=store or Store(); issues=[]
+    from .proton_selection import mode
     executable=entry.command[0]
     if not (pathlib.Path(executable).is_file() or shutil.which(executable)):issues.append('No se encuentra el programa seleccionado.')
-    elif pathlib.Path(executable).is_file() and not os.access(executable,os.X_OK):issues.append('El programa no tiene permiso de ejecución.')
+    elif pathlib.Path(executable).is_file() and not os.access(executable,os.X_OK) and mode(entry)!='exe':issues.append('El programa no tiene permiso de ejecución.')
     if entry.source and not pathlib.Path(entry.source).exists():issues.append('No se encuentra el juego. Puede haberse movido o faltar la microSD.')
-    if entry.command[0].endswith('.exe'):issues.append('Un ejecutable Windows necesita Wine/Proton. Usar un launcher de Lutris o Heroic, o un comando personalizado.')
+    if entry.command[0].endswith('.exe') and mode(entry)!='exe':issues.append('Un ejecutable Windows necesita Wine/Proton. Usar un launcher de Lutris o Heroic, o un comando personalizado.')
     if entry.metadata.get('sandbox'):
         from . import buildenv
         if not buildenv.installed():issues.append('Falta el entorno de compilación (SDK de KDE de Flatpak). Instalarlo desde el catálogo de ports.')
@@ -104,6 +105,11 @@ def launch(entry,store=None,notify=True):
     with log.open('w') as output:
         log.chmod(0o600); output.write(f'Deck Library — {entry.name}\nStarted: {datetime.datetime.now().isoformat()}\n'); output.flush()
         command=list(entry.command)
+        from .proton_selection import launch_command,mode
+        try:command,env=launch_command(entry,command,env,store)
+        except (OSError,ValueError) as error:
+            if notify:show_error(str(error),store)
+            return 1
         if entry.platform=='Switch' and pathlib.Path(command[0]).name=='flatpak' and len(command)>1 and command[1]=='run':
             from .content import eden_paths
             from .installations import settings
@@ -113,7 +119,8 @@ def launch(entry,store=None,notify=True):
             permissions=[str(pathlib.Path(entry.source).parent),str(paths['nand']),str(paths['load']),str(paths['sdmc']),config_home,data_home]
             command[2:2]=['--env=DISABLE_AUTO_UPDATES=1','--env=XDG_CONFIG_HOME='+config_home,'--env=XDG_DATA_HOME='+data_home,*['--filesystem='+p for p in dict.fromkeys(permissions)]]
         output.write(f'Program: {pathlib.Path(command[0]).name}; platform: {entry.platform}; mods: {entry.mods}\n');output.flush()
-        try:process=subprocess.Popen(command,cwd=pathlib.Path.home() if entry.platform=='Switch' else entry.cwd if pathlib.Path(entry.cwd).is_dir() else pathlib.Path.home(),env=env,stdout=output,stderr=subprocess.STDOUT,start_new_session=True)
+        launch_cwd=pathlib.Path(__file__).resolve().parent.parent if mode(entry) in ('port','project2099') else pathlib.Path.home() if entry.platform=='Switch' else entry.cwd if pathlib.Path(entry.cwd).is_dir() else pathlib.Path.home()
+        try:process=subprocess.Popen(command,cwd=launch_cwd,env=env,stdout=output,stderr=subprocess.STDOUT,start_new_session=True)
         except OSError as error:
             output.write(str(error)+'\n')
             if notify:show_error('No se pudo abrir '+entry.name+'.\n'+str(error),store)

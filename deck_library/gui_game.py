@@ -295,6 +295,7 @@ class GameMixin:
         adapter = presets.adapter_for(entry)
         if entry.metadata.get('gtaiv_root'):
             content.pack_start(TaskButton('Mejoras para GTA IV', 'FusionFix y DXVK', 'sliders', lambda _: self.gtaiv_dialog(entry)), False, False, 0)
+        self.build_proton_selector(entry,content,compact=True)
         if adapter in presets.REGISTRY:
             self.build_profile_picker(entry, content, parent)
         else:
@@ -609,7 +610,41 @@ class GameMixin:
         if entry.platform == 'Minecraft':
             body.pack_start(TaskButton('Controles de Minecraft','Ver teclas y layouts guardados','controller',lambda _:self.layout_dialog(entry),'amber'),False,False,0)
 
+    def build_proton_selector(self,entry,body,compact=False):
+        from . import proton_selection as selection,proton_tools
+        kind=selection.mode(entry)
+        if not kind:return
+        panel=self.card(body,'Proton' if compact else 'Compatibilidad con Proton')
+        if kind=='steam':
+            panel.pack_start(text('Este acceso lo administra Steam. Elegí la versión en Steam → Propiedades → Compatibilidad.','muted',85),False,False,0)
+            return
+        explanation='Se usa al abrir el juego desde Deck Library y desde su acceso de Steam. No hace falta volver a agregarlo.'
+        panel.set_tooltip_text(explanation)
+        if not compact:
+            panel.pack_start(text(explanation,'muted',85),False,False,0)
+            panel.pack_start(text('En Steam, dejá desactivada la opción de forzar una herramienta de compatibilidad para este acceso: Deck Library ya ejecuta Proton.','meta',85),False,False,0)
+        choices=proton_tools.installed();combo=Gtk.ComboBoxText();combo.set_hexpand(True)
+        try:automatic='Automática · '+selection.default_tool(entry).parent.name
+        except ValueError:automatic='Automática · Proton no instalado'
+        combo.append('',automatic)
+        for name in choices:combo.append(name,name)
+        saved=selection.choice(entry)
+        if saved and saved not in choices:combo.append(saved,saved+' · no instalada')
+        combo.set_active_id(saved);status=text('La selección se guarda para este juego.','meta',85)
+        row=Gtk.Box(spacing=10);row.pack_start(combo,True,True,0);panel.pack_start(row,False,False,0)
+        if not compact:panel.pack_start(status,False,False,0)
+        def apply(_):
+            version=combo.get_active_id()
+            if version is None:return
+            try:
+                selection.save(entry,version,self.store);control.set_sensitive(False);status.set_text('Proton guardado. Se usará en el próximo inicio del juego.');self.toast('Versión de Proton guardada');self.show_detail(entry)
+            except Exception as error:self.message('No se pudo cambiar Proton',str(error))
+        control=ActionButton('Guardar Proton','check',apply,'steam');control.set_sensitive(False);row.pack_end(control,False,False,0)
+        combo.connect('changed',lambda *_:control.set_sensitive(combo.get_active_id()!=selection.choice(entry)))
+        self.proton_combo=combo;self.proton_save_button=control
+
     def build_game_files(self, entry, body):
+        self.build_proton_selector(entry,body)
         if entry.metadata.get('port_repository'):
             from . import ports
             record=ports.records(self.store).get(entry.metadata['port_repository'])

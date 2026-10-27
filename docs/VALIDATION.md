@@ -584,3 +584,12 @@ La prueba de rechazo de un hash de WiiCompiled simula espacio libre suficiente p
 - Unit tests cover queue recovery from a previous process, waiting for an existing writer, leaving a running Steam client untouched, isolated library paths, service activation failures, and preserving unrelated service overrides.
 - GTK checks cover the game action button before/after queuing at 1280×800 and 840×640. Captions stay on one line and inside the window. ROM management now names the files and actions explicitly.
 - A full console reboot and Naruto gameplay were not performed for this release. The real ISO import and verified cleanup flow are documented in the preceding release.
+
+
+### 1.2.8 — Naruto profiles and Proton selection
+
+- The user reported successful Naruto: Rise of a Ninja gameplay at approximately 45–60 FPS on the installed 0.3.0-beta/Proton 11.0 setup. Its current allowlisted graphics values were compared with the new Balanced profile with no differences, backed up and kept as the preferred profile. Performance and Quality remain proposals without gameplay measurements.
+- Adapter tests cover exact game matching, version checks, root TOML apply/restore, preserving language/controls/private settings, allowlisted capture/import and readable profile differences.
+- A real managed Steam launcher script was executed against isolated fake Proton installations. It loaded the saved per-game version, forwarded Steam's AppID, used the same private port data directory and produced no Steam pending changes. This validates launch routing, not performance differences between Proton versions.
+- Tests cover official and GE enumeration, unavailable tool rejection, preference preservation on rediscovery, a stable port prefix across tools, Windows files without Unix execute permission and leaving external Steam shortcuts unchanged.
+- GTK checks include the three Naruto profiles and saving Proton from the game page at 1280×800 and 840×640. No game was opened automatically and no new gameplay/FPS measurement was made.

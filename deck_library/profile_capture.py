@@ -68,12 +68,10 @@ def runtime_info(entry):
     for i,arg in enumerate(command):
         if arg=='--proton' and i+1<len(command):version=command[i+1]
         if pathlib.Path(arg).name=='proton':version=pathlib.Path(arg).parent.name
-    if not version and entry.metadata.get('adapter')=='project2099' and entry.metadata.get('engine')=='reeot':
-        from .project2099 import proton_path
-        try:version=proton_path(preferred='Proton 9.0 (Beta)').parent.name
-        except ValueError:
-            try:version=proton_path().parent.name
-            except ValueError:pass
+    from . import proton_selection
+    if not version and proton_selection.mode(entry) in ('port','project2099','exe'):
+        try:version=proton_selection.default_tool(entry).parent.name
+        except ValueError:pass
     if not version and entry.metadata.get('steam_appid'):
         from .steam_input import parse_text,first
         path=pathlib.Path.home()/'.local/share/Steam/config/config.vdf'
@@ -119,8 +117,8 @@ def read_file(entry,path):
     path=pathlib.Path(path)
     if path.stat().st_size>1024*1024:raise ValueError('El archivo de configuración supera 1 MiB.')
     adapter=presets.adapter_for(entry);content=path.read_text()
-    if adapter in ('wiicompiled','project2099'):
-        parsed=tomllib.loads(content);groups={'runtime':parsed} if adapter=='project2099' else parsed
+    if adapter in ('wiicompiled','project2099','narutorise'):
+        parsed=tomllib.loads(content);groups={'runtime':parsed} if adapter in ('project2099','narutorise') else parsed
     else:groups={s:dict(v) for s,v in presets.ini_parser(content).items()}
     if adapter=='dolphin' and path.name.lower()=='gfx.ini':groups={'Video_'+s:v for s,v in groups.items()}
     values={}

@@ -55,12 +55,16 @@ def validate_source(path):
 
 def proton_path(home=None,preferred=None):
     names=('Proton 11.0','Proton - Experimental','Proton 10.0','Proton 9.0 (Beta)','Proton 8.0')
-    if preferred and preferred not in names:raise ValueError('Versión de Proton no admitida.')
+    if preferred and preferred not in names:
+        from .proton_tools import resolve
+        return resolve(preferred,home)
     from .proton_tools import find
     return find(names,home,preferred)
 
 def proton_env(store=None,preferred=None):
-    if preferred and preferred not in ('Proton 11.0','Proton - Experimental','Proton 10.0','Proton 9.0 (Beta)','Proton 8.0'):raise ValueError('Versión de Proton no admitida.')
+    if preferred and preferred not in ('Proton 11.0','Proton - Experimental','Proton 10.0','Proton 9.0 (Beta)','Proton 8.0'):
+        from .proton_tools import resolve
+        resolve(preferred)
     store=store or Store();slug='project2099' if not preferred or preferred=='Proton 11.0' else 'project2099-'+preferred.lower().replace(' ','-')
     pfx=store.root/'runtimes'/slug;pfx.mkdir(parents=True,exist_ok=True)
     env=clean_environment();env['STEAM_COMPAT_DATA_PATH']=str(pfx)
@@ -154,7 +158,7 @@ def launch_plan(executable,preferred=None,*,launcher=False,store=None):
 def main():
     import argparse
     parser=argparse.ArgumentParser()
-    parser.add_argument('action',choices=['run']);parser.add_argument('executable');parser.add_argument('--proton',choices=['Proton 11.0','Proton - Experimental','Proton 10.0','Proton 9.0 (Beta)','Proton 8.0']);parser.add_argument('--single-queue',action='store_true')
+    parser.add_argument('action',choices=['run']);parser.add_argument('executable');parser.add_argument('--proton');parser.add_argument('--single-queue',action='store_true')
     parser.add_argument('--launcher',action='store_true',help='Abrir el lanzador oficial en vez del juego directo.')
     args=parser.parse_args()
     command,cwd,env=launch_plan(args.executable,args.proton,launcher=args.launcher)
