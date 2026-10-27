@@ -13,7 +13,7 @@ docker compose --env-file community/.env -f community/compose.yaml config
 docker compose --env-file community/.env -f community/compose.yaml up -d --build
 ```
 
-La red externa debe existir. Las etiquetas usan `websecure` y el resolver configurado; no abren un puerto del host ni requieren cambiar la configuración de Traefik. El volumen `community-data` guarda SQLite. La imagen se ejecuta sin root y sin acceso al socket Docker.
+La red externa debe existir. Si la API está detrás de Traefik, configurar `COMMUNITY_TRUST_PROXY_CIDRS` con el CIDR de su red privada o la IP del proxy con máscara `/32`. Solo esas conexiones pueden aportar `X-Real-IP` para separar los límites por cliente; con el valor vacío se ignoran las cabeceras reenviadas. No incluir redes públicas de usuarios. Las etiquetas usan `websecure` y el resolver configurado; no abren un puerto del host ni requieren cambiar la configuración de Traefik. El volumen `community-data` guarda SQLite. La imagen se ejecuta sin root y sin acceso al socket Docker.
 
 Para preparar la imagen sin publicar el servicio: `docker compose --env-file community/.env -f community/compose.yaml build`.
 
