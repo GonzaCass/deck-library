@@ -2,6 +2,8 @@
 
 Snapshot: **2026-10-26 · Deck Library 1.2.5 · 751 catalog entries**.
 
+**1.2.6 update:** Deck Library now extracts Xbox 360 ISOs for jorjbarbosa's Naruto ports and offers verified, explicit source-ISO cleanup. The earlier portable-ZIP limitation below is handled inside Deck Library; no external installer is needed. See the [current preparation guide](PORTS.md).
+
 This checks release metadata and package selection, not gameplay. The catalog also includes tools, launchers and projects for other devices. A Windows package plus Proton is not proof that a game works on Steam Deck. Only the three Naruto packages listed below were downloaded and installed in isolated test directories during this audit. No original game files were available for a gameplay test.
 
 | Release classification | Entries | Meaning |

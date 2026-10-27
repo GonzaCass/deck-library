@@ -169,10 +169,10 @@ def requirements(item,games,home=None):
                 from .dante import find_source
                 original=validate(find_source(item,games,home),item['original_data'])
             else:original=validate(find_source(item,games,home),item['original_data'])
-            lines.append((True,'Archivos originales: '+str(original)))
+            lines.append((True,('Juego identificado · Title ID '+item['original_data']['title_id']+' · ') + str(original) if item['original_data'].get('extract_iso') and pathlib.Path(original).is_file() else 'Archivos originales: '+str(original)))
         except (ValueError,OSError):
             message='Archivos originales pendientes: elegir exefs y romfs de Bayonetta 2 v1.2.' if item['original_data'].get('kind')=='switch-dump' else 'Archivos originales de Dante’s Inferno pendientes: elegir una ISO de Xbox 360 o una carpeta extraída con default.xex.' if item['original_data'].get('kind')=='xbox360-dante' else 'Archivos originales de Xbox pendientes: elegir la carpeta extraída'+(' o ISO/XISO.' if item['original_data'].get('iso') else '.')
-            if item['original_data'].get('kind')=='xbox360':message='Archivos originales de Xbox 360 pendientes: elegir la ISO.' if item['original_data'].get('iso_only') else 'Archivos originales de Xbox 360 pendientes: elegir la carpeta extraída con default.xex de la revisión admitida.'
+            if item['original_data'].get('kind')=='xbox360':message='Archivos originales de Xbox 360 pendientes: elegir la ISO.' if item['original_data'].get('iso_only') else 'Archivos originales de Xbox 360 pendientes: elegir la ISO o una carpeta extraída con default.xex.' if item['original_data'].get('extract_iso') else 'Archivos originales de Xbox 360 pendientes: elegir la carpeta extraída con default.xex de la revisión admitida.'
             lines.append((False,message))
     if item.get('bios'):
         found=find_bios(item['bios'].get('sha256',[]),home,[inputs.get('bios')])
@@ -445,8 +445,16 @@ def compatibility(item,now=None):
     return {'score':score,'level':'alta' if score>=80 else 'media' if score>=55 else 'baja' if score>=30 else 'muy baja','reasons':reasons}
 
 def records(store):
-    try:return json.loads((store.root/'ports.json').read_text())
+    try:data=json.loads((store.root/'ports.json').read_text())
     except (OSError,ValueError):return {}
+    if not isinstance(data,dict):return {}
+    from .port_recipes import RECIPES
+    for repo,record in data.items():
+        if not isinstance(record,dict):continue
+        recipe=RECIPES.get(repo.lower(),{})
+        if (recipe.get('original_data') or {}).get('extract_iso'):
+            record.update(original_data=dict(recipe['original_data']),source_note=recipe['source_note'])
+    return data
 
 def package_plan(item,assets,runtime='auto'):
     from .port_packages import select

@@ -13,6 +13,22 @@ def managed_shortcuts(account):
     from . import steam_inventory
     return [r for r in steam_inventory.shortcuts(account) if r['name']=='Deck Library' and pathlib.Path(r['exe'].strip('"')).name==APP_ID+'.sh' and pathlib.Path(r['exe'].strip('"')).parent.name=='launchers']
 
+def refresh_existing_launcher(store=None,home=None,app=None):
+    """An existing managed Steam shortcut must launch the installed copy after an upgrade."""
+    from .models import Store
+    from . import steam,runtime
+    store=store or Store();app=pathlib.Path(app or pathlib.Path(__file__).resolve().parent.parent/'app.py')
+    if not any(managed_shortcuts(account) for account in steam.find_accounts(home)):return False
+    current=store.load();existing=next((item for item in current if item.id==APP_ID),None);wanted=entry(app)
+    if existing:
+        if existing.icon==str(pathlib.Path(existing.source).parent/'assets/icon.png'):existing.icon=wanted.icon
+        existing.command=wanted.command;existing.source=wanted.source;existing.metadata['library_app']=True
+    else:current.append(wanted)
+    launcher=store.root/'launchers'/(APP_ID+'.sh');before=launcher.read_text() if launcher.is_file() else None
+    store.save(current);runtime.make_launcher(existing or wanted,store,app=app)
+    if before is not None and before!=launcher.read_text():launcher.with_suffix('.sh.before-upgrade').write_text(before)
+    return True
+
 def art_items(account,store,app=None):
     """Fill empty slots and refresh byte-exact previous bundled artwork; preserve custom images."""
     from . import steam,steamart

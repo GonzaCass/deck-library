@@ -917,7 +917,7 @@ class WiiUpdateTests(unittest.TestCase):
         image=self.root/'mk.iso';image.write_bytes(b'RMCP01'+b'0'*100)
         with patch('deck_library.updates.quiver_apps',return_value=self.apps):item=wiiupdate.installations(None,self.home)[0]
         info=wiiupdate.latest(lambda url:self.release(b'\x7fELFother'))
-        with self.assertRaisesRegex(ValueError,'SHA-256'):wiiupdate.update(item,info,image,opener=self.opener(b'\x7fELFnew'),run=lambda *a,**k:0)
+        with patch('deck_library.wiiupdate.shutil.disk_usage',return_value=shutil._ntuple_diskusage(100<<30,0,100<<30)),self.assertRaisesRegex(ValueError,'SHA-256'):wiiupdate.update(item,info,image,opener=self.opener(b'\x7fELFnew'),run=lambda *a,**k:0)
         self.assertEqual(self.tool.read_bytes(),b'\x7fELFold');self.assertEqual((self.folder/'version.txt').read_text(),'v0.2.33');self.assertFalse(list(self.folder.glob('*.download')))
     def test_update_installs_the_new_tool_runs_the_install_and_failure_restores_the_previous_one(self):
         from deck_library import wiiupdate

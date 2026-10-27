@@ -275,6 +275,7 @@ class CatalogMixin:
             page.get_action_area().pack_start(button('Configurar',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.configure_port(item),False)[1])),True),False,False,0)
         elif record:
             box.pack_start(label('Instalado · '+record.get('tag',''),'good'),False,False,0)
+            self.iso_cleanup_button(box,item,record)
             if installed.get(item['repository']) and item['repository']!='GenryTheFox0/Project-2099':page.get_action_area().pack_start(button('Desinstalar',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.uninstall_port(item),False)[1])),tone='danger'),False,False,0)
             if item.get('preparation')=='launcher':page.get_action_area().pack_start(button('Abrir port',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.open_installed_port(record),False)[1]))),False,False,0)
         else:
@@ -505,13 +506,54 @@ class CatalogMixin:
 
     def port_configured(self,item,record):
         getattr(self,'port_jobs',{}).pop(item['repository'],None)
-        self.finish_transfer(item['repository'])
+        self.transfer_event(item['repository'],{'phase':'done','fraction':1,'text':'Juego preparado','eta':None})
         GLib.idle_add(self.run_next_auto_port)
         self.port_busy=False;self.set_status(item['name']+' configurado con «'+record.get('configured_with','')+'».');self.discover()
         notes={'ctr':'La primera vez, CTR pregunta por una fuente opcional (elegir «Use Luckiest Guy») y por un preset de gráficos.','openpete':'El juego ya está compilado. Se abre en pantalla completa.','kit':'El juego ya está compilado y listo para jugar.'}
         if notes.get(record.get('setup')):self.message(item['name']+' listo',notes[record['setup']]+' Se puede agregar a Steam desde la biblioteca.')
         if self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
+        from .iso_import import details
+        if record.get('configured') and details(ports.ports_root()/record['folder']):GLib.idle_add(lambda:(self.iso_cleanup_page(item),False)[1])
         return False
+
+    def iso_cleanup_button(self,body,item,record):
+        from .iso_import import details
+        from .gui import button
+        if record.get('configured') and details(ports.ports_root()/record['folder']):body.pack_start(button('Liberar espacio de la ISO',lambda _:self.iso_cleanup_page(item)),False,False,0)
+
+    def iso_cleanup_page(self,item):
+        from .iso_import import details,remove_source
+        from .gui import label,button
+        record=ports.records(self.store).get(item['repository']);folder=ports.ports_root()/record['folder'] if record else None
+        info=details(folder) if folder else None
+        if not info:self.message('Limpieza de ISO','No hay una ISO verificada pendiente de limpieza.');return
+        page=InlineDialog(title='Liberar espacio',transient_for=self);page.add_button('Conservar ISO',Gtk.ResponseType.CLOSE)
+        body=page.get_content_area();body.pack_start(label('¿Eliminar la ISO original?','title'),False,False,0)
+        body.pack_start(label('La extracción terminó. Los archivos del port se conservarán. Podés mantener la ISO para otros usos o eliminarla para liberar espacio.','subtitle'),False,False,0)
+        path=label(info['source'],'muted');path.set_selectable(True);body.pack_start(path,False,False,0)
+        body.pack_start(label(f'ISO original · {info["size"]/1e9:.2f} GB','meta'),False,False,0)
+        status=label('Antes de borrar se volverán a verificar los archivos extraídos.','muted');body.pack_start(status,False,False,0)
+        cancel=threading.Event();alive=[True]
+        def done(error):
+            getattr(self,'port_jobs',{}).pop(item['repository'],None);self.port_busy=False
+            text=('No se pudo eliminar la ISO: '+error) if error else 'ISO eliminada. Los datos del port, las partidas y los ajustes se conservaron.'
+            self.transfer_event(item['repository'],{'phase':'error' if error else 'done','fraction':0 if error else 1,'text':text,'eta':None});self.set_status(text)
+            if alive[0]:status.set_text(text);remove.set_sensitive(bool(error))
+            if not error:self.toast(text);self.discover()
+            return False
+        def remove_iso(_):
+            if getattr(self,'port_busy',False):status.set_text('Ya hay una instalación en curso.');return
+            if not self.confirm('Eliminar ISO original',info['source']+'\n\nSe eliminará de forma permanente. El port conservará los archivos extraídos; otros programas ya no podrán usar esta ISO.','Eliminar ISO',danger=True):return
+            remove.set_sensitive(False);self.port_busy=True;cancel.clear()
+            if not hasattr(self,'port_jobs'):self.port_jobs={}
+            self.port_jobs[item['repository']]=cancel;self.start_transfer(item['repository']);progress=self.port_progress(item['repository'])
+            def work():
+                try:remove_source(folder,ports.records(self.store)[item['repository']],progress,cancel);error=''
+                except Exception as failure:error=str(failure)
+                GLib.idle_add(done,error)
+            threading.Thread(target=work,daemon=True).start()
+        remove=button('Eliminar ISO',remove_iso,tone='danger');body.pack_start(remove,False,False,0)
+        self.transfer_row(body,item['repository']).hide();page.show_all();page.run();alive[0]=False;cancel.set();page.destroy()
 
     def port_failed(self,item,text):
         getattr(self,'port_jobs',{}).pop(item['repository'],None)

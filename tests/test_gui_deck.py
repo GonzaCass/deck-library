@@ -55,6 +55,30 @@ class DeckUITests(unittest.TestCase):
         with patch.object(self.w,'pending_updates',return_value=[]):self.w.refresh_update_badges()
         self.assertFalse(self.w.update_badge.get_visible())
 
+    def test_running_version_and_update_state_stay_visible_and_refresh_automatically(self):
+        from deck_library import __version__
+        self.w.preferences['auto_update']=False;self.w.preferences['check_updates']=True
+        for page in ('library','home','catalog','updates','settings'):
+            self.w.pages.set_visible_child_name(page);self.settle();self.assertTrue(self.w.version_label.get_mapped());self.assertIn(__version__,self.w.version_label.get_text())
+        self.w.updates_page();self.w.app_update_ready({'app':{'version':'99.0.0','notes':'New release'}});self.settle()
+        self.assertIn('99.0.0',self.w.version_label.get_text());self.assertTrue(self.w.update_banner.get_mapped())
+        def labels(widget):
+            from gi.repository import Gtk
+            return ([widget.get_text()] if isinstance(widget,Gtk.Label) else [])+[text for child in (widget.get_children() if isinstance(widget,Gtk.Container) else []) for text in labels(child)]
+        self.assertIn('Deck Library 99.0.0',labels(self.w.updates_box))
+        self.w.app_update_ready({'app_error':'offline'});self.settle();self.assertIn('No se pudo comprobar',self.w.version_label.get_text());self.assertTrue(self.w.update_banner.get_mapped())
+        self.w.resize(840,640);self.settle();position=self.w.version_label.translate_coordinates(self.w,0,0)
+        self.assertGreaterEqual(position[0],0);self.assertLessEqual(position[0]+self.w.version_label.get_allocated_width(),840)
+
+    def test_gaming_mode_can_install_an_app_update_and_requests_only_reopening_the_app(self):
+        from deck_library import gui_updates,updates,__version__
+        self.w.preferences['auto_update']=False;self.w.update_state={'app':{'version':'99.0.0','archive':'https://example.com/app','checksum':'https://example.com/checksum','name':'test'}}
+        with patch.object(gui_updates.motion,'gaming_mode',return_value=True),patch.object(updates,'install_update',return_value='99.0.0') as install,patch.object(self.w,'message') as message:
+            self.w.port_busy=True;self.w.install_app_update(automatic=True);install.assert_not_called();self.assertTrue(self.w.app_update_retry);self.w.port_busy=False
+            self.w.install_app_update();self.settle();install.assert_called_once();message.assert_not_called()
+            self.assertEqual(self.w.update_installed,'99.0.0');self.assertIn(__version__,self.w.version_label.get_text());self.assertIn('99.0.0',self.w.version_label.get_text())
+            self.assertEqual(self.w.banner_action.get_label(),'Cerrar para abrir desde Steam')
+
     def test_search_opens_keyboard_only_after_an_explicit_action(self):
         from gi.repository import Gtk
         self.assertTrue(self.w.search.get_input_hints()&Gtk.InputHints.INHIBIT_OSK);self.assertIn('X: teclado',self.w.search.get_placeholder_text())
@@ -563,9 +587,103 @@ class DeckUITests(unittest.TestCase):
                 except Exception as error:errors.append(str(error))
                 page.response(Gtk.ResponseType.OK);return False
             GLib.timeout_add(200,choose);return original_run(page)
-        with patch.object(self.w,'pick_file',return_value=str(iso)),patch.object(self.inline,'run',run):self.assertTrue(self.w.port_inputs(item))
+        with patch.object(self.w,'pick_file',return_value=str(iso)),patch.object(self.inline,'run',run),patch.object(ports,'ports_root',return_value=pathlib.Path(self.temp.name)/'ports'):self.assertTrue(self.w.port_inputs(item))
         self.assertEqual(errors,[]);self.assertEqual(seen,[False,True]);self.assertEqual(self.application_windows(),windows)
         self.assertEqual(ports.records(self.store)[item['repository']]['inputs']['original_data'],str(iso));self.assertEqual(iso.read_bytes(),data)
+
+    def test_naruto_rise_old_install_can_select_an_iso_inside_the_app(self):
+        from gi.repository import Gtk,GLib
+        from deck_library import ports
+        from deck_library.models import atomic_json
+        from test_iso_import import create_iso
+        repo='jorjbarbosa/naruto-rise-recomp';item=ports.clean({'repository':repo,'name':'Naruto: Rise of a Ninja'})
+        record={**item,'original_data':{**item['original_data']}};record['original_data'].pop('iso');record['original_data'].pop('extract_iso')
+        atomic_json(self.store.root/'ports.json',{repo:record});iso=pathlib.Path(self.temp.name)/'owned.iso';create_iso(iso)
+        original_run=self.inline.run;seen=[];errors=[];windows=self.application_windows()
+        def run(page):
+            def choose():
+                try:
+                    ready=page._buttons[Gtk.ResponseType.OK];seen.append(ready.get_sensitive());controls=self.w.control_targets(page)
+                    names=[c.get_accessible().get_name() for c in controls];self.assertIn('Elegir carpeta extraída',names)
+                    next(c for c in controls if c.get_accessible().get_name()=='Elegir ISO de Xbox 360').clicked();seen.append(ready.get_sensitive())
+                except Exception as error:errors.append(str(error))
+                page.response(Gtk.ResponseType.OK);return False
+            GLib.timeout_add(200,choose);return original_run(page)
+        with patch.object(self.w,'pick_file',return_value=str(iso)),patch.object(self.inline,'run',run),patch.object(ports,'ports_root',return_value=pathlib.Path(self.temp.name)/'ports'):self.assertTrue(self.w.port_inputs(item))
+        self.assertEqual(errors,[]);self.assertEqual(seen,[False,True]);self.assertEqual(self.application_windows(),windows)
+        self.assertEqual(ports.records(self.store)[repo]['inputs']['original_data'],str(iso))
+
+    def test_iso_cleanup_stays_inline_and_deletes_only_after_explicit_confirmation(self):
+        import time
+        from gi.repository import Gtk,GLib
+        from deck_library import ports,iso_import
+        from deck_library.models import atomic_json
+        from test_iso_import import create_iso
+        root=pathlib.Path(self.temp.name);repo='jorjbarbosa/naruto-rise-recomp';item=ports.clean({'repository':repo,'name':'Naruto: Rise of a Ninja'})
+        folder=root/'ports'/item['folder'];folder.mkdir(parents=True);iso=root/'owned.iso';create_iso(iso)
+        record={**item,'configured':True,'inputs':{'original_data':str(iso)}};atomic_json(self.store.root/'ports.json',{repo:record})
+        iso_import.prepare(folder,iso,record['original_data'],lambda _:None);(folder/'user').mkdir();(folder/'user/save').write_text('progress')
+        original_run=self.inline.run;windows=self.application_windows()
+        for mode in ('keep','decline','delete'):
+            errors=[];started=[False];deadline=time.monotonic()+5
+            def run(page):
+                def act():
+                    try:
+                        if not started[0]:
+                            started[0]=True
+                            if mode!='keep':next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Eliminar ISO').clicked()
+                        if mode=='delete' and getattr(self.w,'port_busy',False) and time.monotonic()<deadline:return True
+                        if mode=='delete':self.assertFalse(iso.exists());self.assertFalse(self.w.port_busy)
+                        else:self.assertTrue(iso.exists())
+                    except Exception as error:errors.append(str(error))
+                    page.response(Gtk.ResponseType.CLOSE);return False
+                GLib.timeout_add(100,act);return original_run(page)
+            with patch.object(ports,'ports_root',return_value=root/'ports'),patch.object(self.w,'confirm',return_value=mode=='delete') as confirm,patch.object(self.inline,'run',run):
+                self.w.iso_cleanup_page(item)
+                self.assertEqual(confirm.call_count,0 if mode=='keep' else 1)
+            self.assertEqual(errors,[]);self.assertEqual(self.application_windows(),windows)
+        self.assertTrue((folder/'game/default.xex').is_file());self.assertEqual((folder/'user/save').read_text(),'progress')
+
+    def exercise_full_iso_install_flow(self,delete):
+        import io,time,zipfile
+        from gi.repository import Gtk,GLib
+        from deck_library import ports,project2099
+        from test_iso_import import create_iso,xex
+        root=pathlib.Path(self.temp.name);iso=root/'owned.iso';create_iso(iso)
+        item=ports.clean({'repository':'jorjbarbosa/naruto-rise-recomp','name':'Naruto: Rise of a Ninja'});payload=io.BytesIO()
+        with zipfile.ZipFile(payload,'w') as archive:archive.writestr('narutorise_launcher.exe',b'MZfixture');archive.writestr('narutorise.exe',b'MZfixture')
+        release={'tag_name':'test','assets':[{'name':'Naruto-win64.zip','browser_download_url':'https://github.com/owner/repo/test.zip'}]}
+        original_run=self.inline.run;seen=[];errors=[];windows=self.application_windows()
+        def run(page):
+            def act():
+                try:
+                    title=next(child.get_text() for child in page.get_children() if isinstance(child,Gtk.Label) and child.get_style_context().has_class('inline-page-heading'))
+                    if title.startswith('Preparar '):
+                        seen.append('original');next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Elegir ISO de Xbox 360').clicked()
+                        self.assertTrue(page._buttons[Gtk.ResponseType.OK].get_sensitive());page.response(Gtk.ResponseType.OK);return False
+                    seen.append('cleanup');self.assertEqual(title,'Liberar espacio');self.assertTrue(iso.exists())
+                    if delete:
+                        next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Eliminar ISO').clicked()
+                        deadline=time.monotonic()+4
+                        def finish():
+                            if self.w.port_busy and time.monotonic()<deadline:return True
+                            if iso.exists():errors.append('ISO not removed after confirmation')
+                            page.response(Gtk.ResponseType.CLOSE);return False
+                        GLib.timeout_add(50,finish)
+                    else:page.response(Gtk.ResponseType.CLOSE)
+                except Exception as error:errors.append(str(error));page.response(Gtk.ResponseType.CLOSE)
+                return False
+            GLib.timeout_add(100,act);return original_run(page)
+        with patch.object(ports,'ports_root',return_value=root/'ports'),patch.object(ports,'release_for',return_value=release),patch.object(ports,'download',side_effect=lambda _,target,**kw:target.write_bytes(payload.getvalue())),patch.object(project2099,'proton_path',return_value=pathlib.Path('/fake/proton')),patch.object(self.w,'pick_file',return_value=str(iso)),patch.object(self.w,'confirm',return_value=True),patch.object(self.inline,'run',run):
+            self.w.install_port(item,False);deadline=time.monotonic()+5
+            while ('cleanup' not in seen or self.w.port_busy) and time.monotonic()<deadline:self.settle()
+        self.assertEqual(errors,[]);self.assertEqual(seen,['original','cleanup']);self.assertEqual(iso.exists(),not delete)
+        record=ports.records(self.store)[item['repository']];self.assertTrue(record['configured'])
+        self.assertEqual((root/'ports'/record['folder']/'game/default.xex').read_bytes(),xex());self.assertEqual(self.application_windows(),windows)
+
+    def test_install_port_requests_the_iso_extracts_it_and_offers_keep_at_the_end(self):self.exercise_full_iso_install_flow(False)
+
+    def test_install_port_can_remove_the_iso_only_after_the_final_cleanup_choice(self):self.exercise_full_iso_install_flow(True)
 
     def test_port_detail_offers_proton_as_an_explicit_alternative(self):
         from gi.repository import Gtk,GLib
