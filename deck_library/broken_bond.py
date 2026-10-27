@@ -11,9 +11,11 @@ SETTINGS={'fullscreen':True,'vsync':False,'frame_rate':60,'internal_resolution_s
 def status(entry,store=None):
     from . import ports,updates
     repo=entry.metadata.get('port_repository','')
+    if repo.casefold() not in (ORIGINAL,COMPATIBLE.casefold()):return ''
+    record=next((r for key,r in ports.records(store or Store()).items() if key.casefold()==repo.casefold()),None)
+    if record is None:return ''
     if repo.casefold()==ORIGINAL:return 'migrate'
     if repo.casefold()!=COMPATIBLE.casefold():return ''
-    record=ports.records(store or Store()).get(repo,{})
     if updates.is_newer('2.5',record.get('tag','0')):return 'update'
     return 'applied' if record.get('steam_deck_fix',{}).get('id')==FIX else 'settings'
 

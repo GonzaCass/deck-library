@@ -25,7 +25,7 @@
 - **Ports:** browse, install and update supported projects. Check original-file requirements and choose missing files during setup.
 - **Game settings:** compare compact profiles, expand their details and apply changes with a backup.
 - **Community:** share per-game settings, ratings and comments from the app.
-- **Validated games:** a dedicated tab with gameplay reports, tested versions and known limitations.
+- **Validated games:** gameplay reports tied to a repository and version, with known limitations. Compare alternative ports from the catalog and check whether the installed variant was tested.
 - **Help:** follow the first-use guide and prepare a bug report.
 - **Steam:** add individual games or Deck Library itself, with artwork and controller navigation in Gaming Mode.
 

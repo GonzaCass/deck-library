@@ -1,5 +1,12 @@
 # Validación
 
+## 1.3.5 — Gameplay evidence by port variant
+
+- Unit coverage distinguishes an exact repository/version report from newer releases, other prereleases, unknown versions and other repositories. Reviewed recipes, Linux metadata, successful installation flags, package hashes and high catalog scores cannot grant gameplay validation. Known issues are limited to explicitly recorded revisions; untested BLACK variants remain unvalidated without a recommended winner.
+- Grouping coverage checks explicit families, new variants with an explicit game title/source platform, platform and sequel separation, duplicate repositories, installed alternate revisions and Quiver manifest/version discovery. External installations receive no managed migration action. An explicitly different repository is not selected as the installed port of a validated report merely because its game ID matches; an unidentified adapter can still open its game for inspection without earning a badge.
+- GTK coverage includes verified/known-issue/unvalidated catalog labels, another installed variant, the port evidence panel, the managed Broken Bond migration action and declining installation of a known problematic revision before download. The prior 114-check interface suite passed during development; final focused checks and GitHub CI validate the published tree. No additional game was installed, migrated or play-tested for this release. Existing gameplay reports and their limitations remain unchanged.
+
+
 ## 1.3.4 — Previous game errors do not block the library
 
 - A pending game-launch notice previously opened an inline page titled as a failed launch while the library navigation was disabled. Notices now show a dismissible banner, identify the game when available and save the details under Help. Opening a diagnostic is explicit; its game action returns to the library entry. GTK regressions cover legacy and structured notices, enabled navigation, one-time consumption, dismissal, Help and the return to the game.

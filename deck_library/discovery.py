@@ -126,6 +126,9 @@ def scan(home=None,extra_roots=(),preferences=None):
     from .installations import launcher_roots,apps_folder,is_launcher_root
     for root in launcher_roots(home,preferences):
         apps=apps_folder(root)
+        try:registered=json.loads((root/'apps.json').read_text()).get('apps',[])
+        except (OSError,ValueError,AttributeError):registered=[]
+        registered={a['folderName']:a for a in registered if isinstance(a,dict) and isinstance(a.get('folderName'),str)} if isinstance(registered,list) else {}
         for folder in apps.glob('*'):
             if not folder.is_dir():continue
             choice=folder/'selected_executable.txt'
@@ -143,7 +146,16 @@ def scan(home=None,extra_roots=(),preferences=None):
                 if not exe.is_file():continue
                 name=choice.parent.name.split('-')[0]; name=re.sub(r'(?<=[a-z])(?=[A-Z])',' ',name)
                 if 'MarioKartWii' in choice.parent.name:name='Mario Kart Wii'
-                e=Entry(name,[str(exe)],'port','Linux',str(exe),str(choice.parent)); found[e.id]=e
+                metadata={};manifest=registered.get(folder.name)
+                if manifest:
+                    from .ports import clean,platform_for
+                    item=clean(manifest)
+                    if item:
+                        metadata={'port_repository':item['repository'],'port_manager':'quiver','game_title':item.get('game_title') or item.get('cover_title') or '','original_platform':platform_for(item['list'])}
+                        try:
+                            with (folder/'version.txt').open() as version_file:metadata['port_tag']=version_file.read(160).strip()[:80]
+                        except OSError:pass
+                e=Entry(name,[str(exe)],'port','Linux',str(exe),str(choice.parent),metadata=metadata); found[e.id]=e
             except OSError:continue
     # A registered WiiCompiled product takes precedence over the Quiver setup wrapper.
     for data in wiicompiled_roots(home,preferences):

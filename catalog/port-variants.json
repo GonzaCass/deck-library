@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "groups": [
+    {
+      "id": "naruto-broken-bond",
+      "title": "Naruto: The Broken Bond",
+      "platform": "Xbox 360",
+      "repositories": ["Auremana666/Naruto-The-Broken-Bond-PC-Port", "jorjbarbosa/broken-bond-recomp"],
+      "issues": [{"repository": "jorjbarbosa/broken-bond-recomp", "versions": ["0.1.0-beta"], "description": "Pantalla negra observada en Steam Deck con Proton 11. La prueba de juego disponible corresponde al port de Auremana v2.5."}]
+    },
+    {
+      "id": "black-xbox",
+      "title": "BLACK",
+      "platform": "Xbox",
+      "repositories": ["portingpete/black-2006-recomp", "tgp482/black-xberecomp", "euspring1/blackdefinitivehdpc", "spark198rus/black-pc"],
+      "issues": []
+    },
+    {
+      "id": "crash-team-racing",
+      "title": "Crash Team Racing",
+      "platform": "PlayStation",
+      "repositories": ["web/ctr-turbocharged", "ctr-tools/ctr-native"],
+      "issues": []
+    }
+  ]
+}

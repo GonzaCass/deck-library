@@ -181,3 +181,16 @@ Se comprobó imagen y navegación en una Steam Deck OLED; una prueba de uso conf
 El selector de ISO comienza filtrado por `*.iso`, sin distinguir mayúsculas, y conserva las carpetas visibles para navegar. **Todos los archivos** permite cambiar el filtro. Conservar o eliminar una ISO después de prepararla cierra la pantalla de limpieza y vuelve a Biblioteca con la navegación habilitada; las siguientes actualizaciones automáticas esperan hasta completar esa decisión.
 
 El lanzador reintenta hasta seis veces los cierres con código 3 solo si el port dejó registrado un shader nuevo en `pipeline-guard-pending.txt`. Si el registro no cambia, no es válido o corresponde a otro error, informa el fallo. Ambos registros de shaders se conservan al actualizar. La pantalla inicial adicional del port se desactiva en el ajuste recomendado para acelerar el acceso al juego.
+
+
+## Variantes y pruebas de juego (1.3.5)
+
+El catálogo separa **Integración revisada** (se revisó la instalación), el porcentaje orientativo y la **prueba de juego**. Solo el repositorio y la versión exactos de `catalog/validated-games.json` reciben la marca verde de juego verificado. Otra versión, una versión sin identificar y otro fork conservan estados distintos; no se hereda una prueba por el título, por ser más nuevo, por instalarse correctamente o por verificar el SHA-256. Las condiciones y limitaciones de la prueba siguen siendo parte del resultado: la marca no certifica todos los ajustes, versiones de Proton ni recorridos del juego, y no es una certificación de Valve.
+
+**Comparar variantes** aparece dentro de la ficha del port. Si hay una prueba de otro repositorio, **Ver variante probada** abre ese proyecto. La ficha identifica las variantes instaladas y sus versiones. Las instalaciones administradas de Broken Bond pueden usar **Cambiar a la variante probada**, con la reparación existente y sus respaldos; las instalaciones externas no se migran automáticamente. Instalar otra variante genérica conserva la anterior y no transfiere partidas automáticamente.
+
+`catalog/port-variants.json` agrupa explícitamente Broken Bond, las cuatro variantes de BLACK y las dos de CTR. También se agrupan proyectos con el mismo `game_title` explícito y la misma plataforma original conocida. No se agrupa solo por parecido de nombres ni se consultan forks remotos en cada tarjeta. Si ninguna variante tiene pruebas de gameplay, todas siguen sin validar y no se elige una ganadora por la puntuación del catálogo.
+
+Las incidencias conocidas del registro incluyen sus versiones observadas: el aviso de pantalla negra del recomp anterior de Broken Bond se limita a `0.1.0-beta` bajo Proton 11; no se atribuye automáticamente a versiones futuras. Esas instalaciones se pueden cancelar antes de descargar. La variante de Auremana probada es `2.5`; conserva las pausas en cinemáticas y las limitaciones de shaders documentadas.
+
+La detección de Quiver lee el repositorio del registro `apps.json` por `folderName` y la versión de `version.txt`. Conserva el ejecutable elegido y la identidad de la biblioteca. Sin esos datos no se supone el repositorio a partir del nombre de una carpeta: una coincidencia por nombre se presenta como una instalación sin identificar, sin concederle la marca de la variante mostrada en el catálogo.

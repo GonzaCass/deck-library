@@ -1060,13 +1060,53 @@ class DeckUITests(unittest.TestCase):
         atomic_json(self.store.root/'ports.json',{item['repository']:{**item,'executable':'x.AppImage','tag':'r1','verified':True}})
         self.w.catalog_page();self.w.catalog_apps=[item,other];self.w.catalog_search.set_text('')
         with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog()
-        joined='\n'.join(self.catalog_texts());self.assertIn('Desinstalar',joined);self.assertIn('Instalar todos los juegos',joined);self.assertIn('Revisado',joined);self.assertIn('Sin revisar',joined)
+        joined='\n'.join(self.catalog_texts());self.assertIn('Desinstalar',joined);self.assertIn('Instalar todos los juegos',joined);self.assertIn('Integración revisada',joined);self.assertIn('Integración sin revisar',joined)
+
+    def test_catalog_distinguishes_tested_versions_known_issues_and_other_installed_variants(self):
+        from deck_library import ports,broken_bond
+        from deck_library.models import Entry
+        good=ports.clean({'repository':broken_bond.COMPATIBLE,'release_version':'v2.5'})
+        old=ports.clean({'repository':broken_bond.ORIGINAL,'release_version':'v0.1.0-beta'})
+        entry=Entry('Naruto: The Broken Bond',['/bin/true'],metadata={'port_repository':broken_bond.ORIGINAL,'port_tag':'v0.1.0-beta'})
+        self.w.entries=[entry];self.w.catalog_page();self.w.catalog_apps=[good,old];self.w.catalog_search.set_text('Naruto: The Broken Bond')
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog();self.settle()
+        captions=self.catalog_texts()
+        for value in ('Verificado en Deck · 2.5','Problema conocido · v0.1.0-beta','Otra variante instalada','Ver variante probada','2 variantes'):self.assertIn(value,captions)
+        self.assertNotIn('Instalado · v0.1.0-beta',captions[:captions.index('Verificado en Deck · 2.5')])
+        self.w.catalog_search.set_text('BLACK');self.w.catalog_apps=[ports.clean({'repository':'tgp482/black-xberecomp','name':'BLACK'})]
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog();self.settle()
+        captions=self.catalog_texts();self.assertIn('Sin validar en Steam Deck',captions);self.assertIn('4 variantes',captions)
+        self.assertFalse(any(value.startswith('Verificado en Deck') for value in captions))
+
+    def test_variant_details_explain_installed_revision_and_offer_the_managed_migration(self):
+        from deck_library import ports,broken_bond
+        from deck_library.models import Entry,atomic_json
+        from gi.repository import Gtk,GLib
+        entry=Entry('Naruto: The Broken Bond',['/bin/true'],metadata={'port_repository':broken_bond.ORIGINAL,'port_tag':'v0.1.0-beta'})
+        self.w.entries=[entry];self.store.save([entry]);atomic_json(self.store.root/'ports.json',{broken_bond.ORIGINAL:{'folder':'Old','tag':'v0.1.0-beta'}})
+        item=ports.clean({'repository':broken_bond.ORIGINAL,'release_version':'v0.1.0-beta'});original=self.inline.run;seen=[]
+        def run(page):
+            def check():
+                controls=self.w.control_targets(page);migration=next(c for c in controls if c.get_accessible().get_name()=='Cambiar a la variante probada')
+                seen.append(migration.get_mapped());migration.grab_focus();self.w.controller_action('activate');return False
+            GLib.timeout_add(200,check);return original(page)
+        with patch.object(self.inline,'run',run),patch.object(ports,'icon_path',return_value=''),patch.object(ports,'requirements',return_value=[]),patch.object(ports,'release_for',return_value={'tag_name':'v0.1.0-beta','assets':[]}),patch.object(self.w,'repair_broken_bond') as repair:
+            self.w.port_details(item);self.settle();repair.assert_called_once_with(entry)
+        self.assertTrue(all(seen));self.assertFalse(self.w.inline_workflows)
+
+    def test_known_problem_install_can_be_declined_without_downloading(self):
+        from deck_library import ports,broken_bond
+        item=ports.clean({'repository':broken_bond.ORIGINAL,'release_version':'v0.1.0-beta'})
+        with patch.object(self.w,'confirm',return_value=False) as confirm,patch.object(ports,'install') as install:
+            self.w.install_port(item,False);install.assert_not_called();self.assertEqual(confirm.call_args.args[0],'Problema conocido en esta versión')
 
     def test_old_broken_bond_offers_the_black_screen_repair_in_the_game_overview(self):
         from gi.repository import Gtk
         from deck_library.models import Entry
         from deck_library import broken_bond
         entry=Entry('Broken Bond',['/bin/true'],metadata={'port_repository':broken_bond.ORIGINAL})
+        from deck_library.models import atomic_json
+        atomic_json(self.store.root/'ports.json',{broken_bond.ORIGINAL:{'folder':'Old','tag':'v0.1.0-beta'}})
         self.store.save([entry]);self.w.entries=[entry]
         def widgets(widget):
             yield widget

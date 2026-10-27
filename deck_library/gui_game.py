@@ -297,6 +297,7 @@ class GameMixin:
         if entry.metadata.get('gtaiv_root'):
             content.pack_start(TaskButton('Mejoras para GTA IV', 'FusionFix y DXVK', 'sliders', lambda _: self.gtaiv_dialog(entry)), False, False, 0)
         self.build_proton_selector(entry,content,compact=True)
+        self.build_game_variant_notice(entry,content)
         self.build_broken_bond_repair(entry,content)
         if adapter in presets.REGISTRY:
             self.build_profile_picker(entry, content, parent)
