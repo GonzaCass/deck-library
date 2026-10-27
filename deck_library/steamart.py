@@ -67,7 +67,7 @@ def write(account,appid,slot,source,is_running):
     from .steam import SteamRunningError
     suffix=SLOTS[slot][0];source=pathlib.Path(source);data=source.read_bytes();ext=image_type(data)
     if not ext:raise ValueError('La imagen no es PNG, JPEG, WebP ni ICO.')
-    if ext=='.ico' and slot!='icon':raise ValueError('Un archivo ICO solo sirve para el ícono.')
+    if ext=='.ico' and slot!='icon':raise ValueError('Un archivo ICO solo sirve para el icono.')
     if len(data)>IMAGE_LIMIT:raise ValueError('La imagen es demasiado grande para Steam.')
     grid=pathlib.Path(account)/'grid';grid.mkdir(parents=True,exist_ok=True);appid=str(int(appid)&0xffffffff)
     target=grid/(appid+suffix+ext);previous=[p for p in (grid/(appid+suffix+e) for e in (*EXTENSIONS,'.ico')) if p.is_file()]

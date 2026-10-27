@@ -2,7 +2,7 @@
 import re
 from .artwork import normalized
 
-TYPES=[('port','Ports'),('emulator','Emulador'),('minecraft','Instancias de Minecraft'),('steam','Accesos de Steam'),('custom','Personalizados')]
+TYPES=[('port','Ports'),('emulator','Emulador'),('minecraft','Instancias de Minecraft'),('steam','Accesos directos de Steam'),('custom','Personalizados')]
 TYPE_LABELS=dict(TYPES)
 
 def entry_type(entry):

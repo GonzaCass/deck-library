@@ -38,7 +38,7 @@ try:
 except (OSError,ValueError,ImportError) as error:print('Perfil de mando:',error)
 try:
  from deck_library.library_app import refresh_existing_art,refresh_existing_launcher
- if refresh_existing_launcher(app=dest/'app.py'):print('Acceso de Steam actualizado a la instalación actual.')
+ if refresh_existing_launcher(app=dest/'app.py'):print('Acceso directo de Steam actualizado a la instalación actual.')
  count=refresh_existing_art(app=dest/'app.py')
  if count:print('Arte de Deck Library preparado para Steam:',count)
 except (OSError,ValueError,ImportError) as error:print('Arte de Steam:',error)

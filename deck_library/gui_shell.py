@@ -108,7 +108,7 @@ class ShellMixin:
             caption=control.get_child();control.remove(caption);content=Gtk.Box(spacing=7);content.pack_start(Icon({'Inicio':'grid','Biblioteca':'library','Catálogo de ports':'controller','Actualizaciones':'download','Ajustes':'sliders'}[name],18),False,False,0);content.pack_start(caption,False,False,0);control.add(content);control.get_accessible().set_name(name)
             if name=='Actualizaciones':
                 content.pack_start(self.update_badge,False,False,0)
-        self.steam_library_button=button('Añadir a Steam',self.add_library_to_steam);self.steam_library_button.set_valign(Gtk.Align.CENTER);self.steam_library_button.set_tooltip_text('Añadir Deck Library a Steam');self.steam_library_button.get_accessible().set_name('Añadir Deck Library a Steam');self.steam_library_button.get_style_context().add_class('steam-add');bar.pack_start(self.steam_library_button,False,False,0)
+        self.steam_library_button=button('Agregar a Steam',self.add_library_to_steam);self.steam_library_button.set_valign(Gtk.Align.CENTER);self.steam_library_button.set_tooltip_text('Agregar Deck Library a Steam');self.steam_library_button.get_accessible().set_name('Agregar Deck Library a Steam');self.steam_library_button.get_style_context().add_class('steam-add');bar.pack_start(self.steam_library_button,False,False,0)
         gaming=motion.gaming_mode()
         self.steam_library_button.set_no_show_all(gaming)
         self.steam_library_button.set_visible(not gaming)
@@ -255,10 +255,10 @@ class ShellMixin:
         from .gui import label,button
         self.reset_page(self.settings_box);self.settings_box.pack_start(label('Ajustes','hero'),False,False,0)
         from .ui_components import ActionButton
-        for title,description,caption,icon,action in [('Instalaciones y carpetas','Emuladores y carpetas de juegos.','Elegir carpetas','folder',lambda _:self.installation_dialog()),('Carátulas y apariencia','Proveedor de imágenes y animaciones.','Configurar','image',lambda _:self.appearance_dialog()),('ROMs y ports instalados','Gestionar la copia de consola de un juego que ya tiene un port.','Gestionar ROMs','folder',lambda _:self.originals_dialog()),('Revisar biblioteca','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam),('Configuración inicial','Volver a detectar instalaciones.','Iniciar asistente','plus',lambda _:self.start_wizard())]:
+        for title,description,caption,icon,action in [('Instalaciones y carpetas','Emuladores y carpetas de juegos.','Elegir carpetas','folder',lambda _:self.installation_dialog()),('Carátulas y apariencia','Proveedor de imágenes y animaciones.','Configurar','image',lambda _:self.appearance_dialog()),('ROMs y ports instalados','Gestionar la copia de consola de un juego que ya tiene un port.','Gestionar ROMs','folder',lambda _:self.originals_dialog()),('Duplicados y conflictos','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam),('Configuración inicial','Volver a detectar instalaciones.','Iniciar asistente','plus',lambda _:self.start_wizard())]:
             if title=='Deck Library en Steam' and motion.gaming_mode():continue
             row=Gtk.Box(spacing=16);row.get_style_context().add_class('settings-row');texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.pack_start(label(title,'title'),False,False,0);texts.pack_start(label(description,'muted'),False,False,0);row.pack_start(texts,True,True,0);row.pack_end(ActionButton(caption,icon,action,'steam' if icon=='steam' else 'quiet'),False,False,0);self.settings_box.pack_start(row,False,False,0)
-            if icon=='steam':self.settings_box.pack_start(label('Si Steam está abierto, el acceso se guarda al cerrarlo. Después buscar «Deck Library» en su biblioteca y pulsar Jugar.','meta'),False,False,0)
+            if icon=='steam':self.settings_box.pack_start(label('Si Steam está abierto, el acceso directo se guarda al cerrarlo. Después buscar «Deck Library» en su biblioteca y pulsar Jugar.','meta'),False,False,0)
         self.settings_box.show_all();self.pages.set_visible_child_name('settings')
     def appearance_dialog(self):
         from .gui import label,button
@@ -299,7 +299,7 @@ class ShellMixin:
         except (OSError,ValueError):pass
         if not rows:self.pending_box.pack_start(label('No hay cambios pendientes.','muted'),False,False,0)
         else:
-            self.pending_box.pack_start(label('Los accesos y las carátulas se guardan cuando Steam se cierra. Si reiniciás la Deck, se recuperan antes de abrir Steam. En modo Juego, cerrá Deck Library y reiniciá Steam desde su menú de encendido.','muted'),False,False,0)
+            self.pending_box.pack_start(label('Los accesos directos y las carátulas se guardan cuando Steam se cierra. Al reiniciar la Deck, se recuperan antes de abrir Steam. En modo Juego, cerrar Deck Library y reiniciar Steam desde su menú de encendido.','muted'),False,False,0)
             if not motion.gaming_mode():
                 def apply_now(_):
                     from .service import apply_closing_steam
@@ -311,7 +311,7 @@ class ShellMixin:
                     threading.Thread(target=work,daemon=True).start()
                 self.pending_box.pack_start(button('Cerrar Steam y aplicar ahora',apply_now,True),False,False,0)
             def cancel(_):
-                if not self.confirm('Descartar cambios pendientes','Se cancelan las operaciones listadas. Los juegos y los accesos que ya existen se conservan.','Descartar'):return
+                if not self.confirm('Descartar cambios pendientes','Se cancelan las operaciones listadas. Los juegos y los accesos directos que ya existen se conservan.','Descartar'):return
                 try:cancel_pending(self.store);self.refresh_pending();self.pending_details();self.toast('Cambios descartados')
                 except Exception as error:self.message('No se pudo descartar',str(error))
             self.pending_box.pack_start(button('Descartar estos cambios',cancel,tone='danger'),False,False,0)

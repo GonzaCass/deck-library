@@ -21,7 +21,7 @@ def inspect(item,get=ports.fetch_json):
             row.update(status={'linux':'native','proton':'proton','detect':'inspect-archive'}[plan['runtime']],asset=plan['asset']['name'],package=plan['kind'])
         else:row.update(status='no-compatible-package',note='No supported portable Linux/Windows asset in the selected release.')
     except (OSError,ValueError,KeyError) as error:
-        status='no-release' if 'no tiene releases' in str(error) else 'unavailable' if isinstance(error,urllib.error.HTTPError) and error.code==404 else 'request-failed'
+        status='no-release' if 'no tiene versiones publicadas' in str(error) else 'unavailable' if isinstance(error,urllib.error.HTTPError) and error.code==404 else 'request-failed'
         row.update(status=status,note='No published release.' if status=='no-release' else 'Repository unavailable.' if status=='unavailable' else 'Metadata request failed; compatibility is unknown.')
     return row
 

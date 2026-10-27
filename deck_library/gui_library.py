@@ -39,11 +39,11 @@ class LibraryToolsMixin:
     def conflicts_page(self):
         from .gui import label,button
         from .conflicts import analyze
-        dialog=InlineDialog(title='Coincidencias e instalaciones',transient_for=self,modal=True);dialog.set_default_size(760,580);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(16)
+        dialog=InlineDialog(title='Duplicados y conflictos',transient_for=self,modal=True);dialog.set_default_size(760,580);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(16)
         status=label('Revisando rutas e instalaciones…','muted');box.pack_start(status,False,False,8);results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);box.pack_start(results,True,True,0);alive=[True]
         def show(rows,error):
             if not alive[0]:return False
-            status.set_text(error or (f'{len(rows)} coincidencias para revisar.' if rows else 'No se detectaron coincidencias entre las rutas revisadas.'))
+            status.set_text(error or (f'{len(rows)} elementos para revisar.' if rows else 'No se detectaron duplicados ni conflictos en las rutas revisadas.'))
             for row in rows:
                 card=self.card(results,row['title']);card.pack_start(label(row['note'],'muted'),False,False,0)
                 for path in row['paths']:
@@ -59,7 +59,7 @@ class LibraryToolsMixin:
     def add_library_to_steam(self,*_):
         from .service import queue_entries
         account=self.current_account()
-        if not account:self.message('Steam','Iniciar sesión en Steam para preparar el acceso.');return
+        if not account:self.message('Steam','Iniciar sesión en Steam para preparar el acceso directo.');return
         app=pathlib.Path(__file__).resolve().parent.parent/'app.py'
         from .library_app import entry as self_entry
         entry=self_entry(app)

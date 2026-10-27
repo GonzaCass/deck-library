@@ -129,7 +129,7 @@ class GameMixin:
             rows.append(('Gestionar ROM asociada','folder',lambda:self.originals_dialog(entry)))
         rows.extend([
             ('Cambiar carátula', 'image', lambda: self.artwork_dialog(entry)),
-            ('Archivos y acceso de Steam', 'folder', lambda: self.open_game_section('files')),
+            ('Archivos y acceso directo de Steam', 'folder', lambda: self.open_game_section('files')),
             ('Diagnosticar un problema', 'search', lambda: self.check(entry)),
         ])
         for caption, icon, callback in rows:
@@ -260,7 +260,7 @@ class GameMixin:
         style=control.get_style_context()
         style.remove_class('steam');style.remove_class('steam-outline')
         style.add_class('steam-outline' if registered or pending else 'steam')
-        control.set_tooltip_text('Administrar el acceso de Steam' if registered else 'Se agregará al cerrar Steam o al iniciar la próxima sesión. Ver detalles.' if pending else 'Crear un acceso directo en Steam')
+        control.set_tooltip_text('Administrar el acceso directo de Steam' if registered else 'Se agregará al cerrar Steam o al iniciar la próxima sesión. Ver detalles.' if pending else 'Crear un acceso directo en Steam')
 
     def launch_from_game(self, entry, control):
         control.set_sensitive(False)
@@ -426,7 +426,7 @@ class GameMixin:
                 if not count:self.profile_apply.get_style_context().add_class('applied')
             except Exception as error:
                 self.profile_status.set_text('Falta completar la configuración: '+str(error))
-                self.profile_dock_note.set_text('Completar los datos del acceso para aplicar ajustes.')
+                self.profile_dock_note.set_text('Completar los datos del acceso directo para aplicar ajustes.')
                 self.profile_apply.set_sensitive(False)
                 changes.pack_start(ActionButton('Completar datos del juego','file',lambda _:self.manual(entry),'steam-outline'),False,False,0)
             changes.show_all()
@@ -569,7 +569,7 @@ class GameMixin:
         if not self.game_pages.get_child_by_name(section):
             page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
             self.game_pages.add_named(page,section)
-            titles = {'options':'Editar ajustes','controls':'Controles e idioma','files':'Archivos y acceso','content':'Contenido del juego'}
+            titles = {'options':'Editar ajustes','controls':'Controles e idioma','files':'Archivos y acceso directo','content':'Contenido del juego'}
             heading = Gtk.Box(spacing=12)
             page.back_control = ActionButton('Volver al juego','back',lambda _:self.open_game_section('profiles'))
             heading.pack_start(page.back_control,False,False,0)
@@ -588,7 +588,7 @@ class GameMixin:
         self.game_pages.set_visible_child_name(section)
         self.game_tab = section
         self.update_game_navigation()
-        self.game_location.set_text({'profiles':'Juego','options':'Ajustes manuales','controls':'Controles e idioma','files':'Archivos y acceso','content':'Contenido del juego'}.get(section,'Juego'))
+        self.game_location.set_text({'profiles':'Juego','options':'Ajustes manuales','controls':'Controles e idioma','files':'Archivos y acceso directo','content':'Contenido del juego'}.get(section,'Juego'))
         self.game_back.set_label('Biblioteca' if section=='profiles' else 'Juego')
         if animate:
             page=self.game_pages.get_child_by_name(section)
@@ -601,14 +601,14 @@ class GameMixin:
         if entry.metadata.get('steam_store'):
             panel.pack_start(text('Configurar el mando desde la ficha del juego en Steam.','muted'),False,False,0)
             return
-        panel.pack_start(text(self.controller_summary(entry) if steam else 'Agregar este juego a Steam para asignarle un perfil de mando.','muted',85),False,False,0)
-        panel.pack_start(ActionButton('Asignar perfil de mando' if steam else 'Agregar a Steam','controller' if steam else 'steam',lambda _:self.fix_controllers(entry) if steam else self.single_steam(entry),'amber'),False,False,0)
+        panel.pack_start(text(self.controller_summary(entry) if steam else 'Agregar este juego a Steam para asignarle un configuración de mando.','muted',85),False,False,0)
+        panel.pack_start(ActionButton('Asignar configuración de mando' if steam else 'Agregar a Steam','controller' if steam else 'steam',lambda _:self.fix_controllers(entry) if steam else self.single_steam(entry),'amber'),False,False,0)
         if entry.kind == 'emulated':
             panel=self.card(body,'Emulador')
             panel.pack_start(text('Idioma del juego y configuración de botones.','muted'),False,False,0)
             panel.pack_start(ActionButton('Configurar emulador','sliders',lambda _:self.emulator_dialog(entry),'violet-outline'),False,False,0)
         if entry.platform == 'Minecraft':
-            body.pack_start(TaskButton('Controles de Minecraft','Ver teclas y layouts guardados','controller',lambda _:self.layout_dialog(entry),'amber'),False,False,0)
+            body.pack_start(TaskButton('Controles de Minecraft','Ver teclas y configuraciones guardadas','controller',lambda _:self.layout_dialog(entry),'amber'),False,False,0)
 
     def build_proton_selector(self,entry,body,compact=False):
         from . import proton_selection as selection,proton_tools
@@ -616,13 +616,13 @@ class GameMixin:
         if not kind:return
         panel=self.card(body,'Proton' if compact else 'Compatibilidad con Proton')
         if kind=='steam':
-            panel.pack_start(text('Este acceso lo administra Steam. Elegí la versión en Steam → Propiedades → Compatibilidad.','muted',85),False,False,0)
+            panel.pack_start(text('Este acceso directo lo administra Steam. Elegir la versión en Steam → Propiedades → Compatibilidad.','muted',85),False,False,0)
             return
-        explanation='Se usa al abrir el juego desde Deck Library y desde su acceso de Steam. No hace falta volver a agregarlo.'
+        explanation='Se usa al abrir el juego desde Deck Library y desde su acceso directo de Steam. No hace falta volver a agregarlo.'
         panel.set_tooltip_text(explanation)
         if not compact:
             panel.pack_start(text(explanation,'muted',85),False,False,0)
-            panel.pack_start(text('En Steam, dejá desactivada la opción de forzar una herramienta de compatibilidad para este acceso: Deck Library ya ejecuta Proton.','meta',85),False,False,0)
+            panel.pack_start(text('En Steam, dejar desactivada la opción de forzar una herramienta de compatibilidad para este acceso directo: Deck Library ya ejecuta Proton.','meta',85),False,False,0)
         choices=proton_tools.installed();combo=Gtk.ComboBoxText();combo.set_hexpand(True)
         try:automatic='Automática · '+selection.default_tool(entry).parent.name
         except ValueError:automatic='Automática · Proton no instalado'
@@ -656,13 +656,13 @@ class GameMixin:
             value.set_selectable(True)
             panel.pack_start(value,False,False,0)
         actions=Gtk.Box(spacing=10)
-        actions.pack_start(ActionButton('Editar acceso','file',lambda _:self.manual(entry)),False,False,0)
+        actions.pack_start(ActionButton('Editar acceso directo','file',lambda _:self.manual(entry)),False,False,0)
         actions.pack_start(ActionButton('Diagnóstico','search',lambda _:self.check(entry)),False,False,0)
         body.pack_start(actions,False,False,0)
         if self.in_steam(entry):
             row=Gtk.Box(spacing=10)
             row.pack_start(ActionButton('Carátulas de Steam','image',lambda _:self.steam_art_dialog(entry),'steam-outline'),False,False,0)
-            row.pack_start(ActionButton('Quitar acceso de Steam','undo',lambda _:self.remove_from_steam([entry]),'danger'),False,False,0)
+            row.pack_start(ActionButton('Quitar acceso directo de Steam','undo',lambda _:self.remove_from_steam([entry]),'danger'),False,False,0)
             body.pack_start(row,False,False,0)
 
     def build_game_content(self, entry, body):

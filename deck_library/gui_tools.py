@@ -168,7 +168,7 @@ class ToolsMixin:
                         def install_(_,path=item['path']):self.install_content_job([path],status,fill,e)
                         row.pack_end(button('Instalar en Eden',install_),False,False,0)
                     rows.pack_start(row,False,False,0)
-            rows.pack_start(label('Mods ('+str(len(inventory['mods']))+') · '+('activados para este acceso' if e.mods else 'desactivados para comparar'),'title'),False,False,0)
+            rows.pack_start(label('Mods ('+str(len(inventory['mods']))+') · '+('activados para este acceso directo' if e.mods else 'desactivados para comparar'),'title'),False,False,0)
             for item in inventory['mods']:rows.pack_start(label(item['name']),False,False,0)
             rows.show_all();status.set_text('Los archivos originales y las partidas se conservan. Eden debe estar cerrado para instalar.')
         controls=Gtk.FlowBox();controls.set_selection_mode(Gtk.SelectionMode.NONE);controls.set_max_children_per_line(2);controls.set_min_children_per_line(1);box.pack_start(controls,False,False,0)
@@ -223,7 +223,7 @@ class ToolsMixin:
         layout=next((p['layout'] for p in presets.catalog(self.store) if presets.compatible(e,p) and p.get('layout')),None)
         if layout and not profiles:
             box.pack_start(label('Steam Input · Teclado (WASD) y ratón','title'),False,False,0);box.pack_start(label('\n'.join(k+' → '+v for k,v in layout['bindings'].items())),True,True,0);box.pack_start(label(layout.get('notes',''),'muted'),False,False,0)
-        elif not profiles:box.pack_start(label('No hay perfil local. Añadir un perfil con controles para esta instancia.'),False,False,0)
+        elif not profiles:box.pack_start(label('No hay perfil local. Agregar un perfil con controles para esta instancia.'),False,False,0)
         def open_(_):
             from .steam import read_kv,get
             if not self.accounts:return
@@ -231,7 +231,7 @@ class ToolsMixin:
                 shortcuts=read_kv((self.accounts[self.account.get_active()]/'shortcuts.vdf').read_bytes())['shortcuts'][1]
                 item=next(v[1] for v in shortcuts.values() if get(v[1],'appid')==e.metadata.get('steam_appid') or get(v[1],'appname')==e.name);appid=get(item,'appid');subprocess.Popen(['steam','steam://controllerconfig/'+str(appid)])
                 self.set_status('Controles abiertos en Steam.')
-            except (OSError,ValueError,StopIteration):self.message('Instancia sin acceso','Guardar primero su acceso en Steam para abrir la configuración de controles.')
+            except (OSError,ValueError,StopIteration):self.message('Instancia sin acceso directo','Guardar primero su acceso directo en Steam para abrir la configuración de controles.')
         box.pack_start(button('Abrir controles en Steam',open_,True),False,False,0);self.fit_dialog(dialog);dialog.show_all();dialog.run();dialog.destroy()
     def setup_wii_dialog(self):
         from .gui import label,button,wrap_row

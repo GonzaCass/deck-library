@@ -188,7 +188,7 @@
       "tested": {
         "status": "boot-tested",
         "date": "2026-10-19",
-        "notes": "Se comprobó el arranque de CTGP Deluxe en Eden. La validación de este acceso en modo Juego sigue pendiente."
+        "notes": "Se comprobó el arranque de CTGP Deluxe en Eden. La validación de este acceso directo en modo Juego sigue pendiente."
       },
       "settings": {
         "Core": {
@@ -214,7 +214,7 @@
           "async_presentation": true
         }
       },
-      "notes": "Probado hasta el título CTGP desde Steam en Escritorio. CTGP Deluxe 1.1.1 requiere la actualización 3.0.3 instalada en NAND. El preset no instala ni incluye el mod; activar Usar mods de Eden. Gaming Mode pendiente de verificar.",
+      "notes": "Probado hasta el título CTGP desde Steam en Escritorio. CTGP Deluxe 1.1.1 requiere la actualización 3.0.3 instalada en NAND. El perfil no instala ni incluye el mod; activar Usar mods de Eden. Gaming Mode pendiente de verificar.",
       "sources": []
     },
     {
@@ -277,7 +277,7 @@
       "name": "Switch — Compatibilidad",
       "game": {
         "id": "switch-compatibility",
-        "name": "Base para juegos sin preset específico",
+        "name": "Base para juegos sin perfil específico",
         "platform": "Switch"
       },
       "adapter": {
@@ -290,13 +290,13 @@
         "steam-deck-oled",
         "steam-deck-lcd"
       ],
-      "objective": "Compatibilidad para juegos sin preset específico",
+      "objective": "Compatibilidad para juegos sin perfil específico",
       "author": "Deck Library",
       "license": "MIT",
       "tested": {
         "status": "proposal",
         "date": "2026-10-17",
-        "notes": "Base derivada de los presets incluidos; sin validación de jugabilidad para cada título."
+        "notes": "Base derivada de los perfiles incluidos; sin validación de jugabilidad para cada título."
       },
       "settings": {
         "Core": {
@@ -322,7 +322,7 @@
           "async_presentation": false
         }
       },
-      "notes": "Vulkan, resolución 1×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco presets de Switch incluidos. Precisión GPU alta como Super Mario Party; shaders y presentación asíncronos desactivados como Super Mario Party y Jamboree. Puede reducir errores gráficos a costa de rendimiento. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
+      "notes": "Vulkan, resolución 1×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco perfiles de Switch incluidos. Precisión GPU alta como Super Mario Party; shaders y presentación asíncronos desactivados como Super Mario Party y Jamboree. Puede reducir errores gráficos a costa de rendimiento. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
       "sources": [
         "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-010036b0034e4000-base.json",
         "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-01006fe013472000-base.json",
@@ -337,7 +337,7 @@
       "name": "Switch — Equilibrado",
       "game": {
         "id": "switch-default",
-        "name": "Base para juegos sin preset específico",
+        "name": "Base para juegos sin perfil específico",
         "platform": "Switch"
       },
       "adapter": {
@@ -350,13 +350,13 @@
         "steam-deck-oled",
         "steam-deck-lcd"
       ],
-      "objective": "Equilibrado para juegos sin preset específico",
+      "objective": "Equilibrado para juegos sin perfil específico",
       "author": "Deck Library",
       "license": "MIT",
       "tested": {
         "status": "proposal",
         "date": "2026-10-17",
-        "notes": "Base derivada de los presets incluidos; sin validación de jugabilidad para cada título."
+        "notes": "Base derivada de los perfiles incluidos; sin validación de jugabilidad para cada título."
       },
       "settings": {
         "Core": {
@@ -382,7 +382,7 @@
           "async_presentation": false
         }
       },
-      "notes": "Vulkan, resolución 1×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco presets de Switch incluidos. Precisión GPU normal; shaders y presentación asíncronos desactivados. Punto de partida para comparar rendimiento e imagen. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
+      "notes": "Vulkan, resolución 1×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco perfiles de Switch incluidos. Precisión GPU normal; shaders y presentación asíncronos desactivados. Punto de partida para comparar rendimiento e imagen. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
       "sources": [
         "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-010036b0034e4000-base.json",
         "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-01006fe013472000-base.json",
@@ -397,7 +397,7 @@
       "name": "Switch — Rendimiento",
       "game": {
         "id": "switch-performance",
-        "name": "Base para juegos sin preset específico",
+        "name": "Base para juegos sin perfil específico",
         "platform": "Switch"
       },
       "adapter": {
@@ -410,13 +410,13 @@
         "steam-deck-oled",
         "steam-deck-lcd"
       ],
-      "objective": "Rendimiento para juegos sin preset específico",
+      "objective": "Rendimiento para juegos sin perfil específico",
       "author": "Deck Library",
       "license": "MIT",
       "tested": {
         "status": "proposal",
         "date": "2026-10-17",
-        "notes": "Base derivada de los presets incluidos; sin validación de jugabilidad para cada título."
+        "notes": "Base derivada de los perfiles incluidos; sin validación de jugabilidad para cada título."
       },
       "settings": {
         "Core": {
@@ -442,7 +442,7 @@
           "async_presentation": true
         }
       },
-      "notes": "Vulkan, resolución 0,75×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco presets de Switch incluidos. Precisión GPU normal; shaders y presentación asíncronos activados, como Smash, Mario Kart 8 y Mario Party Superstars. Puede reducir pausas de compilación; comprobar efectos gráficos y estabilidad. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
+      "notes": "Vulkan, resolución 0,75×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco perfiles de Switch incluidos. Precisión GPU normal; shaders y presentación asíncronos activados, como Smash, Mario Kart 8 y Mario Party Superstars. Puede reducir pausas de compilación; comprobar efectos gráficos y estabilidad. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
       "sources": [
         "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-010036b0034e4000-base.json",
         "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-01006fe013472000-base.json",
@@ -457,7 +457,7 @@
       "name": "Switch — Calidad",
       "game": {
         "id": "switch-quality",
-        "name": "Base para juegos sin preset específico",
+        "name": "Base para juegos sin perfil específico",
         "platform": "Switch"
       },
       "adapter": {
@@ -476,7 +476,7 @@
       "tested": {
         "status": "proposal",
         "date": "2026-10-17",
-        "notes": "Base derivada de los presets incluidos; sin validación de jugabilidad para cada título."
+        "notes": "Base derivada de los perfiles incluidos; sin validación de jugabilidad para cada título."
       },
       "settings": {
         "Core": {
@@ -564,7 +564,7 @@
           "Start": "Escape: menú",
           "LB/RB": "Rueda del ratón: barra rápida"
         },
-        "notes": "Es una recomendación visible; el usuario selecciona y ajusta el layout en Steam. Mods de controles pueden requerir gamepad en vez de teclado."
+        "notes": "Es una recomendación visible; el usuario selecciona y ajusta la configuración en Steam. Mods de controles pueden requerir gamepad en vez de teclado."
       }
     },
     {
@@ -668,7 +668,7 @@
           "mnk_mode": false
         }
       },
-      "notes": "Proton 11.0, DirectX 12 mediante VKD3D. Mantiene el antialiasing Native AA original y renderizado 1×; sin DLSS/ReShade ni generación de cuadros. 720p conserva 16:9. Usar el layout Gamepad de Steam; no el de Escritorio. En OLED, 60 FPS a 60 Hz para cadencia uniforme; 90 Hz no implica 90 FPS. El rendimiento durante transiciones debe probarse.",
+      "notes": "Proton 11.0, DirectX 12 mediante VKD3D. Mantiene el antialiasing Native AA original y renderizado 1×; sin DLSS/ReShade ni generación de cuadros. 720p conserva 16:9. Usar la configuración Gamepad de Steam; no el de Escritorio. En OLED, 60 FPS a 60 Hz para cadencia uniforme; 90 Hz no implica 90 FPS. El rendimiento durante transiciones debe probarse.",
       "sources": [
         "https://github.com/GenryTheFox0/Project-2099/blob/main/README.md"
       ]
@@ -857,7 +857,7 @@
           "mix_worker": true
         }
       },
-      "notes": "El usuario confirmó buena imagen y rendimiento en Gaming Mode. El preset no cambia rutas ni controles; el ajuste de salida F12 pertenece al parche del ejecutable, aplicado por el asistente de recompilación compatible.",
+      "notes": "El usuario confirmó buena imagen y rendimiento en Gaming Mode. El perfil no cambia rutas ni controles; el ajuste de salida F12 pertenece al parche del ejecutable, aplicado por el asistente de recompilación compatible.",
       "sources": []
     },
     {
@@ -910,7 +910,7 @@
         "kind": "proton",
         "version": "Proton 11.0"
       },
-      "notes": "Cerrar el juego y su launcher antes de aplicar. Se conservan idioma, mandos, rutas, mods, partidas y caché. No borrar la caché de pipelines: el primer uso de contenido puede tener pausas. En modo Juego se puede usar el contador de rendimiento de Steam. El límite es un objetivo, no FPS garantizados. Rendimiento desactiva FXAA y puede mostrar más dientes de sierra. Calidad aumenta el trabajo gráfico; volver a Equilibrado si pierde estabilidad.",
+      "notes": "Cerrar el juego y su lanzador antes de aplicar. Se conservan idioma, mandos, rutas, mods, partidas y caché. No borrar la caché de pipelines: el primer uso de contenido puede tener pausas. En modo Juego se puede usar el contador de rendimiento de Steam. El límite es un objetivo, no FPS garantizados. Rendimiento desactiva FXAA y puede mostrar más dientes de sierra. Calidad aumenta el trabajo gráfico; volver a Equilibrado si pierde estabilidad.",
       "sources": [
         "https://github.com/jorjbarbosa/naruto-rise-recomp/releases/tag/v0.3.0-beta",
         "https://github.com/jorjbarbosa/naruto-rise-recomp/blob/main/docs/configuration.md",
@@ -967,7 +967,7 @@
         "kind": "proton",
         "version": "Proton 11.0"
       },
-      "notes": "Cerrar el juego y su launcher antes de aplicar. Se conservan idioma, mandos, rutas, mods, partidas y caché. No borrar la caché de pipelines: el primer uso de contenido puede tener pausas. En modo Juego se puede usar el contador de rendimiento de Steam. El límite es un objetivo, no FPS garantizados. Rendimiento desactiva FXAA y puede mostrar más dientes de sierra. Calidad aumenta el trabajo gráfico; volver a Equilibrado si pierde estabilidad.",
+      "notes": "Cerrar el juego y su lanzador antes de aplicar. Se conservan idioma, mandos, rutas, mods, partidas y caché. No borrar la caché de pipelines: el primer uso de contenido puede tener pausas. En modo Juego se puede usar el contador de rendimiento de Steam. El límite es un objetivo, no FPS garantizados. Rendimiento desactiva FXAA y puede mostrar más dientes de sierra. Calidad aumenta el trabajo gráfico; volver a Equilibrado si pierde estabilidad.",
       "sources": [
         "https://github.com/jorjbarbosa/naruto-rise-recomp/releases/tag/v0.3.0-beta",
         "https://github.com/jorjbarbosa/naruto-rise-recomp/blob/main/docs/configuration.md",
@@ -1024,7 +1024,7 @@
         "kind": "proton",
         "version": "Proton 11.0"
       },
-      "notes": "Cerrar el juego y su launcher antes de aplicar. Se conservan idioma, mandos, rutas, mods, partidas y caché. No borrar la caché de pipelines: el primer uso de contenido puede tener pausas. En modo Juego se puede usar el contador de rendimiento de Steam. El límite es un objetivo, no FPS garantizados. Rendimiento desactiva FXAA y puede mostrar más dientes de sierra. Calidad aumenta el trabajo gráfico; volver a Equilibrado si pierde estabilidad.",
+      "notes": "Cerrar el juego y su lanzador antes de aplicar. Se conservan idioma, mandos, rutas, mods, partidas y caché. No borrar la caché de pipelines: el primer uso de contenido puede tener pausas. En modo Juego se puede usar el contador de rendimiento de Steam. El límite es un objetivo, no FPS garantizados. Rendimiento desactiva FXAA y puede mostrar más dientes de sierra. Calidad aumenta el trabajo gráfico; volver a Equilibrado si pierde estabilidad.",
       "sources": [
         "https://github.com/jorjbarbosa/naruto-rise-recomp/releases/tag/v0.3.0-beta",
         "https://github.com/jorjbarbosa/naruto-rise-recomp/blob/main/docs/configuration.md",

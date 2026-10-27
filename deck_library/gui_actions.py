@@ -30,9 +30,9 @@ class ActionsMixin:
     def sync_summary(self,value):
         if value.get('state')=='failed':return 'No se pudieron aplicar los cambios de Steam: '+value.get('error','')
         parts=[]
-        if value.get('shortcuts'):parts.append(f'{len(value["shortcuts"])} accesos guardados')
-        if value.get('removed'):parts.append(f'{len(value["removed"])} accesos quitados')
-        if value.get('layouts'):parts.append(f'layout de mando asignado a {len(value["layouts"])}')
+        if value.get('shortcuts'):parts.append(f'{len(value["shortcuts"])} accesos directos guardados')
+        if value.get('removed'):parts.append(f'{len(value["removed"])} accesos directos quitados')
+        if value.get('layouts'):parts.append(f'configuración de mando asignada a {len(value["layouts"])}')
         return (', '.join(parts) or 'Cambios guardados').capitalize()+'. Abrir Steam para verlos.'
     def set_status(self,text):
         self.status.set_text(text);self.status.set_visible(bool(text))
@@ -122,16 +122,16 @@ class ActionsMixin:
     def single_steam(self,e):
         if e.metadata.get('steam_store'):
             self.message('Juego de Steam','Este juego ya forma parte de la biblioteca de Steam.');return
-        if not self.accounts:self.message('Steam sin sesión','Iniciar sesión en Steam para preparar el acceso.');return
+        if not self.accounts:self.message('Steam sin sesión','Iniciar sesión en Steam para preparar el acceso directo.');return
         self.add_to_steam([e])
     def controller_summary(self,e):
         """Short text about the saved gamepad layouts for this shortcut."""
         from . import controllers
         try:state=controllers.status(pathlib.Path(e.metadata['steam_account']),e.metadata['steam_appid'])
         except (OSError,ValueError,KeyError):return 'No se pudo leer la configuración de mandos de Steam.'
-        if not state:return 'Steam no tiene plantillas de mando disponibles para este acceso.'
+        if not state:return 'Steam no tiene plantillas de mando disponibles para este acceso directo.'
         missing=[controllers.FAMILY_NAMES[f] for f,value in state.items() if value is None]
-        return 'Layout de gamepad asignado a todos los tipos de mando.' if not missing else 'Sin layout para: '+', '.join(missing)+'. Esos mandos no se detectan en el juego.'
+        return 'Configuración de mando asignada a todos los tipos de mando.' if not missing else 'Sin configuración para: '+', '.join(missing)+'. Esos mandos no se detectan en el juego.'
     def steam_banner(self,e):
         """The shortcut's hero (and logo) from Steam's grid folder, or None."""
         from . import steamart
@@ -178,21 +178,21 @@ class ActionsMixin:
                 blocking=[i for i in issues if i.startswith(('No se encuentra','El programa no tiene','Un ejecutable Windows','Falta el entorno'))]
                 if blocking:raise ValueError(entry.name+': '+'\n'.join(blocking))
             return queue_entries(entries,account,self.store)
-        self.run_queue(job,'Preparando los accesos de Steam…')
+        self.run_queue(job,'Preparando los accesos directos de Steam…')
     def remove_from_steam(self,entries=None):
         entries=entries if entries is not None else [e for e in self.entries if e.id in self.checked]
         targets=[e for e in entries if self.in_steam(e)]
-        if not targets:self.message('Sin accesos','Ningún juego seleccionado tiene acceso guardado en Steam.');return
+        if not targets:self.message('Sin accesos directos','Ningún juego seleccionado tiene acceso directo guardado en Steam.');return
         accounts={e.metadata['steam_account'] for e in targets}
-        if len(accounts)>1:self.message('Varias cuentas','Los accesos pertenecen a cuentas de Steam distintas. Quitarlos por separado.');return
+        if len(accounts)>1:self.message('Varias cuentas','Los accesos directos pertenecen a cuentas de Steam distintas. Quitarlos por separado.');return
         names=', '.join(e.name for e in targets[:4])+(f' y {len(targets)-4} más' if len(targets)>4 else '')
-        if not self.confirm('Quitar de Steam',f'{names}\n\nSe elimina el acceso de la biblioteca de Steam, junto con su carátula y su layout de mando. El juego, sus archivos y sus partidas no se modifican. Antes de guardar se crea un respaldo de la lista de accesos.','Quitar',danger=True):return
+        if not self.confirm('Quitar de Steam',f'{names}\n\nSe elimina el acceso directo de la biblioteca de Steam, junto con su carátula y su configuración de mando. El juego, sus archivos y sus partidas no se modifican. Antes de guardar se crea un respaldo de la lista de accesos directos.','Quitar',danger=True):return
         account=pathlib.Path(accounts.pop());ids=[e.metadata['steam_appid'] for e in targets]
-        self.run_queue(lambda:queue_removals(ids,account,self.store),'Preparando la eliminación de accesos…')
+        self.run_queue(lambda:queue_removals(ids,account,self.store),'Preparando la eliminación de accesos directos…')
     def fix_controllers(self,e):
         if not self.in_steam(e):self.message('Mando','Agregar primero el juego a Steam.');return
-        if not self.confirm('Asignar layout de mando','Se asigna el layout de gamepad de Steam a este acceso para DualSense, DualShock, Xbox, Switch Pro y mandos genéricos, reemplazando el layout que tuviera cada tipo. Los cambios se guardan con Steam cerrado.','Asignar'):return
-        account=pathlib.Path(e.metadata['steam_account']);self.run_queue(lambda:queue_controllers([e.metadata['steam_appid']],account,self.store),'Preparando el layout de mando…')
+        if not self.confirm('Asignar configuración de mando','Se asigna la configuración de gamepad de Steam a este acceso directo para DualSense, DualShock, Xbox, Switch Pro y mandos genéricos, reemplazando la configuración que tuviera cada tipo. Los cambios se guardan con Steam cerrado.','Asignar'):return
+        account=pathlib.Path(e.metadata['steam_account']);self.run_queue(lambda:queue_controllers([e.metadata['steam_appid']],account,self.store),'Preparando la configuración del mando…')
     def queue_done(self,result):
         self.add_button.set_sensitive(True);self.update_selection()
         if result['state']=='idle':self.set_status('Sin cambios.');return False
@@ -220,17 +220,17 @@ class ActionsMixin:
         for key in keys:emulator.append_text(emus[key]['name'])
         if keys:emulator.set_active(0)
         emulator_label=label('Emulador','muted');box.pack_start(emulator_label,False,False,0);box.pack_start(emulator,False,False,0)
-        custom=Gtk.Entry();custom.set_placeholder_text('/ruta/launcher --opcion "ruta del juego"')
+        custom=Gtk.Entry();custom.set_placeholder_text('/ruta/lanzador --opcion "ruta del juego"')
         if existing:custom.set_text(shlex.join(existing.command))
         public_id=Gtk.Entry();public_id.set_placeholder_text('Title ID, ID de Wii o identificador del port');public_id.set_text(existing.game_id if existing else '')
         advanced=Gtk.Expander(label='Identificador del juego (opcional)');advanced.add(public_id);box.pack_start(advanced,False,False,0)
-        custom_label=label('Comando del launcher','muted');box.pack_start(custom_label,False,False,0);box.pack_start(custom,False,False,0)
+        custom_label=label('Comando del lanzador','muted');box.pack_start(custom_label,False,False,0);box.pack_start(custom,False,False,0)
         def update_fields(*args):
             file_.set_visible(kind.get_active()!=2)
             emulator.set_visible(kind.get_active()==1);emulator_label.set_visible(kind.get_active()==1)
             custom.set_visible(kind.get_active()==2);custom_label.set_visible(kind.get_active()==2)
         kind.connect('changed',update_fields);update_fields()
-        box.pack_start(label('Cualquier emulador se agrega con un comando personalizado. Los archivos de Windows necesitan un launcher de Wine o Proton.','muted'),False,False,0)
+        box.pack_start(label('Cualquier emulador se agrega con un comando personalizado. Los archivos de Windows necesitan un lanzador de Wine o Proton.','muted'),False,False,0)
         self.fit_dialog(dialog);dialog.show_all();update_fields()
         while dialog.run()==Gtk.ResponseType.OK:
             try:

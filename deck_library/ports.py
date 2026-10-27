@@ -409,7 +409,7 @@ def release_for(repo,get=fetch_json,*,runtime='auto'):
     except urllib.error.HTTPError as error:
         if error.code!=404:raise
     rows=get(f'https://api.github.com/repos/{repo}/releases?per_page=1')
-    if not rows:raise ValueError('El proyecto no tiene releases publicados.')
+    if not rows:raise ValueError('El proyecto no tiene versiones publicadas.')
     return rows[0]
 
 def is_reviewed(item):

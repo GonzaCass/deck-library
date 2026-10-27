@@ -97,6 +97,9 @@ def translate(text):
             done.append(part);index+=1
         if changed:return ''.join(done)
     result=text
+    if ' · ' in text or ' — ' in text:
+        joined=_join_parts(text)
+        if joined is not None:result=joined
     for key,value in _pieces():
         if key in result:result=result.replace(key,value)
     for rx,value in _inline():
@@ -104,6 +107,20 @@ def translate(text):
     if result==text and os.environ.get('DECK_LIBRARY_I18N_LOG') and re.search(r'[A-Za-zÁ-úñ]{3}',text) and len(text)<300:
         _missed.add(text)
     return result
+
+def _join_parts(text):
+    """Texts joined with ' · ' or ' — ': translate the longest known runs of parts, keeping the rest as it is."""
+    pieces=re.split(r'( · | — )',text);parts=pieces[0::2];seps=pieces[1::2];out=[];index=0;changed=False
+    while index<len(parts):
+        for end in range(len(parts),index,-1):
+            segment=''.join(p+(seps[k] if k<end-1 else '') for k,p in zip(range(index,end),parts[index:end]))
+            found=_core(segment)
+            if found is not None and found!=segment:
+                out.append(found);index=end;changed=True;break
+        else:
+            out.append(parts[index]);index+=1
+        if index<len(parts):out.append(seps[index-1])
+    return ''.join(out) if changed else None
 
 def missed():return sorted(_missed)
 

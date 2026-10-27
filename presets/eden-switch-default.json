@@ -4,7 +4,7 @@
   "name": "Switch — Equilibrado",
   "game": {
     "id": "switch-default",
-    "name": "Base para juegos sin preset específico",
+    "name": "Base para juegos sin perfil específico",
     "platform": "Switch"
   },
   "adapter": {
@@ -17,13 +17,13 @@
     "steam-deck-oled",
     "steam-deck-lcd"
   ],
-  "objective": "Equilibrado para juegos sin preset específico",
+  "objective": "Equilibrado para juegos sin perfil específico",
   "author": "Deck Library",
   "license": "MIT",
   "tested": {
     "status": "proposal",
     "date": "2026-10-17",
-    "notes": "Base derivada de los presets incluidos; sin validación de jugabilidad para cada título."
+    "notes": "Base derivada de los perfiles incluidos; sin validación de jugabilidad para cada título."
   },
   "settings": {
     "Core": {
@@ -49,7 +49,7 @@
       "async_presentation": false
     }
   },
-  "notes": "Vulkan, resolución 1×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco presets de Switch incluidos. Precisión GPU normal; shaders y presentación asíncronos desactivados. Punto de partida para comparar rendimiento e imagen. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
+  "notes": "Vulkan, resolución 1×, modo portátil, CPU automática, varios núcleos, velocidad original al 100%, caché de shaders y emulación de GPU asíncrona. Basado en los cinco perfiles de Switch incluidos. Precisión GPU normal; shaders y presentación asíncronos desactivados. Punto de partida para comparar rendimiento e imagen. Propuesta sin validación por título: no garantiza FPS ni compatibilidad. No instala mods, updates ni DLC. Versión declarada: Eden 0.2.1.",
   "sources": [
     "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-010036b0034e4000-base.json",
     "https://github.com/GonzaCass/deck-library/blob/main/presets/eden-01006fe013472000-base.json",

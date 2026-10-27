@@ -9,7 +9,7 @@ class OriginalsMixin:
         dialog=InlineDialog(title='ROMs y ports instalados',transient_for=self,modal=True);dialog.set_default_size(820,600);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(12)
         box.pack_start(text('Juegos con una ROM y un port instalado','section-title'),False,False,0)
-        box.pack_start(text('La ROM es la copia del juego de consola (ISO u otro archivo). Se agrupa con el port para no mostrar el juego dos veces. Podés mostrarla por separado o quitar esa copia; las partidas del port se conservan.','muted',85),False,False,0)
+        box.pack_start(text('La ROM es la copia del juego de consola (ISO u otro archivo). Se agrupa con el port para no mostrar el juego dos veces. Se puede mostrar por separado o quitar esa copia; las partidas del port se conservan.','muted',85),False,False,0)
         rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);box.pack_start(rows,True,True,0)
         def render():
             self.reset_page(rows);separate=set(self.preferences.get('unlinked_originals',[]));matches=originals.pairs(self.entries)
