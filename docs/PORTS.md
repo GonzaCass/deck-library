@@ -2,9 +2,21 @@
 
 [Auditoría de instalaciones (751 entradas, 26/10/2026)](PORT-INSTALLATION-AUDIT.md) · [Resultados por repositorio](../catalog/installation-audit.json)
 
+## Extraer la ISO y liberar espacio (1.2.6)
+
+En **Naruto: Rise of a Ninja** y **The Broken Bond de jorjbarbosa**, elegir **Configurar → Elegir ISO de Xbox 360 → Preparar**. También se acepta una carpeta ya extraída. Funciona sobre instalaciones anteriores de Deck Library sin reinstalar el port.
+
+La app lee XDVDFS directamente con Python, sin abrir un instalador Windows ni instalar un compilador. Reconoce XISO recortada y las particiones estándar de discos completos; comprueba el Title ID y, cuando la receta lo publica, el SHA-256 de `default.xex`. Extrae en una carpeta temporal, verifica cada archivo por SHA-256 y solo entonces instala los datos. El progreso muestra porcentaje y tiempo estimado. `$SystemUpdate`, actualización de la consola que el port no usa, queda fuera de la extracción. Los temporales de esta operación se limpian al terminar o cancelar; las copias de respaldo previas se conservan.
+
+Al finalizar aparece **Liberar espacio**, dentro de la app. **Conservar ISO** es la salida normal. **Eliminar ISO** pide confirmación mostrando su ruta; vuelve a verificar todos los archivos extraídos, el registro completo y la identidad de la ISO antes de borrarla permanentemente. Si falta un archivo, cambió su contenido, la ISO cambió o se cancela la tarea, el original se conserva. Partidas, mods y configuración quedan fuera de esa limpieza. La misma opción está en la ficha del catálogo y en **Archivos y Steam** del juego mientras exista una ISO verificada.
+
+Al actualizar se conserva el registro de extracción junto con los datos originales. Si la ISO sigue presente, se verifican y reutilizan los archivos; no se vuelven a extraer. Si se eliminó, se usan los datos ya instalados. La verificación comprueba la copia y la identidad del juego: no equivale a una prueba de jugabilidad ni garantiza todas las revisiones cuando el proyecto no publica un hash exacto.
+
+Esta extracción se aplica a las recetas anteriores. **Broken Bond de Auremana666** conserva su flujo de ISO en `assets`, importada por el propio port; Deck Library no ofrece borrarla mientras siga siendo un archivo necesario de esa integración.
+
 ## Naruto y paquetes Windows (1.2.5)
 
-The Broken Bond tiene dos integraciones: **PC Port de Auremana666** pide la ISO de Xbox 360 y la copia a `assets`; **Recomp de jorjbarbosa** pide la carpeta extraída con `default.xex` y comprueba Title ID y SHA-256. Se instala el paquete portable con Proton y se elige el lanzador correcto. Rise of a Ninja también tiene receta para su lanzador; la versión 0.3 incorpora los arreglos Vulkan para Wine/Proton publicados por su autor. Las dos variantes de Broken Bond siguen experimentales en la Deck: instalar sin error no comprueba que su renderizado funcione.
+The Broken Bond tiene dos integraciones: **PC Port de Auremana666** pide la ISO de Xbox 360 y la copia a `assets`; **Recomp de jorjbarbosa** acepta ISO o carpeta extraída con `default.xex` y comprueba Title ID y SHA-256. Se instala el paquete portable con Proton y se elige el lanzador correcto. Rise of a Ninja también tiene receta para su lanzador; la versión 0.3 incorpora los arreglos Vulkan para Wine/Proton publicados por su autor. Las dos variantes de Broken Bond siguen experimentales en la Deck: instalar sin error no comprueba que su renderizado funcione.
 
 El proceso común reconoce parejas de lanzador/motor y paquetes Windows tar, ZIP, 7z, RAR o EXE portable. Busca Proton en las bibliotecas de Steam, incluida la microSD, y contempla GE-Proton instalado como alternativa. Conserva las carpetas comunes de partidas y los originales/configuración declarados por cada receta. Los archivos para otras consolas, licencias, Android y los instaladores sin integración propia se distinguen de un juego portable. Las recetas nuevas se aplican al catálogo guardado al actualizar la app.
 

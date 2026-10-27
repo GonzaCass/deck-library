@@ -53,3 +53,15 @@ Las tarjetas de perfiles muestran nombre, resumen, verificación y valoración. 
 Las instalaciones sin una elección explícita de página inicial abren Biblioteca. La elección Resumen de Apariencia se respeta. Inicio muestra todos los ports del resumen, con carátulas verticales 2:3 y desplazamiento normal con rueda; desaparece el límite de cuatro miniaturas horizontales. El contador de ports excluye las copias del propio programa que tampoco aparecen en esa sección.
 
 Abrir Inicio empieza arriba. Una actualización de la detección conserva su posición de desplazamiento y regresar desde una ficha conserva el port seleccionado. El inicio del mando enfoca la página visible. No se modifican ROMs, ajustes de juegos ni la vista de biblioteca elegida por el usuario.
+
+## Versión y actualizaciones (1.2.6)
+
+La esquina inferior derecha muestra siempre la versión que está ejecutándose. Indica si hay una actualización, si terminó de instalarse y falta volver a abrir la app, si la consulta falló o si la búsqueda automática está desactivada. Actualizaciones también muestra la versión en uso; el indicador permite reconocer una captura de una copia antigua.
+
+La consulta de la app se entrega a la interfaz antes de esperar las consultas de ports. Tiene una caché independiente de una hora, invalidada al cambiar la versión en ejecución, y vuelve a intentar los errores tras un minuto. El catálogo de actualizaciones de ports conserva su intervalo de seis horas. La página se refresca cuando llegan resultados, aunque la consulta haya empezado automáticamente. Un fallo de red no borra una actualización previamente detectada ni se muestra como «Al día».
+
+Si la API de GitHub falla, la app consulta la redirección pública de la última publicación del mismo repositorio. Valida el dominio y la ruta de la versión; los paquetes se siguen verificando con el archivo SHA-256 publicado. No hace falta un token de GitHub para usar esta alternativa.
+
+Se puede instalar la actualización desde modo Juego. La app espera si hay otra instalación o un asistente activo. Después se vuelve a abrir Deck Library; en modo Juego, el botón la cierra para abrirla otra vez desde Steam. El instalador renueva el acceso existente del escritorio y el lanzador administrado de Steam para que apunten a la instalación actual, conservando el AppID, las carátulas personalizadas y los metadatos del acceso. No modifica accesos manuales desconocidos ni otras apps.
+
+Los cambios de biblioteca pendientes en Steam son una cola separada: accesos, imágenes o controles. Por ejemplo, renovar las cinco imágenes oficiales de Deck Library puede producir cinco operaciones pendientes sin que el usuario haya editado cinco juegos. Se muestran una sola vez con su detalle y se aplican cuando Steam está cerrado. La actualización del código de la app no necesita reiniciar Steam; el cliente sí necesita cerrarse para aplicar esa cola de imágenes.

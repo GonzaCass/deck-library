@@ -36,9 +36,9 @@ def diagnostics(entry,store=None):
     if 'Cannot execute instruction at unmapped address' in details:issues.append('El juego emulado se detuvo con una excepción. Si usa mods, probar el perfil sin mods.')
     return issues,details
 
-def make_launcher(entry,store=None):
+def make_launcher(entry,store=None,app=None):
     store=store or Store(); folder=store.root/'launchers'; folder.mkdir(parents=True,exist_ok=True)
-    path=folder/(entry.id+'.sh'); app=pathlib.Path(__file__).resolve().parent.parent/'app.py'
+    path=folder/(entry.id+'.sh'); app=pathlib.Path(app or pathlib.Path(__file__).resolve().parent.parent/'app.py')
     interpreter=shutil.which('python3') or sys.executable
     text='#!/bin/sh\nexec '+shlex.join([interpreter,str(app),'launch',entry.id,'--data-dir',str(store.root)])+'\n'
     path.write_text(text); path.chmod(0o755); return path

@@ -13,6 +13,10 @@ def validate(path,spec):
                 if spec.get('sha256') and sha256_file(xex) not in spec['sha256']:raise ValueError('default.xex no coincide con la revisión admitida por el port.')
                 return path
         if path.is_file() and spec.get('iso') and path.suffix.lower() in (('.iso',) if spec.get('iso_only') else ('.iso','.xiso')):
+            if spec.get('extract_iso'):
+                from .xdvdfs import Image
+                with Image(path) as image:image.verify_game(spec)
+                return path
             from .project2099 import check_image
             with path.open('rb') as stream:check_image(stream)
             return path
@@ -65,6 +69,9 @@ def find_source(record,games=(),home=None):
     return found.pop() if len(found)==1 else ''
 
 def prepare(folder,path,spec,progress=print,cancel=None):
+    if spec.get('extract_iso') and pathlib.Path(path).is_file():
+        from .iso_import import prepare as extract
+        return extract(folder,path,spec,progress,cancel)
     folder=pathlib.Path(folder).resolve();source=validate(path,spec).resolve();target=(folder/spec['destination']).resolve()
     if not target.is_relative_to(folder):raise ValueError('El destino sale de la carpeta del port.')
     if source==target:return str(source)

@@ -12,6 +12,7 @@ CATALOG_URL='https://raw.githubusercontent.com/GonzaCass/deck-library/main/prese
 PROJECT2099_REPO='GenryTheFox0/Project-2099'
 HANDLED_HERE='patchzyy/wiicompiled'  # updated by wiiupdate.py, so Quiver's report is not repeated
 INTERVAL=6*3600
+APP_INTERVAL=3600
 JSON_LIMIT=2*1024*1024
 DOWNLOAD_LIMIT=64*1024*1024
 
@@ -47,11 +48,26 @@ def is_newer(latest,current):
 def latest_release(repo,get=fetch_json):
     try:return get(f'https://api.github.com/repos/{repo}/releases/latest')
     except urllib.error.HTTPError as error:
-        if error.code in (403,404):return None
+        if error.code==404:return None
         raise
 
-def check_app(current=__version__,get=fetch_json):
-    release=latest_release(REPO,get)
+def web_release():
+    """Public GitHub redirect, independent of the anonymous API quota."""
+    request=urllib.request.Request('https://github.com/'+REPO+'/releases/latest',headers={'User-Agent':'DeckLibrary/'+__version__})
+    with urllib.request.urlopen(request,timeout=10) as response:url=response.url
+    parsed=urllib.parse.urlparse(url)
+    match=re.fullmatch('/'+re.escape(REPO)+r'/releases/tag/(v?\d+(?:\.\d+)+)',parsed.path)
+    if parsed.scheme!='https' or parsed.hostname!='github.com' or not match:raise ValueError('No se pudo identificar la última versión publicada en GitHub.')
+    tag=match[1];name='DeckLibrary-'+tag.lstrip('v')+'.tar.gz';base='https://github.com/'+REPO+'/releases/download/'+tag+'/'
+    return {'tag_name':tag,'html_url':url,'assets':[{'name':name,'browser_download_url':base+name},{'name':name+'.sha256','browser_download_url':base+name+'.sha256'}]}
+
+def check_app(current=__version__,get=fetch_json,fallback=None):
+    fallback=fallback or (web_release if get is fetch_json else None)
+    try:release=latest_release(REPO,get)
+    except (OSError,ValueError):
+        if not fallback:raise
+        release=fallback()
+    if not release and fallback:release=fallback()
     if not release or not is_newer(release.get('tag_name'),current):return None
     assets={a['name']:a['browser_download_url'] for a in release.get('assets',[]) if isinstance(a,dict) and 'name' in a and 'browser_download_url' in a}
     archive=next((n for n in assets if re.fullmatch(r'DeckLibrary-[\d.]+\.tar\.gz',n)),None)
@@ -120,13 +136,23 @@ def port_completed(store,repository,tag):
     atomic_json(cache_path(store),state)
     return state
 
-def check_all(store,preferences,entries,force=False,get=fetch_json):
+def check_all(store,preferences,entries,force=False,get=fetch_json,on_app=None):
     """Run the checks that are due. Failures of one source never hide the others."""
     state=cached(store)
-    if not force and time.time()-state.get('checked',0)<INTERVAL:return state
-    state={**state,'checked':time.time(),'errors':[]}
+    now=time.time();ports_due=force or now-state.get('checked',0)>=INTERVAL
+    app_due=force or state.get('app_checked_version')!=__version__ or now-state.get('app_checked',0)>=(60 if state.get('app_error') else APP_INTERVAL)
+    if not app_due and not ports_due:return state
+    state={**state,'errors':list(state.get('errors') or [])}
+    if app_due:
+        state['errors']=[error for error in state['errors'] if not error.startswith('app:')]
+        try:state['app']=check_app(get=get);state.pop('app_error',None)
+        except (OSError,ValueError,KeyError) as error:state['app_error']=str(error);state['errors'].append('app: '+str(error))
+        state.update(app_checked=now,app_checked_version=__version__);atomic_json(cache_path(store),state)
+    if on_app:on_app({**state,'errors':list(state['errors'])})
+    if not ports_due:return state
+    state.update(checked=now,errors=[error for error in state['errors'] if error.startswith('app:')])
     from . import ports
-    for key,run in (('app',lambda:check_app(get=get)),('ports',lambda:check_quiver(preferences,get)),('catalog',lambda:ports.installed_updates(store,get)),('project2099',lambda:check_project2099(entries,get)),('wiicompiled',lambda:__import__('deck_library.wiiupdate',fromlist=['check']).check(preferences,get))):
+    for key,run in (('ports',lambda:check_quiver(preferences,get)),('catalog',lambda:ports.installed_updates(store,get)),('project2099',lambda:check_project2099(entries,get)),('wiicompiled',lambda:__import__('deck_library.wiiupdate',fromlist=['check']).check(preferences,get))):
         try:state[key]=run()
         except (OSError,ValueError,KeyError) as error:state['errors'].append(f'{key}: {error}')
     if preferences.get('catalog_auto',True):
@@ -171,7 +197,8 @@ def install_update(info,store=None,progress=print,runner=subprocess.run):
         progress('Verificado. Instalando');safe_extract(archive,temp/'src')
         installer=next((temp/'src').glob('*/install.py'),None)
         if installer is None:raise ValueError('El paquete no contiene instalador.')
-        result=runner([sys.executable,'-I',str(installer)],cwd=str(installer.parent),capture_output=True,text=True,timeout=120)
+        from .runtime import clean_environment
+        result=runner([sys.executable,'-I',str(installer)],cwd=str(installer.parent),capture_output=True,text=True,timeout=120,env=clean_environment())
         if result.returncode:raise RuntimeError('El instalador terminó con error:\n'+(result.stderr or result.stdout)[-1500:])
     return info['version']
 

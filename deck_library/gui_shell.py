@@ -27,7 +27,9 @@ class ShellMixin:
         self.artwork_bar=Gtk.Box(spacing=8);self.artwork_bar.set_no_show_all(True);self.artwork_spinner=Gtk.Spinner();self.artwork_label=label('','meta');self.artwork_bar.pack_start(self.artwork_spinner,False,False,0);self.artwork_bar.pack_start(self.artwork_label,True,True,0);footer.pack_start(self.artwork_bar,False,False,0)
         from .controller_hints import ControllerHints
         self.controller_hint=ControllerHints();self.controller_hint.hide();self.controller_hint.set_no_show_all(True);footer.pack_start(self.controller_hint,False,False,0)
-        self.status=label('','status');self.status.set_line_wrap(False);self.status.set_ellipsize(Pango.EllipsizeMode.END);self.status.set_no_show_all(True);self.status.hide();footer.pack_start(self.status,False,False,0)
+        status_row=Gtk.Box(spacing=12);footer.pack_start(status_row,False,False,0)
+        self.status=label('','status');self.status.set_line_wrap(False);self.status.set_ellipsize(Pango.EllipsizeMode.END);self.status.set_no_show_all(True);self.status.hide();status_row.pack_start(self.status,True,True,0)
+        self.version_label=label('v'+__version__);self.version_label.set_line_wrap(False);self.version_label.set_max_width_chars(48);self.version_label.set_ellipsize(Pango.EllipsizeMode.END);self.version_label.set_halign(Gtk.Align.END);self.version_label.set_tooltip_text('Instalación en uso: '+str(pathlib.Path(__file__).resolve().parent.parent));status_row.pack_end(self.version_label,False,False,0)
         try:self.entries=self.store.load()
         except Exception as error:self.entries=[];self.set_status('No se pudo leer la biblioteca: '+str(error))
         self.apply_motion();self.refresh_platforms();self.animate_next=True;self.render();self.pages.set_visible_child_name('library')
@@ -271,18 +273,12 @@ class ShellMixin:
             if changed_language:self.preferences['language']=chosen_language
             save_settings(self.preferences,self.store);self.apply_motion();self.toast('Idioma guardado · Language saved. Reabrir Deck Library para aplicarlo · Reopen Deck Library to apply it.' if changed_language else 'Apariencia guardada');self.fetch_covers()
         dialog.destroy()
-    def refresh_update_badges(self):
-        count=len(self.pending_updates());self.update_badge.set_text(str(count));self.update_badge.set_visible(count>0)
-        state=getattr(self,'update_state',{}) or {}
-        if getattr(self,'update_installed',None):self.banner_text.set_text('Deck Library actualizada. Volver a abrirla para usar la nueva versión.');self.banner_action.set_label('Volver a abrir');self.update_banner.show_all()
-        elif state.get('app'):self.banner_text.set_text('Hay una nueva versión de Deck Library.');self.banner_action.set_label('Ver actualización');self.update_banner.show_all()
-        else:self.update_banner.hide()
     def refresh_pending(self):
         from .service import pending_changes,reconcile_pending
         try:reconcile_pending(self.store);rows=pending_changes(self.store)
         except (OSError,ValueError):rows=[]
         if rows:
-            self.pending_label.set_text(('Pendiente en Steam · '+rows[0]['description']) if len(rows)==1 else f'{len(rows)} cambios pendientes en Steam');self.pending_bar.set_no_show_all(False);self.pending_bar.show_all();self.pending_bar.set_no_show_all(True)
+            self.pending_label.set_text(('Pendiente en Steam · '+rows[0]['description']) if len(rows)==1 else f'{len(rows)} cambios de biblioteca pendientes en Steam');self.pending_bar.set_no_show_all(False);self.pending_bar.show_all();self.pending_bar.set_no_show_all(True)
         else:self.pending_bar.hide()
         self.refresh_game_steam()
         return False

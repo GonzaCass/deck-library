@@ -4,6 +4,7 @@ Every release has its notes on [GitHub](https://github.com/GonzaCass/deck-librar
 
 | Version | Date | Title |
 | --- | --- | --- |
+| [1.2.6](https://github.com/GonzaCass/deck-library/releases/tag/v1.2.6) | 2026-10-27 | ISO extraction, verified cleanup, visible version and reliable self-updates |
 | [1.2.5](https://github.com/GonzaCass/deck-library/releases/tag/v1.2.5) | 2026-10-26 | Naruto preparation, portable Windows/Proton families and catalog installation audit |
 | [1.2.4](https://github.com/GonzaCass/deck-library/releases/tag/v1.2.4) | 2026-10-26 | Complete installed-port browsing, portrait covers and Library startup |
 | [1.2.3](https://github.com/GonzaCass/deck-library/releases/tag/v1.2.3) | 2026-10-26 | Automatic refresh of previous official artwork and a shorter bilingual project page |

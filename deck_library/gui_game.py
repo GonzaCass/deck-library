@@ -610,6 +610,10 @@ class GameMixin:
             body.pack_start(TaskButton('Controles de Minecraft','Ver teclas y layouts guardados','controller',lambda _:self.layout_dialog(entry),'amber'),False,False,0)
 
     def build_game_files(self, entry, body):
+        if entry.metadata.get('port_repository'):
+            from . import ports
+            record=ports.records(self.store).get(entry.metadata['port_repository'])
+            if record:self.iso_cleanup_button(body,ports.clean(record),record)
         for caption,value in [('Archivo del juego',entry.source or entry.command[0]),('Comando de inicio',' '.join(entry.command))]:
             panel=self.card(body,caption)
             value=text(value,'muted',100)

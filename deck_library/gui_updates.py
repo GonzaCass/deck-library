@@ -20,21 +20,26 @@ class UpdatesMixin:
     def check_updates(self,force=False):
         """Run due checks off the GTK thread; `force` ignores the cache interval."""
         if getattr(self,'update_busy',False):return False
-        self.update_busy=True;self.refresh_update_badges()
+        self.update_busy=True;self.app_check_busy=True;self.refresh_update_badges()
         preferences=dict(self.preferences);entries=list(self.entries)
         def work():
-            try:state=updates.check_all(self.store,preferences,entries,force=force)
-            except Exception as error:state={**updates.cached(self.store),'errors':[str(error)]}
+            try:state=updates.check_all(self.store,preferences,entries,force=force,on_app=lambda state:GLib.idle_add(self.app_update_ready,state))
+            except Exception as error:state={**updates.cached(self.store),'errors':[str(error)],'app_error':str(error)}
             GLib.idle_add(self.updates_ready,state,force)
         threading.Thread(target=work,daemon=True).start();return False
 
     def updates_ready(self,state,manual):
-        self.update_busy=False;self.update_state=state;self.refresh_update_badges()
-        if state.get('app') and self.preferences.get('auto_update') and not getattr(self,'update_installed',None):self.install_app_update(automatic=True)
+        self.update_busy=False;self.app_update_ready(state)
         if self.preferences.get('auto_update_ports'):
             self.auto_port_queue=[('catalog',p) for p in state.get('catalog') or []]+([('project2099',state['project2099'])] if state.get('project2099') else [])
             self.run_next_auto_port()
-        if manual and self.pages.get_visible_child_name()=='updates':self.updates_page()
+        return False
+
+    def app_update_ready(self,state):
+        if self.ui_closed:return False
+        self.app_check_busy=False;self.update_state=state;self.refresh_update_badges()
+        if self.pages.get_visible_child_name()=='updates':self.updates_page()
+        if state.get('app') and self.preferences.get('auto_update') and not getattr(self,'update_installed',None):self.install_app_update(automatic=True)
         return False
 
     def update_catalog_port(self,data):
@@ -72,17 +77,29 @@ class UpdatesMixin:
         count=len(self.pending_updates())+(1 if getattr(self,'update_installed',None) else 0);self.banner_text.show()
         self.update_badge.set_text(str(count));self.update_badge.set_visible(count>0)
         state=getattr(self,'update_state',{}) or {}
+        version='v'+__version__
+        if getattr(self,'update_installed',None):version+=f' · Reabrir para {self.update_installed}'
+        elif state.get('app'):version+=f' → {state["app"]["version"]} · Actualización disponible'
+        elif getattr(self,'app_check_busy',False):version+=' · Buscando actualización'
+        elif state.get('app_error'):version+=' · No se pudo comprobar'
+        elif not self.preferences.get('check_updates',True):version+=' · Búsqueda automática desactivada'
+        elif state.get('app_checked'):version+=' · Al día'
+        if hasattr(self,'version_label'):self.version_label.set_text(version)
         if getattr(self,'update_installed',None):
-            self.banner_text.set_text(f'Deck Library {self.update_installed} instalada. Reiniciar para usarla.');self.banner_action.set_label('Reiniciar');self.banner_action.show();self.update_banner.show()
+            self.banner_text.set_text(f'Deck Library {self.update_installed} instalada. Volver a abrirla para usarla.');self.banner_action.set_label('Cerrar para abrir desde Steam' if motion.gaming_mode() else 'Volver a abrir');self.banner_action.show();self.update_banner.show()
         elif state.get('app'):
             self.banner_text.set_text(f'Deck Library {state["app"]["version"]} disponible.');self.banner_action.set_label('Ver actualización');self.banner_action.show();self.update_banner.show()
         elif self.pending_updates():
             n=len(self.pending_updates());self.banner_text.set_text(f'{n} actualización de ports disponible.' if n==1 else f'{n} actualizaciones de ports disponibles.');self.banner_action.set_label('Ver');self.banner_action.show();self.update_banner.show()
+        elif state.get('app_error'):
+            self.banner_text.set_text('No se pudo comprobar la actualización de Deck Library.');self.banner_action.set_label('Reintentar');self.banner_action.show();self.update_banner.show()
         else:self.update_banner.hide()
 
     def banner_clicked(self):
         if getattr(self,'update_installed',None):self.restart_app()
-        else:self.updates_page()
+        else:
+            if (getattr(self,'update_state',{}) or {}).get('app_error'):self.check_updates(True)
+            self.updates_page()
 
     def restart_app(self):
         if motion.gaming_mode():Gtk.main_quit();return  # a copy started from here would live outside Steam's session and stay without a window
@@ -92,9 +109,15 @@ class UpdatesMixin:
 
     def install_app_update(self,automatic=False):
         info=(getattr(self,'update_state',{}) or {}).get('app')
-        if not info or getattr(self,'update_installing',False):return
-        if motion.gaming_mode():
-            if not automatic:self.message('Actualización','Abrir Deck Library desde el modo Escritorio para instalar la actualización.')
+        if not info or getattr(self,'update_installing',False) or getattr(self,'update_installed',None)==info.get('version'):return
+        if getattr(self,'port_busy',False) or getattr(self,'inline_workflows',[]):
+            if automatic and not getattr(self,'app_update_retry',0):
+                def retry():
+                    if self.ui_closed:return False
+                    if getattr(self,'port_busy',False) or getattr(self,'inline_workflows',[]):return True
+                    self.app_update_retry=0;self.install_app_update(automatic=True);return False
+                self.app_update_retry=GLib.timeout_add_seconds(2,retry);self.ui_sources.append(self.app_update_retry)
+            elif not automatic:self.set_status('Finalizar la tarea actual antes de actualizar Deck Library.')
             return
         self.update_installing=True;self.set_status(f'Instalando Deck Library {info["version"]}…')
         def work():
@@ -116,10 +139,11 @@ class UpdatesMixin:
         box=self.updates_box;self.reset_page(box);state=getattr(self,'update_state',None) or updates.cached(self.store)
         head=Gtk.Box(spacing=14);head.pack_start(label('Actualizaciones','hero'),True,True,0);head.pack_end(button('Buscar actualizaciones',lambda _:self.check_updates(True),True),False,False,0);box.pack_start(head,False,False,0)
         checked=state.get('checked');box.pack_start(label('Última búsqueda: '+(datetime.datetime.fromtimestamp(checked).strftime('%d/%m/%Y %H:%M') if checked else 'sin revisar'),'meta'),False,False,0)
+        box.pack_start(label('Versión en uso: '+__version__,'meta'),False,False,0)
         info=state.get('app')
         if info:
             card=self.card(box,'Deck Library '+info['version']);card.pack_start(label(info.get('notes') or 'No hay notas disponibles para esta versión.','muted'),False,False,0)
-            if getattr(self,'update_installed',None):card.pack_start(button('Reiniciar para usar la versión instalada',lambda _:self.restart_app(),True),False,False,0)
+            if getattr(self,'update_installed',None):card.pack_start(button('Cerrar para abrir desde Steam' if motion.gaming_mode() else 'Volver a abrir para usar la versión instalada',lambda _:self.restart_app(),True),False,False,0)
             elif info.get('archive') and info.get('checksum'):card.pack_start(button('Actualizar Deck Library',lambda _:self.install_app_update(),True),False,False,0)
         items=[item for item in self.pending_updates() if item[0] in ('port','catalog','wii')];seen=set();unique=[]
         for item in items:
