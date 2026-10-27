@@ -1,5 +1,15 @@
 # Validación
 
+## 1.3.2 — Port removal, ISO completion and Broken Bond
+
+- Core: 824 checks passed (933 discovered, 108 GTK checks and one platform-specific check skipped in that run). The full 107-check GTK suite passed before adding the repair card; focused GTK checks then covered that card at 1280×800 and 840×640, the complete ISO keep/delete flows, file filtering and nested workflow closure. English translation coverage has no missing strings.
+- Permanent removal was exercised with isolated port folders, previous copies, saves, Proton prefixes and pending Steam work. Tests cover ownership, external originals, symbolic links, changed installations, running games, queue failures and cancellation. No unrelated game data is included in the release.
+- The ISO picker keeps folders visible, filters `.iso` without case sensitivity, validates explicitly typed paths and offers All files. Preparation and ISO cleanup return to Library with navigation enabled. The regressions include a parent port-details workflow and keep, declined deletion and confirmed deletion paths.
+- Broken Bond migration was exercised against the official v2.5 package. The installed game retained its library ID, Steam AppID, artwork and saved data. A physical Steam Deck OLED showed game scenes; user feedback confirmed working controls and fluid play, with cutscene pauses. This is limited gameplay evidence, not a sustained FPS benchmark or a complete playthrough.
+- The old recomp reproduced a black screen under Proton 11 and a renderer stop under Proton 9. The compatible port produced shader-guard records during early exits. Startup recovery is bounded to six retries, requires exit code 3 and a new valid pending-shader record, and does not retry unchanged records, malformed data, other ports or other exit codes. Unit tests cover success, lack of progress and the retry limit. Cutscene pauses remain unresolved.
+- Migration rollback, normal port updates, the preserved Steam identity, game files, saves, settings and both shader-guard files are tested. Fresh configuration applies the Steam Deck defaults automatically; later updates retain user changes.
+
+
 ## 1.3.0 — First use, community sharing and bug reports
 
 - Core: 803 checks passed (909 discovered; 105 GTK checks and one platform-specific check skipped in this run). GTK: the full previous 104-check suite passed, plus the new manual-publication regression; final focused checks cover first use, compact inline pages and the review/login/publication flow. Spanish and English interface coverage has no missing strings.

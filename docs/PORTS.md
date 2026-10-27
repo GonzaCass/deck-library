@@ -161,3 +161,23 @@ La selección cubre AppImage, ejecutables Linux, paquetes tar/ZIP y Windows port
 | [LittleBigPlanet 3](https://github.com/TheNIKITO/LittleBigPlanet-3---PC) | El proyecto consultado no publica un paquete listo y documenta limitaciones de arranque. Se muestra como código fuente con requisitos, sin prometer una instalación jugable. |
 
 Bayonetta 2 conserva configuración, caché y partidas al actualizar. El juego generado se reconstruye con la nueva fuente, en vez de presentar un ejecutable viejo como actualizado. La compilación integrada puede cancelarse; solo se marca lista al encontrar el ejecutable final. Si faltan originales, la biblioteca muestra **Preparar** en lugar de **Jugar**. Los instaladores de formatos no integrados, paquetes sin ejecutable y proyectos con dependencias especiales siguen necesitando un adaptador; la app debe mostrarlo sin llamar a todo «incompatible».
+
+## Eliminación de ports
+
+En la ficha del juego, **Archivos y Steam → Eliminar completamente** muestra las rutas que se van a borrar y pide confirmación. La misma acción está disponible en la ficha del catálogo para ports administrados por Deck Library. Elimina la instalación, el entorno privado de Proton, las copias anteriores identificadas y los registros y respaldos propios de ese juego. Las partidas y configuraciones dentro de esas rutas también se eliminan; los originales y otros datos externos se conservan.
+
+La eliminación se bloquea si el juego está abierto, si cambió la instalación o si una ruta apunta fuera de las carpetas administradas. El acceso directo, sus imágenes y controles se quitan de Steam al cerrar el cliente. **Desinstalar** conserva su comportamiento anterior: mueve la instalación a una carpeta recuperable.
+
+## Broken Bond en Steam Deck
+
+La versión 2.5 del [port de Auremana](https://github.com/Auremana666/Naruto-The-Broken-Bond-PC-Port#steam-deck) incorpora correcciones de carga de shaders bajo Proton. Al preparar una instalación nueva, Deck Library aplica una base de 720p, objetivo de 60 FPS, MSAA desactivado y mando SDL, con respaldo de la configuración. Acepta una ISO de Xbox 360 o una carpeta extraída con `default.xex`; la copia extraída permite reutilizar datos ya preparados sin reconstruir una ISO. Los cambios personales posteriores se conservan al actualizar.
+
+Las instalaciones del recomp original de jorjbarbosa ofrecen **Corregir pantalla negra** al abrir la ficha. La reparación descarga el port compatible, conserva las partidas y mantiene el identificador de la biblioteca, el acceso directo de Steam, la carátula y los controles. Si falla el cambio de carpeta, recupera la instalación y los registros anteriores. Requiere Proton 11 instalado y el juego cerrado. La configuración anterior queda respaldada, y la ficha permite restablecer el ajuste recomendado.
+
+Se comprobó imagen y navegación en una Steam Deck OLED; una prueba de uso confirmó controles y fluidez. También se observaron pausas en cinemáticas: no se consideran resueltas ni se atribuyen únicamente a la primera ejecución. La lista `pipeline-guard.txt` se conserva al actualizar para evitar repetir shaders que provocaron cierres; omitirlos puede dejar efectos sin dibujar. El objetivo de 60 FPS no representa una medición sostenida de rendimiento.
+
+## Selección y limpieza de ISO
+
+El selector de ISO comienza filtrado por `*.iso`, sin distinguir mayúsculas, y conserva las carpetas visibles para navegar. **Todos los archivos** permite cambiar el filtro. Conservar o eliminar una ISO después de prepararla cierra la pantalla de limpieza y vuelve a Biblioteca con la navegación habilitada; las siguientes actualizaciones automáticas esperan hasta completar esa decisión.
+
+El lanzador reintenta hasta seis veces los cierres con código 3 solo si el port dejó registrado un shader nuevo en `pipeline-guard-pending.txt`. Si el registro no cambia, no es válido o corresponde a otro error, informa el fallo. Ambos registros de shaders se conservan al actualizar. La pantalla inicial adicional del port se desactiva en el ajuste recomendado para acelerar el acceso al juego.

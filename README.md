@@ -28,6 +28,8 @@
 - **Help:** follow the first-use guide, check reported Steam Deck gameplay and prepare a bug report.
 - **Steam:** add individual games or Deck Library itself, with artwork and controller navigation in Gaming Mode.
 
+The guide, validated games and bug reports are under **Help**. Community profiles are inside each game; registration and sign-in are under **Account**. Game-specific repairs appear in the game details.
+
 ![Library with fictional demo games](assets/screenshot.png)
 
 <details>

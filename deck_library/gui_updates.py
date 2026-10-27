@@ -203,7 +203,7 @@ class UpdatesMixin:
         box.show_all();self.pages.set_visible_child_name('updates')
 
     def run_next_auto_port(self):
-        if getattr(self,'port_busy',False) or not getattr(self,'auto_port_queue',[]):return False
+        if getattr(self,'port_busy',False) or getattr(self,'iso_cleanup_active',None) or not getattr(self,'auto_port_queue',[]):return False
         kind,data=self.auto_port_queue.pop(0)
         if kind=='project2099':self.update_project2099(automatic=True)
         else:self.update_catalog_port(data)
@@ -218,7 +218,7 @@ class UpdatesMixin:
         source=project2099_update.source_for(entry,self.entries)
         if not source and automatic:self.set_status('Project-2099 necesita indicar la copia original para actualizarse.');return
         if not source:
-            chooser=InlineFileChooser(title='Elegir la copia Xbox 360 de Edge of Time',transient_for=self,action=Gtk.FileChooserAction.OPEN);chooser.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Elegir',Gtk.ResponseType.OK)
+            chooser=InlineFileChooser(title='Elegir la copia Xbox 360 de Edge of Time',transient_for=self,action=Gtk.FileChooserAction.OPEN,patterns=('*.iso','*.zip','*.7z'),filter_name='ISO, ZIP o 7z');chooser.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Elegir',Gtk.ResponseType.OK)
             if chooser.run()==Gtk.ResponseType.OK:source=chooser.get_filename()
             chooser.destroy()
             if not source:return

@@ -452,7 +452,7 @@ def records(store):
     for repo,record in data.items():
         if not isinstance(record,dict):continue
         recipe=RECIPES.get(repo.lower(),{})
-        if (recipe.get('original_data') or {}).get('extract_iso'):
+        if (recipe.get('original_data') or {}).get('extract_iso') or (recipe.get('original_data') or {}).get('iso_destination'):
             record.update(original_data=dict(recipe['original_data']),source_note=recipe['source_note'])
     return data
 
@@ -703,6 +703,8 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
         record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'runtime':runtime,'game_title':item.get('game_title') or item['cover_title'],'original_platform':platform_for(item['list']),'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'preparation':item.get('preparation',''),'source_note':item.get('source_note',''),'original_data':item.get('original_data'),'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
         if item['repository'].lower()=='revivedx/savagewindrecomp' and runtime=='linux':record['args']=['--appimage-extract-and-run']
         if previous.get('inputs'):record['inputs']=dict(previous['inputs'])
+        if isinstance(previous.get('entry_id'),str) and re.fullmatch(r'[a-f0-9]{20}',previous['entry_id']):record['entry_id']=previous['entry_id']
+        if previous.get('steam_deck_fix'):record['steam_deck_fix']=previous['steam_deck_fix']
         if item['setup']=='original_data' and previous.get('configured_with'):record['configured_with']=previous['configured_with']
         images=sorted(p.name for p in staging.iterdir() if p.suffix.lower()=='.appimage') if item.get('multi_appimage') else []
         if len(images)>1:record['games']=[{'executable':name,'title':game_label(name,item['repository'])} for name in images]
@@ -783,7 +785,9 @@ def entry_for(folder):
         import sys
         command=[sys.executable,'-m','deck_library.port_runtime',str(folder)];cwd=str(pathlib.Path(__file__).resolve().parent.parent)
     title=record.get('game_title') or record.get('cover_title') or next((b.get('cover_title','') for b in BUILTIN if b['repository']==record['repository']),'')
-    return Entry(record.get('name',folder.name),command,'port','Windows' if record.get('runtime')=='proton' else 'Linux',str(exe),cwd,id=port_id(record['repository']),metadata={'port_repository':record['repository'],**({'game_title':title} if title else {}),'original_platform':record.get('original_platform') or next((platform_for(b.get('category','')) for b in BUILTIN if b['repository']==record['repository']),''),'configured':bool(record.get('configured')) if record.get('setup') else True,'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
+    identity=record.get('entry_id','')
+    if not isinstance(identity,str) or not re.fullmatch(r'[a-f0-9]{20}',identity):identity=port_id(record['repository'])
+    return Entry(record.get('name',folder.name),command,'port','Windows' if record.get('runtime')=='proton' else 'Linux',str(exe),cwd,id=identity,metadata={'port_repository':record['repository'],**({'game_title':title} if title else {}),'original_platform':record.get('original_platform') or next((platform_for(b.get('category','')) for b in BUILTIN if b['repository']==record['repository']),''),'configured':bool(record.get('configured')) if record.get('setup') else True,'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
 
 
 def entries_for(folder):
@@ -1269,6 +1273,8 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None,c
         from .original_data import prepare,find_source
         original=prepare(folder,find_source(record,games,home),record['original_data'],progress,cancel=cancel)
         record.update(configured=True,configured_with=pathlib.Path(original).name)
+        from .broken_bond import defaults
+        defaults(folder,record)
         saved=records(store);saved[repository]=record;atomic_json(store.root/'ports.json',saved);atomic_json(folder/'.deck-library-port.json',record);return record
     if kind=='kit':
         if not disc['cue']:raise ValueError('El kit necesita el archivo .cue del disco.')
