@@ -20,7 +20,7 @@ class ShellMixin:
         self.connect('size-allocate',self.update_density);self.connect('destroy',Gtk.main_quit);self.connect('destroy',self.close_ui_sources);self.connect('delete-event',lambda *_:not self.discard_game_edits());self.connect('key-press-event',self.library_key);self.connect('set-focus',self.library_focus_changed);self.connect('map',self.fit_window);self.connect('size-allocate',self.update_game_size);self.connect('size-allocate',lambda *_:self.update_controller_hints(self))
         root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.add(root);self.build_navigation(root)
         overlay=Gtk.Overlay();root.pack_start(overlay,True,True,0);self.pages=PageStack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);self.inline_workflows=[];self.workflow_stack=Gtk.Stack();self.workflow_stack.set_homogeneous(False);self.workflow_stack.connect('notify::visible-child',self.refresh_layout);self.workflow_stack.add_named(self.pages,'main');overlay.add(self.workflow_stack);self.toast_widget=motion.Toast();overlay.add_overlay(self.toast_widget)
-        self.build_library_page();self.home_box=self.scrolled_page('home');self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.detail.set_border_width(20);self.pages.add_named(self.detail,'detail');self.settings_box=self.scrolled_page('settings');self.updates_box=self.scrolled_page('updates');self.catalog_box=self.scrolled_page('catalog');self.add_box=self.scrolled_page('add');self.pending_box=self.scrolled_page('pending')
+        self.build_library_page();self.home_box=self.scrolled_page('home');self.validated_box=self.scrolled_page('validated');self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.detail.set_border_width(20);self.pages.add_named(self.detail,'detail');self.settings_box=self.scrolled_page('settings');self.updates_box=self.scrolled_page('updates');self.catalog_box=self.scrolled_page('catalog');self.add_box=self.scrolled_page('add');self.pending_box=self.scrolled_page('pending')
         self.wizard_box=Gtk.Stack();self.wizard_box.set_homogeneous(False);self.wizard_box.connect('notify::visible-child',self.refresh_layout);wizard_scroll=self.new_scroll();wizard_scroll.add(self.wizard_box);self.pages.add_named(wizard_scroll,'welcome')
         footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);footer.set_margin_start(24);footer.set_margin_end(24);footer.set_margin_bottom(8);root.pack_end(footer,False,False,0)
         self.build_pending_banner(footer)
@@ -78,6 +78,8 @@ class ShellMixin:
             self.brand_visible=show_brand;self.brand_label.set_no_show_all(not show_brand);self.brand_label.set_visible(show_brand)
         if getattr(self,'deck_density',None)==compact:return
         self.deck_density=compact;style=self.get_style_context()
+        for icon in getattr(self,'nav_icons',[]):
+            icon.set_no_show_all(compact);icon.set_visible(not compact)
         style.add_class('deck-density') if compact else style.remove_class('deck-density')
 
     def close_ui_sources(self,*_):
@@ -102,10 +104,10 @@ class ShellMixin:
         from .ui_components import Icon
         bar=Gtk.Box(spacing=8);bar.get_style_context().add_class('app-header');bar.set_border_width(6);root.pack_start(bar,False,False,0)
         icon=Gtk.Image.new_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(str(self.asset('brand.png')),28,28,True));bar.pack_start(icon,False,False,4);brand=label('Deck Library','brand');brand.set_margin_end(12);self.brand_label=brand;bar.pack_start(brand,False,False,0)
-        self.nav_buttons={};self.update_badge=label('','badge');self.update_badge.set_no_show_all(True);self.update_badge.set_valign(Gtk.Align.CENTER);self.update_badge.set_halign(Gtk.Align.CENTER)
-        for name,callback in [('Inicio',lambda _:self.home_page()),('Biblioteca',lambda _:self.open_library()),('Catálogo de ports',lambda _:self.catalog_page()),('Actualizaciones',lambda _:self.updates_page()),('Ajustes',lambda _:self.settings_page())]:
+        self.nav_buttons={};self.nav_icons=[];self.update_badge=label('','badge');self.update_badge.set_no_show_all(True);self.update_badge.set_valign(Gtk.Align.CENTER);self.update_badge.set_halign(Gtk.Align.CENTER)
+        for name,callback in [('Inicio',lambda _:self.home_page()),('Biblioteca',lambda _:self.open_library()),('Juegos validados',lambda _:self.validated_page()),('Catálogo de ports',lambda _:self.catalog_page()),('Actualizaciones',lambda _:self.updates_page()),('Ajustes',lambda _:self.settings_page())]:
             control=button(name,lambda w,action=callback:self.navigate_from_game(action,w));control.get_style_context().add_class('nav');control.set_valign(Gtk.Align.CENTER);bar.pack_start(control,False,False,0);self.nav_buttons[name]=control
-            caption=control.get_child();control.remove(caption);content=Gtk.Box(spacing=7);content.pack_start(Icon({'Inicio':'grid','Biblioteca':'library','Catálogo de ports':'controller','Actualizaciones':'download','Ajustes':'sliders'}[name],18),False,False,0);content.pack_start(caption,False,False,0);control.add(content);control.get_accessible().set_name(name)
+            caption=control.get_child();control.remove(caption);content=Gtk.Box(spacing=7);icon=Icon({'Inicio':'grid','Biblioteca':'library','Juegos validados':'check','Catálogo de ports':'controller','Actualizaciones':'download','Ajustes':'sliders'}[name],18);self.nav_icons.append(icon);content.pack_start(icon,False,False,0);content.pack_start(caption,False,False,0);control.add(content);control.get_accessible().set_name(name)
             if name=='Actualizaciones':
                 content.pack_start(self.update_badge,False,False,0)
         self.steam_library_button=button('Agregar a Steam',self.add_library_to_steam);self.steam_library_button.set_valign(Gtk.Align.CENTER);self.steam_library_button.set_tooltip_text('Agregar Deck Library a Steam');self.steam_library_button.get_accessible().set_name('Agregar Deck Library a Steam');self.steam_library_button.get_style_context().add_class('steam-add');bar.pack_start(self.steam_library_button,False,False,0)
@@ -128,7 +130,7 @@ class ShellMixin:
         if title:box.pack_start(label(title,'title'),False,False,0)
         parent.pack_start(box,False,False,0);return box
     def page_changed(self,*_):
-        page=self.pages.get_visible_child_name();active={'home':'Inicio','library':'Biblioteca','detail':'Biblioteca','add':'Catálogo de ports','catalog':'Catálogo de ports','updates':'Actualizaciones','settings':'Ajustes','pending':'Actualizaciones'}.get(page)
+        page=self.pages.get_visible_child_name();active={'home':'Inicio','library':'Biblioteca','validated':'Juegos validados','detail':{'home':'Inicio','validated':'Juegos validados'}.get(getattr(self,'detail_origin','library'),'Biblioteca'),'add':'Catálogo de ports','catalog':'Catálogo de ports','updates':'Actualizaciones','settings':'Ajustes','pending':'Actualizaciones'}.get(page)
         for name,control in self.nav_buttons.items():
             style=control.get_style_context();style.add_class('active') if name==active else style.remove_class('active')
     def build_library_page(self):
@@ -247,7 +249,7 @@ class ShellMixin:
             else:self.checked.add(e.id)
             self.render();return
         if not self.discard_game_edits():return
-        self.detail_origin='home' if self.pages.get_visible_child_name()=='home' else 'library';self.library_focus_id=e.id
+        self.detail_origin=self.pages.get_visible_child_name() if self.pages.get_visible_child_name() in ('home','validated') else 'library';self.library_focus_id=e.id
         if self.detail_origin=='home':self.home_focus_id=e.id
         self.detail_game_id=None;self.selected=e;self.show_detail(e);self.pages.set_visible_child_name('detail');self.game_play_button.grab_focus()
     def add_hub(self):self.catalog_page()

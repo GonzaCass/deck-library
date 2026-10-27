@@ -23,25 +23,31 @@ class HelpMixin:
         for title,description in GUIDE:
             panel=self.card(body,title);panel.pack_start(text(description,'muted',95),False,False,0)
         actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);body.pack_start(actions,False,False,0)
-        actions.pack_start(ActionButton('Juegos validados','check',lambda _:self.validated_page(),'steam'),False,False,0)
+        def open_validated(_):
+            page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.validated_page(),False)[1])
+        actions.pack_start(ActionButton('Juegos validados','check',open_validated,'steam'),False,False,0)
         actions.pack_start(ActionButton('Reportar un problema','file',lambda _:self.bug_report_page(),'violet-outline'),False,False,0)
         page.connect('response',lambda *_:page.destroy());page._mount()
 
     def validated_page(self,*_):
-        page=InlineDialog(title='Juegos validados en Steam Deck',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
-        body=page.get_content_area();body.set_spacing(12)
-        body.pack_start(text('Esta lista reúne pruebas de juego reportadas en una Steam Deck. Conviene revisar la versión, el equipo y las limitaciones: instalar un port o tener una puntuación alta de compatibilidad no equivale a haberlo probado.','muted',95),False,False,0)
+        if not self.discard_game_edits():return
+        body=self.validated_box;self.reset_page(body);body.set_spacing(12)
+        body.pack_start(text('Juegos validados en Steam Deck','hero'),False,False,0)
+        body.pack_start(text('Pruebas de juego confirmadas. Revisar la versión y las limitaciones antes de instalar.','muted',90),False,False,0)
+        search=Gtk.SearchEntry();search.set_placeholder_text('Buscar juegos validados · X: teclado');self.bind_search_keyboard(search);self.validated_search=search;body.pack_start(search,False,False,0)
+        results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);body.pack_start(results,False,False,0);self.validated_targets={};panels=[]
         for game in validated_games.catalog():
-            panel=self.card(body,game['name']);panel.pack_start(badge('Gameplay confirmado','green'),False,False,0)
+            panel=self.card(results,game['name']);panels.append((game,panel));panel.pack_start(badge('Gameplay confirmado','green'),False,False,0)
             panel.pack_start(text(game['program']+' · '+game['version'],'meta',85),False,False,0)
             panel.pack_start(text('Steam Deck OLED' if game['hardware']=='steam-deck-oled' else 'Steam Deck LCD','meta'),False,False,0)
             panel.pack_start(text(game['result'],'muted',95),False,False,0)
-            details=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);details.pack_start(text(game['limitations'],'muted',95),False,False,0);details.pack_start(text('Fecha del registro: '+game['date'],'meta'),False,False,0)
+            details=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);details.pack_start(text('Limitaciones','title'),False,False,0);details.pack_start(text(game['limitations'],'muted',95),False,False,0);details.pack_start(text('Fecha del registro: '+game['date'],'meta'),False,False,0)
             panel.pack_start(Reveal('Ver condiciones de la prueba',details),False,False,0)
             installed=validated_games.matching(game,self.entries)
             def open_game(_,entry=installed):
-                page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.select_game(entry),False)[1])
-            if installed:panel.pack_start(ActionButton('Abrir juego en mi biblioteca','library',open_game,'steam-outline'),False,False,0)
+                self.select_game(entry)
+            if installed:
+                control=ActionButton('Abrir juego en mi biblioteca','library',open_game,'steam-outline');panel.pack_start(control,False,False,0);self.validated_targets[installed.id]=control
             elif game['repository']:
                 from . import ports
                 item=next((v for v in self.catalog_entries() if v['repository'].casefold()==game['repository'].casefold()),None)
@@ -50,7 +56,18 @@ class HelpMixin:
                 from . import presets
                 profile=next((p for p in presets.catalog(self.store) if p['id']==game['profile_id']),None)
                 if profile:details.pack_start(text(profile['objective'],'meta',95),False,False,0)
-        page.connect('response',lambda *_:page.destroy());page._mount()
+        empty=text('No hay juegos validados con ese nombre.','muted');results.pack_start(empty,False,False,0);empty.set_no_show_all(True)
+        def filter_games(_):
+            query=search.get_text().strip().casefold();count=0
+            for game,panel in panels:
+                shown=query in (game['name']+' '+game['program']).casefold();panel.set_visible(shown);count+=shown
+            empty.set_visible(not count)
+        search.connect('search-changed',filter_games);body.show_all();filter_games(None)
+        body.get_ancestor(Gtk.ScrolledWindow).show();self.pages.set_visible_child_name('validated');self.refresh_layout()
+        def focus():
+            if self.ui_closed or self.pages.get_visible_child_name()!='validated':return False
+            target=self.validated_targets.get(getattr(self,'library_focus_id',None),search);target.grab_focus();self.mark_controller_focus(self,target);self.reveal_focus(target);return False
+        GLib.idle_add(focus)
 
     def bug_report_page(self,entry=None):
         if entry is not None and not hasattr(entry,'metadata'):entry=None

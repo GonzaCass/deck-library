@@ -25,10 +25,11 @@
 - **Ports:** explorar, instalar y actualizar los proyectos compatibles. Consultar los originales necesarios y elegir los archivos que falten al preparar el juego.
 - **Ajustes por juego:** comparar perfiles compactos, desplegar sus detalles y aplicar cambios con respaldo.
 - **Comunidad:** compartir ajustes, valoraciones y comentarios desde la app.
-- **Ayuda:** guía de primer uso, pruebas de juego en Steam Deck y preparación de reportes de errores.
+- **Juegos validados:** pestaña con pruebas de gameplay, versiones probadas y limitaciones conocidas.
+- **Ayuda:** guía de primer uso y preparación de reportes de errores.
 - **Steam:** agregar juegos o Deck Library, con carátulas y navegación con mando en modo Juego.
 
-La guía, los juegos validados y los reportes están en **Ayuda**. **Comunidad** aparece dentro de cada juego; el registro y el inicio de sesión están en **Cuenta**. Las reparaciones disponibles se muestran en la ficha del juego.
+Las pruebas tienen su propia pestaña **Juegos validados**. La guía y los reportes están en **Ayuda**. **Comunidad** aparece dentro de cada juego; el registro y el inicio de sesión están en **Cuenta**. Las reparaciones disponibles se muestran en la ficha del juego.
 
 ![Biblioteca con juegos ficticios de ejemplo](assets/screenshot.png)
 

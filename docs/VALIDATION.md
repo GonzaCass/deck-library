@@ -1,5 +1,12 @@
 # Validación
 
+## 1.3.3 — Validated games navigation
+
+- The validated-games catalog is a main stack page, with text filtering, expandable conditions and controller search. GTK regressions cover opening it from Help without leaving an inline workflow active, tab highlighting, LB/RB routing, B/Back from a game to its report, focus restoration and returning to Library. Bounds checks cover 1280×800 and 840×640. Navigation icons collapse at Deck density to leave room for tab names.
+- Broken Bond's v2.5 entry records the preceding physical Steam Deck gameplay report, including working controls, fluid gameplay, cutscene pauses and shader omissions. This release adds no new gameplay test or FPS benchmark. Reports are curated independently of community publication and ratings.
+- The live service health response was checked: prior review remains disabled. No administrator-role integration, approval inbox, notifications or moderation policy changes were added. The existing two-account publication evidence remains documented under 1.3.0.
+
+
 ## 1.3.2 — Port removal, ISO completion and Broken Bond
 
 - Core: 824 checks passed (933 discovered, 108 GTK checks and one platform-specific check skipped in that run). GTK coverage includes the repair card at 1280×800 and 840×640, complete ISO keep/delete flows, extension filtering, extracted-folder selection and nested workflow closure. Runtime locators are isolated in the Broken Bond unit fixtures, so validation does not depend on Proton being installed on the test host. English translation coverage has no missing strings.

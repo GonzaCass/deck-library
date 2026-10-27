@@ -38,7 +38,7 @@ class GameMixin:
         self.detail.set_border_width(20)
         self.detail.get_style_context().add_class('game-workspace')
         breadcrumb = Gtk.Box(spacing=10)
-        self.game_back = ActionButton('Biblioteca', 'back', lambda _: self.back_from_game())
+        self.game_back = ActionButton('Juegos validados' if getattr(self,'detail_origin','library')=='validated' else 'Biblioteca', 'back', lambda _: self.back_from_game())
         styled(self.game_back, 'breadcrumb')
         breadcrumb.pack_start(self.game_back, False, False, 0)
         breadcrumb.pack_start(text('/', 'meta'), False, False, 0)
@@ -74,6 +74,7 @@ class GameMixin:
         if self.game_tab != 'profiles':
             self.open_game_section('profiles')
         elif getattr(self,'detail_origin','library')=='home':self.home_page()
+        elif getattr(self,'detail_origin','library')=='validated':self.validated_page()
         else:
             self.open_library()
 
@@ -625,7 +626,7 @@ class GameMixin:
         self.game_tab = section
         self.update_game_navigation()
         self.game_location.set_text({'profiles':'Juego','options':'Ajustes manuales','controls':'Controles e idioma','files':'Archivos y acceso directo','content':'Contenido del juego'}.get(section,'Juego'))
-        self.game_back.set_label('Biblioteca' if section=='profiles' else 'Juego')
+        self.game_back.set_label(('Juegos validados' if getattr(self,'detail_origin','library')=='validated' else 'Biblioteca') if section=='profiles' else 'Juego')
         if animate:
             page=self.game_pages.get_child_by_name(section)
             if section=='profiles':self.game_play_button.grab_focus()

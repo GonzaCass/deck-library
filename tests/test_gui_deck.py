@@ -58,7 +58,7 @@ class DeckUITests(unittest.TestCase):
     def test_running_version_and_update_state_stay_visible_and_refresh_automatically(self):
         from deck_library import __version__
         self.w.preferences['auto_update']=False;self.w.preferences['check_updates']=True
-        for page in ('library','home','catalog','updates','settings'):
+        for page in ('library','home','validated','catalog','updates','settings'):
             self.w.pages.set_visible_child_name(page);self.settle();self.assertTrue(self.w.version_label.get_mapped());self.assertIn(__version__,self.w.version_label.get_text())
         self.w.updates_page();self.w.app_update_ready({'app':{'version':'99.0.0','notes':'New release'}});self.settle()
         self.assertIn('99.0.0',self.w.version_label.get_text());self.assertTrue(self.w.update_banner.get_mapped())
@@ -467,9 +467,10 @@ class DeckUITests(unittest.TestCase):
         for width,height in ((1280,800),(840,640)):
             self.w.resize(width,height);self.settle();self.w.validated_page();self.settle()
             self.assertLessEqual(self.w.get_allocated_width(),width)
-            page=self.w.inline_workflows[-1];captions=[w.get_text() for w in widgets(page.get_content_area()) if isinstance(w,Gtk.Label)]
+            self.assertEqual(self.w.pages.get_visible_child_name(),'validated');self.assertFalse(self.w.inline_workflows)
+            captions=[w.get_text() for w in widgets(self.w.validated_box) if isinstance(w,Gtk.Label)]
             self.assertIn('Naruto: Rise of a Ninja',captions);self.assertIn('Mario Kart Wii',captions)
-            page.response(Gtk.ResponseType.CLOSE);self.settle();self.w.bug_report_page(self.w.entries[0]);self.settle()
+            self.w.bug_report_page(self.w.entries[0]);self.settle()
             page=self.w.inline_workflows[-1];controls=[w for w in widgets(page.get_content_area()) if isinstance(w,Gtk.Button)]
             send=next(w for w in controls if w.get_label()=='Enviar diagnóstico');self.assertFalse(send.get_sensitive())
             entry=next(w for w in widgets(page.get_content_area()) if isinstance(w,Gtk.Entry));entry.set_text('Test problem')
@@ -478,6 +479,37 @@ class DeckUITests(unittest.TestCase):
             entry.set_text('Changed problem');self.assertFalse(send.get_sensitive())
             self.assertLessEqual(self.w.get_allocated_width(),width)
             page.response(Gtk.ResponseType.CLOSE);self.settle()
+
+    def test_guide_link_opens_validated_tab_and_restores_navigation(self):
+        self.w.help_page();self.settle()
+        guide=self.w.inline_workflows[-1]
+        next(c for c in self.w.control_targets(guide) if c.get_accessible().get_name()=='Juegos validados').clicked();self.settle()
+        self.assertFalse(self.w.inline_workflows);self.assertEqual(self.w.pages.get_visible_child_name(),'validated')
+        self.assertTrue(all(c.get_sensitive() for c in self.w.navigation_controls))
+
+    def test_validated_tab_supports_filtering_controller_tabs_and_back_from_a_game(self):
+        from deck_library.models import Entry
+        entry=Entry('Naruto: Rise of a Ninja',['/bin/true'],metadata={'port_repository':'jorjbarbosa/naruto-rise-recomp'})
+        self.w.entries.append(entry);self.w.render();self.w.nav_buttons['Juegos validados'].clicked();self.settle()
+        self.assertFalse(self.w.inline_workflows);self.assertEqual(self.w.pages.get_visible_child_name(),'validated')
+        self.assertTrue(self.w.nav_buttons['Juegos validados'].get_style_context().has_class('active'))
+        self.w.validated_search.set_text('does not exist');self.w.validated_search.emit('search-changed');self.settle()
+        self.assertFalse(self.w.validated_targets[entry.id].get_mapped())
+        self.w.validated_search.set_text('Naruto');self.w.validated_search.emit('search-changed');self.settle()
+        self.assertTrue(self.w.validated_targets[entry.id].get_mapped());self.w.validated_targets[entry.id].clicked();self.settle()
+        self.assertEqual(self.w.detail_origin,'validated');self.assertEqual(self.w.pages.get_visible_child_name(),'detail')
+        self.w.controller_action('back');self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'validated')
+        self.assertIs(self.w.get_focus(),self.w.validated_targets[entry.id])
+        with patch.object(self.w,'open_keyboard') as keyboard:
+            self.w.last_controller_action=('',0);self.w.controller_action('search');self.settle();keyboard.assert_called_once_with(self.w.validated_search)
+        self.w.validated_search.grab_focus()
+        self.assertIs(self.w.get_focus(),self.w.validated_search)
+        self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.settle()
+        self.assertEqual(self.w.pages.get_visible_child_name(),'catalog')
+        self.w.last_controller_action=('',0);self.w.controller_action('previous_tab');self.settle()
+        self.assertEqual(self.w.pages.get_visible_child_name(),'validated')
+        self.w.last_controller_action=('',0);self.w.controller_action('back');self.settle()
+        self.assertEqual(self.w.pages.get_visible_child_name(),'library')
 
     def test_naruto_profiles_and_proton_selector_fit_the_game_page(self):
         from deck_library.models import Entry
@@ -798,7 +830,8 @@ class DeckUITests(unittest.TestCase):
         original_cards=list(self.w.covers.get_children())
         self.w.pages.set_visible_child_name('settings');self.w.open_library()
         self.assertEqual(original_cards,list(self.w.covers.get_children()))
-        self.w.controller_action('next_tab');self.assertEqual(self.w.pages.get_visible_child_name(),'catalog')
+        self.w.controller_action('next_tab');self.assertEqual(self.w.pages.get_visible_child_name(),'validated')
+        self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.assertEqual(self.w.pages.get_visible_child_name(),'catalog')
         self.w.controller_action('back');self.assertEqual(self.w.pages.get_visible_child_name(),'library')
         tile=self.w.covers.get_children()[0].get_child();button=next(c for c in tile.get_children() if isinstance(c,Gtk.Button))
         button.grab_focus();self.w.last_controller_action=('',0);self.w.controller_action('activate')
@@ -1372,6 +1405,8 @@ class DeckUITests(unittest.TestCase):
                 with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog()
                 for _ in range(3):
                     self.w.open_library();self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.settle()
+                    self.assertEqual(self.w.pages.get_visible_child_name(),'validated')
+                    self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.settle()
                     self.assertEqual(self.w.pages.get_visible_child_name(),'catalog');self.assertTrue(self.w.catalog_rows.get_mapped());self.assertEqual(self.w.pages.get_transition_type(),Gtk.StackTransitionType.NONE)
                     self.w.last_controller_action=('',0);self.w.controller_action('back');self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertTrue(self.w.covers.get_mapped())
                 self.w.select_game(self.w.entries[0]);self.settle();self.w.open_game_section('files');self.settle();self.assertEqual(self.w.game_pages.get_transition_type(),Gtk.StackTransitionType.NONE)
@@ -1392,6 +1427,9 @@ class DeckUITests(unittest.TestCase):
         self.w.open_library();self.settle()
         with patch.object(Gtk.Window,'list_toplevels',return_value=[]):
             driver.focus.focused.return_value=True;driver.sdl.read.return_value={'next_tab'};driver.poll();self.settle()
+            self.assertEqual(self.w.pages.get_visible_child_name(),'validated')
+            driver.sdl.read.return_value=set();driver.poll();self.w.last_controller_action=('',0)
+            driver.sdl.read.return_value={'next_tab'};driver.poll();self.settle()
             self.assertEqual(self.w.pages.get_visible_child_name(),'catalog')
             driver.sdl.read.return_value=set();driver.poll();self.w.last_controller_action=('',0)
             driver.sdl.read.return_value={'back'};driver.poll();self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'library')

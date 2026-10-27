@@ -25,10 +25,11 @@
 - **Ports:** browse, install and update supported projects. Check original-file requirements and choose missing files during setup.
 - **Game settings:** compare compact profiles, expand their details and apply changes with a backup.
 - **Community:** share per-game settings, ratings and comments from the app.
-- **Help:** follow the first-use guide, check reported Steam Deck gameplay and prepare a bug report.
+- **Validated games:** a dedicated tab with gameplay reports, tested versions and known limitations.
+- **Help:** follow the first-use guide and prepare a bug report.
 - **Steam:** add individual games or Deck Library itself, with artwork and controller navigation in Gaming Mode.
 
-The guide, validated games and bug reports are under **Help**. Community profiles are inside each game; registration and sign-in are under **Account**. Game-specific repairs appear in the game details.
+Gameplay reports have their own **Validated games** tab. The guide and bug reports are under **Help**. Community profiles are inside each game; registration and sign-in are under **Account**. Game-specific repairs appear in the game details.
 
 ![Library with fictional demo games](assets/screenshot.png)
 

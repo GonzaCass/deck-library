@@ -4,6 +4,7 @@ Every release has its notes on [GitHub](https://github.com/GonzaCass/deck-librar
 
 | Version | Date | Title |
 | --- | --- | --- |
+| [1.3.3](https://github.com/GonzaCass/deck-library/releases/tag/v1.3.3) | 2026-10-27 | Dedicated validated-games tab, searchable gameplay reports and Broken Bond test record |
 | [1.3.2](https://github.com/GonzaCass/deck-library/releases/tag/v1.3.2) | 2026-10-27 | ISO filters and setup navigation, complete port removal and Broken Bond Steam Deck repair |
 | [1.3.1](https://github.com/GonzaCass/deck-library/releases/tag/v1.3.1) | 2026-10-27 | Consistent interface terminology and Spanish/English text review |
 | [1.3.0](https://github.com/GonzaCass/deck-library/releases/tag/v1.3.0) | 2026-10-27 | First-use guide, gameplay reports, public community sharing and opt-in diagnostics |
