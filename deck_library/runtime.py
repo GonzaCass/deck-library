@@ -81,9 +81,11 @@ def prepare_eden_profile(entry,store,env):
     env['XDG_DATA_HOME']=str(paths['data'].parent)
     return env
 
-def show_error(message,store=None):
+def show_error(message,store=None,entry=None):
     print(message,file=sys.stderr)
-    try:atomic_json((store or Store()).root/'launch-notice.json',{'message':str(message),'time':time.time()})
+    value={'message':str(message),'time':time.time()}
+    if entry:value.update(entry_id=entry.id,game=entry.name)
+    try:atomic_json((store or Store()).root/'launch-notice.json',value)
     except OSError:pass
 
 def launch(entry,store=None,notify=True):
@@ -91,11 +93,11 @@ def launch(entry,store=None,notify=True):
     # Old error logs inform the diagnostic panel, but do not prevent trying a repaired launch.
     blocking=[i for i in issues if i.startswith(('No se encuentra','El programa no tiene','Un ejecutable Windows','Falta el entorno'))]
     if blocking:
-        if notify:show_error('\n'.join(blocking),store)
+        if notify:show_error('\n'.join(blocking),store,entry)
         return 1
     try:env=prepare_eden_profile(entry,store,clean_environment())
     except (OSError,configparser.Error,RuntimeError) as error:
-        if notify:show_error('No se pudo preparar '+entry.name+'.\n'+str(error),store)
+        if notify:show_error('No se pudo preparar '+entry.name+'.\n'+str(error),store,entry)
         return 1
     folder=store.root/'logs'; folder.mkdir(parents=True,exist_ok=True,mode=0o700)
     log=folder/(entry.id+'.log'); start=time.monotonic()
@@ -108,7 +110,7 @@ def launch(entry,store=None,notify=True):
         from .proton_selection import launch_command,mode
         try:command,env=launch_command(entry,command,env,store)
         except (OSError,ValueError) as error:
-            if notify:show_error(str(error),store)
+            if notify:show_error(str(error),store,entry)
             return 1
         if entry.platform=='Switch' and pathlib.Path(command[0]).name=='flatpak' and len(command)>1 and command[1]=='run':
             from .content import eden_paths
@@ -123,7 +125,7 @@ def launch(entry,store=None,notify=True):
         try:process=subprocess.Popen(command,cwd=launch_cwd,env=env,stdout=output,stderr=subprocess.STDOUT,start_new_session=True)
         except OSError as error:
             output.write(str(error)+'\n')
-            if notify:show_error('No se pudo abrir '+entry.name+'.\n'+str(error),store)
+            if notify:show_error('No se pudo abrir '+entry.name+'.\n'+str(error),store,entry)
             return 1
         previous={};stop_requested=False
         def forward(signum,frame):
@@ -145,5 +147,5 @@ def launch(entry,store=None,notify=True):
     atomic_json(folder/(entry.id+'.status.json'),{'exit':code,'seconds':round(time.monotonic()-start,1)})
     if code and notify and not stop_requested:
         issues,details=diagnostics(entry,store)
-        show_error(entry.name+' terminó con error '+str(code)+'.\n\n'+('\n'.join(issues) or details[-2200:])+'\n\nRegistro local: '+str(log),store)
+        show_error(entry.name+' terminó con error '+str(code)+'.\n\n'+('\n'.join(issues) or details[-2200:])+'\n\nRegistro local: '+str(log),store,entry)
     return code if code>=0 else 128-code

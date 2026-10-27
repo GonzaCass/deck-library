@@ -2,7 +2,7 @@
 import json,os,pathlib,shlex,subprocess,sys,threading,re
 from gi.repository import Gtk,GLib,Pango
 from .inline_pages import InlineDialog,InlineFileButton
-from .models import Store,Entry
+from .models import Store,Entry,atomic_json
 from .discovery import scan,available_emulators,nice_name,SYSTEMS
 from .runtime import diagnostics,clean_environment
 from .service import queue_entries,queue_removals,queue_controllers
@@ -13,13 +13,39 @@ class ActionsMixin:
     def reset_page(self,box):
         for child in box.get_children():box.remove(child)
     def toast(self,text):self.toast_widget.show_text(text)
+    def build_launch_notice(self,root):
+        from .ui_components import ActionButton
+        row=Gtk.Box(spacing=10);row.get_style_context().add_class('banner');row.set_no_show_all(True)
+        self.launch_notice_label=label('Hay un error de una ejecución anterior.','meta');row.pack_start(self.launch_notice_label,True,True,0)
+        row.pack_end(ActionButton('Descartar aviso','check',lambda _:row.hide(),'quiet'),False,False,0)
+        row.pack_end(ActionButton('Ver diagnóstico','file',lambda _:self.launch_error_page(),'quiet'),False,False,0)
+        root.pack_start(row,False,False,0);self.launch_notice_banner=row
+    def launch_error_page(self,*_):
+        try:value=json.loads((self.store.root/'last-launch-error.json').read_text())
+        except (OSError,ValueError):return
+        if not isinstance(value,dict) or not isinstance(value.get('message'),str):return
+        page=InlineDialog(title='Último error de un juego',transient_for=self)
+        body=page.get_content_area();body.pack_start(label(value['message'],'subtitle'),False,False,0)
+        entry=next((e for e in self.entries if e.id==value.get('entry_id') or value['message'].startswith(e.name+' terminó con error')),None)
+        from .ui_components import ActionButton
+        if entry:
+            def open_game(_):
+                page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.select_game(entry),False)[1])
+            body.pack_start(ActionButton('Abrir juego en mi biblioteca','library',open_game,'steam-outline'),False,False,0)
+        body.pack_start(ActionButton('Reportar este problema','file',lambda _:self.bug_report_page(entry),'violet-outline'),False,False,0)
+        page.add_button('Volver',Gtk.ResponseType.CLOSE);page.connect('response',lambda *_:page.destroy());page._mount()
     def poll_sync(self):
         notice=self.store.root/'launch-notice.json'
         if notice.is_file():
             reading=notice.with_name('launch-notice-reading.json')
             try:
-                notice.replace(reading);value=json.loads(reading.read_text());reading.unlink()
-                if isinstance(value,dict) and isinstance(value.get('message'),str):self.message('No se pudo iniciar el juego',value['message'])
+                notice.replace(reading);value=json.loads(reading.read_text())
+                if isinstance(value,dict) and isinstance(value.get('message'),str):
+                    atomic_json(self.store.root/'last-launch-error.json',value)
+                    game=value.get('game') or next((e.name for e in self.entries if value['message'].startswith(e.name+' terminó con error')),'')
+                    self.launch_notice_label.set_text('Último error: '+game if isinstance(game,str) and game else 'Hay un error de una ejecución anterior.')
+                    self.launch_notice_banner.set_no_show_all(False);self.launch_notice_banner.show_all();self.launch_notice_banner.set_no_show_all(True)
+                reading.unlink()
             except (OSError,ValueError):pass
         path=self.store.root/'last-sync.json'
         try:

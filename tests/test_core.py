@@ -70,5 +70,15 @@ class LauncherNoticeTests(unittest.TestCase):
             with patch('subprocess.run',side_effect=AssertionError('No native error dialogs')),contextlib.redirect_stderr(output):show_error('Falta el juego.',store)
             self.assertEqual(json.loads((store.root/'launch-notice.json').read_text())['message'],'Falta el juego.')
             self.assertIn('Falta el juego.',output.getvalue())
+    def test_launch_failure_notice_identifies_the_game(self):
+        from deck_library.runtime import show_error
+        import contextlib,io
+        with tempfile.TemporaryDirectory() as tmp,contextlib.redirect_stderr(io.StringIO()):
+            store=Store(tmp);entry=Entry('Test',['/bin/false'])
+            self.assertEqual(launch(entry,store),1)
+            value=json.loads((store.root/'launch-notice.json').read_text())
+            self.assertEqual(value['entry_id'],entry.id);self.assertEqual(value['game'],entry.name)
+            self.assertIn('terminó con error',value['message'])
+
 
 if __name__=='__main__':unittest.main()

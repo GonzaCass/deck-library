@@ -1376,12 +1376,31 @@ class DeckUITests(unittest.TestCase):
             button.clicked();queued.assert_called_once()
         self.w.resize(840,640);self.settle();self.assertLessEqual(self.w.get_size().width,840)
 
-    def test_launcher_error_is_consumed_inside_the_application(self):
+    def test_launcher_error_does_not_block_library_and_opens_details_only_on_request(self):
         from deck_library.models import atomic_json
         path=self.store.root/'launch-notice.json';atomic_json(path,{'message':'Falta el ejecutable.'})
-        self.w.poll_sync();self.settle();self.assertEqual(len(self.w.inline_workflows),1);self.assertFalse(path.exists())
-        self.w.poll_sync();self.assertEqual(len(self.w.inline_workflows),1)
+        self.w.poll_sync();self.settle()
+        self.assertFalse(self.w.inline_workflows);self.assertFalse(path.exists());self.assertTrue(self.w.launch_notice_banner.get_mapped())
+        self.assertTrue(all(c.get_sensitive() for c in self.w.navigation_controls))
+        self.assertEqual(self.w.pages.get_visible_child_name(),'library')
+        self.assertTrue((self.store.root/'last-launch-error.json').is_file());self.w.poll_sync();self.assertFalse(self.w.inline_workflows)
+        self.w.launch_error_page();self.settle();self.assertEqual(len(self.w.inline_workflows),1)
         self.w.controller_action('back');self.settle();self.assertFalse(self.w.inline_workflows)
+        dismiss=next(c for c in self.w.control_targets(self.w.launch_notice_banner) if c.get_accessible().get_name()=='Descartar aviso')
+        dismiss.clicked();self.w.show_all();self.settle();self.assertFalse(self.w.launch_notice_banner.get_mapped())
+
+    def test_previous_game_error_can_open_its_library_entry_and_stays_in_help(self):
+        from deck_library.models import atomic_json
+        entry=self.w.entries[0];value={'message':'Test game error','entry_id':entry.id,'game':entry.name,'time':1}
+        atomic_json(self.store.root/'launch-notice.json',value);self.w.poll_sync();self.settle()
+        self.assertIn(entry.name,self.w.launch_notice_label.get_text())
+        self.w.help_page();self.settle();guide=self.w.inline_workflows[-1]
+        next(c for c in self.w.control_targets(guide) if c.get_accessible().get_name()=='Último error de un juego').clicked();self.settle()
+        self.assertEqual(len(self.w.inline_workflows),1);details=self.w.inline_workflows[-1]
+        next(c for c in self.w.control_targets(details) if c.get_accessible().get_name()=='Abrir juego en mi biblioteca').clicked();self.settle()
+        self.assertFalse(self.w.inline_workflows);self.assertEqual(self.w.selected.id,entry.id)
+        self.assertEqual(self.w.pages.get_visible_child_name(),'detail')
+        self.assertTrue(all(c.get_sensitive() for c in self.w.navigation_controls))
 
     def test_initial_library_shows_the_configured_view(self):
         self.assertEqual(self.w.library_stack.get_visible_child_name(),self.w.view)

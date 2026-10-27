@@ -27,6 +27,10 @@ class HelpMixin:
             page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.validated_page(),False)[1])
         actions.pack_start(ActionButton('Juegos validados','check',open_validated,'steam'),False,False,0)
         actions.pack_start(ActionButton('Reportar un problema','file',lambda _:self.bug_report_page(),'violet-outline'),False,False,0)
+        if (self.store.root/'last-launch-error.json').is_file():
+            def open_launch_error(_):
+                page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.launch_error_page(),False)[1])
+            actions.pack_start(ActionButton('Último error de un juego','file',open_launch_error,'quiet'),False,False,0)
         page.connect('response',lambda *_:page.destroy());page._mount()
 
     def validated_page(self,*_):
