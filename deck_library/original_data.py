@@ -41,10 +41,11 @@ def find_source(record,games=(),home=None):
     # An explicit invalid choice stays visible as an error; do not silently replace it.
     if selected and pathlib.Path(selected).exists():return str(validate(selected,spec))
     home=pathlib.Path(home or pathlib.Path.home());existing=ports_root(home)/record.get('folder','')/spec['destination']
-    if spec.get('iso_only') and record.get('configured_with'):
+    if (spec.get('iso_only') or spec.get('iso_destination')) and record.get('configured_with'):
         name=record.get('configured_with','')
         if name and pathlib.Path(name).name==name:
-            try:return str(validate(existing/name,spec))
+            iso_folder=ports_root(home)/record.get('folder','')/spec.get('iso_destination',spec['destination'])
+            try:return str(validate(iso_folder/name,spec))
             except (OSError,ValueError):pass
     try:return str(validate(existing,spec))
     except (OSError,ValueError):pass
@@ -72,7 +73,9 @@ def prepare(folder,path,spec,progress=print,cancel=None):
     if spec.get('extract_iso') and pathlib.Path(path).is_file():
         from .iso_import import prepare as extract
         return extract(folder,path,spec,progress,cancel)
-    folder=pathlib.Path(folder).resolve();source=validate(path,spec).resolve();target=(folder/spec['destination']).resolve()
+    folder=pathlib.Path(folder).resolve();source=validate(path,spec).resolve()
+    destination_name=spec.get('iso_destination',spec['destination']) if source.is_file() else spec['destination']
+    target=(folder/destination_name).resolve()
     if not target.is_relative_to(folder):raise ValueError('El destino sale de la carpeta del port.')
     if source==target:return str(source)
     if source==folder or folder.is_relative_to(source):raise ValueError('Elegir los archivos originales fuera de la instalación del port.')

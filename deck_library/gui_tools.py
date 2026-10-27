@@ -103,8 +103,8 @@ class ToolsMixin:
             if not active[0]:break
         dialog.destroy()
 
-    def pick_file(self,title,save=False,folder=False,suggested_name='preset.json'):
-        dialog=InlineFileChooser(title=title,transient_for=self,action=Gtk.FileChooserAction.SELECT_FOLDER if folder else Gtk.FileChooserAction.SAVE if save else Gtk.FileChooserAction.OPEN)
+    def pick_file(self,title,save=False,folder=False,suggested_name='preset.json',patterns=(),filter_name=''):
+        dialog=InlineFileChooser(title=title,transient_for=self,action=Gtk.FileChooserAction.SELECT_FOLDER if folder else Gtk.FileChooserAction.SAVE if save else Gtk.FileChooserAction.OPEN,patterns=patterns,filter_name=filter_name)
         dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar' if save else 'Elegir',Gtk.ResponseType.OK)
         if save:dialog.set_do_overwrite_confirmation(True);dialog.set_current_name(suggested_name)
         result=dialog.get_filename() if dialog.run()==Gtk.ResponseType.OK else None;dialog.destroy();return result
@@ -270,7 +270,7 @@ class ToolsMixin:
         box=dialog.get_content_area();box.set_spacing(12);box.set_border_width(20)
         box.pack_start(label('Spider-Man: Edge of Time','title'),False,False,0)
         box.pack_start(label('Requiere la versión de Xbox 360; la de PS3 no es compatible. Descarga la última versión oficial, verifica sus archivos y la instala en español con Proton.','muted'),False,False,0)
-        source=InlineFileButton(title='Elegir ISO, ZIP o 7z de Xbox 360',action=Gtk.FileChooserAction.OPEN)
+        source=InlineFileButton(title='Elegir ISO, ZIP o 7z de Xbox 360',action=Gtk.FileChooserAction.OPEN,patterns=('*.iso','*.zip','*.7z'),filter_name='ISO, ZIP o 7z')
         box.pack_start(source,False,False,0)
         destination=Gtk.Entry();destination.set_text(str(pathlib.Path.home()/'ports/project2099'))
         box.pack_start(label('Carpeta de destino vacía'),False,False,0);box.pack_start(destination,False,False,0)

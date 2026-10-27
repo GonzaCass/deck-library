@@ -691,11 +691,14 @@ class DeckUITests(unittest.TestCase):
         folder=root/'ports'/item['folder'];folder.mkdir(parents=True);iso=root/'owned.iso';create_iso(iso)
         record={**item,'configured':True,'inputs':{'original_data':str(iso)}};atomic_json(self.store.root/'ports.json',{repo:record})
         iso_import.prepare(folder,iso,record['original_data'],lambda _:None);(folder/'user').mkdir();(folder/'user/save').write_text('progress')
-        original_run=self.inline.run;windows=self.application_windows()
+        original_mount=self.inline._mount;windows=self.application_windows()
         for mode in ('keep','decline','delete'):
+            parent=self.inline(title='Port details',transient_for=self.w);parent.port_repository=repo;parent._mount();self.settle()
             errors=[];started=[False];deadline=time.monotonic()+5
-            def run(page):
+            def mount(page):
+                original_mount(page)
                 def act():
+                    if page._closed:return False
                     try:
                         if not started[0]:
                             started[0]=True
@@ -705,11 +708,15 @@ class DeckUITests(unittest.TestCase):
                         else:self.assertTrue(iso.exists())
                     except Exception as error:errors.append(str(error))
                     page.response(Gtk.ResponseType.CLOSE);return False
-                GLib.timeout_add(100,act);return original_run(page)
-            with patch.object(ports,'ports_root',return_value=root/'ports'),patch.object(self.w,'confirm',return_value=mode=='delete') as confirm,patch.object(self.inline,'run',run):
+                GLib.timeout_add(100,act)
+            with patch.object(ports,'ports_root',return_value=root/'ports'),patch.object(self.w,'confirm',return_value=mode=='delete') as confirm,patch.object(self.inline,'_mount',mount):
                 self.w.iso_cleanup_page(item)
+                while self.w.inline_workflows and time.monotonic()<deadline:self.settle()
+                self.assertFalse(self.w.inline_workflows)
+                self.assertEqual(self.w.pages.get_visible_child_name(),'library')
+                self.assertTrue(all(c.get_sensitive() for c in self.w.navigation_controls))
                 self.assertEqual(confirm.call_count,0 if mode=='keep' else 1)
-            self.assertEqual(errors,[]);self.assertEqual(self.application_windows(),windows)
+            self.assertEqual(errors,[]);self.assertEqual(self.application_windows(),windows);self.assertEqual(iso.exists(),mode!='delete')
         self.assertTrue((folder/'game/default.xex').is_file());self.assertEqual((folder/'user/save').read_text(),'progress')
 
     def exercise_full_iso_install_flow(self,delete):
@@ -721,8 +728,10 @@ class DeckUITests(unittest.TestCase):
         item=ports.clean({'repository':'jorjbarbosa/naruto-rise-recomp','name':'Naruto: Rise of a Ninja'});payload=io.BytesIO()
         with zipfile.ZipFile(payload,'w') as archive:archive.writestr('narutorise_launcher.exe',b'MZfixture');archive.writestr('narutorise.exe',b'MZfixture')
         release={'tag_name':'test','assets':[{'name':'Naruto-win64.zip','browser_download_url':'https://github.com/owner/repo/test.zip'}]}
-        original_run=self.inline.run;seen=[];errors=[];windows=self.application_windows()
-        def run(page):
+        original_mount=self.inline._mount;seen=[];errors=[];windows=self.application_windows()
+        def mount(page):
+            already_mounted=page._mounted;original_mount(page)
+            if already_mounted:return
             def act():
                 try:
                     title=next(child.get_text() for child in page.get_children() if isinstance(child,Gtk.Label) and child.get_style_context().has_class('inline-page-heading'))
@@ -741,10 +750,11 @@ class DeckUITests(unittest.TestCase):
                     else:page.response(Gtk.ResponseType.CLOSE)
                 except Exception as error:errors.append(str(error));page.response(Gtk.ResponseType.CLOSE)
                 return False
-            GLib.timeout_add(100,act);return original_run(page)
-        with patch.object(ports,'ports_root',return_value=root/'ports'),patch.object(ports,'release_for',return_value=release),patch.object(ports,'download',side_effect=lambda _,target,**kw:target.write_bytes(payload.getvalue())),patch.object(project2099,'proton_path',return_value=pathlib.Path('/fake/proton')),patch.object(self.w,'pick_file',return_value=str(iso)),patch.object(self.w,'confirm',return_value=True),patch.object(self.inline,'run',run):
+            GLib.timeout_add(100,act)
+        with patch.object(ports,'ports_root',return_value=root/'ports'),patch.object(ports,'release_for',return_value=release),patch.object(ports,'download',side_effect=lambda _,target,**kw:target.write_bytes(payload.getvalue())),patch.object(project2099,'proton_path',return_value=pathlib.Path('/fake/proton')),patch.object(self.w,'pick_file',return_value=str(iso)),patch.object(self.w,'confirm',return_value=True),patch.object(self.inline,'_mount',mount):
             self.w.install_port(item,False);deadline=time.monotonic()+5
-            while ('cleanup' not in seen or self.w.port_busy) and time.monotonic()<deadline:self.settle()
+            while ('cleanup' not in seen or self.w.port_busy or self.w.inline_workflows) and time.monotonic()<deadline:self.settle()
+        self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertFalse(self.w.inline_workflows);self.assertTrue(all(c.get_sensitive() for c in self.w.navigation_controls))
         self.assertEqual(errors,[]);self.assertEqual(seen,['original','cleanup']);self.assertEqual(iso.exists(),not delete)
         record=ports.records(self.store)[item['repository']];self.assertTrue(record['configured'])
         self.assertEqual((root/'ports'/record['folder']/'game/default.xex').read_bytes(),xex());self.assertEqual(self.application_windows(),windows)
@@ -1017,6 +1027,58 @@ class DeckUITests(unittest.TestCase):
         self.w.catalog_page();self.w.catalog_apps=[item,other];self.w.catalog_search.set_text('')
         with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog()
         joined='\n'.join(self.catalog_texts());self.assertIn('Desinstalar',joined);self.assertIn('Instalar todos los juegos',joined);self.assertIn('Revisado',joined);self.assertIn('Sin revisar',joined)
+
+    def test_old_broken_bond_offers_the_black_screen_repair_in_the_game_overview(self):
+        from gi.repository import Gtk
+        from deck_library.models import Entry
+        from deck_library import broken_bond
+        entry=Entry('Broken Bond',['/bin/true'],metadata={'port_repository':broken_bond.ORIGINAL})
+        self.store.save([entry]);self.w.entries=[entry]
+        def widgets(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from widgets(child)
+        for width,height in ((1280,800),(840,640)):
+            self.w.resize(width,height);self.w.select_game(entry);self.settle()
+            button=next(w for w in widgets(self.w.detail) if isinstance(w,Gtk.Button) and w.get_label()=='Corregir pantalla negra')
+            button.grab_focus();self.w.reveal_focus(button);self.settle();self.assertTrue(button.get_mapped());self.assertLessEqual(self.w.get_allocated_width(),width)
+            with patch.object(self.w,'confirm',return_value=False),patch.object(broken_bond,'repair') as repair:
+                button.clicked();repair.assert_not_called()
+
+    def test_iso_file_filter_keeps_folders_accepts_uppercase_and_can_show_all_files(self):
+        from gi.repository import Gtk
+        from deck_library.inline_pages import InlineFileChooser
+        root=pathlib.Path(self.temp.name);(root/'subfolder').mkdir()
+        for name in ('game.iso','GAME.ISO','notes.txt','game.zip'):(root/name).write_text('fixture')
+        page=InlineFileChooser(title='Elegir ISO',transient_for=self.w,patterns=('*.iso',),filter_name='ISO (*.iso)');page.load(root);page._mount();self.settle()
+        visible={row.path.name for row in page.files.get_children()};self.assertEqual(visible,{'subfolder','game.iso','GAME.ISO'})
+        page.path.set_text(str(root/'notes.txt'));page.open_path();page.response(Gtk.ResponseType.OK)
+        self.assertIsNone(page._answer);self.assertIn('filtro',page.status.get_text())
+        page.file_filter.set_active_id('all');self.assertIn('notes.txt',{row.path.name for row in page.files.get_children()})
+        page.response(Gtk.ResponseType.CANCEL);page.destroy();self.assertFalse(self.w.inline_workflows)
+
+    def test_permanent_removal_is_visible_in_game_files_and_cancellation_preserves_the_port(self):
+        from gi.repository import Gtk
+        from deck_library import ports
+        from deck_library.models import Entry,atomic_json
+        root=pathlib.Path(self.temp.name)/'ports';folder=root/'sample';folder.mkdir(parents=True);(folder/'game').write_bytes(b'\x7fELF')
+        record={'repository':'test/sample','name':'Sample port','folder':'sample','executable':'game'};atomic_json(folder/'.deck-library-port.json',record);atomic_json(self.store.root/'ports.json',{'test/sample':record})
+        entry=Entry('Sample port',[str(folder/'game')],source=str(folder/'game'),id=ports.port_id('test/sample'),metadata={'port_repository':'test/sample'})
+        self.store.save([entry]);self.w.entries=[entry];self.w.select_game(entry);self.w.open_game_section('files');self.settle()
+        def widgets(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from widgets(child)
+        button=next(w for w in widgets(self.w.detail) if isinstance(w,Gtk.Button) and w.get_label()=='Eliminar completamente')
+        self.assertTrue(button.get_mapped())
+        with patch.object(ports,'ports_root',return_value=root),patch.object(self.w,'confirm',return_value=False) as confirm:
+            button.clicked();confirm.assert_called_once();self.assertIn('partidas',confirm.call_args.args[1]);self.assertTrue(confirm.call_args.kwargs['danger']);self.assertTrue(folder.is_dir())
+        with patch.object(ports,'ports_root',return_value=root),patch.object(self.w,'confirm',return_value=True):
+            button.clicked()
+            import time
+            deadline=time.monotonic()+3
+            while self.w.port_busy and time.monotonic()<deadline:self.settle()
+        self.assertFalse(self.w.port_busy);self.assertFalse(folder.exists());self.assertFalse(self.store.load());self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertFalse(self.w.inline_workflows)
 
     def test_an_unreviewed_port_asks_once_before_installing(self):
         from deck_library import ports

@@ -183,7 +183,7 @@ class CatalogMixin:
         from .gui import label,button
         import subprocess
         item=ports.clean(item)
-        title=item.get('game_title') or item['name'];page=InlineDialog(title=title,transient_for=self);page.add_button('Volver al catálogo',Gtk.ResponseType.CLOSE)
+        title=item.get('game_title') or item['name'];page=InlineDialog(title=title,transient_for=self);page.port_repository=item['repository'];page.add_button('Volver al catálogo',Gtk.ResponseType.CLOSE)
         box=page.get_content_area();hero=Gtk.Box(spacing=20);detail_art=(96,144) if self.compact_screen() else (132,198);image=Gtk.Image.new_from_icon_name('applications-games-symbolic',Gtk.IconSize.DIALOG);image.set_size_request(*detail_art);image.set_valign(Gtk.Align.START);hero.pack_start(image,False,False,0)
         text=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
         tool='utilit' in item.get('list','').casefold()
@@ -284,6 +284,11 @@ class CatalogMixin:
         else:
             def install(_):page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.install_port(item,False),False)[1])
             primary_action[0]=button('Instalar',install,True);page.get_action_area().pack_start(primary_action[0],False,False,0)
+        if installed.get(item['repository']) and item['repository'].casefold()!='genrythefox0/project-2099':
+            def delete_port(_):
+                page.response(Gtk.ResponseType.CLOSE)
+                GLib.idle_add(lambda:(self.delete_port_permanently(item),False)[1])
+            box.pack_start(button('Eliminar completamente',delete_port,tone='danger'),False,False,0)
         self.transfer_row(box,item['repository']);page.show_all();artwork();page.run();page.destroy()
 
     def prepare_shaders(self):
@@ -409,6 +414,36 @@ class CatalogMixin:
             except Exception as error:GLib.idle_add(self.port_failed,item,str(error))
         threading.Thread(target=work,daemon=True).start()
 
+    def delete_port_permanently(self,item):
+        from . import port_removal
+        if getattr(self,'port_busy',False):self.message('Instalación en curso','Esperar a que termine la instalación antes de eliminar un port.');return
+        try:value=port_removal.plan(item['repository'],self.store)
+        except (OSError,ValueError) as error:self.message('No se pudo preparar la eliminación',str(error));return
+        description='Se borran definitivamente el port y los datos de las rutas indicadas: partidas, configuración, entorno de Proton y copias anteriores administradas por Deck Library. Esta acción no se puede deshacer.\n\nLos originales y otros datos guardados fuera de estas rutas se conservan.\n\nArchivos y carpetas que se eliminarán:\n'+'\n'.join(str(path) for path in value['paths'])
+        if any(e.metadata.get('steam_appid') for e in value['entries']):description+='\n\nTambién se quita el acceso directo de Steam. Si Steam está abierto, ese cambio se guarda al cerrarlo.'
+        if not self.confirm('Eliminar completamente '+value['name'],description,'Eliminar definitivamente',danger=True):return
+        self.port_busy=True;self.set_status('Eliminando el port y sus datos…')
+        progress=InlineDialog(title='Eliminando el port y sus datos…',transient_for=self);progress.set_deletable(False)
+        spinner=Gtk.Spinner();spinner.start();progress.get_content_area().pack_start(spinner,False,False,12);progress._mount()
+        def done(result,error):
+            self.port_busy=False
+            if self.ui_closed:return False
+            progress.destroy()
+            if error:self.message('No se pudo completar la eliminación',error);return False
+            from . import updates
+            self.entries=self.store.load();self.checked-=set(result['ids']);self.library_dirty=True;self.update_state=updates.cached(self.store)
+            self.refresh_platforms();self.refresh_pending();self.refresh_update_badges()
+            removed_selection=self.selected and self.selected.id in result['ids']
+            if removed_selection:self.selected=None;self.detail_game_id=None;self.open_library()
+            elif self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
+            elif self.pages.get_visible_child_name()=='library':self.render()
+            self.set_status(result['name']+' eliminado completamente.')
+            return False
+        def work():
+            try:result=port_removal.execute(item['repository'],self.store,expected=value);GLib.idle_add(done,result,None)
+            except Exception as error:GLib.idle_add(done,None,str(error))
+        threading.Thread(target=work,daemon=True).start()
+
     def uninstall_port(self,item):
         item=ports.clean(item);record=ports.records(self.store).get(item['repository'])
         if not record:self.message('Sin instalación','Deck Library no instaló este port.');return
@@ -441,7 +476,7 @@ class CatalogMixin:
         else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en ~/ports/{record["folder"]}, pero hay varios ejecutables posibles. Elegir el correcto con «Agregar juegos → Elegir un juego o una app».')
         if getattr(self,'update_state',None):self.update_state['catalog']=[u for u in self.update_state.get('catalog') or [] if u['repository']!=item['repository']];self.refresh_update_badges()
         self.discover()
-        GLib.idle_add(self.run_next_auto_port)
+        if not record.get('setup'):self.port_setup_finished(item)
         if self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
         return False
 
@@ -465,7 +500,7 @@ class CatalogMixin:
         if record.get('original_data'):
             def original_data(_,folder=False):
                 xbox='Xbox 360' if record['original_data'].get('kind') in ('xbox360-dante','xbox360') else 'Xbox'
-                path=self.pick_file(('Elegir carpeta con exefs y romfs' if record['original_data'].get('kind')=='switch-dump' else 'Elegir carpeta extraída de '+xbox) if folder else 'Elegir ISO de '+xbox,folder=folder)
+                path=self.pick_file(('Elegir carpeta con exefs y romfs' if record['original_data'].get('kind')=='switch-dump' else 'Elegir carpeta extraída de '+xbox) if folder else 'Elegir ISO de '+xbox,folder=folder,patterns=() if folder else ('*.iso',),filter_name='ISO (*.iso)')
                 if not path:return
                 try:ports.set_input(item['repository'],'original_data',path,self.store);error.set_text('');refresh()
                 except (ValueError,OSError) as exc:error.set_text(str(exc))
@@ -488,7 +523,7 @@ class CatalogMixin:
         if missing:
             self.transfer_event(item['repository'],{'phase':'awaiting_input','text':'Archivos originales pendientes.','fraction':None,'eta':None})
             if self.port_inputs(item):return self.configure_port(item,automatic=True)
-            self.set_status(item['name']+': archivos originales pendientes.');return
+            self.set_status(item['name']+': archivos originales pendientes.');self.port_setup_finished(item);return
         needs_sdk=record['setup'] in ('kit','openpete') and not buildenv.installed()
         used=next((text for ok,text in lines if ok and text.startswith('Disco')),'')
         question='Se va a configurar '+item['name']+' con lo que ya está en la Deck.\n\n'+'\n'.join(text for ok,text in lines)+'\n\n'+('Compila el juego dentro del SDK de KDE; el kit de Spider-Man tarda unos minutos. ' if record['setup'] in ('kit','openpete') else '')+('Antes se instalará el SDK de KDE de Flatpak (una sola vez). ' if needs_sdk else '')+'Los discos originales no se modifican.'
@@ -510,14 +545,29 @@ class CatalogMixin:
     def port_configured(self,item,record):
         getattr(self,'port_jobs',{}).pop(item['repository'],None)
         self.transfer_event(item['repository'],{'phase':'done','fraction':1,'text':'Juego preparado','eta':None})
-        GLib.idle_add(self.run_next_auto_port)
         self.port_busy=False;self.set_status(item['name']+' configurado con «'+record.get('configured_with','')+'».');self.discover()
         notes={'ctr':'La primera vez, CTR pregunta por una fuente opcional (elegir «Use Luckiest Guy») y por un preset de gráficos.','openpete':'El juego ya está compilado. Se abre en pantalla completa.','kit':'El juego ya está compilado y listo para jugar.'}
         if notes.get(record.get('setup')):self.message(item['name']+' listo',notes[record['setup']]+' Se puede agregar a Steam desde la biblioteca.')
         if self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
         from .iso_import import details
-        if record.get('configured') and details(ports.ports_root()/record['folder']):GLib.idle_add(lambda:(self.iso_cleanup_page(item),False)[1])
+        if record.get('configured') and details(ports.ports_root()/record['folder']):
+            self.iso_cleanup_active=item['repository'];GLib.idle_add(lambda:(self.iso_cleanup_page(item),False)[1])
+        else:self.port_setup_finished(item)
         return False
+
+    def port_setup_finished(self,item):
+        """Complete setup in the library, with no leftover workflow blocking navigation."""
+        self.iso_cleanup_active=None
+        for workflow in list(self.inline_workflows)[::-1]:
+            if getattr(workflow,'port_repository',None)==item['repository']:
+                workflow.response(Gtk.ResponseType.CLOSE);workflow.destroy()
+        record=ports.records(self.store).get(item['repository'])
+        if record:
+            self.store.merge(ports.entries_for(ports.ports_root()/record['folder']),overwrite=False)
+            self.entries=self.store.load();self.library_dirty=True;self.refresh_platforms()
+        self.open_library()
+        GLib.idle_add(lambda:(self.focus_library(ports.port_id(item['repository'])),False)[1])
+        GLib.idle_add(self.run_next_auto_port)
 
     def iso_cleanup_button(self,body,item,record):
         from .iso_import import details
@@ -529,25 +579,33 @@ class CatalogMixin:
         from .gui import label,button
         record=ports.records(self.store).get(item['repository']);folder=ports.ports_root()/record['folder'] if record else None
         info=details(folder) if folder else None
-        if not info:self.message('Limpieza de ISO','No hay una ISO verificada pendiente de limpieza.');return
-        page=InlineDialog(title='Liberar espacio',transient_for=self);page.add_button('Conservar ISO',Gtk.ResponseType.CLOSE)
+        if not info:self.port_setup_finished(item);return
+        self.iso_cleanup_active=item['repository']
+        page=InlineDialog(title='Liberar espacio',transient_for=self);page.port_repository=item['repository'];keep=page.add_button('Conservar ISO',Gtk.ResponseType.CLOSE)
         body=page.get_content_area();body.pack_start(label('¿Eliminar la ISO original?','title'),False,False,0)
         body.pack_start(label('La extracción terminó. Los archivos del port se conservarán. La ISO se puede conservar para otros usos o eliminar para liberar espacio.','subtitle'),False,False,0)
         path=label(info['source'],'muted');path.set_selectable(True);body.pack_start(path,False,False,0)
         body.pack_start(label(f'ISO original · {info["size"]/1e9:.2f} GB','meta'),False,False,0)
         status=label('Antes de borrar se volverán a verificar los archivos extraídos.','muted');body.pack_start(status,False,False,0)
-        cancel=threading.Event();alive=[True]
+        cancel=threading.Event();alive=[True];removing=[False]
+        def close(*_):
+            if removing[0]:return
+            alive[0]=False;cancel.set();page.destroy();self.port_setup_finished(item)
+        page.connect('response',close)
         def done(error):
-            getattr(self,'port_jobs',{}).pop(item['repository'],None);self.port_busy=False
+            getattr(self,'port_jobs',{}).pop(item['repository'],None);self.port_busy=False;removing[0]=False
+            if self.ui_closed:return False
             text=('No se pudo eliminar la ISO: '+error) if error else 'ISO eliminada. Los datos del port, las partidas y los ajustes se conservaron.'
             self.transfer_event(item['repository'],{'phase':'error' if error else 'done','fraction':0 if error else 1,'text':text,'eta':None});self.set_status(text)
-            if alive[0]:status.set_text(text);remove.set_sensitive(bool(error))
-            if not error:self.toast(text);self.discover()
+            if alive[0]:status.set_text(text);remove.set_sensitive(bool(error));keep.set_sensitive(True);page.set_deletable(True)
+            if not error:
+                self.toast(text)
+                if alive[0]:close()
             return False
         def remove_iso(_):
             if getattr(self,'port_busy',False):status.set_text('Ya hay una instalación en curso.');return
             if not self.confirm('Eliminar ISO original',info['source']+'\n\nSe eliminará de forma permanente. El port conservará los archivos extraídos; otros programas ya no podrán usar esta ISO.','Eliminar ISO',danger=True):return
-            remove.set_sensitive(False);self.port_busy=True;cancel.clear()
+            remove.set_sensitive(False);keep.set_sensitive(False);page.set_deletable(False);self.port_busy=True;removing[0]=True;cancel.clear()
             if not hasattr(self,'port_jobs'):self.port_jobs={}
             self.port_jobs[item['repository']]=cancel;self.start_transfer(item['repository']);progress=self.port_progress(item['repository'])
             def work():
@@ -556,7 +614,8 @@ class CatalogMixin:
                 GLib.idle_add(done,error)
             threading.Thread(target=work,daemon=True).start()
         remove=button('Eliminar ISO',remove_iso,tone='danger');body.pack_start(remove,False,False,0)
-        self.transfer_row(body,item['repository']).hide();page.show_all();page.run();alive[0]=False;cancel.set();page.destroy()
+        page.connect('destroy',lambda *_:(alive.__setitem__(0,False),cancel.set()))
+        self.transfer_row(body,item['repository']).hide();page._mount()
 
     def port_failed(self,item,text):
         getattr(self,'port_jobs',{}).pop(item['repository'],None)

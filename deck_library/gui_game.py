@@ -296,6 +296,7 @@ class GameMixin:
         if entry.metadata.get('gtaiv_root'):
             content.pack_start(TaskButton('Mejoras para GTA IV', 'FusionFix y DXVK', 'sliders', lambda _: self.gtaiv_dialog(entry)), False, False, 0)
         self.build_proton_selector(entry,content,compact=True)
+        self.build_broken_bond_repair(entry,content)
         if adapter in presets.REGISTRY:
             self.build_profile_picker(entry, content, parent)
         else:
@@ -304,6 +305,41 @@ class GameMixin:
             panel.pack_start(text('Ajustes del juego', 'section-title'), False, False, 0)
             panel.pack_start(text('Este juego se configura desde sus propias opciones.', 'muted'), False, False, 0)
             content.pack_start(panel, False, False, 0)
+
+    def build_broken_bond_repair(self,entry,body):
+        from . import broken_bond
+        state=broken_bond.status(entry,self.store)
+        if not state:return
+        panel=self.card(body,'Broken Bond en Steam Deck')
+        if state=='applied':
+            panel.pack_start(badge('Ajuste aplicado','green'),False,False,0)
+            panel.pack_start(text('720p · objetivo de 60 FPS · MSAA desactivado · mando SDL','meta',85),False,False,0)
+        else:panel.pack_start(text('La versión compatible corrige la pantalla negra. Conserva el acceso directo de Steam, los originales y las partidas.','muted',85),False,False,0)
+        panel.pack_start(text('Cierres por shaders: hasta 6 reintentos. Las pausas en cinemáticas siguen pendientes.','meta',85),False,False,0)
+        caption='Restablecer ajuste recomendado' if state=='applied' else 'Aplicar ajuste para Steam Deck' if state=='settings' else 'Corregir pantalla negra'
+        panel.pack_start(ActionButton(caption,'sliders',lambda _:self.repair_broken_bond(entry),'violet'),False,False,0)
+
+    def repair_broken_bond(self,entry):
+        import threading
+        from . import broken_bond
+        from .inline_pages import InlineDialog
+        if getattr(self,'port_busy',False):self.message('Instalación en curso','Esperar a que termine la instalación antes de modificar el port.');return
+        question='Se aplican los ajustes de Steam Deck: 720p, objetivo de 60 FPS, MSAA desactivado y mando SDL. Se guarda un respaldo de la configuración.'
+        if broken_bond.status(entry,self.store) in ('migrate','update'):question='Se descarga la versión compatible de Auremana con las correcciones de shaders. Se conservan el acceso directo, la carátula, los archivos originales y las partidas.\n\n'+question
+        if not self.confirm('Ajuste de Broken Bond para Steam Deck',question,'Aplicar'):return
+        self.port_busy=True;page=InlineDialog(title='Preparando Broken Bond',transient_for=self);page.set_deletable(False)
+        self.start_transfer(entry.metadata['port_repository']);self.transfer_row(page.get_content_area(),entry.metadata['port_repository']);page._mount()
+        def done(result,error):
+            self.port_busy=False
+            if self.ui_closed:return False
+            page.destroy();self.finish_transfer(entry.metadata['port_repository'],error or '')
+            if error:self.message('No se pudo aplicar la reparación',error);return False
+            from . import updates
+            self.entries=self.store.load();self.library_dirty=True;self.update_state=updates.cached(self.store);self.refresh_update_badges();self.refresh_platforms();self.detail_game_id=None;self.show_detail(result['entry']);self.set_status('Broken Bond actualizado y configurado para Steam Deck.');return False
+        def work():
+            try:result=broken_bond.repair(entry,self.store,progress=self.port_progress(entry.metadata['port_repository']));GLib.idle_add(done,result,None)
+            except Exception as error:GLib.idle_add(done,None,str(error))
+        threading.Thread(target=work,daemon=True).start()
 
     def profile_card(self, profile, choose, favourite=False):
         card = Gtk.Button()
@@ -649,7 +685,10 @@ class GameMixin:
         if entry.metadata.get('port_repository'):
             from . import ports
             record=ports.records(self.store).get(entry.metadata['port_repository'])
-            if record:self.iso_cleanup_button(body,ports.clean(record),record)
+            if record:
+                self.iso_cleanup_button(body,ports.clean(record),record)
+                if entry.metadata['port_repository'].casefold()!='genrythefox0/project-2099':
+                    body.pack_start(ActionButton('Eliminar completamente','undo',lambda _:self.delete_port_permanently(record),'danger'),False,False,0)
         for caption,value in [('Archivo del juego',entry.source or entry.command[0]),('Comando de inicio',' '.join(entry.command))]:
             panel=self.card(body,caption)
             value=text(value,'muted',100)

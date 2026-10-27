@@ -1,5 +1,5 @@
 """Single-window workflows. These widgets never create native windows."""
-import pathlib
+import pathlib,fnmatch
 import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib,GObject,Pango
@@ -85,12 +85,15 @@ class InlineDialog(Gtk.Box):
 
 class InlineFileChooser(InlineDialog):
     """Local file browser with explicit actions, without native chooser dialogs."""
-    def __init__(self,title='',transient_for=None,action=Gtk.FileChooserAction.OPEN,**kwargs):
-        super().__init__(title,transient_for,**kwargs);self.action=action;self.overwrite=False;self.selected=None;self.folder=pathlib.Path.home()
+    def __init__(self,title='',transient_for=None,action=Gtk.FileChooserAction.OPEN,patterns=(),filter_name='',**kwargs):
+        super().__init__(title,transient_for,**kwargs);self.action=action;self.overwrite=False;self.selected=None;self.folder=pathlib.Path.home();self.patterns=tuple(patterns)
         bar=Gtk.Box(spacing=8);self.path=Gtk.Entry();self.path.set_hexpand(True);self.path.set_text(str(self.folder));self.path.connect('activate',lambda _:self.open_path());bar.pack_start(self.path,True,True,0)
         for text,callback in [('Ir',self.open_path),('Subir',lambda:self.load(self.folder.parent)),('Inicio',lambda:self.load(pathlib.Path.home())),('Descargas',lambda:self.load(pathlib.Path.home()/'Downloads'))]:
             button=Gtk.Button(label=text);button.connect('clicked',lambda _,cb=callback:cb());bar.pack_start(button,False,False,0)
         self.content.pack_start(bar,False,False,0)
+        self.file_filter=None
+        if self.patterns and action==Gtk.FileChooserAction.OPEN:
+            self.file_filter=Gtk.ComboBoxText();self.file_filter.append('matching',filter_name or ', '.join(self.patterns));self.file_filter.append('all','Todos los archivos');self.file_filter.set_active_id('matching');self.file_filter.connect('changed',lambda *_:self.load(self.folder));self.content.pack_start(self.file_filter,False,False,0)
         self.status=Gtk.Label(xalign=0);self.status.set_line_wrap(True);self.content.pack_start(self.status,False,False,0)
         self.files=Gtk.ListBox();self.files.set_selection_mode(Gtk.SelectionMode.SINGLE);self.files.connect('row-selected',self.select);self.files.connect('row-activated',self.open_row)
         scroll=self.owner.new_scroll();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);scroll.set_min_content_height(140);scroll.set_vexpand(True);scroll.add(self.files);self.content.pack_start(scroll,True,True,0)
@@ -104,8 +107,11 @@ class InlineFileChooser(InlineDialog):
         for row in self.files.get_children():row.destroy()
         for p in rows:
             if self.action==Gtk.FileChooserAction.SELECT_FOLDER and not p.is_dir():continue
+            if not p.is_dir() and not self.matches(p):continue
             row=Gtk.ListBoxRow();row.path=p;box=Gtk.Box(spacing=10);box.pack_start(Gtk.Image.new_from_icon_name('folder-symbolic' if p.is_dir() else 'text-x-generic-symbolic',Gtk.IconSize.BUTTON),False,False,0);label=Gtk.Label(label=p.name,xalign=0);label.set_ellipsize(Pango.EllipsizeMode.END);label.set_max_width_chars(64);label.set_width_chars(1);box.pack_start(label,True,True,0);row.add(box);self.files.add(row)
         self.files.show_all()
+    def matches(self,path):
+        return not self.file_filter or self.file_filter.get_active_id()=='all' or any(fnmatch.fnmatchcase(path.name.casefold(),pattern.casefold()) for pattern in self.patterns)
     def open_path(self):
         p=pathlib.Path(self.path.get_text()).expanduser()
         if p.is_dir():self.load(p)
@@ -127,6 +133,7 @@ class InlineFileChooser(InlineDialog):
         if value==Gtk.ResponseType.OK:
             path=pathlib.Path(self.get_filename())
             if self.action==Gtk.FileChooserAction.OPEN and not path.is_file():self.status.set_text('Elegir un archivo.');return
+            if self.action==Gtk.FileChooserAction.OPEN and not self.matches(path):self.status.set_text('El archivo no coincide con el filtro seleccionado.');return
             if self.action==Gtk.FileChooserAction.SELECT_FOLDER and not path.is_dir():self.status.set_text('Elegir una carpeta.');return
             if self.action==Gtk.FileChooserAction.SAVE:
                 name=self.filename.get_text().strip()
@@ -136,13 +143,13 @@ class InlineFileChooser(InlineDialog):
 
 class InlineFileButton(Gtk.Button):
     __gsignals__={'file-set':(GObject.SignalFlags.RUN_LAST,None,())}
-    def __init__(self,title='',action=Gtk.FileChooserAction.OPEN):
-        super().__init__(label=title);self.title=title;self.action=action;self.filename=None;self.connect('clicked',self.choose)
+    def __init__(self,title='',action=Gtk.FileChooserAction.OPEN,patterns=(),filter_name=''):
+        super().__init__(label=title);self.title=title;self.action=action;self.patterns=patterns;self.filter_name=filter_name;self.filename=None;self.connect('clicked',self.choose)
     def get_filename(self):return self.filename
     def set_filename(self,name):
         self.filename=str(name);self.set_label(pathlib.Path(name).name);self.set_tooltip_text(str(name));self.get_child().set_ellipsize(Pango.EllipsizeMode.MIDDLE);self.get_child().set_max_width_chars(40)
     def choose(self,*_):
-        page=InlineFileChooser(title=self.title,transient_for=self.get_toplevel(),action=self.action);page.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Elegir',Gtk.ResponseType.OK)
+        page=InlineFileChooser(title=self.title,transient_for=self.get_toplevel(),action=self.action,patterns=self.patterns,filter_name=self.filter_name);page.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Elegir',Gtk.ResponseType.OK)
         if self.filename:page.load(pathlib.Path(self.filename).parent)
         if page.run()==Gtk.ResponseType.OK:self.set_filename(page.get_filename());self.emit('file-set')
         page.destroy()

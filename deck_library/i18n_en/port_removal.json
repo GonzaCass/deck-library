@@ -1,0 +1,21 @@
+{
+  "Eliminando el port y sus datos…": "Removing the port and its data…",
+  "Instalación en curso": "Installation in progress",
+  "Esperar a que termine la instalación antes de eliminar un port.": "Wait for the installation to finish before removing a port.",
+  "Se borran definitivamente el port y los datos de las rutas indicadas: partidas, configuración, entorno de Proton y copias anteriores administradas por Deck Library. Esta acción no se puede deshacer.\n\nLos originales y otros datos guardados fuera de estas rutas se conservan.\n\nArchivos y carpetas que se eliminarán:\n": "Permanently deletes the port and data at the listed locations: saves, settings, Proton environment and previous copies managed by Deck Library. This cannot be undone.\n\nOriginal files and other data outside these locations are kept.\n\nFiles and folders to delete:\n",
+  "\n\nTambién se quita el acceso directo de Steam. Si Steam está abierto, ese cambio se guarda al cerrarlo.": "\n\nThe Steam shortcut is also removed. If Steam is running, that change is saved when it exits.",
+  "Eliminar completamente ": "Completely remove ",
+  " eliminado completamente.": " completely removed.",
+  "Eliminar completamente": "Completely remove",
+  "No se pudo preparar la eliminación": "Could not prepare removal",
+  "No se pudo completar la eliminación": "Could not complete removal",
+  "No se puede eliminar la carpeta principal.": "The main folder cannot be deleted.",
+  "La ruta está fuera de la carpeta administrada.": "The path is outside the managed folder.",
+  "La carpeta está compartida con otro port; no se modificó.": "The folder is shared with another port; nothing was changed.",
+  "La instalación cambió. Revisar nuevamente los archivos antes de eliminar.": "The installation changed. Review the files again before deleting.",
+  "Cerrar el juego y su lanzador antes de eliminarlo.": "Close the game and its launcher before removing it.",
+  "Quitar los accesos directos de las distintas cuentas de Steam antes de eliminar el port.": "Remove the shortcuts from the different Steam accounts before removing the port.",
+  "La ruta contiene un enlace simbólico; no se modificó.": "The path contains a symbolic link; nothing was changed.",
+  "No se pudo comprobar que esta carpeta pertenece al port.": "Could not verify that this folder belongs to the port.",
+  "Hay cambios pendientes para otra cuenta de Steam. Aplicarlos antes de eliminar el port.": "Another Steam account has pending changes. Apply them before removing the port."
+}

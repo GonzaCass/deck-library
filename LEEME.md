@@ -28,6 +28,8 @@
 - **Ayuda:** guía de primer uso, pruebas de juego en Steam Deck y preparación de reportes de errores.
 - **Steam:** agregar juegos o Deck Library, con carátulas y navegación con mando en modo Juego.
 
+La guía, los juegos validados y los reportes están en **Ayuda**. **Comunidad** aparece dentro de cada juego; el registro y el inicio de sesión están en **Cuenta**. Las reparaciones disponibles se muestran en la ficha del juego.
+
 ![Biblioteca con juegos ficticios de ejemplo](assets/screenshot.png)
 
 <details>
