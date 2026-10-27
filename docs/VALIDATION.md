@@ -574,3 +574,13 @@ La extracción existente se verifica y reutiliza tras actualizar, preservando su
 Las pruebas del actualizador cubren invalidación de la caché al cambiar de versión, consulta de la app antes de esperar los ports, cachés independientes, errores visibles, conservación de ofertas conocidas y alternativa de consulta pública de GitHub. La consulta real, tanto API como redirección pública, detectó la versión publicada desde una versión antigua simulada. Se instaló un paquete verificado mediante el actualizador real dentro de un HOME aislado: versión, icono nuevo y acceso de escritorio quedaron renovados. Otra prueba confirma que el lanzador administrado de Steam pasa de una carpeta antigua a la instalación actual sin cambiar AppID ni metadatos, ni escribir la base de accesos de Steam. GTK comprueba instalación desde modo Juego, espera durante otras tareas y versión visible en todas las pestañas.
 
 La prueba de rechazo de un hash de WiiCompiled simula espacio libre suficiente para llegar al control SHA-256, en vez de depender del espacio real de la máquina de pruebas. La protección de espacio en producción no se modifica. Las pruebas y los paquetes no contienen la ISO ni los datos extraídos del usuario.
+
+
+### 1.2.7 — Steam synchronization and ROM management
+
+- Reproduced a real pending Naruto shortcut after a session restart. The previous worker was transient and its user-bus lookup failed in the remote session.
+- Installed a user path unit that watches the saved queue, plus recovery before SteamOS's `gamescope-session.service` and `steam-launcher.service`. Desktop startup also orders recovery before `graphical-session-pre.target`. No root permission, Steam client file edits while running, or console restart is required.
+- Closed and reopened the actual Steam client in its original graphical session: the worker created **Naruto: Rise of a Ninja**, copied its cover, wrote the success receipt, and removed the queue. Existing shortcuts remained intact; Steam's VDF has an automatic backup.
+- Unit tests cover queue recovery from a previous process, waiting for an existing writer, leaving a running Steam client untouched, isolated library paths, service activation failures, and preserving unrelated service overrides.
+- GTK checks cover the game action button before/after queuing at 1280×800 and 840×640. Captions stay on one line and inside the window. ROM management now names the files and actions explicitly.
+- A full console reboot and Naruto gameplay were not performed for this release. The real ISO import and verified cleanup flow are documented in the preceding release.

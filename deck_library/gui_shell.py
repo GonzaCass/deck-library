@@ -142,7 +142,7 @@ class ShellMixin:
         self.view_picker=Gtk.ComboBoxText();self.view_picker.get_accessible().set_name('Vista de biblioteca')
         for key,title in [('covers','Carátulas'),('list','Lista'),('platforms','Por plataforma')]:self.view_picker.append(key,title)
         self.view_picker.set_active_id(self.view);self.view_picker.connect('changed',self.change_view);filters.pack_end(self.view_picker,False,False,0);self.select_button=button('Seleccionar',lambda _:self.toggle_selection());filters.pack_end(self.select_button,False,False,0);filter_scroll=self.new_scroll();filter_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);filter_scroll.add(filters);self.filter_scroll=filter_scroll;filter_scroll.set_no_show_all(True);filter_scroll.hide();page.pack_start(filter_scroll,False,False,0)
-        self.originals_bar=Gtk.Box(spacing=10);self.originals_bar.set_no_show_all(True);self.originals_label=label('','muted');self.originals_button=button('Revisar originales',lambda _:self.originals_dialog());self.originals_bar.pack_end(self.originals_button,False,False,0);filters.pack_end(self.originals_bar,False,False,0)
+        self.originals_bar=Gtk.Box(spacing=10);self.originals_bar.set_no_show_all(True);self.originals_label=label('','muted');self.originals_button=button('ROMs asociadas',lambda _:self.originals_dialog());self.originals_bar.pack_end(self.originals_button,False,False,0);filters.pack_end(self.originals_bar,False,False,0)
         self.library_stack=Gtk.Stack();self.library_stack.set_vexpand(True);self.library_stack.connect('notify::visible-child',self.refresh_layout);page.pack_start(self.library_stack,True,True,0)
         self.list=Gtk.ListBox();self.list.set_selection_mode(Gtk.SelectionMode.NONE);self.list.connect('row-activated',lambda _,row:self.select_game(row.entry) if hasattr(row,'entry') else None)
         self.covers=self.poster_grid();self.platform_groups=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=20)
@@ -254,7 +254,7 @@ class ShellMixin:
         from .gui import label,button
         self.reset_page(self.settings_box);self.settings_box.pack_start(label('Ajustes','hero'),False,False,0)
         from .ui_components import ActionButton
-        for title,description,caption,icon,action in [('Instalaciones y carpetas','Emuladores y carpetas de juegos.','Elegir carpetas','folder',lambda _:self.installation_dialog()),('Carátulas y apariencia','Proveedor de imágenes y animaciones.','Configurar','image',lambda _:self.appearance_dialog()),('Originales y ports','Ocultar o quitar originales que ya tienen un port instalado.','Administrar originales','folder',lambda _:self.originals_dialog()),('Revisar biblioteca','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam),('Configuración inicial','Volver a detectar instalaciones.','Iniciar asistente','plus',lambda _:self.start_wizard())]:
+        for title,description,caption,icon,action in [('Instalaciones y carpetas','Emuladores y carpetas de juegos.','Elegir carpetas','folder',lambda _:self.installation_dialog()),('Carátulas y apariencia','Proveedor de imágenes y animaciones.','Configurar','image',lambda _:self.appearance_dialog()),('ROMs y ports instalados','Gestionar la copia de consola de un juego que ya tiene un port.','Gestionar ROMs','folder',lambda _:self.originals_dialog()),('Revisar biblioteca','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam),('Configuración inicial','Volver a detectar instalaciones.','Iniciar asistente','plus',lambda _:self.start_wizard())]:
             if title=='Deck Library en Steam' and motion.gaming_mode():continue
             row=Gtk.Box(spacing=16);row.get_style_context().add_class('settings-row');texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.pack_start(label(title,'title'),False,False,0);texts.pack_start(label(description,'muted'),False,False,0);row.pack_start(texts,True,True,0);row.pack_end(ActionButton(caption,icon,action,'steam' if icon=='steam' else 'quiet'),False,False,0);self.settings_box.pack_start(row,False,False,0)
             if icon=='steam':self.settings_box.pack_start(label('Si Steam está abierto, el acceso se guarda al cerrarlo. Después buscar «Deck Library» en su biblioteca y pulsar Jugar.','meta'),False,False,0)
@@ -292,9 +292,13 @@ class ShellMixin:
         self.reset_page(self.pending_box);self.pending_box.pack_start(button('← Biblioteca',lambda _:self.open_library()),False,False,0);self.pending_box.pack_start(label('Cambios de Steam','hero'),False,False,0);rows=pending_changes(self.store)
         for row in rows:
             card=self.card(self.pending_box,row['description']);card.pack_start(label(row['detail'],'muted'),False,False,0)
+        try:
+            state=json.loads((self.store.root/'last-sync.json').read_text())
+            if rows and state.get('state')=='failed':self.pending_box.pack_start(label('No se pudieron aplicar: '+state.get('error',''),'muted'),False,False,0)
+        except (OSError,ValueError):pass
         if not rows:self.pending_box.pack_start(label('No hay cambios pendientes.','muted'),False,False,0)
         else:
-            self.pending_box.pack_start(label('Steam solo toma estos cambios cuando está cerrado; volver a abrir Deck Library no los aplica.','muted'),False,False,0)
+            self.pending_box.pack_start(label('Los accesos y las carátulas se guardan cuando Steam se cierra. Si reiniciás la Deck, se recuperan antes de abrir Steam. En modo Juego, cerrá Deck Library y reiniciá Steam desde su menú de encendido.','muted'),False,False,0)
             if not motion.gaming_mode():
                 def apply_now(_):
                     from .service import apply_closing_steam

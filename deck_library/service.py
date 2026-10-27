@@ -90,6 +90,13 @@ def _queue(account,store,ids,remove,start_worker,fix=(),art=(),preserve_art=Fals
         atomic_json(pending,value)
     if not steam_running():return sync(store,wait=False)
     if start_worker:
+        from .steam_sync import start,manager_environment,install
+        try:
+            if store.root.resolve()==Store().root.resolve():install(store)
+            durable=start(store)
+        except (OSError,ValueError,RuntimeError,subprocess.TimeoutExpired) as error:
+            _log(store,str(error));durable=False
+        if durable:return {'state':'pending','count':len(ids)+len(remove)+len(fix)+len(art)}
         app=pathlib.Path(__file__).resolve().parent.parent/'app.py'
         args=[sys.executable,str(app),'sync','--data-dir',str(store.root)]
         log=store.root/'worker.log'
@@ -98,7 +105,7 @@ def _queue(account,store,ids,remove,start_worker,fix=(),art=(),preserve_art=Fals
             launcher=shutil.which('systemd-run')
             started=False
             if launcher:
-                result=subprocess.run([launcher,'--user','--collect','--unit=deck-library-sync','--quiet','--',*args],env=clean_environment(),stdout=output,stderr=subprocess.STDOUT)
+                result=subprocess.run([launcher,'--user','--collect','--unit=deck-library-sync-'+__import__('hashlib').sha256(str(store.root).encode()).hexdigest()[:12],'--quiet','--',*args],env=manager_environment(),stdout=output,stderr=subprocess.STDOUT,timeout=15)
                 started=result.returncode==0
             if not started and not os.environ.get('SteamAppId'):
                 subprocess.Popen(args,env=clean_environment(),stdout=output,stderr=subprocess.STDOUT,start_new_session=True)
@@ -107,8 +114,12 @@ def _queue(account,store,ids,remove,start_worker,fix=(),art=(),preserve_art=Fals
 def sync(store=None,wait=True,timeout=86400):
     store=store or Store();store.root.mkdir(parents=True,exist_ok=True)
     with (store.root/'sync.lock').open('a') as lock:
-        try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
-        except BlockingIOError:return {'state':'pending','count':0}
+        deadline=time.monotonic()+timeout
+        while True:
+            try:fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB);break
+            except BlockingIOError:
+                if not wait or time.monotonic()>=deadline:return {'state':'pending','count':0}
+                time.sleep(.2)
         return _sync(store,wait,timeout)
 
 def _sync(store=None,wait=True,timeout=86400):
