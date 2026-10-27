@@ -25,7 +25,7 @@
 - **Ports:** explorar, instalar y actualizar los proyectos compatibles. Consultar los originales necesarios y elegir los archivos que falten al preparar el juego.
 - **Ajustes por juego:** comparar perfiles compactos, desplegar sus detalles y aplicar cambios con respaldo.
 - **Comunidad:** compartir ajustes, valoraciones y comentarios desde la app.
-- **Juegos validados:** pestaña con pruebas de gameplay, versiones probadas y limitaciones conocidas.
+- **Juegos validados:** pruebas vinculadas al repositorio y la versión, con sus limitaciones. Comparar variantes desde el catálogo y consultar si la instalada fue probada.
 - **Ayuda:** guía de primer uso y preparación de reportes de errores.
 - **Steam:** agregar juegos o Deck Library, con carátulas y navegación con mando en modo Juego.
 

@@ -65,7 +65,8 @@ class CatalogMixin:
         from .gui import label
         page=InlineDialog(title='Guía de compatibilidad',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE);box=page.get_content_area()
         box.pack_start(label('Es un índice orientativo de 0 a 100 basado en los datos del catálogo. Se muestra como porcentaje para comparar proyectos; no es una probabilidad medida ni una tasa de éxito.','subtitle'),False,False,0)
-        box.pack_start(label('No mide FPS, calidad gráfica ni resultados de pruebas de juego. «Revisado» indica una integración revisada; no confirma que todas las versiones del juego funcionen.','muted'),False,False,0)
+        box.pack_start(label('No mide FPS, calidad gráfica ni resultados de pruebas de juego. «Integración revisada» indica que se revisó su instalación; no confirma que el juego funcione.','muted'),False,False,0)
+        box.pack_start(label('La marca de juego verificado corresponde al repositorio y a la versión de una prueba registrada. No se hereda entre variantes ni versiones. Sin validar significa que faltan pruebas, no que sea incompatible.','muted'),False,False,0)
         box.pack_start(badge_row([('Alta · 80–100%','green'),('Media · 55–79%','yellow'),('Baja · 30–54%','orange'),('Muy baja · 0–29%','red')]),False,False,0)
         base=self.card(box,'Puntuación de partida')
         base.pack_start(label('Se usa la primera condición que corresponda, en este orden:','meta'),False,False,0)
@@ -101,7 +102,7 @@ class CatalogMixin:
         from .gui import label,button
         from .port_requirements import original_requirement
         if not hasattr(self,'catalog_apps'):return
-        everything=self.catalog_entries();categories=sorted({a['list'] for a in everything if a['list']},key=str.casefold);current=self.catalog_category.get_active_id() or ''
+        everything=self.catalog_entries();variant_index=self.port_variant_index(everything);categories=sorted({a['list'] for a in everything if a['list']},key=str.casefold);current=self.catalog_category.get_active_id() or ''
         known={row[0] for row in self.catalog_category.get_model()}
         for name in categories:
             if name not in known:self.catalog_category.append(name,name)
@@ -135,12 +136,17 @@ class CatalogMixin:
             if item.get('description'):
                 description=label(item['description'],'status');description.set_lines(1 if compact else 2);description.set_max_width_chars(30);description.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(description,False,False,0)
             original=original_requirement(item);requirement=badge(('ROM · '+original['label']) if original['known'] else original['label'],'yellow' if original['known'] else 'neutral');requirement.set_tooltip_text(original['details']);texts.pack_start(requirement,False,False,0)
-            fit=ports.compatibility(item);reviewed=ports.is_reviewed(item);tags=([(item['list'],'violet')] if item['list'] else [])+[('Revisado','green') if reviewed else ('Sin revisar','neutral')]
+            fit=ports.compatibility(item);reviewed=ports.is_reviewed(item);tags=([(item['list'],'violet')] if item['list'] else [])+[('Integración revisada','blue') if reviewed else ('Integración sin revisar','neutral')]
             role=item.get('package_role')
             if role=='builder':tags.append(('Constructor','yellow'))
             elif role in ('source-only','build-tool'):tags.append(('Solo código fuente','orange'))
             texts.pack_start(badge_row(system_tags(item)),False,False,0)
-            if record:texts.pack_start(badge('Instalado · '+record['tag'],'green'),False,False,0)
+            proof=variant_index.assess(item);texts.pack_start(self.variant_badge(proof),False,False,0)
+            alternatives=variant_index.alternatives(item)
+            if alternatives:tags.append((str(len(alternatives)+1)+' variantes','blue'))
+            if record:
+                other=record.get('alternative',False);tone='yellow' if other else variant_index.assess(item,record.get('tag',''))['tone']
+                texts.pack_start(badge('Variante instalada sin identificar' if record.get('unidentified') else 'Otra variante instalada' if other else 'Instalado · '+record['tag'],tone),False,False,0)
             when=item.get('added_at') or item.get('first_seen') or 0
             if when:
                 recent=time.time()-when<30*86400;tags.append((('Nuevo · ' if recent else 'Agregado ')+datetime.datetime.fromtimestamp(when).strftime('%d/%m/%Y'),'blue' if recent else 'neutral'))
@@ -151,9 +157,12 @@ class CatalogMixin:
             if item.get('bios') or item.get('disc'):
                 checks=label('Comprobando requisitos…','status');texts.pack_start(checks,False,False,0);kits.append((item,checks))
             body.pack_start(texts,False,False,0);side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);side.get_style_context().add_class('port-card-actions');card.pack_end(side,False,False,0)
+            if proof.get('report') and proof['report']['repository'].casefold()!=item['repository'].casefold():
+                target=variant_index.items.get(proof['report']['repository'].casefold())
+                if target:side.pack_start(button('Ver variante probada',lambda _,i=target:self.port_details(i)),False,False,0)
             if item.get('package_role') in ('source-only','build-tool'):side.pack_start(button('Ver requisitos',lambda _,i=item:self.port_details(i)),False,False,0)
             elif record and record.get('external'):
-                side.pack_start(label('Port ya instalado','good'),False,False,0)
+                side.pack_start(label('Variante instalada sin identificar' if record.get('unidentified') else 'Otra variante instalada' if record.get('alternative') else 'Port ya instalado','meta'),False,False,0)
                 side.pack_start(button('Ver en biblioteca',lambda _,r=record:self.select_game(r['entry'])),False,False,0)
                 if record.get('alternative'):side.pack_start(button('Instalar alternativa',lambda _,i=item:self.install_port(i,False)),False,False,0)
             elif record and item['repository'] in updates:side.pack_start(button('Actualizar',lambda _,i=item:self.install_port(i,True),True),False,False,0)
@@ -198,6 +207,11 @@ class CatalogMixin:
         if item.get('release_version'):text.pack_start(label('Versión disponible: '+item['release_version'],'muted'),False,False,0)
         if item.get('release_at'):text.pack_start(label('Publicada el '+datetime.datetime.fromtimestamp(item['release_at']).strftime('%d/%m/%Y'),'muted'),False,False,0)
         hero.pack_start(text,True,True,0);box.pack_start(hero,False,False,0)
+        evidence=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);box.pack_start(evidence,False,False,0);variant_index=self.port_variant_index()
+        def refresh_evidence(tag=None):
+            if page._closed:return False
+            self.reset_page(evidence);candidate={**item,**({'release_version':tag} if tag else {})};self.build_port_evidence(evidence,candidate,page,variant_index);evidence.show_all();self.refresh_layout();return False
+        refresh_evidence()
         if item.get('description'):box.pack_start(label(item['description'],'subtitle'),False,False,0)
         if item.get('note'):box.pack_start(label(item['note'],'muted'),False,False,0)
         from .port_requirements import original_requirement
@@ -252,6 +266,7 @@ class CatalogMixin:
                     if plan:info+='\n'+plan['asset']['name']+' · '+release.get('tag_name','')
                     def offer():
                         if page._closed:return False
+                        refresh_evidence(release.get('tag_name',''))
                         if proton_plan and (not plan or plan['runtime']!='proton'):proton_button.set_no_show_all(False);proton_button.show_all();proton_button.set_no_show_all(True)
                         if primary_action[0] and plan and plan['runtime']=='proton':primary_action[0].set_label('Instalar con Proton')
                         if primary_action[0] and not plan:primary_action[0].set_sensitive(False)
@@ -379,7 +394,7 @@ class CatalogMixin:
         for e in self.entries:
             if e.kind not in ('port','wiicompiled'):continue
             same=e.metadata.get('port_repository','').lower()==item['repository'].lower()
-            if same or key(e.name)==key(item.get('game_title') or item['name']):return {'external':True,'alternative':not same,'entry':e,'tag':e.metadata.get('port_tag') or e.metadata.get('build') or '?'}
+            if same or key(e.name)==key(item.get('game_title') or item['name']):return {'external':True,'alternative':not same,'unidentified':not bool(e.metadata.get('port_repository')),'entry':e,'tag':e.metadata.get('port_tag') or e.metadata.get('build') or '?'}
         return None
 
     def open_installed_port(self,record):
@@ -396,6 +411,8 @@ class CatalogMixin:
             else:self.project2099_dialog()
             return
         if item.get('package_role') in ('source-only','build-tool'):self.message('Requiere compilación',item.get('source_note','El proyecto solo publica código fuente.'));return
+        proof=self.port_variant_index().assess(item)
+        if proof['state']=='issue' and not self.confirm('Problema conocido en esta versión',proof['issue'],'Instalar igualmente'):return
         if not ports.is_reviewed(item) and not self.preferences.get('unreviewed_acknowledged'):
             if not self.confirm('Port sin revisar','Este port viene de una lista externa y Deck Library no lo revisó. Se descarga la versión publicada en GitHub y se verifica el tamaño y, cuando el autor la publica, la suma SHA-256; el programa se ejecuta con los permisos del usuario. Esta advertencia se muestra una sola vez.','Instalar'):return
             self.preferences['unreviewed_acknowledged']=True;save_settings(self.preferences,self.store)

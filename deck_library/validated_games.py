@@ -17,4 +17,9 @@ def catalog(path=None):
     return value['games']
 
 def matching(game,entries):
-    return next((entry for entry in entries if (game['repository'] and entry.metadata.get('port_repository','').casefold()==game['repository'].casefold()) or (presets.public_game_id(entry).casefold()==game['game_id'].casefold() and presets.adapter_for(entry)==game['adapter'])),None)
+    if game['repository']:
+        direct=next((entry for entry in entries if entry.metadata.get('port_repository','').casefold()==game['repository'].casefold()),None)
+        if direct:return direct
+        # An unidentified adapter can open its game for inspection. It earns no validation badge.
+        return next((entry for entry in entries if not entry.metadata.get('port_repository') and game['adapter']!='instructions' and presets.public_game_id(entry).casefold()==game['game_id'].casefold() and presets.adapter_for(entry)==game['adapter']),None)
+    return next((entry for entry in entries if presets.public_game_id(entry).casefold()==game['game_id'].casefold() and presets.adapter_for(entry)==game['adapter']),None)

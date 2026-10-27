@@ -42,7 +42,7 @@ def collect(root=ROOT):
         elif isinstance(value,str) and SPANISH.search(value) and len(value)>3 and not value.startswith(('http','/','~')):add(value,where)
     def walk_key(key,where):
         if SPANISH.search(key) and not re.fullmatch(r'[\w./:%-]+',key):add(key,where)
-    for path in [*sorted(pathlib.Path(root,'presets').glob('*.json')),pathlib.Path(root,'catalog/validated-games.json')]:walk(json.loads(path.read_text()),path.name)
+    for path in [*sorted(pathlib.Path(root,'presets').glob('*.json')),pathlib.Path(root,'catalog/validated-games.json'),pathlib.Path(root,'catalog/port-variants.json')]:walk(json.loads(path.read_text()),path.name)
     return found
 
 def missing(root=ROOT):
