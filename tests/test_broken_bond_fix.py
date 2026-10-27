@@ -16,7 +16,7 @@ class BrokenBondFixTests(unittest.TestCase):
         with zipfile.ZipFile(data,'w') as archive:
             archive.writestr('Naruto The Broken Bond PC.exe',b'MZnew');archive.writestr('naruto.toml','user_language = 5\ncustom_option = "keep"\nmsaa_samples = 2\n')
         self.payload=data.getvalue();self.release={'tag_name':'v2.5','assets':[{'name':'BrokenBond-win64.zip','browser_download_url':'https://github.com/owner/repo/game.zip'}]}
-        for p in (patch.object(proton_tools,'resolve',return_value=self.root/'proton'),patch.object(port_removal,'in_use',return_value=False),patch.object(ports,'download',side_effect=lambda url,path,**kwargs:path.write_bytes(self.payload))):
+        for p in (patch.object(proton_tools,'resolve',return_value=self.root/'proton'),patch.object(project2099,'proton_path',return_value=self.root/'proton'),patch.object(proton_tools,'find',side_effect=AssertionError('The test must not discover a real Proton installation')),patch.object(port_removal,'in_use',return_value=False),patch.object(ports,'download',side_effect=lambda url,path,**kwargs:path.write_bytes(self.payload))):
             p.start();self.addCleanup(p.stop)
     def repair(self,entry=None):return broken_bond.repair(entry or self.entry,self.store,self.ports,progress=lambda *_:None,get=lambda _:self.release)
     def test_migration_preserves_saves_steam_identity_artwork_and_originals_without_duplicates(self):
