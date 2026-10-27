@@ -41,6 +41,7 @@ class CatalogMixin:
         head.pack_start(titles,True,True,0);actions=Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL if self.compact_screen() else Gtk.Orientation.VERTICAL,spacing=8);actions.set_valign(Gtk.Align.CENTER)
         actions.pack_start(button('Agregar repositorio',lambda _:self.add_repository_dialog(),True),False,False,0);actions.pack_start(button('Actualizar listas',lambda _:self.load_catalog(True)),False,False,0)
         head.pack_end(actions,False,False,0);box.pack_start(head,False,False,0)
+        box.pack_start(button('Juegos validados en Steam Deck',lambda _:self.validated_page()),False,False,0)
         tools=Gtk.Box(spacing=10);self.catalog_search=Gtk.SearchEntry();self.catalog_search.set_placeholder_text('Buscar ports · X: teclado');self.bind_search_keyboard(self.catalog_search);self.catalog_search.connect('search-changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_search,True,True,0)
         self.catalog_category=Gtk.ComboBoxText();self.catalog_category.get_accessible().set_name('Categoría de ports');self.catalog_category.append('','Todas las categorías');self.catalog_category.set_active_id('');self.catalog_category.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_category,False,False,0)
         self.catalog_source=Gtk.ComboBoxText();self.catalog_source.get_accessible().set_name('Fuente de ports');self.catalog_source.append('','Todas las fuentes')

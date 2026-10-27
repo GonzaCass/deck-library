@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "games": [
+    {"id":"wiicompiled-rmcp01","name":"Mario Kart Wii","game_id":"RMCP01","adapter":"wiicompiled","program":"WiiCompiled","version":"0.2.33","repository":"patchzyy/wiicompiled","hardware":"steam-deck-oled","date":"2026-10-01","profile_id":"wiicompiled-rmcp01-sharp","result":"Imagen nítida y buen funcionamiento confirmados en partida.","limitations":"No hay una medición de FPS sostenidos. La prueba corresponde a esa versión y configuración."},
+    {"id":"eden-smash","name":"Super Smash Bros. Ultimate","game_id":"01006A800016E000","adapter":"eden","program":"Eden","version":"0.2.1","repository":"","hardware":"steam-deck-oled","date":"2026-10-19","profile_id":"eden-smash-sharp","result":"Mejora de imagen y fluidez confirmada durante el juego.","limitations":"Requiere la misma versión de Eden y contenido compatible. No certifica todas las arenas ni partidas multijugador."},
+    {"id":"narutorise-v03","name":"Naruto: Rise of a Ninja","game_id":"555307E5","adapter":"narutorise","program":"Naruto Rise Recomp · Proton 11.0","version":"0.3.0-beta","repository":"jorjbarbosa/naruto-rise-recomp","hardware":"steam-deck-oled","date":"2026-10-27","profile_id":"narutorise-deck-balanced","result":"Gameplay confirmado con aproximadamente 45–60 FPS variables.","limitations":"Equilibrado es la configuración probada. Rendimiento y Calidad siguen pendientes de prueba."},
+    {"id":"project2099-beta5","name":"Spider-Man: Edge of Time","game_id":"415608B2","adapter":"instructions","program":"Project-2099 · motor reeot · Proton 9","version":"2.0.0-beta.5","repository":"GenryTheFox0/Project-2099","hardware":"steam-deck-oled","date":"2026-10-27","profile_id":"","result":"Arranque y jugabilidad confirmados tras actualizar el motor.","limitations":"No hay una medición sostenida para Beta 5. Los perfiles del motor Beta 4.1 no se aplican a esta versión."}
+  ]
+}

@@ -66,7 +66,7 @@ class ShellMixin:
         button=getattr(self,'account_button',None)
         if button is None:return
         login=self.community_login();style=button.get_style_context()
-        caption=login or 'Registrarse o iniciar sesión'
+        caption=login or 'Cuenta'
         button.caption.set_text(caption);button.caption.set_no_show_all(False);button.caption.show()
         button.set_tooltip_text(('Cuenta · '+login) if login else 'Registrarse o iniciar sesión');button.get_accessible().set_name(caption)
         for name in ('steam','quiet'):style.remove_class(name)
@@ -114,8 +114,9 @@ class ShellMixin:
         self.steam_library_button.set_visible(not gaming)
         from .gui_account import account_dialog
         from .ui_components import ActionButton
+        help_button=ActionButton('Ayuda','file',self.help_page,'quiet');bar.pack_end(help_button,False,False,0)
         account_button=ActionButton('Cuenta','community',lambda _:account_dialog(self),'quiet');account_button.set_valign(Gtk.Align.CENTER);self.account_button=account_button;bar.pack_end(account_button,False,False,0);self.refresh_account_button()
-        self.navigation_controls=[*self.nav_buttons.values(),self.steam_library_button,account_button]
+        self.navigation_controls=[*self.nav_buttons.values(),self.steam_library_button,account_button,help_button]
         # Keep all tabs and the Steam action reachable at compact widths.
         header_scroll=self.new_scroll();header_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);header_scroll.set_overlay_scrolling(False);root.remove(bar);header_scroll.add(bar);root.pack_start(header_scroll,False,False,0);root.reorder_child(header_scroll,0)
         self.update_banner=Gtk.Box(spacing=12);self.update_banner.set_no_show_all(True);self.update_banner.get_style_context().add_class('banner');self.banner_text=label('');self.banner_action=button('Ver',lambda _:self.banner_clicked());self.update_banner.pack_start(self.banner_text,True,True,0);self.update_banner.pack_end(self.banner_action,False,False,0);root.pack_start(self.update_banner,False,False,0)

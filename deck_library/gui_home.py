@@ -16,6 +16,7 @@ class HomeMixin:
         restore_id=getattr(self,'home_focus_id',None) if returning else focused_id
         self.reset_page(box)
         header=Gtk.Box(spacing=12);header.pack_start(text('Resumen','hero'),True,True,0)
+        header.pack_end(ActionButton('Juegos validados','check',lambda _:self.validated_page(),'steam-outline'),False,False,0)
         header.pack_end(ActionButton('Buscar instalados','refresh',self.rescan_library,'quiet'),False,False,0);box.pack_start(header,False,False,0)
         entries=self.shown_entries()[0];ports=[e for e in entries if entry_type(e)=='port' and not (pathlib.Path(e.cwd)/'deck_library/gui_shell.py').is_file()];platforms={e.platform for e in entries if e.platform};waiting=len(self.pending_updates())
         counts=Gtk.Box(spacing=12,homogeneous=True);self.home_counts={}
@@ -41,6 +42,7 @@ class HomeMixin:
         except OSError:storage.pack_start(text('No se pudo consultar el espacio disponible.','meta'),False,False,0)
         tools.pack_start(storage,True,True,0)
         actions=styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8),'card');actions.pack_start(text('Herramientas','section-title'),False,False,0)
+        actions.pack_start(ActionButton('Guía de uso','file',self.help_page,'quiet'),False,False,0);actions.pack_start(ActionButton('Reportar un problema','file',lambda _:self.bug_report_page(),'quiet'),False,False,0)
         actions.pack_start(ActionButton('Instalaciones y carpetas','folder',lambda _:self.installation_dialog(),'quiet'),False,False,0);actions.pack_start(ActionButton('Revisar biblioteca','search',lambda _:self.conflicts_page(),'quiet'),False,False,0);actions.pack_start(ActionButton('Ver actualizaciones','download',lambda _:self.updates_page(),'quiet'),False,False,0);tools.pack_start(actions,True,True,0)
         box.show_all();scroll=box.get_ancestor(Gtk.ScrolledWindow)
         if scroll:scroll.show_all()

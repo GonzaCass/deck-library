@@ -644,6 +644,7 @@ class GameMixin:
         self.proton_combo=combo;self.proton_save_button=control
 
     def build_game_files(self, entry, body):
+        body.pack_start(ActionButton('Reportar un problema con este juego','file',lambda _:self.bug_report_page(entry),'violet-outline'),False,False,0)
         self.build_proton_selector(entry,body)
         if entry.metadata.get('port_repository'):
             from . import ports

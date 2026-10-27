@@ -8,13 +8,17 @@ from .installations import report,save_settings
 from . import cover_provider
 
 class ExperienceMixin:
-    def provider_fields(self,box):
+    def provider_fields(self,box,compact=False):
         from .gui import label
         box.pack_start(label('Proveedor de carátulas','title'),False,False,0)
         box.pack_start(label('Automático usa SteamGridDB si hay una clave configurada; si no, busca en Libretro y Wikipedia. La imagen se puede cambiar por juego.','muted'),False,False,0)
         combo=Gtk.ComboBoxText()
         for key,name in [('automatic','Automático (recomendado)'),('libretro','Libretro · consolas clásicas'),('wikipedia','Wikipedia · sin cuenta'),('steamgriddb','SteamGridDB · carátulas 600 × 900'),('off','Solo imágenes locales')]:combo.append(key,name)
         combo.set_active_id(self.preferences.get('artwork_provider','automatic'));box.pack_start(combo,False,False,0)
+        if compact:
+            extra=Gtk.Expander(label='SteamGridDB (opcional)');extra_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);extra.add(extra_box);box.pack_start(extra,False,False,0);box=extra_box
+            combo.connect('changed',lambda *_:extra.set_expanded(combo.get_active_id()=='steamgriddb'))
+            extra.set_expanded(combo.get_active_id()=='steamgriddb')
         box.pack_start(label('Clave de SteamGridDB (opcional)','title'),False,False,6)
         box.pack_start(label('Con una clave, las carátulas, fondos, logotipos e íconos de Steam se buscan en SteamGridDB. Cómo conseguirla: 1) iniciar sesión en steamgriddb.com con la cuenta de Steam; 2) abrir el perfil y entrar en Preferencias → API; 3) copiar la clave y pegarla aquí. Es gratuita y personal: no compartirla.','muted'),False,False,0)
         key=Gtk.Entry();key.set_visibility(False);key.set_placeholder_text('Pegar la clave API de SteamGridDB');key.set_text(self.preferences.get('steamgriddb_key',''));key.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY,'view-reveal-symbolic');key.set_icon_tooltip_text(Gtk.EntryIconPosition.SECONDARY,'Mostrar u ocultar la clave')
@@ -68,7 +72,7 @@ class ExperienceMixin:
         self.wizard_step=0;self.wizard_found=None;self.wizard_checks={};self.checked.clear();self.selection_mode=False;self.draw_wizard();self.wizard_box.show();self.pages.set_visible_child_name('welcome');return False
     def draw_wizard(self):
         from .gui import label,button,wrap_row
-        stack=self.wizard_box;box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);stack.add(box)
+        stack=self.wizard_box;box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);box.set_border_width(16);stack.add(box)
         steps=['Inicio','Detección','Carátulas','Final'];progress=Gtk.Box(spacing=12)
         for index,title in enumerate(steps):
             item=label(f'{index+1}  {title}','pill' if index==self.wizard_step else 'muted');progress.pack_start(item,True,True,0)
@@ -78,6 +82,7 @@ class ExperienceMixin:
         if self.wizard_step==0:
             body.pack_start(label('Configuración inicial','welcome-title'),False,False,12)
             body.pack_start(label('Detectar instalaciones, configurar carátulas y preparar accesos a Steam.','subtitle'),False,False,0)
+            body.pack_start(label('No necesitás una cuenta para jugar, instalar ports o usar ajustes locales. Ningún juego se agrega a Steam sin que lo selecciones.','muted'),False,False,0)
             for title,text in [('1  Detección','EmuDeck, emuladores, ports de Quiver e instancias de Prism.'),('2  Carátulas','Descarga automática y ajustes recomendados por juego.'),('3  Steam','Selección de juegos y creación de accesos.')]:
                 card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);card.get_style_context().add_class('card');card.pack_start(label(title,'title'),False,False,0);card.pack_start(label(text,'muted'),False,False,0);body.pack_start(card,False,False,0)
             footer.pack_end(button('Empezar',lambda _:self.wizard_next(),True),False,False,0)
@@ -94,14 +99,16 @@ class ExperienceMixin:
             else:self.discover()
         elif self.wizard_step==2:
             body.pack_start(label('Carátulas','hero'),False,False,0)
-            self.wizard_provider,self.wizard_key=self.provider_fields(body)
+            self.wizard_provider,self.wizard_key=self.provider_fields(body,compact=True)
             body.pack_start(label('Las carátulas se descargan al terminar. La biblioteca se puede usar mientras tanto.','muted'),False,False,0)
             footer.pack_start(button('Atrás',lambda _:self.wizard_back()),False,False,0);footer.pack_end(button('Continuar',lambda _:self.wizard_next(),True),False,False,0)
         else:
             body.pack_start(label('Configuración completada','welcome-title'),False,False,12)
             body.pack_start(label(f'{len(self.entries)} juegos encontrados · {len(self.checked)} seleccionados para Steam','subtitle'),False,False,0)
             body.pack_start(label('Cada carátula abre la ficha del juego: jugar, aplicar ajustes o agregarlo a Steam.','title'),False,False,16)
-            body.pack_start(label('Para agregar varios a la vez, activar «Seleccionar». Si Steam está abierto, debe reiniciarse para guardar los accesos.','muted'),False,False,0)
+            body.pack_start(label('Para agregar varios a la vez, activar «Seleccionar». Los accesos se guardan cuando Steam se cierra. Una cuenta solo hace falta para publicar o comentar ajustes.','muted'),False,False,0)
+            body.pack_start(button('Ver la guía de uso',self.help_page),False,False,0)
+            body.pack_start(button('Juegos validados',lambda _:self.validated_page()),False,False,0)
             footer.pack_start(button('Atrás',lambda _:self.wizard_back()),False,False,0);footer.pack_end(button('Abrir biblioteca',lambda _:self.leave_wizard(True),True),False,False,0)
         box.show_all();stack.set_visible_child(box)
         def remove_previous():
@@ -120,8 +127,9 @@ class ExperienceMixin:
         if self.wizard_step==1:self.checked={id_ for id_,widget in self.wizard_checks.items() if widget.get_active()}
         self.wizard_step=max(0,self.wizard_step-1);self.draw_wizard()
     def leave_wizard(self,complete):
-        if complete:self.preferences['onboarding_complete']=True;save_settings(self.preferences,self.store)
+        self.preferences['onboarding_complete']=True;self.preferences['onboarding_skipped']=not complete;save_settings(self.preferences,self.store)
         self.selection_mode=bool(self.checked);self.render();self.pages.set_visible_child_name('library');self.fetch_covers()
+        if not complete:GLib.idle_add(self.discover)
     def wizard_detection_ready(self,found):
         if self.pages.get_visible_child_name()!='welcome' or self.wizard_step!=1:return
         self.wizard_found=found;self.wizard_continue.set_sensitive(True)

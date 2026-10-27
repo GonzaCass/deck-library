@@ -103,10 +103,10 @@ class ToolsMixin:
             if not active[0]:break
         dialog.destroy()
 
-    def pick_file(self,title,save=False,folder=False):
+    def pick_file(self,title,save=False,folder=False,suggested_name='preset.json'):
         dialog=InlineFileChooser(title=title,transient_for=self,action=Gtk.FileChooserAction.SELECT_FOLDER if folder else Gtk.FileChooserAction.SAVE if save else Gtk.FileChooserAction.OPEN)
         dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar' if save else 'Elegir',Gtk.ResponseType.OK)
-        if save:dialog.set_do_overwrite_confirmation(True);dialog.set_current_name('preset.json')
+        if save:dialog.set_do_overwrite_confirmation(True);dialog.set_current_name(suggested_name)
         result=dialog.get_filename() if dialog.run()==Gtk.ResponseType.OK else None;dialog.destroy();return result
     def choose_cover(self,e):
         path=self.pick_file('Elegir carátula local')

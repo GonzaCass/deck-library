@@ -1,5 +1,5 @@
 """Community: a full-width profile list, followed by one readable profile at a time."""
-import threading
+import threading,json
 from gi.repository import Gtk,GLib
 from .inline_pages import InlineDialog
 from .community import Client
@@ -12,7 +12,7 @@ class CommunityMixin:
         dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(0);box.set_spacing(8)
         client=Client(self.store,self.preferences.get('community_url','https://presets.jokerlan.xyz'))
-        alive=[True];busy=[False];selected=[None]
+        alive=[True];busy=[False];selected=[None];auth_return=[None];reviewed=[None]
         tabs=Gtk.Box(spacing=6);box.pack_start(tabs,False,False,0)
         stack=Gtk.Stack();stack.set_homogeneous(False);stack.set_vexpand(True);stack.connect('notify::visible-child',self.refresh_layout)
         stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if motion.page_transitions() else Gtk.StackTransitionType.NONE);stack.set_transition_duration(120 if motion.page_transitions() else 0)
@@ -46,7 +46,10 @@ class CommunityMixin:
         composer=ProfileComposer(e,self.store,self.preferences.get('eden_config') or None,self.pick_file);publish_page.pack_start(composer,False,False,0)
         publication=Gtk.Box(spacing=8);publish_page.pack_start(publication,False,False,0)
         from .gui_account import AccountPane
-        def refresh_account():account.set_text(client.session().get('login') or 'Sin sesión')
+        def refresh_account():
+            login=client.session().get('login');account.set_text(login or 'Sin sesión')
+            if login and auth_return[0]:
+                stack.set_visible_child_name(auth_return[0]);auth_return[0]=None;status.set_text('Sesión iniciada. El borrador y el comentario se conservaron.')
         def run(job,done):
             if busy[0] or not alive[0]:return
             busy[0]=True;status.set_text('Conectando…')
@@ -100,36 +103,60 @@ class CommunityMixin:
                 if wanted:open_profile(wanted)
         def search(_,mine=False):
             state['mine']=mine;run(lambda:client.search(e,mine=mine),found)
-        def auth_needed():
+        def auth_needed(destination):
             if client.session().get('login'):return False
-            stack.set_visible_child_name('account');status.set_text('Iniciar sesión para continuar.');return True
+            auth_return[0]=destination;stack.set_visible_child_name('account');status.set_text('Iniciar sesión para continuar. El borrador se conserva.');return True
         def download(_):
             if not selected[0]:return
             try:
                 value=client.download(selected[0]);self.profile_choice[e.id]=value['id'];self.game_tab='profiles';self.toast('Perfil guardado. Revisar los cambios y aplicarlo desde el juego.');dialog.response(Gtk.ResponseType.CLOSE)
             except Exception as error:status.set_text(str(error))
         def rate(_):
-            if auth_needed() or not selected[0]:return
+            if auth_needed('feedback') or not selected[0]:return
             buffer=note.get_buffer();notes=buffer.get_text(buffer.get_start_iter(),buffer.get_end_iter(),True);value=selected[0]
             def done(_):
                 self.community_rating_cache.pop(e.id,None) if hasattr(self,'community_rating_cache') else None
                 stack.set_visible_child_name('profile');status.set_text('Opinión guardada.');self.toast('Opinión guardada')
-                run(lambda:client.comments(value),show_comments)
+                def refreshed(result):
+                    show_comments(result)
+                    def ratings_updated(values):
+                        found(values)
+                        updated=next((item for item in values if item['id']==value['id']),None)
+                        if updated:
+                            selected[0]=updated;score.set_text(rating_caption(updated))
+                        status.set_text('Opinión guardada.')
+                    run(lambda:client.search(e,mine=state['mine']),ratings_updated)
+                run(lambda:client.comments(value),refreshed)
             run(lambda:client.rate(value,int(rating.get_active_id()),notes),done)
         def review_profile(_):
-            try:composer.profile(client.session().get('login') or 'Usuario');submit.set_sensitive(True);status.set_text('Perfil revisado. Guardarlo localmente o publicarlo con la cuenta.')
+            try:
+                value=composer.profile(client.session().get('login') or 'Usuario');reviewed[0]=json.dumps({k:v for k,v in value.items() if k!='author'},sort_keys=True);submit.set_sensitive(True);status.set_text('Perfil revisado. Guardarlo localmente o publicarlo con la cuenta.')
             except Exception as error:submit.set_sensitive(False);status.set_text(str(error))
         def save_local(_):
             try:client._save(composer.profile(client.session().get('login') or 'Usuario'));status.set_text('Perfil guardado en este dispositivo.');self.toast('Perfil guardado')
             except Exception as error:status.set_text(str(error))
         def submit_profile(_):
-            if auth_needed():return
+            if auth_needed('publish'):return
             try:value=composer.profile(client.session()['login'])
             except Exception as error:status.set_text(str(error));return
-            def done(_):submit.set_sensitive(False);status.set_text('Perfil enviado. El estado figura en Mis aportes.');self.toast('Perfil enviado para revisión')
+            fingerprint=json.dumps({k:v for k,v in value.items() if k!='author'},sort_keys=True)
+            if reviewed[0]!=fingerprint:
+                submit.set_sensitive(False);status.set_text('El borrador cambió. Revisar los ajustes antes de publicarlo.');return
+            def done(result):
+                submit.set_sensitive(False)
+                pending=result.get('status')=='pending'
+                status.set_text('El perfil espera revisión; todavía no es visible para otros usuarios.' if pending else 'Perfil publicado. Los demás usuarios ya pueden verlo desde este juego.')
+                self.toast('Perfil enviado para revisión' if pending else 'Perfil publicado')
+                state['mine']=True
+                def refreshed(values):
+                    found(values);status.set_text('El perfil espera revisión; todavía no es visible para otros usuarios.' if pending else 'Perfil publicado. Los demás usuarios ya pueden verlo desde este juego.')
+                run(lambda:client.search(e,mine=True),refreshed)
             run(lambda:client.publish(value),done)
+        publish_page.pack_start(text('1. Leer los ajustes del juego. 2. Describir dónde se probaron. 3. Revisar y publicar. El perfil aparecerá para quienes tengan el mismo juego y programa.','muted',85),False,False,0);publish_page.reorder_child(publish_page.get_children()[-1],0)
         publication.pack_start(ActionButton('Revisar mis ajustes','sliders',review_profile,'violet-outline'),False,False,0);publication.pack_start(ActionButton('Guardar localmente','check',save_local,'cyan'),False,False,0)
         submit=ActionButton('Publicar perfil','upload',submit_profile,'violet');submit.set_sensitive(False);publication.pack_start(submit,False,False,0)
+        def draft_changed():reviewed[0]=None;submit.set_sensitive(False)
+        composer.connect_changed(draft_changed)
         account_page=AccountPane(client,refresh_account);add_page(account_page,'account')
         def back_to_profiles():
             stack.set_visible_child_name('browse')

@@ -4,6 +4,7 @@ Every release has its notes on [GitHub](https://github.com/GonzaCass/deck-librar
 
 | Version | Date | Title |
 | --- | --- | --- |
+| [1.3.0](https://github.com/GonzaCass/deck-library/releases/tag/v1.3.0) | 2026-10-27 | First-use guide, gameplay reports, public community sharing and opt-in diagnostics |
 | [1.2.8](https://github.com/GonzaCass/deck-library/releases/tag/v1.2.8) | 2026-10-27 | Naruto profiles and per-game Proton selection for managed Windows games |
 | [1.2.7](https://github.com/GonzaCass/deck-library/releases/tag/v1.2.7) | 2026-10-27 | Steam queue recovery across sessions, readable action buttons and explicit ROM management |
 | [1.2.6](https://github.com/GonzaCass/deck-library/releases/tag/v1.2.6) | 2026-10-27 | ISO extraction, verified cleanup, visible version and reliable self-updates |

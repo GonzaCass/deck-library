@@ -16,7 +16,7 @@ class Client:
         headers={'User-Agent':'DeckLibrary-Community','Accept':'application/json'};token=self.session().get('token') if token is None else token
         if token:headers['Authorization']='Bearer '+token
         if body is not None:headers['Content-Type']='application/json'
-        req=urllib.request.Request(self.url+path,data=json.dumps(body).encode() if body is not None else None,headers=headers)
+        req=urllib.request.Request(self.url+path,data=json.dumps(body,ensure_ascii=False).encode() if body is not None else None,headers=headers)
         # Do not forward a bearer token to an HTTP redirect or another host.
         class NoRedirect(urllib.request.HTTPRedirectHandler):
             def redirect_request(self,*args,**kwargs):return None

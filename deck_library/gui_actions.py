@@ -43,7 +43,11 @@ class ActionsMixin:
     def clear_status(self):
         self.status_timer=0;self.status.set_text('');self.status.set_visible(False);return False
     def message(self,title,text):
-        page=InlineDialog(title=title,transient_for=self);page.get_content_area().pack_start(label(text,'subtitle'),False,False,0);page.add_button('Volver',Gtk.ResponseType.CLOSE);page.connect('response',lambda *_:page.destroy());page._mount()
+        page=InlineDialog(title=title,transient_for=self);page.get_content_area().pack_start(label(text,'subtitle'),False,False,0)
+        if re.search(r'no se pudo|no se pudieron|error|fall',title,re.I):
+            from .ui_components import ActionButton
+            page.get_content_area().pack_start(ActionButton('Reportar este problema','file',lambda _:self.bug_report_page(getattr(self,'selected',None)),'violet-outline'),False,False,0)
+        page.add_button('Volver',Gtk.ResponseType.CLOSE);page.connect('response',lambda *_:page.destroy());page._mount()
     def confirm(self,title,text,accept='Continuar',danger=False):
         dialog=InlineDialog(title=title,transient_for=self);dialog.get_content_area().pack_start(label(text,'subtitle'),False,False,0);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL)
         action=dialog.add_button(accept,Gtk.ResponseType.OK)

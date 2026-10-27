@@ -80,7 +80,7 @@ Probar preservación de opciones ajenas al preset, rechazo de claves desconocida
 
 Abrir un juego → **Comunidad → Compartir mis ajustes**. **Leer configuración del juego** captura las opciones reconocidas, incluidos los valores globales heredados. **Leer otro archivo de configuración** permite elegir un INI o TOML; solo importa las claves permitidas para ese adaptador. No copia el archivo completo.
 
-Se pueden editar los valores JSON, escribir instrucciones, registrar resultados de prueba y declarar Linux nativo, Proton o Steam, su versión y opciones de lanzamiento. **Revisar mis ajustes** muestra el contenido antes de compartirlo. **Guardar localmente** funciona sin cuenta. **Publicar perfil** requiere iniciar sesión; el servicio asigna el autor autenticado y mantiene el aporte pendiente de revisión. **Mis aportes** muestra los perfiles propios para ese juego y adaptador. Publicar no concede una marca de verificado.
+Se pueden editar los valores JSON, escribir instrucciones, registrar resultados de prueba y declarar Linux nativo, Proton o Steam, su versión y opciones de lanzamiento. **Revisar mis ajustes** muestra el contenido antes de compartirlo. **Guardar localmente** funciona sin cuenta. **Publicar perfil** requiere iniciar sesión; el servicio asigna el autor autenticado y lo hace visible a los demás. Un servidor propio puede activar revisión previa con `COMMUNITY_REVIEW_REQUIRED=true`; en ese caso figura como pendiente hasta su aprobación. **Mis aportes** muestra los perfiles propios para ese juego y adaptador. Publicar no concede una marca de verificado.
 
 | Programa | Lectura | Aplicación |
 | --- | --- | --- |

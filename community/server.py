@@ -15,10 +15,11 @@ def github(url,data=None,token=None):
     return json.loads(raw)
 
 class API:
-    def __init__(self,path=None,client_id=None,oidc_issuer=None,oidc_client=None):
+    def __init__(self,path=None,client_id=None,oidc_issuer=None,oidc_client=None,review_required=None):
         self.path=str(path or os.environ.get('COMMUNITY_DB','/data/community.sqlite3'));self.client_id=client_id or os.environ.get('GITHUB_CLIENT_ID','')
         issuer=oidc_issuer or os.environ.get('OIDC_ISSUER','');client=oidc_client or os.environ.get('OIDC_CLIENT_ID','')
         self.oidc=DeviceAuth(issuer,client) if issuer and client else None
+        self.review_required=(os.environ.get('COMMUNITY_REVIEW_REQUIRED','false').lower()=='true') if review_required is None else review_required
         pathlib.Path(self.path).parent.mkdir(parents=True,exist_ok=True)
         with self.db() as db:
             db.executescript('''PRAGMA journal_mode=WAL;
@@ -27,6 +28,7 @@ class API:
             CREATE TABLE IF NOT EXISTS presets(id TEXT PRIMARY KEY, uid TEXT NOT NULL, login TEXT NOT NULL, game TEXT NOT NULL, adapter TEXT NOT NULL, body TEXT NOT NULL, status TEXT NOT NULL, updated REAL NOT NULL);
             CREATE TABLE IF NOT EXISTS feedback(preset TEXT NOT NULL, uid TEXT NOT NULL, result TEXT NOT NULL, notes TEXT NOT NULL, updated REAL NOT NULL, PRIMARY KEY(preset,uid));
             CREATE TABLE IF NOT EXISTS rates(key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires REAL NOT NULL);''')
+            db.execute('CREATE TABLE IF NOT EXISTS bug_reports(id TEXT PRIMARY KEY, body TEXT NOT NULL, created REAL NOT NULL)')
             db.execute('BEGIN IMMEDIATE')
             for table,column,definition in [('devices','provider',"TEXT NOT NULL DEFAULT 'github'"),('feedback','rating','INTEGER'),('feedback','author',"TEXT NOT NULL DEFAULT ''")]:
                 if column not in {r['name'] for r in db.execute('PRAGMA table_info('+table+')')}:db.execute('ALTER TABLE '+table+' ADD COLUMN '+column+' '+definition)
@@ -47,7 +49,7 @@ class API:
     def seed_profiles(self,game,adapter,remote='local'):
         from deck_library import presets
         from deck_library.models import Store,Entry
-        platforms={'eden':'Switch','wiicompiled':'WiiCompiled','prism':'Minecraft','dolphin':'Wii','duckstation':'PlayStation','project2099':'Windows'}
+        platforms={'eden':'Switch','wiicompiled':'WiiCompiled','prism':'Minecraft','dolphin':'Wii','duckstation':'PlayStation','project2099':'Windows','narutorise':'Windows'}
         if adapter not in platforms or not re.fullmatch(r'[A-Za-z0-9._-]{1,80}',game):return
         with self.db() as db:
             known=db.execute("SELECT 1 FROM presets WHERE game=? AND adapter=? AND uid='builtin'",(game.lower(),adapter)).fetchone()
@@ -65,7 +67,13 @@ class API:
         if method=='GET' and path=='/health':
             from deck_library import __version__
             from deck_library.presets import REGISTRY
-            return {'ok':True,'schema_version':1,'version':__version__,'profile_adapters':list(REGISTRY),'profile_instructions':True,'login_available':bool(self.client_id or self.oidc)}
+            return {'ok':True,'schema_version':1,'version':__version__,'profile_adapters':list(REGISTRY),'profile_instructions':True,'login_available':bool(self.client_id or self.oidc),'review_required':self.review_required,'bug_reports':True}
+        if method=='POST' and path=='/v1/bug-reports':
+            from deck_library.bug_report import validate_report,sanitize
+            self.rate('report:'+remote,5,3600);report=validate_report(sanitize(body))
+            identifier=secrets.token_hex(8)
+            with self.db() as db:db.execute('INSERT INTO bug_reports VALUES(?,?,?)',(identifier,json.dumps(report,ensure_ascii=False),now))
+            return {'id':identifier,'received':True}
         if method=='GET' and path=='/v1/auth/providers':return {'providers':([{'id':'keycloak','name':'Cuenta propia'}] if self.oidc else [])+([{'id':'github','name':'GitHub'}] if self.client_id else [])}
         if path.startswith('/v1/auth/'):
             self.rate('auth:'+remote,40)
@@ -136,9 +144,10 @@ class API:
             user=self.session(token);self.rate('post:'+user['uid'],10,3600);value=validate(body)
             if value['license']!='MIT':raise ValueError('La publicación comunitaria requiere licencia MIT.')
             value={**value,'author':user['login']};identifier=digest(user['uid']+':'+value['id'])[:32]
+            status='pending' if self.review_required else 'approved'
             with self.db() as db:
-                db.execute("INSERT INTO presets VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body,game=excluded.game,adapter=excluded.adapter,status='pending',updated=excluded.updated",(identifier,user['uid'],user['login'],value['game']['id'].lower(),value['adapter']['id'],json.dumps(value,ensure_ascii=False),'pending',now))
-            return {'id':identifier,'status':'pending'}
+                db.execute("INSERT INTO presets VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET body=excluded.body,game=excluded.game,adapter=excluded.adapter,status=excluded.status,updated=excluded.updated",(identifier,user['uid'],user['login'],value['game']['id'].lower(),value['adapter']['id'],json.dumps(value,ensure_ascii=False),status,now))
+            return {'id':identifier,'status':status}
         match=re.fullmatch(r'/v1/presets/([a-f0-9]{32})/feedback',path)
         if method=='GET' and match:
             with self.db() as db:
