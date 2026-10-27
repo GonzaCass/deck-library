@@ -5,6 +5,7 @@ from .content import switch_id,eden_paths,emulator_busy
 
 REGISTRY={
  'instructions':{},
+ 'narutorise':{'runtime':{'renderer':('native',),'native_backend':('vulkan',),'resolution_scale':(1,4),'internal_resolution_scale':(0.0,4.0),'fullscreen':bool,'frame_rate':(30,120),'vsync':bool,'d3d12_host_vsync':bool,'msaa_samples':(0,8),'swap_post_effect':('none','fxaa'),'present_effect':('bilinear','cas','fsr'),'anisotropic_override':(-1,5),'transparency_antialiasing':bool,'max_frame_latency':(1,3),'triple_buffering':bool}},
  'pcsx2':{'EmuCore/GS':{'upscale_multiplier':(1.0,8.0),'VsyncEnable':bool,'MaxAnisotropy':(0,16),'fxaa':bool,'ShadeBoost':bool},'EmuCore':{'EnableWideScreenPatches':bool,'EnableNoInterlacingPatches':bool}},
  'azahar':{'Renderer':{'graphics_api':(0,2),'resolution_factor':(1,10),'use_vsync_new':bool,'use_hw_shader':bool,'shaders_accurate_mul':bool,'use_disk_shader_cache':bool,'async_shader_compilation':bool,'async_presentation':bool},'Layout':{'layout_option':(0,6),'swap_screen':bool}},
  'mgba':{'ports.qt':{'videoScale':(1,8),'lockAspectRatio':bool,'interframeBlending':bool,'resampleVideo':bool,'fpsTarget':(30.0,120.0)},'General':{'videoScale':(1,8),'lockAspectRatio':bool,'interframeBlending':bool,'resampleVideo':bool,'fpsTarget':(30.0,120.0)}},
@@ -27,6 +28,7 @@ REGISTRY={
 
 def adapter_for(entry):
     if entry.metadata.get('adapter')=='project2099' and entry.metadata.get('engine')=='reeot':return 'instructions'
+    if entry.metadata.get('port_repository','').lower()=='jorjbarbosa/naruto-rise-recomp':return 'narutorise'
     return entry.metadata.get('adapter') or {'Switch':'eden','WiiCompiled':'wiicompiled','Minecraft':'prism','Wii':'dolphin','GameCube':'dolphin','PlayStation':'duckstation','PlayStation 2':'pcsx2','Nintendo 3DS':'azahar','Game Boy Advance':'mgba','Game Boy':'mgba','Game Boy Color':'mgba','PSP':'ppsspp'}.get(entry.platform,'instructions')
 
 SERIAL=re.compile(rb'BOOT\s*=\s*cdrom:\\?([A-Z]{4})_(\d{3})\.(\d{2})',re.I)
@@ -49,7 +51,19 @@ PROCESSES={'pcsx2':('pcsx2-qt','pcsx2'),'azahar':('azahar','citra-qt'),'mgba':('
 
 def busy(adapter):return any(emulator_busy(name) for name in PROCESSES.get(adapter,('unknown',)))
 
+PROCESSES['narutorise']=tuple({name for full in ('narutorise.exe','narutorise_launcher.exe') for name in (full,full[:15])})
+
+def current_version(entry):
+    if adapter_for(entry)=='narutorise':
+        try:
+            value=target_for(entry).with_name('narutorise.version').read_text().strip().removeprefix('v')
+            if re.fullmatch(r'[0-9A-Za-z.+_-]{1,40}',value):return value
+        except (OSError,ValueError):pass
+        return entry.metadata.get('port_tag','').removeprefix('v')
+    return entry.metadata.get('build') or entry.metadata.get('emulator_version')
+
 def public_game_id(entry):
+    if adapter_for(entry)=='narutorise':return '555307E5'
     if entry.platform=='Switch':return switch_id(entry)
     if adapter_for(entry)=='prism':return 'minecraft-java'
     if entry.game_id:return entry.game_id
@@ -215,6 +229,9 @@ def refresh_catalog(url,store=None):
 
 def target_for(entry,config_dir=None):
     adapter=adapter_for(entry);home=pathlib.Path.home()
+    if adapter=='narutorise':
+        if entry.metadata.get('port_repository','').lower()!='jorjbarbosa/naruto-rise-recomp' or pathlib.Path(entry.source).name.lower() not in ('narutorise.exe','narutorise_launcher.exe'):raise ValueError('No se identificó la instalación de Naruto: Rise of a Ninja.')
+        return pathlib.Path(entry.source).parent/'narutorise.toml'
     if adapter in ('pcsx2','azahar','ppsspp'):
         from .profile_capture import game_target
         return game_target(entry,adapter)
@@ -292,20 +309,20 @@ def preview(entry,value,config_dir=None):
     if not compatible(entry,value):raise ValueError('El preset no corresponde a este juego o programa.')
     if not automatic(value):raise ValueError('Este perfil es una guía de aplicación manual; sus instrucciones no se ejecutan.')
     path=target_for(entry,config_dir);old=path.read_text() if path.exists() else '';adapter=adapter_for(entry)
-    previous=tomllib.loads(old) if adapter in ('wiicompiled','project2099') else ini_parser(old);changes=[]
+    previous=tomllib.loads(old) if adapter in ('wiicompiled','project2099','narutorise') else ini_parser(old);changes=[]
     for section,items in value['settings'].items():
-        current=(previous if adapter=='project2099' else previous.get(section,{})) if isinstance(previous,dict) else previous[section] if previous.has_section(section) else {}
+        current=(previous if adapter in ('project2099','narutorise') else previous.get(section,{})) if isinstance(previous,dict) else previous[section] if previous.has_section(section) else {}
         for key,new in items.items():changes.append((section+'.'+key,current.get(key,'predeterminado'),new))
     return path,changes
 
 def apply(entry,value,store=None,config_dir=None):
     path,changes=preview(entry,value,config_dir);adapter=adapter_for(entry)
     if busy(adapter):raise RuntimeError('El juego o programa debe estar cerrado para aplicar un perfil.')
-    current=entry.metadata.get('build') or entry.metadata.get('emulator_version')
+    current=current_version(entry)
     if current and current not in value['adapter']['versions']:raise ValueError('Este preset no declara compatibilidad con la versión instalada: '+current)
     old=path.read_text() if path.exists() else '';store=store or Store();stamp=datetime.datetime.now().strftime('%Y%m%dT%H%M%S%f');backup=store.root/'preset-backups'/entry.id/stamp;backup.mkdir(parents=True,exist_ok=True)
     (backup/'original').write_text(old)
-    if adapter=='project2099':new=patch_root_toml(old,value['settings']['runtime'])
+    if adapter in ('project2099','narutorise'):new=patch_root_toml(old,value['settings']['runtime'])
     elif adapter=='wiicompiled':new=patch_toml(old,value['settings'])
     else:
         updates={}
@@ -338,7 +355,7 @@ def export_current(entry,name,author,store=None,config_dir=None):
     game_id=public_game_id(entry)
     if not game_id:raise ValueError('Falta el ID público del juego para exportar.')
     revision=datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-    result={'schema_version':1,'id':adapter+'-'+game_id.lower()+'-'+revision,'name':name,'game':{'id':game_id,'name':entry.name,'platform':entry.platform},'adapter':{'id':adapter,'versions':[entry.metadata.get('build') or entry.metadata.get('emulator_version') or 'unknown']},'hardware':['steam-deck-lcd','steam-deck-oled'],'objective':'Configuración compartida para recibir feedback','author':author,'license':'MIT','tested':{'status':'proposal','date':datetime.date.today().isoformat()},'settings':values,'notes':'Verificar la versión del programa y probar el perfil antes de recomendarlo.','sources':[]}
+    result={'schema_version':1,'id':adapter+'-'+game_id.lower()+'-'+revision,'name':name,'game':{'id':game_id,'name':entry.name,'platform':entry.platform},'adapter':{'id':adapter,'versions':[current_version(entry) or 'unknown']},'hardware':['steam-deck-lcd','steam-deck-oled'],'objective':'Configuración compartida para recibir feedback','author':author,'license':'MIT','tested':{'status':'proposal','date':datetime.date.today().isoformat()},'settings':values,'notes':'Verificar la versión del programa y probar el perfil antes de recomendarlo.','sources':[]}
     from .profile_capture import runtime_info
     result['runtime']=runtime_info(entry)
     if not values:
@@ -415,8 +432,8 @@ def current_values(entry,config_dir=None):
         if adapter not in ('pcsx2','azahar','mgba','ppsspp'):raise
         path=None
     content=path.read_text() if path and path.exists() else ''
-    if adapter in ('wiicompiled','project2099'):
-        parsed=tomllib.loads(content);local={'runtime':parsed} if adapter=='project2099' else parsed
+    if adapter in ('wiicompiled','project2099','narutorise'):
+        parsed=tomllib.loads(content);local={'runtime':parsed} if adapter in ('project2099','narutorise') else parsed
     else:local={s:dict(v) for s,v in ini_parser(content).items() if s!='DEFAULT'}
     result={}
     for section,options in REGISTRY[adapter].items():
@@ -434,5 +451,5 @@ def manual_profile(entry,changes,config_dir=None):
     game_id=public_game_id(entry)
     if not game_id:raise ValueError('Falta el identificador del juego.')
     adapter=adapter_for(entry)
-    value={'schema_version':1,'id':'manual-'+hashlib.sha256((entry.id+json.dumps(changes,sort_keys=True)).encode()).hexdigest()[:12],'name':'Ajustes manuales','game':{'id':game_id,'name':entry.name,'platform':entry.platform},'adapter':{'id':adapter,'versions':[entry.metadata.get('build') or entry.metadata.get('emulator_version') or 'unknown']},'hardware':['steam-deck-lcd','steam-deck-oled'],'objective':'Ajustes manuales del usuario','author':'Usuario','license':'MIT','tested':{'status':'proposal','date':datetime.date.today().isoformat()},'settings':changes}
+    value={'schema_version':1,'id':'manual-'+hashlib.sha256((entry.id+json.dumps(changes,sort_keys=True)).encode()).hexdigest()[:12],'name':'Ajustes manuales','game':{'id':game_id,'name':entry.name,'platform':entry.platform},'adapter':{'id':adapter,'versions':[current_version(entry) or 'unknown']},'hardware':['steam-deck-lcd','steam-deck-oled'],'objective':'Ajustes manuales del usuario','author':'Usuario','license':'MIT','tested':{'status':'proposal','date':datetime.date.today().isoformat()},'settings':changes}
     return validate(value)

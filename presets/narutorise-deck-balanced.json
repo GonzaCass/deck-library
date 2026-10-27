@@ -1,0 +1,57 @@
+{
+  "schema_version": 1,
+  "id": "narutorise-deck-balanced",
+  "name": "Naruto: Rise of a Ninja — Equilibrado",
+  "game": {
+    "id": "555307E5",
+    "name": "Naruto: Rise of a Ninja",
+    "platform": "Windows"
+  },
+  "adapter": {
+    "id": "narutorise",
+    "versions": [
+      "0.3.0-beta"
+    ]
+  },
+  "hardware": [
+    "steam-deck-lcd",
+    "steam-deck-oled"
+  ],
+  "objective": "720p, FXAA y CAS; configuración probada por un usuario",
+  "author": "Deck Library",
+  "license": "MIT",
+  "tested": {
+    "status": "user-confirmed",
+    "date": "2026-10-27",
+    "notes": "Un usuario probó la configuración Equilibrado en Steam Deck con Proton 11.0 y reportó aproximadamente 45–60 FPS. No es una medición sostenida ni una garantía de 60 FPS."
+  },
+  "settings": {
+    "runtime": {
+      "renderer": "native",
+      "native_backend": "vulkan",
+      "resolution_scale": 1,
+      "internal_resolution_scale": 0.0,
+      "fullscreen": true,
+      "frame_rate": 60,
+      "vsync": true,
+      "d3d12_host_vsync": true,
+      "msaa_samples": 0,
+      "swap_post_effect": "fxaa",
+      "present_effect": "cas",
+      "anisotropic_override": 5,
+      "transparency_antialiasing": false,
+      "max_frame_latency": 1,
+      "triple_buffering": false
+    }
+  },
+  "runtime": {
+    "kind": "proton",
+    "version": "Proton 11.0"
+  },
+  "notes": "Cerrar el juego y su launcher antes de aplicar. Se conservan idioma, mandos, rutas, mods, partidas y caché. No borrar la caché de pipelines: el primer uso de contenido puede tener pausas. En modo Juego se puede usar el contador de rendimiento de Steam. El límite es un objetivo, no FPS garantizados. Rendimiento desactiva FXAA y puede mostrar más dientes de sierra. Calidad aumenta el trabajo gráfico; volver a Equilibrado si pierde estabilidad.",
+  "sources": [
+    "https://github.com/jorjbarbosa/naruto-rise-recomp/releases/tag/v0.3.0-beta",
+    "https://github.com/jorjbarbosa/naruto-rise-recomp/blob/main/docs/configuration.md",
+    "https://github.com/jorjbarbosa/naruto-rise-recomp/blob/main/docs/renderers.md"
+  ]
+}

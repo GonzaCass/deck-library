@@ -101,3 +101,22 @@ Los archivos se buscan en instalaciones nativas y Flatpak conocidas. Una instala
 Los juegos sin identificador público usan una identidad derivada del repositorio del port o del nombre y plataforma. Renombrarlos puede cambiar esa identidad; un ID público explícito es preferible. Los perfiles de Project 2099 Beta 4.1 no se aplican al motor distinto de Beta 5. Las referencias documentadas de DMC3 Crimson y Shattered Dimensions no instalan automáticamente esos fixes.
 
 Fuentes de los formatos revisados: [PCSX2](https://github.com/PCSX2/pcsx2/blob/master/pcsx2/VMManager.cpp), [Azahar](https://github.com/azahar-emu/azahar/blob/master/src/citra_qt/configuration/config.cpp), [mGBA](https://github.com/mgba-emu/mgba/blob/master/src/core/config.c), [PPSSPP](https://github.com/hrydgard/ppsspp/blob/master/Core/Config.cpp).
+
+
+## Naruto: Rise of a Ninja y Proton por juego (1.2.8)
+
+El adaptador `narutorise` identifica el proyecto `jorjbarbosa/naruto-rise-recomp` y el juego `555307E5`. Lee `narutorise.version` y modifica exclusivamente las opciones gráficas permitidas del TOML junto al ejecutable. Incluye vista previa, respaldo, restauración, importación y captura. Idioma, mandos, mods, rutas, partidas y cachés permanecen fuera del perfil.
+
+- **Equilibrado:** configuración probada por un usuario en Steam Deck con la versión 0.3.0-beta y Proton 11.0, aproximadamente 45–60 FPS variables. Vulkan nativo, 720p internos, FXAA, CAS, MSAA desactivado y filtrado 16×. Solo esta opción declara `user-confirmed`; no certifica ambos modelos de Deck ni una tasa sostenida.
+- **Rendimiento:** propuesta a 720p, sin FXAA, VSync desactivado y filtrado 8×. Puede mostrar más dientes de sierra y no garantiza mejorar FPS si el límite está en la CPU.
+- **Calidad:** propuesta a 1080p internos, FXAA y objetivo de 30 FPS. Sin prueba de jugabilidad o rendimiento.
+
+Fuentes: [configuración](https://github.com/jorjbarbosa/naruto-rise-recomp/blob/main/docs/configuration.md) y [renderizador](https://github.com/jorjbarbosa/naruto-rise-recomp/blob/main/docs/renderers.md). Se conserva la caché: compilar pipelines nuevos puede provocar pausas. El renderizador nativo usa interpolación para presentar más cuadros que la lógica original; el objetivo de FPS no mide la velocidad real alcanzada.
+
+La ficha de los ports Windows administrados por Deck Library, Project-2099 y ejecutables Windows directos muestra **Proton**, con **Automática** y las versiones instaladas, incluidas GE-Proton y las bibliotecas de Steam en otros discos. Guardar la selección no descarga herramientas ni requiere volver a agregar el acceso. Si se elimina la versión elegida, se informa el error al iniciar: no se cambia silenciosamente a otra.
+
+El acceso de Steam de Deck Library abre un lanzador Linux estable que consulta la preferencia de ese juego al iniciarse. Por eso **no se debe forzar Proton sobre ese lanzador desde Steam**. El AppID y las carátulas no cambian y no se genera una operación pendiente de Steam. Los ports portables mantienen el mismo prefijo y sus datos al probar otra versión; Project-2099 conserva su gestión existente de prefijos y su opción automática usa Proton 9 para el motor reeot cuando está disponible. La selección se rechaza si el juego o su lanzador están abiertos.
+
+Los accesos externos administrados por Steam conservan la selección de **Propiedades → Compatibilidad**; no se convierten en lanzadores propios ni se modifica su compatibilidad desde este selector. Otros gestores, como Lutris, siguen controlando sus propios entornos.
+
+`runtime.version` en un perfil es una referencia de la prueba declarada. Aplicar gráficos no cambia automáticamente la versión elegida en el selector. Para compartir perfiles `narutorise` con un servidor comunitario propio, ese servidor también necesita el registro de adaptadores de 1.2.8 o posterior.

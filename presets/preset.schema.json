@@ -52,7 +52,8 @@
             "wiicompiled",
             "dolphin",
             "duckstation",
-            "prism"
+            "prism",
+            "narutorise"
           ]
         },
         "versions": {
@@ -1116,6 +1117,104 @@
           }
         }
       ]
+    },
+    {
+      "if": {
+        "properties": {
+          "adapter": {
+            "properties": {
+              "id": {
+                "const": "narutorise"
+              }
+            }
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "settings": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "runtime": {
+                "type": "object",
+                "minProperties": 1,
+                "additionalProperties": false,
+                "properties": {
+                  "renderer": {
+                    "enum": [
+                      "native"
+                    ]
+                  },
+                  "native_backend": {
+                    "enum": [
+                      "vulkan"
+                    ]
+                  },
+                  "resolution_scale": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 4
+                  },
+                  "internal_resolution_scale": {
+                    "type": "number",
+                    "minimum": 0.0,
+                    "maximum": 4.0
+                  },
+                  "fullscreen": {
+                    "type": "boolean"
+                  },
+                  "frame_rate": {
+                    "type": "integer",
+                    "minimum": 30,
+                    "maximum": 120
+                  },
+                  "vsync": {
+                    "type": "boolean"
+                  },
+                  "d3d12_host_vsync": {
+                    "type": "boolean"
+                  },
+                  "msaa_samples": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 8
+                  },
+                  "swap_post_effect": {
+                    "enum": [
+                      "none",
+                      "fxaa"
+                    ]
+                  },
+                  "present_effect": {
+                    "enum": [
+                      "bilinear",
+                      "cas",
+                      "fsr"
+                    ]
+                  },
+                  "anisotropic_override": {
+                    "type": "integer",
+                    "minimum": -1,
+                    "maximum": 5
+                  },
+                  "transparency_antialiasing": {
+                    "type": "boolean"
+                  },
+                  "max_frame_latency": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 3
+                  },
+                  "triple_buffering": {
+                    "type": "boolean"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   ]
 }

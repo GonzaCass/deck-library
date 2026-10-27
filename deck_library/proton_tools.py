@@ -31,3 +31,19 @@ def find(names,home=None,preferred=None):
                 if re.match(r'^(?:GE-Proton|Proton-GE)',folder.name,re.I) and (folder/'proton').is_file():custom.append(folder/'proton')
         if custom:return max(custom,key=lambda p:tuple(int(n) for n in re.findall(r'\d+',p.parent.name)))
     raise ValueError('No se encontró Proton instalado. Instalar una versión desde Steam → Biblioteca → Herramientas, o GE-Proton con ProtonUp-Qt.')
+
+def installed(home=None):
+    """Installed tools only; preferences store a build name, never an executable path."""
+    tools={}
+    folders=[root/'steamapps/common' for root in libraries(home)]
+    folders.extend(root/'compatibilitytools.d' for root in steam_roots(home))
+    for folder in folders:
+        for path in folder.glob('*/proton'):
+            name=path.parent.name
+            if path.is_file() and re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9 ._()+-]{0,99}',name) and re.match(r'^(?:proton|ge-proton)',name,re.I):tools.setdefault(name,path.resolve())
+    return dict(sorted(tools.items(),key=lambda pair:pair[0].casefold()))
+
+def resolve(name,home=None):
+    tools=installed(home)
+    if name not in tools:raise ValueError('La versión de Proton elegida no está instalada: '+str(name))
+    return tools[name]
