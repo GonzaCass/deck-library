@@ -33,7 +33,7 @@ Deck Library muestra un código que se autoriza en `https://github.com/login/dev
 
 ## Moderación y copias
 
-Todos los aportes nuevos y las modificaciones quedan `pending`, incluidos los del propietario. Solo los `approved` aparecen en consultas públicas. Aprobar un aporte no demuestra su rendimiento; se conserva el estado de prueba declarado por el autor. El alias de autor se obtiene de la identidad autenticada y no se acepta del JSON. Cada usuario puede dejar una valoración de 1 a 5 estrellas y un comentario editable por perfil. Se conservan los reportes antiguos.
+Desde 1.3.0, los aportes válidos de cuentas autenticadas se publican de inmediato (`approved`). Para revisar cada aporte antes de hacerlo público, configurar `COMMUNITY_REVIEW_REQUIRED=true` al desplegar: los nuevos y sus modificaciones quedan `pending`, incluidos los del propietario. Solo los `approved` aparecen en consultas públicas. Publicar o aprobar no demuestra rendimiento ni agrega el juego a Juegos validados; se conserva la prueba declarada por el autor. El alias de autor se obtiene de la identidad autenticada y no se acepta del JSON. Cada usuario puede dejar una valoración de 1 a 5 estrellas y un comentario editable por perfil. Se conservan los reportes antiguos.
 
 ```sh
 docker compose --env-file community/.env -f community/compose.yaml exec api python -m community.server pending
@@ -42,11 +42,11 @@ docker compose --env-file community/.env -f community/compose.yaml exec api pyth
 docker compose --env-file community/.env -f community/compose.yaml exec api python -m community.server backup /data/backup.sqlite3
 ```
 
-Exportar el backup fuera del volumen y restaurarlo solo con el servicio parado. `docker compose down` conserva el volumen; no usar `down -v` si se quieren conservar los aportes. Esta primera versión no tiene panel web, administración pública ; las valoraciones se muestran en la aplicación. La moderación y los backups se administran por consola.
+Exportar el backup fuera del volumen y restaurarlo solo con el servicio parado. `docker compose down` conserva el volumen; no usar `down -v` si se quieren conservar los aportes. Esta primera versión no tiene panel web, administración pública; las valoraciones se muestran en la aplicación. La moderación y los backups se administran por consola.
 
 «Mis aportes» consulta solo los perfiles del usuario autenticado, incluidos pendientes y rechazados.
 
-API: `GET /v1/me`, `GET /v1/auth/providers`, `GET /v1/presets/ID/feedback`, `GET /v1/me/presets`, `GET /health`, `GET /v1/presets?game=ID&adapter=eden`, `POST /v1/auth/start`, `POST /v1/auth/poll`, `POST /v1/logout`, `POST /v1/presets`, `POST /v1/presets/ID/feedback`. JSON limitado a 128 KiB. El cliente descarga y valida un perfil antes de ofrecer su aplicación con vista previa y respaldo. Nada se publica automáticamente.
+API: `GET /v1/me`, `GET /v1/auth/providers`, `GET /v1/presets/ID/feedback`, `GET /v1/me/presets`, `GET /health`, `GET /v1/presets?game=ID&adapter=eden`, `POST /v1/auth/start`, `POST /v1/auth/poll`, `POST /v1/logout`, `POST /v1/presets`, `POST /v1/presets/ID/feedback`, `POST /v1/bug-reports`. JSON limitado a 128 KiB. El cliente descarga y valida un perfil antes de ofrecer su aplicación con vista previa y respaldo. Nada se publica automáticamente.
 
 Fuentes del protocolo: [GitHub Device Flow](https://docs.github.com/en/apps/oauth-apps/building-oauth-apps/authorizing-oauth-apps#device-flow), [Traefik Docker](https://doc.traefik.io/traefik/reference/routing-configuration/other-providers/docker/).
 
@@ -66,3 +66,9 @@ La vista usa memoria temporal para cookies y almacenamiento, deniega permisos y 
 ## Remitente específico de Deck Library
 
 Si el realm también tiene otros clientes, no cambiar su remitente SMTP global para poner el nombre de Deck Library. El proveedor opcional [keycloak-mail](keycloak-mail/README.md) aplica un remitente específico solo al cliente configurado y conserva el transporte SMTP existente. Incluye código fuente, pruebas y compilación contra la versión instalada de Keycloak.
+
+## Diagnósticos privados (1.3.0)
+
+**Ayuda → Reportar un problema** permite revisar un reporte, exportar un ZIP, abrir un issue de GitHub o enviarlo expresamente al servicio. No se envía automáticamente ni se necesita una cuenta. El servidor valida tamaño y formato, vuelve a ocultar credenciales y datos personales conocidos y limita los envíos. La redacción automática no sustituye la revisión del contenido por quien lo comparte.
+
+`POST /v1/bug-reports` devuelve un identificador de recepción. El reporte se guarda en la tabla privada `bug_reports` del volumen SQLite y no tiene una ruta pública de descarga. Solo el administrador con acceso al volumen puede consultarlo por su ID; conviene eliminarlo una vez resuelto el incidente. GitHub recibe únicamente el texto que la persona decide publicar y los adjuntos que añade al issue. El servidor no crea issues en su nombre.

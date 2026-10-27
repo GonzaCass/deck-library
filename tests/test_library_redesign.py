@@ -50,7 +50,7 @@ class RedesignTests(unittest.TestCase):
 
 class CommunityTests(unittest.TestCase):
     def setUp(self):
-        self.temp=tempfile.TemporaryDirectory();self.api=API(pathlib.Path(self.temp.name)/'test.db',client_id='public-id');self.value=json.loads((pathlib.Path(__file__).resolve().parent.parent/'presets/eden-switch-performance.json').read_text());self.token='local-test-token'
+        self.temp=tempfile.TemporaryDirectory();self.api=API(pathlib.Path(self.temp.name)/'test.db',client_id='public-id',review_required=True);self.value=json.loads((pathlib.Path(__file__).resolve().parent.parent/'presets/eden-switch-performance.json').read_text());self.token='local-test-token'
         with self.api.db() as db:db.execute('INSERT INTO tokens VALUES(?,?,?,?)',(digest(self.token),'1','VerifiedUser',time.time()+500))
     def tearDown(self):self.temp.cleanup()
     def request(self,method,path,body=None,token=''):

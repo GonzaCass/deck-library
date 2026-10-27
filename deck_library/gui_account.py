@@ -2,7 +2,7 @@
 import json,pathlib,subprocess,threading,time
 from gi.repository import Gtk,GLib,GdkX11
 from .inline_pages import InlineDialog
-from . import auth_runtime,motion
+from . import auth_runtime,motion,i18n
 from .auth_policy import account_uri
 from .community import Client
 from .ui_components import ActionButton,text
@@ -28,7 +28,7 @@ class AccountPane(Gtk.Box):
         for button in (self.login,self.register,self.logout):
             button.show_all();button.set_no_show_all(True);self.actions.pack_start(button,False,False,0)
         self.stack=Gtk.Stack();self.stack.set_homogeneous(False);self.stack.set_vexpand(True);self.stack.connect('notify::visible-child',self.refresh_layout);self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if motion.page_transitions() else Gtk.StackTransitionType.NONE);self.stack.set_transition_duration(120 if motion.page_transitions() else 0);self.pack_start(self.stack,True,True,0)
-        intro=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);intro.set_valign(Gtk.Align.CENTER);intro.pack_start(text('Permite publicar ajustes, valorar perfiles y compartir resultados.','muted',64),False,False,0);intro.pack_start(text('Los perfiles se pueden consultar sin una cuenta.','meta',64),False,False,0);intro.pack_start(text('Para crear una cuenta es necesario verificar el correo.','meta',64),False,False,0);self.stack.add_named(intro,'intro')
+        intro=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);intro.set_valign(Gtk.Align.CENTER);intro.pack_start(text('Permite publicar ajustes, valorar perfiles y compartir resultados.','muted',64),False,False,0);intro.pack_start(text('Los perfiles se pueden consultar sin una cuenta.','meta',64),False,False,0);intro.pack_start(text('El nombre de usuario se muestra públicamente al publicar perfiles y comentarios. No uses tu correo como nombre de usuario.','meta',64),False,False,0);intro.pack_start(text('Para crear una cuenta es necesario verificar el correo.','meta',64),False,False,0);intro.pack_start(text('Después de verificar el correo, volvé al acceso y pulsá Conectar. La app conserva la sesión para los próximos inicios.','meta',64),False,False,0);self.stack.add_named(intro,'intro')
         self.browser_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);self.stack.add_named(self.browser_box,'browser');self.socket=None
         self.fallback=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.stack.add_named(self.fallback,'fallback');self.reason=text('','muted',70);self.fallback.pack_start(self.reason,False,False,0)
         self.retry=ActionButton('Reintentar','refresh',lambda _:self.embed(),'violet-outline');self.fallback.pack_start(self.retry,False,False,0)
@@ -74,7 +74,7 @@ class AccountPane(Gtk.Box):
     def start(self,mode):
         self.cancel();self.mode=mode;self.status.set_text('Conectando…');self.login.set_sensitive(False);self.register.set_sensitive(False);self.cancel_button.show();self.actions.hide();self.summary.hide()
         def started(value):
-            self.wait=value['wait_key'];self.uri=account_uri(value.get('verification_uri_complete') or value['verification_uri']);self.deadline=time.monotonic()+900
+            self.wait=value['wait_key'];self.uri=account_uri(value.get('verification_uri_complete') or value['verification_uri'],i18n.language());self.deadline=time.monotonic()+900
             self.code.set_text('Código: '+value['user_code']);self.embed();self.schedule(value.get('interval',5))
         def failed():self.login.set_sensitive(True);self.register.set_sensitive(True);self.cancel_button.hide();self.actions.show();self.summary.show()
         self.task(lambda:self.client.start('keycloak'),started,failed)
@@ -137,7 +137,7 @@ class AccountPane(Gtk.Box):
     def install_runtime(self):
         self.install_button.set_sensitive(False);self.status.set_text('Instalando componente desde Flathub…');self.install_cancel=threading.Event();cancel=self.install_cancel
         def done(_):self.install_button.set_sensitive(True);self.embed()
-        self.task(lambda:auth_runtime.install(lambda *_:None,cancel),done,lambda:self.install_button.set_sensitive(True))
+        self.task(lambda:auth_runtime.install(lambda line:GLib.idle_add(self.status.set_text,'Componente de acceso: '+str(line)[-180:]) if self.alive else None,cancel),done,lambda:self.install_button.set_sensitive(True))
 
     def schedule(self,interval):self.timer=GLib.timeout_add_seconds(min(60,max(5,int(interval))),self.poll)
     def poll(self):

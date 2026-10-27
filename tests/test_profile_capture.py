@@ -91,7 +91,7 @@ class CaptureTests(unittest.TestCase):
         value=presets.export_current(e,'Test','Alias',self.store)
         self.assertIn('FPSLimit = 45',value['instructions']);self.assertNotIn('/PRIVATE',json.dumps(value));self.assertNotIn('SECRET',json.dumps(value))
     def test_api_publication_is_owned_by_user_and_scoped_to_game(self):
-        api=API(self.root/'community.db',client_id='test')
+        api=API(self.root/'community.db',client_id='test',review_required=True)
         with api.db() as db:
             for user in ('one','two'):db.execute('INSERT INTO tokens VALUES(?,?,?,?)',(digest(user),user,user,time.time()+60))
         e=Entry('Port',['port']);value=presets.export_current(e,'Guide','Fake author',self.store)

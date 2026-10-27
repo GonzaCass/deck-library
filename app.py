@@ -49,6 +49,12 @@ def main():
 if __name__=='__main__':
     try:sys.exit(main())
     except Exception as error:
+        try:
+            import traceback
+            folder=Store().root/'logs';folder.mkdir(parents=True,exist_ok=True,mode=0o700)
+            log=folder/'app-error.log'
+            with log.open('a') as output:log.chmod(0o600);output.write(traceback.format_exc()+'\n')
+        except OSError:pass
         if len(sys.argv)>1 and sys.argv[1]=='launch':
             from deck_library.runtime import show_error
             show_error(str(error))

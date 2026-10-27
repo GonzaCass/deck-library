@@ -449,6 +449,36 @@ class DeckUITests(unittest.TestCase):
             self.w.controller_action('back');self.settle()
             self.assertFalse(self.w.inline_workflows);self.assertTrue(resize.called)
 
+    def test_first_use_skip_is_remembered_and_guide_remains_accessible(self):
+        from deck_library.installations import settings
+        self.w.start_wizard();self.assertEqual(self.w.pages.get_visible_child_name(),'welcome')
+        self.w.wizard_next();self.w.wizard_detection_ready({'emudeck':{'installed':False},'emulators':{},'prism':{}})
+        self.assertTrue(self.w.wizard_checks);self.assertFalse(any(w.get_active() for w in self.w.wizard_checks.values()))
+        self.w.leave_wizard(False);self.assertTrue(settings(self.store)['onboarding_complete']);self.assertTrue(settings(self.store)['onboarding_skipped'])
+        self.w.help_page();self.settle();self.assertTrue(self.w.inline_workflows)
+        self.w.last_controller_action=('',0);self.w.controller_action('back');self.settle();self.assertFalse(self.w.inline_workflows)
+
+    def test_validated_games_and_bug_report_fit_without_external_dialogs(self):
+        from gi.repository import Gtk
+        def widgets(root):
+            yield root
+            if isinstance(root,Gtk.Container):
+                for child in root.get_children():yield from widgets(child)
+        for width,height in ((1280,800),(840,640)):
+            self.w.resize(width,height);self.settle();self.w.validated_page();self.settle()
+            self.assertLessEqual(self.w.get_allocated_width(),width)
+            page=self.w.inline_workflows[-1];captions=[w.get_text() for w in widgets(page.get_content_area()) if isinstance(w,Gtk.Label)]
+            self.assertIn('Naruto: Rise of a Ninja',captions);self.assertIn('Mario Kart Wii',captions)
+            page.response(Gtk.ResponseType.CLOSE);self.settle();self.w.bug_report_page(self.w.entries[0]);self.settle()
+            page=self.w.inline_workflows[-1];controls=[w for w in widgets(page.get_content_area()) if isinstance(w,Gtk.Button)]
+            send=next(w for w in controls if w.get_label()=='Enviar diagnóstico');self.assertFalse(send.get_sensitive())
+            entry=next(w for w in widgets(page.get_content_area()) if isinstance(w,Gtk.Entry));entry.set_text('Test problem')
+            editors=[w for w in widgets(page.get_content_area()) if isinstance(w,Gtk.TextView)];editors[0].get_buffer().set_text('Open a game; expected play, actual error')
+            next(w for w in controls if w.get_label()=='Preparar reporte').clicked();self.settle();self.assertTrue(send.get_sensitive())
+            entry.set_text('Changed problem');self.assertFalse(send.get_sensitive())
+            self.assertLessEqual(self.w.get_allocated_width(),width)
+            page.response(Gtk.ResponseType.CLOSE);self.settle()
+
     def test_naruto_profiles_and_proton_selector_fit_the_game_page(self):
         from deck_library.models import Entry
         from deck_library import proton_selection,proton_tools
@@ -808,6 +838,52 @@ class DeckUITests(unittest.TestCase):
         self.assertLessEqual(sizes[0].width,1280);self.assertLessEqual(sizes[0].height,760)
         self.assertIn('Revisar mis ajustes',labels);self.assertIn('Publicar perfil',labels)
 
+    def test_manual_profile_review_survives_login_and_publishes_the_same_draft(self):
+        from gi.repository import Gtk,GLib
+        from deck_library import presets
+        from deck_library.community import Client
+        from deck_library.gui_account import AccountPane
+        from deck_library.profile_composer import ProfileComposer
+        original=self.inline.run;session={};errors=[];checked=[]
+        def widgets(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from widgets(child)
+        def run(dialog):
+            def close():dialog.response(Gtk.ResponseType.CLOSE);return False
+            def finish():
+                try:
+                    publish.assert_called_once();value=publish.call_args.args[0]
+                    self.assertEqual(value['author'],'qa-user');self.assertEqual(value['instructions'],'Enable Vulkan before playing.')
+                    self.assertTrue(any('Los demás usuarios ya pueden verlo' in w.get_text() for w in widgets(dialog) if isinstance(w,Gtk.Label)))
+                    checked.append(True)
+                except Exception as error:errors.append(error)
+                return close()
+            def edit():
+                try:
+                    composer=next(w for w in widgets(dialog) if isinstance(w,ProfileComposer))
+                    composer.instructions.get_buffer().set_text('Enable Vulkan before playing.')
+                    self.assertEqual(composer.profile()['id'],composer.profile()['id'])
+                    controls={w.get_label():w for w in widgets(dialog) if isinstance(w,Gtk.Button)}
+                    submit=controls['Publicar perfil'];self.assertFalse(submit.get_sensitive())
+                    controls['Revisar mis ajustes'].clicked();self.assertTrue(submit.get_sensitive())
+                    composer.notes.get_buffer().set_text('Tested with Vulkan.');self.assertFalse(submit.get_sensitive())
+                    controls['Revisar mis ajustes'].clicked();submit.clicked()
+                    stack=next(w for w in widgets(dialog) if isinstance(w,Gtk.Stack));self.assertEqual(stack.get_visible_child_name(),'account')
+                    session['login']='qa-user';next(w for w in widgets(dialog) if isinstance(w,AccountPane)).on_change()
+                    self.assertEqual(stack.get_visible_child_name(),'publish');self.assertEqual(composer.read(composer.instructions),'Enable Vulkan before playing.')
+                    submit.clicked();GLib.timeout_add(250,finish)
+                except Exception as error:errors.append(error);return close()
+                return False
+            timer=GLib.timeout_add(5000,close);GLib.timeout_add(200,edit)
+            try:return original(dialog)
+            finally:
+                if GLib.MainContext.default().find_source_by_id(timer):GLib.source_remove(timer)
+        with patch.object(presets,'export_current',side_effect=ValueError('No captured settings')),patch.object(Client,'session',side_effect=lambda:session),patch.object(Client,'search',return_value=[]),patch.object(Client,'publish',return_value={'status':'approved','id':'a'*32}) as publish,patch.object(self.inline,'run',run):
+            self.w.community_dialog(self.w.entries[0],mode='publish')
+        if errors:raise errors[0]
+        self.assertTrue(checked,'Publication did not complete.')
+
     def test_community_internal_tabs_flush_layout_without_starting_login(self):
         from gi.repository import Gtk,GLib
         from deck_library.community import Client
@@ -906,7 +982,7 @@ class DeckUITests(unittest.TestCase):
     def test_a_signed_out_user_sees_a_register_or_sign_in_button_and_a_signed_in_one_sees_the_name(self):
         import json
         path=self.store.root/'community-session.json';path.unlink(missing_ok=True)
-        self.w.refresh_account_button();self.assertEqual(self.w.account_button.get_label(),'Registrarse o iniciar sesión');self.assertFalse(self.w.signed_in())
+        self.w.refresh_account_button();self.assertEqual(self.w.account_button.get_label(),'Cuenta');self.assertIn('iniciar sesión',self.w.account_button.get_tooltip_text());self.assertFalse(self.w.signed_in())
         url=self.w.preferences.get('community_url','https://presets.jokerlan.xyz');path.write_text(json.dumps({'server':url,'token':'t','login':'jugador'}))
         self.w.refresh_account_button();self.assertEqual(self.w.account_button.get_label(),'jugador');self.assertTrue(self.w.signed_in())
         path.unlink()

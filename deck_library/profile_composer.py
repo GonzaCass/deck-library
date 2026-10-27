@@ -79,6 +79,7 @@ class ProfileComposer(Gtk.Box):
             game_id=presets.public_game_id(self.entry)
             if not game_id:raise ValueError('Completar el ID del juego antes de compartir.')
             value={'schema_version':1,'id':'draft-'+hashlib.sha256((self.entry.id+datetime.datetime.now().isoformat()).encode()).hexdigest()[:24],'game':{'id':game_id,'name':self.entry.name,'platform':self.entry.platform},'adapter':{'id':presets.adapter_for(self.entry),'versions':['unknown']},'hardware':['steam-deck-lcd','steam-deck-oled'],'license':'MIT','tested':{'status':'proposal','date':datetime.date.today().isoformat()},'sources':[]}
+            self.draft=copy.deepcopy(value)
         value.update(name=self.title.get_text().strip(),objective=self.objective.get_active_id(),author=author,settings=json.loads(self.read(self.settings) or '{}'),instructions=self.read(self.instructions),notes=self.read(self.notes),runtime={'kind':self.runtime.get_active_id(),'version':self.version.get_text().strip(),'launch_options':self.launch.get_text().strip()})
         value['adapter']['versions']=[s.strip() for s in self.program_version.get_text().split(',') if s.strip()] or ['unknown']
         presets.validate(value)
@@ -87,3 +88,8 @@ class ProfileComposer(Gtk.Box):
             lines.extend(section+'.'+key+': '+str(setting) for key,setting in options.items())
         lines.extend(['',value['instructions'],value['runtime']['launch_options'],value['notes'],'','Revisar el texto antes de compartirlo: no incluir rutas personales, correos ni credenciales.'])
         self.review.set_text('\n'.join(lines));return value
+
+    def connect_changed(self,callback):
+        for entry in (self.title,self.version,self.launch,self.program_version):entry.connect('changed',lambda *_:callback())
+        for choice in (self.objective,self.runtime):choice.connect('changed',lambda *_:callback())
+        for editor in (self.settings,self.instructions,self.notes):editor.get_buffer().connect('changed',lambda *_:callback())

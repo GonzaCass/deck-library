@@ -25,6 +25,7 @@
 - **Ports:** explorar, instalar y actualizar los proyectos compatibles. Consultar los originales necesarios y elegir los archivos que falten al preparar el juego.
 - **Ajustes por juego:** comparar perfiles compactos, desplegar sus detalles y aplicar cambios con respaldo.
 - **Comunidad:** compartir ajustes, valoraciones y comentarios desde la app.
+- **Ayuda:** guía de primer uso, pruebas de juego en Steam Deck y preparación de reportes de errores.
 - **Steam:** agregar juegos o Deck Library, con carátulas y navegación con mando en modo Juego.
 
 ![Biblioteca con juegos ficticios de ejemplo](assets/screenshot.png)
@@ -75,6 +76,6 @@ Hace falta una cuenta para publicar o valorar ajustes comunitarios. La bibliotec
 
 [Documentación](docs/README.md) · [Imágenes para compartir](https://github.com/GonzaCass/deck-library/tree/main/promo) · [Ports y requisitos](docs/PORTS.md) · [Perfiles](docs/PRESETS.md) · [Novedades](docs/CHANGELOG.md) · [Validación](docs/VALIDATION.md)
 
-Para informar un fallo, [abrir un issue](https://github.com/GonzaCass/deck-library/issues) con la versión de la app, el juego/port y el diagnóstico. No incluir tokens, claves ni archivos de juegos.
+**Ayuda → Reportar un problema** permite revisar un diagnóstico y exportar un ZIP para adjuntar a un [issue de GitHub](https://github.com/GonzaCass/deck-library/issues). El envío al proyecto es opcional. Revisar su contenido antes de compartirlo.
 
 [Licencia MIT](LICENSE). Proyecto independiente, sin afiliación con Valve ni con los emuladores o ports integrados.
