@@ -39,10 +39,10 @@ def busy(entry):
 
 
 def save(entry,version,store=None):
-    if mode(entry) not in ('port','project2099','exe'):raise ValueError('Este acceso administra su compatibilidad desde Steam o desde otro lanzador.')
+    if mode(entry) not in ('port','project2099','exe'):raise ValueError('Este acceso directo administra su compatibilidad desde Steam o desde otro lanzador.')
     if version:proton_tools.resolve(version)
     else:default_tool(entry)
-    if busy(entry):raise RuntimeError('Cerrar el juego y su launcher antes de cambiar Proton.')
+    if busy(entry):raise RuntimeError('Cerrar el juego y su lanzador antes de cambiar Proton.')
     store=store or Store();entries=store.load();saved=next((item for item in entries if item.id==entry.id),None)
     if saved is None:raise ValueError('El juego ya no está en la biblioteca.')
     saved.metadata['proton_version']=version

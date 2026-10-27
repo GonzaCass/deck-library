@@ -22,7 +22,7 @@ def diagnostics(entry,store=None):
     if not (pathlib.Path(executable).is_file() or shutil.which(executable)):issues.append('No se encuentra el programa seleccionado.')
     elif pathlib.Path(executable).is_file() and not os.access(executable,os.X_OK) and mode(entry)!='exe':issues.append('El programa no tiene permiso de ejecución.')
     if entry.source and not pathlib.Path(entry.source).exists():issues.append('No se encuentra el juego. Puede haberse movido o faltar la microSD.')
-    if entry.command[0].endswith('.exe') and mode(entry)!='exe':issues.append('Un ejecutable Windows necesita Wine/Proton. Usar un launcher de Lutris o Heroic, o un comando personalizado.')
+    if entry.command[0].endswith('.exe') and mode(entry)!='exe':issues.append('Un ejecutable Windows necesita Wine/Proton. Usar un lanzador de Lutris o Heroic, o un comando personalizado.')
     if entry.metadata.get('sandbox'):
         from . import buildenv
         if not buildenv.installed():issues.append('Falta el entorno de compilación (SDK de KDE de Flatpak). Instalarlo desde el catálogo de ports.')

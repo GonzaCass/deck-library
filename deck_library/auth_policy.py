@@ -3,7 +3,7 @@ import urllib.parse
 
 def origin(uri):
     parsed=urllib.parse.urlsplit(uri)
-    if parsed.scheme!='https' or not parsed.hostname or parsed.username or parsed.password:raise ValueError('La página de acceso debe usar HTTPS.')
+    if parsed.scheme!='https' or not parsed.hostname or parsed.username or parsed.password:raise ValueError('La página de inicio de sesión debe usar HTTPS.')
     return parsed.scheme+'://'+parsed.netloc
 
 def account_uri(uri,language='es'):

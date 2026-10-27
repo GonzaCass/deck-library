@@ -23,7 +23,7 @@
   "tested": {
     "status": "boot-tested",
     "date": "2026-10-19",
-    "notes": "Se comprobó el arranque de CTGP Deluxe en Eden. La validación de este acceso en modo Juego sigue pendiente."
+    "notes": "Se comprobó el arranque de CTGP Deluxe en Eden. La validación de este acceso directo en modo Juego sigue pendiente."
   },
   "settings": {
     "Core": {
@@ -49,6 +49,6 @@
       "async_presentation": true
     }
   },
-  "notes": "Probado hasta el título CTGP desde Steam en Escritorio. CTGP Deluxe 1.1.1 requiere la actualización 3.0.3 instalada en NAND. El preset no instala ni incluye el mod; activar Usar mods de Eden. Gaming Mode pendiente de verificar.",
+  "notes": "Probado hasta el título CTGP desde Steam en Escritorio. CTGP Deluxe 1.1.1 requiere la actualización 3.0.3 instalada en NAND. El perfil no instala ni incluye el mod; activar Usar mods de Eden. Gaming Mode pendiente de verificar.",
   "sources": []
 }

@@ -68,7 +68,7 @@ def files_for(entry,entries):
         if other_path and other_path.suffix.lower()=='.cue' and other_path.is_file():
             for track in re.findall(r'^\s*FILE\s+"([^"]+)"',other_path.read_text(errors='replace'),re.I|re.M):
                 if (other_path.parent/track).resolve() in targets:raise ValueError('Otro CUE de la biblioteca comparte una pista de este disco.')
-        if any(pathlib.Path(a).is_absolute() and pathlib.Path(a).resolve() in targets for a in other.command):raise ValueError('Otro acceso utiliza este archivo para ejecutarse.')
+        if any(pathlib.Path(a).is_absolute() and pathlib.Path(a).resolve() in targets for a in other.command):raise ValueError('Otro acceso directo utiliza este archivo para ejecutarse.')
     return list(dict.fromkeys(files))
 
 def trash(entry,entries,trash_file=None):

@@ -9,7 +9,7 @@ class ControllerHints(Gtk.Box):
         if not compact:groups += [('move','L','Mover'),('scroll','R','Desplazar'),('tabs','LB/RB · L1/R1','Pestañas'),('search','X / □','Teclado')]
         for name,glyph,caption in groups:
             item=Gtk.Box(spacing=6);badge=Gtk.Label(label=glyph);badge.get_style_context().add_class('control-glyph')
-            if name in ('move','scroll'):badge.get_style_context().add_class('control-stick');badge.set_tooltip_text('Palanca izquierda / cruceta' if name=='move' else 'Palanca derecha')
+            if name in ('move','scroll'):badge.get_style_context().add_class('control-stick');badge.set_tooltip_text('Stick izquierdo / cruceta' if name=='move' else 'Stick derecho')
             label=Gtk.Label(label=caption);label.get_style_context().add_class('control-caption')
             item.pack_start(badge,False,False,0);item.pack_start(label,False,False,0);self.pack_start(item,False,False,0);self.items[name]=(item,label)
         self.show_all()

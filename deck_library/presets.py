@@ -87,26 +87,26 @@ def public_game_id(entry):
     return ''
 
 def validate(value):
-    if not isinstance(value,dict) or value.get('schema_version')!=1:raise ValueError('Versión de preset no compatible.')
+    if not isinstance(value,dict) or value.get('schema_version')!=1:raise ValueError('Versión de perfil no compatible.')
     allowed={'schema_version','id','name','game','adapter','hardware','objective','author','license','tested','settings','notes','sources','layout','instructions','runtime'}
     if set(value)-allowed:raise ValueError('El preset incluye campos desconocidos.')
-    if not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,79}',value.get('id','')):raise ValueError('ID de preset inválido.')
+    if not re.fullmatch(r'[a-z0-9][a-z0-9._-]{0,79}',value.get('id','')):raise ValueError('ID de perfil inválido.')
     for key in ('name','objective','author','license'):
         if not isinstance(value.get(key),str) or not 1<=len(value[key])<=200:raise ValueError('Falta '+key+' o es inválido.')
     game=value.get('game',{});adapter=value.get('adapter',{})
     if not isinstance(game,dict) or set(game)-{'id','name','platform','update'} or not re.fullmatch(r'[A-Za-z0-9._-]{1,80}',game.get('id','')):raise ValueError('Identidad de juego inválida.')
     if not isinstance(adapter,dict) or set(adapter)-{'id','versions'} or adapter.get('id') not in REGISTRY:raise ValueError('Adaptador no soportado.')
     versions=adapter.get('versions',[])
-    if not isinstance(versions,list) or not versions or any(not isinstance(v,str) or not re.fullmatch(r'[0-9A-Za-z.+_-]{1,40}',v) for v in versions):raise ValueError('El preset debe declarar versiones del programa.')
+    if not isinstance(versions,list) or not versions or any(not isinstance(v,str) or not re.fullmatch(r'[0-9A-Za-z.+_-]{1,40}',v) for v in versions):raise ValueError('El perfil debe declarar versiones del programa.')
     hardware=value.get('hardware',[])
-    if not isinstance(hardware,list) or not hardware or any(v not in ('steam-deck-lcd','steam-deck-oled','linux-pc') for v in hardware):raise ValueError('Hardware de preset inválido.')
+    if not isinstance(hardware,list) or not hardware or any(v not in ('steam-deck-lcd','steam-deck-oled','linux-pc') for v in hardware):raise ValueError('Hardware de perfil inválido.')
     tested=value.get('tested',{})
     if not isinstance(tested,dict) or set(tested)-{'status','date','notes'} or tested.get('status') not in ('proposal','boot-tested','user-confirmed'):raise ValueError('Estado de prueba inválido.')
     if not isinstance(value.get('notes',''),str) or len(value.get('notes',''))>4000:raise ValueError('Notas inválidas.')
     sources=value.get('sources',[])
     if not isinstance(sources,list) or len(sources)>20 or any(not isinstance(u,str) or len(u)>1000 or not u.startswith('https://') for u in sources):raise ValueError('Fuentes inválidas.')
     settings=value.get('settings');registry=REGISTRY[adapter['id']]
-    if not isinstance(settings,dict) or (not settings and not value.get('instructions')):raise ValueError('El preset no tiene ajustes ni instrucciones.')
+    if not isinstance(settings,dict) or (not settings and not value.get('instructions')):raise ValueError('El perfil no tiene ajustes ni instrucciones.')
     instructions=value.get('instructions','')
     if not isinstance(instructions,str) or len(instructions)>12000:raise ValueError('Instrucciones inválidas.')
     runtime=value.get('runtime')
@@ -125,7 +125,7 @@ def validate(value):
             if not valid:raise ValueError('Valor fuera de rango: '+key)
     layout=value.get('layout')
     if layout is not None:
-        if not isinstance(layout,dict) or set(layout)-{'template','bindings','notes'} or layout.get('template') not in ('keyboard-mouse','gamepad'):raise ValueError('Layout inválido.')
+        if not isinstance(layout,dict) or set(layout)-{'template','bindings','notes'} or layout.get('template') not in ('keyboard-mouse','gamepad'):raise ValueError('Configuración inválida.')
         bindings=layout.get('bindings',{})
         if not isinstance(bindings,dict) or len(bindings)>30 or any(not isinstance(k,str) or not isinstance(v,str) or len(k)>60 or len(v)>100 for k,v in bindings.items()):raise ValueError('Bindings inválidos.')
     # Automatic settings are allowlisted. Instructions/launch options are inert text, never executed.
@@ -197,7 +197,7 @@ def recommended(entry,store=None):
     return [*profiles,*custom]
 
 def mark_best(entry,value,store=None):
-    if not compatible(entry,value):raise ValueError('El preset no corresponde a este juego o programa.')
+    if not compatible(entry,value):raise ValueError('El perfil no corresponde a este juego o programa.')
     store=store or Store()
     atomic_json(store.root/'preferred-presets'/(entry.id+'.json'),{'game_id':public_game_id(entry),'adapter':adapter_for(entry),'preset':value['id']})
 
@@ -237,7 +237,7 @@ def target_for(entry,config_dir=None):
         return game_target(entry,adapter)
     if adapter=='eden':
         tid=public_game_id(entry)
-        if not re.fullmatch(r'010[0-9A-Fa-f]{13}',tid):raise ValueError('Falta el Title ID; completarlo en Editar acceso.')
+        if not re.fullmatch(r'010[0-9A-Fa-f]{13}',tid):raise ValueError('Falta el Title ID; completarlo en Editar acceso directo.')
         return eden_paths(config_dir=config_dir)['config']/'custom'/(tid.upper()+'.ini')
     if adapter=='project2099':
         return pathlib.Path(entry.source).parent/'spider_man_edge_of_time.toml'
@@ -306,7 +306,7 @@ def patch_ini(text,updates,spaced=False):
     return '\n'.join(out).strip('\n')+'\n'
 
 def preview(entry,value,config_dir=None):
-    if not compatible(entry,value):raise ValueError('El preset no corresponde a este juego o programa.')
+    if not compatible(entry,value):raise ValueError('El perfil no corresponde a este juego o programa.')
     if not automatic(value):raise ValueError('Este perfil es una guía de aplicación manual; sus instrucciones no se ejecutan.')
     path=target_for(entry,config_dir);old=path.read_text() if path.exists() else '';adapter=adapter_for(entry)
     previous=tomllib.loads(old) if adapter in ('wiicompiled','project2099','narutorise') else ini_parser(old);changes=[]
@@ -319,7 +319,7 @@ def apply(entry,value,store=None,config_dir=None):
     path,changes=preview(entry,value,config_dir);adapter=adapter_for(entry)
     if busy(adapter):raise RuntimeError('El juego o programa debe estar cerrado para aplicar un perfil.')
     current=current_version(entry)
-    if current and current not in value['adapter']['versions']:raise ValueError('Este preset no declara compatibilidad con la versión instalada: '+current)
+    if current and current not in value['adapter']['versions']:raise ValueError('Este perfil no declara compatibilidad con la versión instalada: '+current)
     old=path.read_text() if path.exists() else '';store=store or Store();stamp=datetime.datetime.now().strftime('%Y%m%dT%H%M%S%f');backup=store.root/'preset-backups'/entry.id/stamp;backup.mkdir(parents=True,exist_ok=True)
     (backup/'original').write_text(old)
     if adapter in ('project2099','narutorise'):new=patch_root_toml(old,value['settings']['runtime'])
@@ -344,7 +344,7 @@ def apply(entry,value,store=None,config_dir=None):
 def restore(entry,store=None):
     store=store or Store();record=json.loads((store.root/'applied-presets'/(entry.id+'.json')).read_text());backup=pathlib.Path(record['backup']);value=json.loads((backup/'record.json').read_text());target=pathlib.Path(value['target'])
     if busy(adapter_for(entry)):raise RuntimeError('El juego debe estar cerrado para restaurar.')
-    if not target.exists() or hashlib.sha256(target.read_bytes()).hexdigest()!=value['sha256']:raise ValueError('La configuración cambió después del preset. El backup se conservó; no se sobrescribieron esos cambios.')
+    if not target.exists() or hashlib.sha256(target.read_bytes()).hexdigest()!=value['sha256']:raise ValueError('La configuración cambió después del perfil. El respaldo se conservó; no se sobrescribieron esos cambios.')
     if value['existed']:target.write_bytes((backup/'original').read_bytes())
     else:target.unlink()
     (store.root/'applied-presets'/(entry.id+'.json')).unlink()

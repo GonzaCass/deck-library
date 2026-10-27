@@ -24,7 +24,7 @@ RECIPES={
  'matteo842/crashbandicoot-launcher':{'preparation':'launcher','source_note':'El asistente de Crash acepta un disco CHD o CUE con su BIN.'},
  'alexbeavs-ps1-ports/crash-bandicoot-3-warped-recomp':{'kit':True,'preparation':'launcher','source_note':'El asistente del kit pide el disco y la BIOS compatibles; genera y compila el juego en el primer inicio, dentro del SDK de KDE.'},
  'gumpolas/tootawersrecomp':{'preparation':'launcher','exe':'TwoTowers.sh','windows_exe':'The Two Towers Recompiled.exe','source_note':'Su lanzador pide la ISO/XISO USA de Xbox en el primer inicio. En Linux usa el selector de zenity si está instalado y, como alternativa, un terminal con twotowers-setup.'},
- 'denkishi/ssbu-recomp':{'preparation':'manual','package_role':'build-tool','source_note':'El release contiene una herramienta de compilación, no un juego portable listo. El proceso completo utiliza el instalador del proyecto y los archivos de Super Smash Bros. Ultimate.'},
+ 'denkishi/ssbu-recomp':{'preparation':'manual','package_role':'build-tool','source_note':'La versión publicada contiene una herramienta de compilación, no un juego portable listo. El proceso completo utiliza el instalador del proyecto y los archivos de Super Smash Bros. Ultimate.'},
  'spacestate1/namco22-decompile':{'asset_prefix':'TimeCrisis-','windows_exe':'TimeCrisis.exe','preparation':'launcher','source_note':'Time Crisis pide timecris.zip de MAME 0.271 o posterior. El AppImage busca el ZIP junto al ejecutable, en su carpeta roms o en Descargas.'},
 }
 

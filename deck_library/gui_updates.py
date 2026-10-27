@@ -83,10 +83,10 @@ class UpdatesMixin:
         elif getattr(self,'app_check_busy',False):version+=' · Buscando actualización'
         elif state.get('app_error'):version+=' · No se pudo comprobar'
         elif not self.preferences.get('check_updates',True):version+=' · Búsqueda automática desactivada'
-        elif state.get('app_checked'):version+=' · Al día'
+        elif state.get('app_checked'):version+=' · Última versión'
         if hasattr(self,'version_label'):self.version_label.set_text(version)
         if getattr(self,'update_installed',None):
-            self.banner_text.set_text(f'Deck Library {self.update_installed} instalada. Volver a abrirla para usarla.');self.banner_action.set_label('Cerrar para abrir desde Steam' if motion.gaming_mode() else 'Volver a abrir');self.banner_action.show();self.update_banner.show()
+            self.banner_text.set_text(f'Deck Library {self.update_installed} instalada. Volver a abrirla para usarla.');self.banner_action.set_label('Cerrar y abrir de nuevo desde Steam' if motion.gaming_mode() else 'Volver a abrir');self.banner_action.show();self.update_banner.show()
         elif state.get('app'):
             self.banner_text.set_text(f'Deck Library {state["app"]["version"]} disponible.');self.banner_action.set_label('Ver actualización');self.banner_action.show();self.update_banner.show()
         elif self.pending_updates():
@@ -143,7 +143,7 @@ class UpdatesMixin:
         info=state.get('app')
         if info:
             card=self.card(box,'Deck Library '+info['version']);card.pack_start(label(info.get('notes') or 'No hay notas disponibles para esta versión.','muted'),False,False,0)
-            if getattr(self,'update_installed',None):card.pack_start(button('Cerrar para abrir desde Steam' if motion.gaming_mode() else 'Volver a abrir para usar la versión instalada',lambda _:self.restart_app(),True),False,False,0)
+            if getattr(self,'update_installed',None):card.pack_start(button('Cerrar y abrir de nuevo desde Steam' if motion.gaming_mode() else 'Volver a abrir para usar la versión instalada',lambda _:self.restart_app(),True),False,False,0)
             elif info.get('archive') and info.get('checksum'):card.pack_start(button('Actualizar Deck Library',lambda _:self.install_app_update(),True),False,False,0)
         items=[item for item in self.pending_updates() if item[0] in ('port','catalog','wii')];seen=set();unique=[]
         for item in items:

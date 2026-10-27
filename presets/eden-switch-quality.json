@@ -4,7 +4,7 @@
   "name": "Switch — Calidad",
   "game": {
     "id": "switch-quality",
-    "name": "Base para juegos sin preset específico",
+    "name": "Base para juegos sin perfil específico",
     "platform": "Switch"
   },
   "adapter": {
@@ -23,7 +23,7 @@
   "tested": {
     "status": "proposal",
     "date": "2026-10-17",
-    "notes": "Base derivada de los presets incluidos; sin validación de jugabilidad para cada título."
+    "notes": "Base derivada de los perfiles incluidos; sin validación de jugabilidad para cada título."
   },
   "settings": {
     "Core": {

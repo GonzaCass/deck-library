@@ -77,7 +77,7 @@ class DeckUITests(unittest.TestCase):
             self.w.port_busy=True;self.w.install_app_update(automatic=True);install.assert_not_called();self.assertTrue(self.w.app_update_retry);self.w.port_busy=False
             self.w.install_app_update();self.settle();install.assert_called_once();message.assert_not_called()
             self.assertEqual(self.w.update_installed,'99.0.0');self.assertIn(__version__,self.w.version_label.get_text());self.assertIn('99.0.0',self.w.version_label.get_text())
-            self.assertEqual(self.w.banner_action.get_label(),'Cerrar para abrir desde Steam')
+            self.assertEqual(self.w.banner_action.get_label(),'Cerrar y abrir de nuevo desde Steam')
 
     def test_search_opens_keyboard_only_after_an_explicit_action(self):
         from gi.repository import Gtk
@@ -780,7 +780,7 @@ class DeckUITests(unittest.TestCase):
             if isinstance(widget,Gtk.Container):
                 for child in widget.get_children():result.extend(labels(child))
             return result
-        self.assertIn('Agregar acceso: '+entry.name,labels(self.w.pending_box))
+        self.assertIn('Agregar acceso directo: '+entry.name,labels(self.w.pending_box))
 
     def test_tabs_reuse_cover_widgets_and_controller_navigation(self):
         from gi.repository import Gtk
@@ -1275,7 +1275,7 @@ class DeckUITests(unittest.TestCase):
         page.set_response_sensitive(Gtk.ResponseType.CLOSE,True);self.w.last_controller_action=('',0);self.w.controller_action('back');self.assertEqual(page._answer,Gtk.ResponseType.CANCEL);page.destroy()
 
     def test_header_steam_action_uses_existing_queue_and_fits_compact_width(self):
-        button=self.w.steam_library_button;self.assertEqual(button.get_label(),'Añadir a Steam');self.assertEqual(button.get_tooltip_text(),'Añadir Deck Library a Steam')
+        button=self.w.steam_library_button;self.assertEqual(button.get_label(),'Agregar a Steam');self.assertEqual(button.get_tooltip_text(),'Agregar Deck Library a Steam')
         with patch.object(self.w,'current_account',return_value=pathlib.Path('/tmp/steam/config')),patch.object(self.w,'run_queue') as queued:
             button.clicked();queued.assert_called_once()
         self.w.resize(840,640);self.settle();self.assertLessEqual(self.w.get_size().width,840)

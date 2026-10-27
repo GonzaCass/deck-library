@@ -43,7 +43,7 @@ class HomeMixin:
         tools.pack_start(storage,True,True,0)
         actions=styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8),'card');actions.pack_start(text('Herramientas','section-title'),False,False,0)
         actions.pack_start(ActionButton('Guía de uso','file',self.help_page,'quiet'),False,False,0);actions.pack_start(ActionButton('Reportar un problema','file',lambda _:self.bug_report_page(),'quiet'),False,False,0)
-        actions.pack_start(ActionButton('Instalaciones y carpetas','folder',lambda _:self.installation_dialog(),'quiet'),False,False,0);actions.pack_start(ActionButton('Revisar biblioteca','search',lambda _:self.conflicts_page(),'quiet'),False,False,0);actions.pack_start(ActionButton('Ver actualizaciones','download',lambda _:self.updates_page(),'quiet'),False,False,0);tools.pack_start(actions,True,True,0)
+        actions.pack_start(ActionButton('Instalaciones y carpetas','folder',lambda _:self.installation_dialog(),'quiet'),False,False,0);actions.pack_start(ActionButton('Duplicados y conflictos','search',lambda _:self.conflicts_page(),'quiet'),False,False,0);actions.pack_start(ActionButton('Ver actualizaciones','download',lambda _:self.updates_page(),'quiet'),False,False,0);tools.pack_start(actions,True,True,0)
         box.show_all();scroll=box.get_ancestor(Gtk.ScrolledWindow)
         if scroll:scroll.show_all()
         self.pages.set_visible_child_name('home');self.refresh_layout()

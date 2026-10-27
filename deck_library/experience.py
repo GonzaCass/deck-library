@@ -20,7 +20,7 @@ class ExperienceMixin:
             combo.connect('changed',lambda *_:extra.set_expanded(combo.get_active_id()=='steamgriddb'))
             extra.set_expanded(combo.get_active_id()=='steamgriddb')
         box.pack_start(label('Clave de SteamGridDB (opcional)','title'),False,False,6)
-        box.pack_start(label('Con una clave, las carátulas, fondos, logotipos e íconos de Steam se buscan en SteamGridDB. Cómo conseguirla: 1) iniciar sesión en steamgriddb.com con la cuenta de Steam; 2) abrir el perfil y entrar en Preferencias → API; 3) copiar la clave y pegarla aquí. Es gratuita y personal: no compartirla.','muted'),False,False,0)
+        box.pack_start(label('Con una clave, las carátulas, fondos, logotipos e iconos de Steam se buscan en SteamGridDB. Cómo conseguirla: 1) iniciar sesión en steamgriddb.com con la cuenta de Steam; 2) abrir el perfil y entrar en Preferencias → API; 3) copiar la clave y pegarla aquí. Es gratuita y personal: no compartirla.','muted'),False,False,0)
         key=Gtk.Entry();key.set_visibility(False);key.set_placeholder_text('Pegar la clave API de SteamGridDB');key.set_text(self.preferences.get('steamgriddb_key',''));key.set_icon_from_icon_name(Gtk.EntryIconPosition.SECONDARY,'view-reveal-symbolic');key.set_icon_tooltip_text(Gtk.EntryIconPosition.SECONDARY,'Mostrar u ocultar la clave')
         key.connect('icon-press',lambda entry,*a:entry.set_visibility(not entry.get_visibility()));box.pack_start(key,False,False,0)
         row=Gtk.Box(spacing=12);verdict=label('','muted')
@@ -60,7 +60,7 @@ class ExperienceMixin:
         row.pack_start(button('Instalaciones y carpetas',lambda _:self.installation_dialog()),False,False,0)
         row.pack_start(button('Repetir configuración inicial',lambda _:self.start_wizard()),False,False,0)
         row.pack_start(button('Aplicar ajustes máximos para Steam Deck',lambda _:self.apply_deck_max()),False,False,0)
-        row.pack_start(button('Completar arte de todos los accesos de Steam',lambda _:self.complete_all_art()),False,False,0)
+        row.pack_start(button('Completar arte de todos los accesos directos de Steam',lambda _:self.complete_all_art()),False,False,0)
         self.settings_box.pack_start(row,False,False,0);self.settings_box.reorder_child(row,2);self.settings_box.show_all();self.pages.set_visible_child_name('settings')
 
     def apply_deck_max(self):
@@ -81,18 +81,18 @@ class ExperienceMixin:
         footer=Gtk.Box(spacing=12);box.pack_end(footer,False,False,0)
         if self.wizard_step==0:
             body.pack_start(label('Configuración inicial','welcome-title'),False,False,12)
-            body.pack_start(label('Detectar instalaciones, configurar carátulas y preparar accesos a Steam.','subtitle'),False,False,0)
-            body.pack_start(label('No necesitás una cuenta para jugar, instalar ports o usar ajustes locales. Ningún juego se agrega a Steam sin que lo selecciones.','muted'),False,False,0)
-            for title,text in [('1  Detección','EmuDeck, emuladores, ports de Quiver e instancias de Prism.'),('2  Carátulas','Descarga automática y ajustes recomendados por juego.'),('3  Steam','Selección de juegos y creación de accesos.')]:
+            body.pack_start(label('Detectar instalaciones, configurar carátulas y preparar accesos directos a Steam.','subtitle'),False,False,0)
+            body.pack_start(label('No hace falta una cuenta para jugar, instalar ports ni usar ajustes locales. Ningún juego se agrega a Steam sin que se lo seleccione.','muted'),False,False,0)
+            for title,text in [('1  Detección','EmuDeck, emuladores, ports de Quiver e instancias de Prism.'),('2  Carátulas','Descarga automática y ajustes recomendados por juego.'),('3  Steam','Selección de juegos y creación de accesos directos.')]:
                 card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);card.get_style_context().add_class('card');card.pack_start(label(title,'title'),False,False,0);card.pack_start(label(text,'muted'),False,False,0);body.pack_start(card,False,False,0)
             footer.pack_end(button('Empezar',lambda _:self.wizard_next(),True),False,False,0)
             footer.pack_start(button('Omitir',lambda _:self.leave_wizard(False)),False,False,0)
         elif self.wizard_step==1:
             body.pack_start(label('Juegos detectados','hero'),False,False,0)
-            body.pack_start(label('Marcar los juegos que se agregarán a Steam. Si falta alguno, añadir su carpeta.','subtitle'),False,False,0)
+            body.pack_start(label('Marcar los juegos que se agregarán a Steam. Si falta alguno, agregar su carpeta.','subtitle'),False,False,0)
             self.wizard_report_label=label('Buscando EmuDeck, emuladores, ports y Prism…','pill');body.pack_start(self.wizard_report_label,False,False,0)
             scroll=self.new_scroll();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.wizard_results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);scroll.add(self.wizard_results);body.pack_start(scroll,True,True,0)
-            controls=Gtk.Box(spacing=10);controls.pack_start(button('Añadir carpeta',lambda _:self.wizard_folder()),False,False,0);controls.pack_start(button('Rutas y emuladores',lambda _:self.installation_dialog()),False,False,0);body.pack_start(controls,False,False,0)
+            controls=Gtk.Box(spacing=10);controls.pack_start(button('Agregar carpeta',lambda _:self.wizard_folder()),False,False,0);controls.pack_start(button('Rutas y emuladores',lambda _:self.installation_dialog()),False,False,0);body.pack_start(controls,False,False,0)
             footer.pack_start(button('Atrás',lambda _:self.wizard_back()),False,False,0)
             self.wizard_continue=button('Continuar',lambda _:self.wizard_next(),True);footer.pack_end(self.wizard_continue,False,False,0);self.wizard_continue.set_sensitive(self.wizard_found is not None)
             if self.wizard_found is not None:self.wizard_detection_ready(self.wizard_found)
@@ -106,7 +106,7 @@ class ExperienceMixin:
             body.pack_start(label('Configuración completada','welcome-title'),False,False,12)
             body.pack_start(label(f'{len(self.entries)} juegos encontrados · {len(self.checked)} seleccionados para Steam','subtitle'),False,False,0)
             body.pack_start(label('Cada carátula abre la ficha del juego: jugar, aplicar ajustes o agregarlo a Steam.','title'),False,False,16)
-            body.pack_start(label('Para agregar varios a la vez, activar «Seleccionar». Los accesos se guardan cuando Steam se cierra. Una cuenta solo hace falta para publicar o comentar ajustes.','muted'),False,False,0)
+            body.pack_start(label('Para agregar varios a la vez, activar «Seleccionar». Los accesos directos se guardan cuando Steam se cierra. Una cuenta solo hace falta para publicar o comentar ajustes.','muted'),False,False,0)
             body.pack_start(button('Ver la guía de uso',self.help_page),False,False,0)
             body.pack_start(button('Juegos validados',lambda _:self.validated_page()),False,False,0)
             footer.pack_start(button('Atrás',lambda _:self.wizard_back()),False,False,0);footer.pack_end(button('Abrir biblioteca',lambda _:self.leave_wizard(True),True),False,False,0)
@@ -140,7 +140,7 @@ class ExperienceMixin:
             row=Gtk.CheckButton(label=entry.name+'  ·  '+entry.platform);row.set_active(entry.id in self.checked);self.wizard_checks[entry.id]=row;self.wizard_results.pack_start(row,False,False,0)
         if not self.entries:
             from .gui import label
-            self.wizard_results.pack_start(label('No se encontraron juegos. Añadir una carpeta o configurar el emulador.','muted'),False,False,0)
+            self.wizard_results.pack_start(label('No se encontraron juegos. Agregar una carpeta o configurar el emulador.','muted'),False,False,0)
         self.wizard_results.show_all()
     def wizard_folder(self):
         dialog=InlineFileChooser(title='Carpeta de juegos',transient_for=self,action=Gtk.FileChooserAction.SELECT_FOLDER);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Buscar en esta carpeta',Gtk.ResponseType.OK)
@@ -176,7 +176,12 @@ class ExperienceMixin:
             if self.selected and self.selected.id==id_ and self.pages.get_visible_child_name()=='detail':self.show_detail(entry)
         return False
     def covers_finished(self,count,total):
-        self.artwork_busy=False;self.artwork_spinner.stop();self.artwork_bar.hide();self.set_status(f'{count} carátulas encontradas.'+(' Las faltantes se pueden buscar desde la ficha de cada juego.' if count<total else ''));return False
+        self.artwork_busy=False;self.artwork_spinner.stop();self.artwork_bar.hide();
+        if not total:return False
+        if not count:self.set_status('No hay carátulas nuevas para descargar.')
+        elif count==1:self.set_status('1 carátula encontrada. Las faltantes se pueden buscar desde la ficha de cada juego.' if total>1 else '1 carátula encontrada.')
+        else:self.set_status(f'{count} carátulas encontradas.'+(' Las faltantes se pueden buscar desde la ficha de cada juego.' if count<total else ''))
+        return False
     def artwork_dialog(self,e):
         from .gui import label,button,wrap_row
         dialog=InlineDialog(title='Carátula · '+e.name,transient_for=self,modal=True);dialog.set_default_size(820,600);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
@@ -308,8 +313,8 @@ class ExperienceMixin:
         key=self.preferences.get('steamgriddb_key','')
         if not key:self.message('Falta la clave de SteamGridDB','Agregar la clave API en Ajustes. La del plugin de Decky es exclusiva de ese plugin y no se puede reutilizar.');return
         targets=[e for e in self.entries if self.in_steam(e) and e.metadata.get('steam_account')]
-        if not targets:self.message('Sin accesos','Ningún juego de la biblioteca tiene acceso guardado en Steam.');return
-        if not self.confirm('Completar arte de Steam',f'Se buscan en SteamGridDB las imágenes que faltan (portada vertical y horizontal, fondo, logotipo e ícono) de {len(targets)} accesos. Lo que ya existe no se reemplaza. Las imágenes se guardan cuando Steam está cerrado.'):return
+        if not targets:self.message('Sin accesos directos','Ningún juego de la biblioteca tiene acceso directo guardado en Steam.');return
+        if not self.confirm('Completar arte de Steam',f'Se buscan en SteamGridDB las imágenes que faltan (portada vertical y horizontal, fondo, logotipo e icono) de {len(targets)} accesos directos. Lo que ya existe no se reemplaza. Las imágenes se guardan cuando Steam está cerrado.'):return
         self.set_status('Buscando arte de Steam…')
         def work():
             try:
@@ -330,12 +335,12 @@ class ExperienceMixin:
         from .models import atomic_json
         account=e.metadata.get('steam_account')
         try:item=next(s for s in shortcuts(account) if s['appid']==e.metadata.get('steam_appid'))
-        except (OSError,ValueError,StopIteration,TypeError):self.message('Acceso no disponible','Buscar juegos de nuevo para detectar los accesos de Steam.');return
-        dialog=InlineDialog(title='Editar acceso de Steam',transient_for=self,modal=True);dialog.set_default_size(700,460);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(10)
+        except (OSError,ValueError,StopIteration,TypeError):self.message('Acceso directo no disponible','Buscar juegos de nuevo para detectar los accesos directos de Steam.');return
+        dialog=InlineDialog(title='Editar acceso directo de Steam',transient_for=self,modal=True);dialog.set_default_size(700,460);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(10)
         fields={}
         for key,title in [('name','Nombre'),('exe','Ejecutable'),('startdir','Carpeta de inicio'),('options','Opciones de lanzamiento')]:
             box.pack_start(label(title,'muted'),False,False,0);field=Gtk.Entry();field.set_text(item[key]);fields[key]=field;box.pack_start(field,False,False,0)
-        box.pack_start(label('Se conservan el identificador del acceso, Steam Input y Proton. La carátula elegida también se guarda en Steam.','muted'),False,False,0);self.fit_dialog(dialog);dialog.show_all()
+        box.pack_start(label('Se conservan el identificador del acceso directo, Steam Input y Proton. La carátula elegida también se guarda en Steam.','muted'),False,False,0);self.fit_dialog(dialog);dialog.show_all()
         if dialog.run()==Gtk.ResponseType.OK:
             updated={**item,**{key:field.get_text().strip() for key,field in fields.items()}}
             if not updated['name'] or not updated['exe']:self.message('Datos incompletos','Nombre y ejecutable son obligatorios.')

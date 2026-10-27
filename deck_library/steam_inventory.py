@@ -105,7 +105,7 @@ def sync_covers(account,entries,results,is_running=None):
         appid=str(by_id[entry.id]['appid']);target=grid/(appid+'p'+suffix)
         previous=[p for ext in ('.png','.jpg','.jpeg','.webp') if (p:=grid/(appid+'p'+ext)).exists()]
         if previous==[target] and target.read_bytes()==data:continue
-        if is_running():raise SteamRunningError('Steam se abrió antes de guardar las carátulas. Guardar el acceso de nuevo.')
+        if is_running():raise SteamRunningError('Steam se abrió antes de guardar las carátulas. Guardar el acceso directo de nuevo.')
         stamp=datetime.datetime.now().strftime('%Y%m%dT%H%M%S%f');backups={}
         for path in previous:
             backup=grid/'.deck-library-backups'/(path.name+'.'+stamp);backup.parent.mkdir(exist_ok=True);shutil.copy2(path,backup);backups[path]=backup

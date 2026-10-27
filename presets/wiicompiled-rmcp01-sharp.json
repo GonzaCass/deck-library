@@ -39,6 +39,6 @@
       "mix_worker": true
     }
   },
-  "notes": "El usuario confirmó buena imagen y rendimiento en Gaming Mode. El preset no cambia rutas ni controles; el ajuste de salida F12 pertenece al parche del ejecutable, aplicado por el asistente de recompilación compatible.",
+  "notes": "El usuario confirmó buena imagen y rendimiento en Gaming Mode. El perfil no cambia rutas ni controles; el ajuste de salida F12 pertenece al parche del ejecutable, aplicado por el asistente de recompilación compatible.",
   "sources": []
 }

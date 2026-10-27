@@ -188,7 +188,7 @@ def restart_steam(store=None):
             result=sync(store,wait=False)
             if result['state']!='pending':return result
             time.sleep(1)
-        raise RuntimeError('Los accesos siguen pendientes. Abrir Deck Library de nuevo.')
+        raise RuntimeError('Los accesos directos siguen pendientes. Abrir Deck Library de nuevo.')
     finally:subprocess.Popen(['steam','-silent'],env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,start_new_session=True)
 
 
@@ -239,15 +239,15 @@ def pending_changes(store=None):
     entries=store.load();by_id={e.id:e for e in entries};by_app={int(e.metadata['steam_appid'])&0xffffffff:e for e in entries if e.metadata.get('steam_appid') is not None};rows=[]
     for identifier in value.get('ids',[]):
         e=by_id.get(identifier);name=e.name if e else identifier
-        action='Actualizar acceso' if e and e.metadata.get('steam_appid') else 'Agregar acceso'
-        rows.append({'operation':'shortcut','name':name,'description':action+': '+name,'detail':('Acceso de Deck Library preparado durante la instalación.' if e and e.metadata.get('library_app') else 'Se guardará en la biblioteca de Steam al cerrarlo.')})
-    for key,title in [('remove','Quitar acceso'),('controllers','Asignar mando')]:
+        action='Actualizar acceso directo' if e and e.metadata.get('steam_appid') else 'Agregar acceso directo'
+        rows.append({'operation':'shortcut','name':name,'description':action+': '+name,'detail':('Acceso directo de Deck Library preparado durante la instalación.' if e and e.metadata.get('library_app') else 'Se guardará en la biblioteca de Steam al cerrarlo.')})
+    for key,title in [('remove','Quitar acceso directo'),('controllers','Asignar mando')]:
         for appid in value.get(key,[]):
-            e=by_app.get(int(appid)&0xffffffff);name=e.name if e else 'Acceso '+str(appid)
+            e=by_app.get(int(appid)&0xffffffff);name=e.name if e else 'Acceso directo '+str(appid)
             rows.append({'operation':key,'name':name,'description':title+': '+name,'detail':'Cambio pendiente en Steam.'})
     for art in value.get('art',[]):
-        e=by_app.get(int(art['appid'])&0xffffffff);name=e.name if e else 'Acceso '+str(art['appid'])
-        slots={'portrait':'Carátula','grid':'Carátula','hero':'Fondo','logo':'Logotipo','icon':'Ícono','landscape':'Imagen horizontal'}
+        e=by_app.get(int(art['appid'])&0xffffffff);name=e.name if e else 'Acceso directo '+str(art['appid'])
+        slots={'portrait':'Carátula','grid':'Carátula','hero':'Fondo','logo':'Logotipo','icon':'Icono','landscape':'Imagen horizontal'}
         rows.append({'operation':'art','name':name,'description':slots.get(art['slot'],art['slot'])+': '+name,'detail':'Imagen seleccionada: '+str(art['file'])})
     return rows
 

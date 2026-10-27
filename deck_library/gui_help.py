@@ -7,9 +7,9 @@ from . import bug_report,validated_games
 
 GUIDE=[
  ('1. Encontrar o instalar juegos','Biblioteca muestra los juegos encontrados en la Deck. Catálogo de ports descarga el programa del port; después puede pedir la ROM, ISO o carpeta original para prepararlo.'),
- ('2. Preparar y jugar','Preparar indica que faltan archivos o una compilación. Jugar abre el juego listo. Si no encuentra los originales, elegí su ubicación desde la ficha del port.'),
- ('3. Elegir ajustes','Abrí una carátula y elegí un perfil. Ver detalles muestra sus cambios. Aplicar guarda un respaldo; Deshacer recupera los valores anteriores. Cerrá el juego antes de cambiarlos.'),
- ('4. Usar Steam','Agregar a Steam crea el acceso y copia su carátula. Si Steam está abierto, el cambio espera hasta que se cierre; se recupera al iniciar la siguiente sesión. No necesitás recrear el acceso al cambiar Proton.'),
+ ('2. Preparar y jugar','Preparar indica que faltan archivos o una compilación. Jugar abre el juego listo. Si no encuentra los originales, elegir su ubicación desde la ficha del port.'),
+ ('3. Elegir ajustes','Abrir una carátula y elegir un perfil. Ver detalles muestra sus cambios. Aplicar guarda un respaldo; Deshacer recupera los valores anteriores. Cerrar el juego antes de cambiarlos.'),
+ ('4. Usar Steam','Agregar a Steam crea el acceso directo y copia su carátula. Si Steam está abierto, el cambio espera hasta que se cierre; se recupera al iniciar la siguiente sesión. No hace falta recrear el acceso directo al cambiar Proton.'),
  ('5. Compartir con la comunidad','No hace falta una cuenta para jugar o usar perfiles locales. Para publicar o comentar: Cuenta → Crear cuenta, verificar el correo e iniciar sesión. Dentro del juego, Comunidad → Compartir mis ajustes permite capturar la configuración, revisarla y publicarla.'),
  ('6. Entender las pruebas','Instalado significa que hay archivos en la Deck. Sin verificar es una propuesta. Verificado por usuario corresponde a una prueba concreta. Juegos validados muestra equipo, versión, resultado y limitaciones; no es una certificación de Valve.')
 ]
@@ -30,7 +30,7 @@ class HelpMixin:
     def validated_page(self,*_):
         page=InlineDialog(title='Juegos validados en Steam Deck',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
         body=page.get_content_area();body.set_spacing(12)
-        body.pack_start(text('Esta lista reúne pruebas de juego reportadas en una Steam Deck. Consultá la versión, el equipo y las limitaciones: instalar un port o tener una puntuación alta de compatibilidad no equivale a haberlo probado.','muted',95),False,False,0)
+        body.pack_start(text('Esta lista reúne pruebas de juego reportadas en una Steam Deck. Conviene revisar la versión, el equipo y las limitaciones: instalar un port o tener una puntuación alta de compatibilidad no equivale a haberlo probado.','muted',95),False,False,0)
         for game in validated_games.catalog():
             panel=self.card(body,game['name']);panel.pack_start(badge('Gameplay confirmado','green'),False,False,0)
             panel.pack_start(text(game['program']+' · '+game['version'],'meta',85),False,False,0)
@@ -57,10 +57,10 @@ class HelpMixin:
         page=InlineDialog(title='Reportar un problema',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
         body=page.get_content_area();body.set_spacing(10)
         title=Gtk.Entry();title.set_placeholder_text('Qué falló, por ejemplo: no instala un port');body.pack_start(text('Título'),False,False,0);body.pack_start(title,False,False,0)
-        body.pack_start(text('Pasos para reproducirlo, qué esperabas y qué ocurrió','meta'),False,False,0)
+        body.pack_start(text('Pasos para reproducirlo, qué se esperaba y qué ocurrió','meta'),False,False,0)
         description=Gtk.TextView();description.set_wrap_mode(Gtk.WrapMode.WORD_CHAR);scroll=self.new_scroll();scroll.set_size_request(-1,110);scroll.add(description);body.pack_start(scroll,False,False,0)
         include=Gtk.CheckButton(label='Incluir los últimos registros del programa y del juego');include.set_active(True);body.pack_start(include,False,False,0)
-        body.pack_start(text('El reporte oculta rutas personales, correos y credenciales conocidas. Revisá el contenido antes de compartirlo. No se envían ROMs, partidas ni archivos de configuración.','muted',95),False,False,0)
+        body.pack_start(text('El reporte oculta rutas personales, correos y credenciales conocidas. Revisar el contenido antes de compartirlo. No se envían ROMs, partidas ni archivos de configuración.','muted',95),False,False,0)
         preview=Gtk.TextView();preview.set_editable(False);preview.set_wrap_mode(Gtk.WrapMode.WORD_CHAR);preview_scroll=self.new_scroll();preview_scroll.set_size_request(-1,170);preview_scroll.add(preview);preview_reveal=Reveal('Revisar los datos del reporte',preview_scroll);body.pack_start(preview_reveal,False,False,0)
         status=text('','status',95);body.pack_start(status,False,False,0);state={'report':None,'reference':'','alive':True}
         def report():
@@ -69,7 +69,7 @@ class HelpMixin:
             value=bug_report.sanitize(value);bug_report.validate_report(value);state['report']=value;preview.get_buffer().set_text(json.dumps(value,ensure_ascii=False,indent=2));return value
         def review(_):
             try:
-                report();send_button.set_sensitive(True);preview_reveal.revealer.set_reveal_child(True);status.set_text('Reporte preparado. Revisá los datos y elegí cómo compartirlos.')
+                report();send_button.set_sensitive(True);preview_reveal.revealer.set_reveal_child(True);status.set_text('Reporte preparado. Revisar los datos y elegir cómo compartirlos.')
             except Exception as error:status.set_text(str(error))
         def export(_):
             try:

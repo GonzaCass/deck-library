@@ -28,15 +28,15 @@ class AccountPane(Gtk.Box):
         for button in (self.login,self.register,self.logout):
             button.show_all();button.set_no_show_all(True);self.actions.pack_start(button,False,False,0)
         self.stack=Gtk.Stack();self.stack.set_homogeneous(False);self.stack.set_vexpand(True);self.stack.connect('notify::visible-child',self.refresh_layout);self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if motion.page_transitions() else Gtk.StackTransitionType.NONE);self.stack.set_transition_duration(120 if motion.page_transitions() else 0);self.pack_start(self.stack,True,True,0)
-        intro=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);intro.set_valign(Gtk.Align.CENTER);intro.pack_start(text('Permite publicar ajustes, valorar perfiles y compartir resultados.','muted',64),False,False,0);intro.pack_start(text('Los perfiles se pueden consultar sin una cuenta.','meta',64),False,False,0);intro.pack_start(text('El nombre de usuario se muestra públicamente al publicar perfiles y comentarios. No uses tu correo como nombre de usuario.','meta',64),False,False,0);intro.pack_start(text('Para crear una cuenta es necesario verificar el correo.','meta',64),False,False,0);intro.pack_start(text('Después de verificar el correo, volvé al acceso y pulsá Conectar. La app conserva la sesión para los próximos inicios.','meta',64),False,False,0);self.stack.add_named(intro,'intro')
+        intro=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);intro.set_valign(Gtk.Align.CENTER);intro.pack_start(text('Permite publicar ajustes, valorar perfiles y compartir resultados.','muted',64),False,False,0);intro.pack_start(text('Los perfiles se pueden consultar sin una cuenta.','meta',64),False,False,0);intro.pack_start(text('El nombre de usuario se muestra públicamente al publicar perfiles y comentarios. No usar el correo como nombre de usuario.','meta',64),False,False,0);intro.pack_start(text('Para crear una cuenta es necesario verificar el correo.','meta',64),False,False,0);intro.pack_start(text('Después de verificar el correo, volver al inicio de sesión y pulsar Conectar. La app conserva la sesión para los próximos inicios.','meta',64),False,False,0);self.stack.add_named(intro,'intro')
         self.browser_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);self.stack.add_named(self.browser_box,'browser');self.socket=None
         self.fallback=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.stack.add_named(self.fallback,'fallback');self.reason=text('','muted',70);self.fallback.pack_start(self.reason,False,False,0)
         self.retry=ActionButton('Reintentar','refresh',lambda _:self.embed(),'violet-outline');self.fallback.pack_start(self.retry,False,False,0)
-        self.install_button=ActionButton('Instalar componente de acceso','download',lambda _:self.install_runtime(),'violet');self.fallback.pack_start(self.install_button,False,False,0)
+        self.install_button=ActionButton('Instalar componente de inicio de sesión','download',lambda _:self.install_runtime(),'violet');self.fallback.pack_start(self.install_button,False,False,0)
         self.external=ActionButton('Continuar en el navegador','community',lambda _:self.open_external(),'quiet');self.fallback.pack_start(self.external,False,False,0)
         self.code=text('','meta',70);self.code.set_selectable(True);self.fallback.pack_start(self.code,False,False,0)
         self.status=text('','status',85);self.pack_start(self.status,False,False,0)
-        self.cancel_button=ActionButton('Cancelar acceso','back',lambda _:self.cancel(),'quiet');self.cancel_button.show_all();self.cancel_button.set_no_show_all(True);self.pack_start(self.cancel_button,False,False,0)
+        self.cancel_button=ActionButton('Cancelar inicio de sesión','back',lambda _:self.cancel(),'quiet');self.cancel_button.show_all();self.cancel_button.set_no_show_all(True);self.pack_start(self.cancel_button,False,False,0)
         self.connect('destroy',lambda *_:self.close());self.show_all();self.refresh();self.stack.set_visible_child_name('intro');self.cancel_button.hide()
         if self.client.session().get('token'):self.validate()
 
@@ -82,12 +82,12 @@ class AccountPane(Gtk.Box):
     def embed(self):
         self.stop_browser()
         display=self.get_display()
-        if not isinstance(display,GdkX11.X11Display):self.unavailable('El acceso integrado necesita X11. Reiniciar la app con su lanzador o continuar en el navegador.',False);return
+        if not isinstance(display,GdkX11.X11Display):self.unavailable('El inicio de sesión integrado necesita X11. Reiniciar la app con su lanzador o continuar en el navegador.',False);return
         for child in self.browser_box.get_children():child.destroy()
         self.socket=AccountSocket();self.socket.set_can_focus(True);self.socket.set_hexpand(True);self.socket.set_vexpand(True);self.socket.set_size_request(-1,240);self.browser_box.pack_start(self.socket,True,True,0);self.browser_box.show_all();self.stack.set_visible_child_name('browser');self.socket.realize()
         socket=self.socket;generation=self.generation
         def ready(args):
-            self.status.set_text('Cargando acceso…')
+            self.status.set_text('Cargando inicio de sesión…')
             try:
                 self.process=subprocess.Popen(args,stdin=subprocess.PIPE,stdout=subprocess.PIPE,stderr=subprocess.DEVNULL,text=True,bufsize=1)
                 process=self.process;self.send({'uri':self.uri,'mode':self.mode});socket.connect('plug-removed',lambda *_:True)
@@ -100,8 +100,8 @@ class AccountPane(Gtk.Box):
                     except (ValueError,OSError):pass
                     GLib.idle_add(self.browser_event,{'event':'exited'},generation,process)
                 threading.Thread(target=events,daemon=True).start()
-            except OSError:self.unavailable('No se pudo abrir el acceso integrado.',False)
-        def missing():self.unavailable('El acceso integrado necesita WebKit de GNOME. Se descargará desde Flathub una sola vez.',True)
+            except OSError:self.unavailable('No se pudo abrir el inicio de sesión integrado.',False)
+        def missing():self.unavailable('El inicio de sesión integrado necesita WebKit de GNOME. Se descargará desde Flathub una sola vez.',True)
         self.task(lambda:auth_runtime.command(pathlib.Path(__file__).with_name('auth_browser.py'),socket.get_id()),ready,missing)
 
     def browser_event(self,value,generation,process=None):
@@ -110,8 +110,8 @@ class AccountPane(Gtk.Box):
         if event=='ready':
             self.status.set_text('Steam + X: abrir teclado · B: cancelar')
             if self.socket:self.socket.grab_focus()
-        elif event in ('tls_error','load_error'):self.status.set_text('No se pudo cargar el acceso. Revisar la conexión o continuar en el navegador.');self.external.show();self.stack.set_visible_child_name('fallback');self.install_button.hide();self.reason.set_text('No se pudo cargar el acceso de forma segura.')
-        elif event=='exited' and process is self.process and self.wait:self.unavailable('El componente de acceso se cerró. Se puede reintentar o continuar en el navegador.',False)
+        elif event in ('tls_error','load_error'):self.status.set_text('No se pudo cargar el inicio de sesión. Revisar la conexión o continuar en el navegador.');self.external.show();self.stack.set_visible_child_name('fallback');self.install_button.hide();self.reason.set_text('No se pudo cargar el inicio de sesión de forma segura.')
+        elif event=='exited' and process is self.process and self.wait:self.unavailable('El componente de inicio de sesión se cerró. Se puede reintentar o continuar en el navegador.',False)
         return False
 
     def unavailable(self,reason,install):
@@ -137,13 +137,13 @@ class AccountPane(Gtk.Box):
     def install_runtime(self):
         self.install_button.set_sensitive(False);self.status.set_text('Instalando componente desde Flathub…');self.install_cancel=threading.Event();cancel=self.install_cancel
         def done(_):self.install_button.set_sensitive(True);self.embed()
-        self.task(lambda:auth_runtime.install(lambda line:GLib.idle_add(self.status.set_text,'Componente de acceso: '+str(line)[-180:]) if self.alive else None,cancel),done,lambda:self.install_button.set_sensitive(True))
+        self.task(lambda:auth_runtime.install(lambda line:GLib.idle_add(self.status.set_text,'Componente de inicio de sesión: '+str(line)[-180:]) if self.alive else None,cancel),done,lambda:self.install_button.set_sensitive(True))
 
     def schedule(self,interval):self.timer=GLib.timeout_add_seconds(min(60,max(5,int(interval))),self.poll)
     def poll(self):
         self.timer=None
         if not self.alive or not self.wait:return False
-        if time.monotonic()>self.deadline:self.cancel();self.status.set_text('El acceso venció. Volver a intentarlo.');return False
+        if time.monotonic()>self.deadline:self.cancel();self.status.set_text('El inicio de sesión venció. Volver a intentarlo.');return False
         def done(value):
             if value.get('state')=='connected':
                 self.client.remember(value);self.cancel();self.refresh();self.status.set_text('Sesión iniciada.')

@@ -24,8 +24,10 @@ def compatibility_badge(fit,long=False):
     widget.get_style_context().add_class('compatibility-badge')
     widget.set_tooltip_text(fit_badge(fit,True));return widget
 
+OS_LABELS={'macos':'macOS','ios':'iOS','pc':'PC'}
+
 def system_tags(item):
-    return [('Linux / Steam Deck' if name.lower()=='linux' else name.capitalize(),{'linux':'green','windows':'blue','macos':'violet','mac':'violet','android':'yellow'}.get(name.lower(),'neutral')) for name in item.get('supported_os',[])] or [('Sistemas por consultar','neutral')]
+    return [('Linux / Steam Deck' if name.lower()=='linux' else OS_LABELS.get(name.lower(),name.capitalize()),{'linux':'green','windows':'blue','macos':'violet','mac':'violet','android':'yellow'}.get(name.lower(),'neutral')) for name in item.get('supported_os',[])] or [('Sistemas sin confirmar','neutral')]
 
 class CatalogMixin:
     def catalog_page(self):
@@ -35,7 +37,7 @@ class CatalogMixin:
         box=self.catalog_box;self.reset_page(box)
         head=Gtk.Box(spacing=12);titles=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
         titles.pack_start(label('Catálogo de ports','hero'),False,False,0)
-        intro=label('Catálogos públicos, recomendados y repositorios propios. Se instalan en ~/ports desde el último release de GitHub. La mayoría necesita los archivos del juego original.','subtitle');intro.set_tooltip_text(intro.get_text())
+        intro=label('Catálogos públicos, recomendados y repositorios propios. Se instalan en ~/ports desde la última versión publicada en GitHub. La mayoría necesita los archivos del juego original.','subtitle');intro.set_tooltip_text(intro.get_text())
         if self.compact_screen():intro.set_line_wrap(False);intro.set_ellipsize(Pango.EllipsizeMode.END);intro.set_max_width_chars(60)
         titles.pack_start(intro,False,False,0)
         head.pack_start(titles,True,True,0);actions=Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL if self.compact_screen() else Gtk.Orientation.VERTICAL,spacing=8);actions.set_valign(Gtk.Align.CENTER)
@@ -141,7 +143,7 @@ class CatalogMixin:
             if record:texts.pack_start(badge('Instalado · '+record['tag'],'green'),False,False,0)
             when=item.get('added_at') or item.get('first_seen') or 0
             if when:
-                recent=time.time()-when<30*86400;tags.append((('Nuevo · ' if recent else 'Añadido ')+datetime.datetime.fromtimestamp(when).strftime('%d/%m/%Y'),'blue' if recent else 'neutral'))
+                recent=time.time()-when<30*86400;tags.append((('Nuevo · ' if recent else 'Agregado ')+datetime.datetime.fromtimestamp(when).strftime('%d/%m/%Y'),'blue' if recent else 'neutral'))
             texts.pack_start(badge_row(tags),False,False,0)
             texts.pack_start(compatibility_badge(fit),False,False,0)
             if item['note']:
@@ -390,7 +392,7 @@ class CatalogMixin:
             return
         if item.get('package_role') in ('source-only','build-tool'):self.message('Requiere compilación',item.get('source_note','El proyecto solo publica código fuente.'));return
         if not ports.is_reviewed(item) and not self.preferences.get('unreviewed_acknowledged'):
-            if not self.confirm('Port sin revisar','Este port viene de una lista externa y Deck Library no lo revisó. Se descarga el release de GitHub y se verifica el tamaño y, cuando el autor la publica, la suma SHA-256; el programa se ejecuta con los permisos del usuario. Esta advertencia se muestra una sola vez.','Instalar'):return
+            if not self.confirm('Port sin revisar','Este port viene de una lista externa y Deck Library no lo revisó. Se descarga la versión publicada en GitHub y se verifica el tamaño y, cuando el autor la publica, la suma SHA-256; el programa se ejecuta con los permisos del usuario. Esta advertencia se muestra una sola vez.','Instalar'):return
             self.preferences['unreviewed_acknowledged']=True;save_settings(self.preferences,self.store)
         existing=self.catalog_installation(item)
         if existing and existing.get('external') and not replace and not self.confirm('Ya hay un port instalado',existing['entry'].name+' ya está en la biblioteca. ¿Instalar también '+item['name']+' como alternativa?','Instalar alternativa'):return
@@ -411,14 +413,14 @@ class CatalogMixin:
         item=ports.clean(item);record=ports.records(self.store).get(item['repository'])
         if not record:self.message('Sin instalación','Deck Library no instaló este port.');return
         linked=[e for e in self.entries if e.metadata.get('port_repository')==item['repository']];in_steam=[e for e in linked if self.in_steam(e)]
-        steam='\n\nTambién se quita su acceso de Steam, con su carátula y su layout de mando.' if in_steam else ''
+        steam='\n\nTambién se quita su acceso directo de Steam, con su carátula y su configuración de mando.' if in_steam else ''
         if not self.confirm('Desinstalar '+record.get('name',item['name']),'La carpeta ~/ports/'+record['folder']+' se mueve a ~/ports/'+ports.REMOVED+' y el juego sale de la biblioteca. Las partidas guardadas dentro de esa carpeta se van con ella y pueden recuperarse de ahí; nada se borra.'+steam,'Desinstalar',danger=True):return
         try:result=ports.uninstall(item['repository'],self.store)
         except (OSError,ValueError) as error:self.message('No se pudo desinstalar',str(error));return
         accounts={e.metadata['steam_account'] for e in in_steam if e.metadata.get('steam_account')}
         if in_steam and len(accounts)==1:
             account=pathlib.Path(accounts.pop());ids=[e.metadata['steam_appid'] for e in in_steam if e.metadata.get('steam_appid')]
-            if ids:self.run_queue(lambda:queue_removals(ids,account,self.store),'Preparando la eliminación del acceso…')
+            if ids:self.run_queue(lambda:queue_removals(ids,account,self.store),'Preparando la eliminación del acceso directo…')
         self.entries=self.store.load();self.library_dirty=True;self.checked-={e.id for e in linked};self.refresh_platforms()
         if self.selected and self.selected.id in result['ids']:self.selected=None
         self.set_status(result['name']+' desinstalado. Carpeta guardada en ~/ports/'+ports.REMOVED+'.')
@@ -530,7 +532,7 @@ class CatalogMixin:
         if not info:self.message('Limpieza de ISO','No hay una ISO verificada pendiente de limpieza.');return
         page=InlineDialog(title='Liberar espacio',transient_for=self);page.add_button('Conservar ISO',Gtk.ResponseType.CLOSE)
         body=page.get_content_area();body.pack_start(label('¿Eliminar la ISO original?','title'),False,False,0)
-        body.pack_start(label('La extracción terminó. Los archivos del port se conservarán. Podés mantener la ISO para otros usos o eliminarla para liberar espacio.','subtitle'),False,False,0)
+        body.pack_start(label('La extracción terminó. Los archivos del port se conservarán. La ISO se puede conservar para otros usos o eliminar para liberar espacio.','subtitle'),False,False,0)
         path=label(info['source'],'muted');path.set_selectable(True);body.pack_start(path,False,False,0)
         body.pack_start(label(f'ISO original · {info["size"]/1e9:.2f} GB','meta'),False,False,0)
         status=label('Antes de borrar se volverán a verificar los archivos extraídos.','muted');body.pack_start(status,False,False,0)

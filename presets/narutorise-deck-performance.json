@@ -48,7 +48,7 @@
     "kind": "proton",
     "version": "Proton 11.0"
   },
-  "notes": "Cerrar el juego y su launcher antes de aplicar. Se conservan idioma, mandos, rutas, mods, partidas y caché. No borrar la caché de pipelines: el primer uso de contenido puede tener pausas. En modo Juego se puede usar el contador de rendimiento de Steam. El límite es un objetivo, no FPS garantizados. Rendimiento desactiva FXAA y puede mostrar más dientes de sierra. Calidad aumenta el trabajo gráfico; volver a Equilibrado si pierde estabilidad.",
+  "notes": "Cerrar el juego y su lanzador antes de aplicar. Se conservan idioma, mandos, rutas, mods, partidas y caché. No borrar la caché de pipelines: el primer uso de contenido puede tener pausas. En modo Juego se puede usar el contador de rendimiento de Steam. El límite es un objetivo, no FPS garantizados. Rendimiento desactiva FXAA y puede mostrar más dientes de sierra. Calidad aumenta el trabajo gráfico; volver a Equilibrado si pierde estabilidad.",
   "sources": [
     "https://github.com/jorjbarbosa/naruto-rise-recomp/releases/tag/v0.3.0-beta",
     "https://github.com/jorjbarbosa/naruto-rise-recomp/blob/main/docs/configuration.md",

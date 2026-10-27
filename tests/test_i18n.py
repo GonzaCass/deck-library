@@ -76,3 +76,16 @@ class WidgetBoundaryTests(unittest.TestCase):
         self.assertEqual(Gtk.Label(label='Jugar').get_text(),'Jugar')
 
 if __name__=='__main__':unittest.main()
+
+
+class SpanishRegisterTests(unittest.TestCase):
+    def test_interface_text_has_no_voseo_or_tuteo(self):
+        import re
+        from deck_library.i18n_en import EXACT
+        forms=re.compile(r"\b(vos|tu|tus|tuyo|abrí|cerrá|consultá|dejá|elegí|necesitás|podés|pulsá|reiniciá|reiniciás|revisá|volvé|tenés|querés|hacé|mirá|probá|selecciones|esperabas|usás|elegís)\b",re.I)
+        found=[k for k in EXACT if forms.search(k)]
+        self.assertEqual(found,[])
+
+    def test_shortcuts_and_sign_in_use_distinct_words(self):
+        from deck_library.i18n_en import EXACT
+        self.assertEqual([k for k in EXACT if 'acceso integrado' in k or 'componente de acceso' in k],[])

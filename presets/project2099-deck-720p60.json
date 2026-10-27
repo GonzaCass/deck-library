@@ -44,7 +44,7 @@
       "mnk_mode": false
     }
   },
-  "notes": "Proton 11.0, DirectX 12 mediante VKD3D. Mantiene el antialiasing Native AA original y renderizado 1×; sin DLSS/ReShade ni generación de cuadros. 720p conserva 16:9. Usar el layout Gamepad de Steam; no el de Escritorio. En OLED, 60 FPS a 60 Hz para cadencia uniforme; 90 Hz no implica 90 FPS. El rendimiento durante transiciones debe probarse.",
+  "notes": "Proton 11.0, DirectX 12 mediante VKD3D. Mantiene el antialiasing Native AA original y renderizado 1×; sin DLSS/ReShade ni generación de cuadros. 720p conserva 16:9. Usar la configuración Gamepad de Steam; no el de Escritorio. En OLED, 60 FPS a 60 Hz para cadencia uniforme; 90 Hz no implica 90 FPS. El rendimiento durante transiciones debe probarse.",
   "sources": [
     "https://github.com/GenryTheFox0/Project-2099/blob/main/README.md"
   ]

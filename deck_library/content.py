@@ -9,20 +9,20 @@ def pfs_entries(path):
     path=pathlib.Path(path);size=path.stat().st_size
     with path.open('rb') as source:
         header=source.read(16)
-        if len(header)!=16 or header[:4]!=b'PFS0':raise ValueError('Se necesita un NSP PFS0; no se modifica el archivo original.')
+        if len(header)!=16 or header[:4]!=b'PFS0':raise ValueError('El archivo NSP no tiene un formato admitido; el original no se modificó.')
         count,string_size,_=struct.unpack('<III',header[4:])
-        if not 0<count<=4096 or not 0<string_size<=1024*1024:raise ValueError('Cabecera NSP inválida.')
+        if not 0<count<=4096 or not 0<string_size<=1024*1024:raise ValueError('El archivo NSP está dañado o no es un NSP.')
         table=source.read(count*24);names=source.read(string_size)
         if len(table)!=count*24 or len(names)!=string_size:raise ValueError('NSP truncado.')
         start=16+count*24+string_size;items=[];seen=set()
         for index in range(count):
             offset,length,string_offset,_=struct.unpack_from('<QQII',table,index*24)
-            if string_offset>=len(names):raise ValueError('Nombre NSP inválido.')
+            if string_offset>=len(names):raise ValueError('El archivo NSP está dañado o no es un NSP.')
             end=names.find(b'\0',string_offset)
-            if end<0:raise ValueError('Nombre NSP sin terminador.')
+            if end<0:raise ValueError('El archivo NSP está dañado o no es un NSP.')
             name=names[string_offset:end].decode('utf-8')
-            if pathlib.PurePosixPath(name).name!=name or '\\' in name or name in ('.','..') or name in seen:raise ValueError('Ruta NSP inválida o duplicada.')
-            if start+offset+length>size:raise ValueError('Datos NSP fuera del archivo.')
+            if pathlib.PurePosixPath(name).name!=name or '\\' in name or name in ('.','..') or name in seen:raise ValueError('El archivo NSP está dañado o no es un NSP.')
+            if start+offset+length>size:raise ValueError('El archivo NSP está dañado o no es un NSP.')
             seen.add(name);items.append({'name':name,'offset':start+offset,'size':length})
         ranges=sorted((i['offset'],i['offset']+i['size']) for i in items if i['size'])
         if any(a[1]>b[0] for a,b in zip(ranges,ranges[1:])):raise ValueError('Datos NSP superpuestos.')
@@ -102,7 +102,7 @@ def install_nsp(path,config_dir=None,progress=lambda text:None):
     """Register encrypted NCAs from a supplied NSP so CLI boot doesn't race library scanning."""
     if emulator_busy():raise RuntimeError('Eden debe estar cerrado para instalar contenido.')
     path=pathlib.Path(path);items=[i for i in pfs_entries(path) if re.fullmatch(r'[0-9a-fA-F]{32}(?:\.cnmt)?\.nca',i['name'])]
-    if not items or not any('.cnmt.nca' in i['name'] for i in items):raise ValueError('El NSP no contiene un conjunto NCA con metadata CNMT.')
+    if not items or not any('.cnmt.nca' in i['name'] for i in items):raise ValueError('El archivo NSP no tiene el contenido esperado para instalarse.')
     target=eden_paths(config_dir=config_dir)['nand']/'user/Contents/registered';target.mkdir(parents=True,exist_ok=True)
     missing=[i for i in items if not (target/i['name']).exists()]
     if shutil.disk_usage(target).free<sum(i['size'] for i in missing)+128*1024**2:raise RuntimeError('No hay espacio suficiente para instalar este contenido.')
@@ -119,9 +119,9 @@ def install_nsp(path,config_dir=None,progress=lambda text:None):
                 with temporary.open('wb') as out:
                     while remaining:
                         chunk=source.read(min(1024**2,remaining))
-                        if not chunk:raise ValueError('NSP truncado durante la copia.')
+                        if not chunk:raise ValueError('El archivo NSP quedó incompleto durante la copia. No se instaló.')
                         out.write(chunk);digest.update(chunk);remaining-=len(chunk)
-                if digest.hexdigest()[:32].lower()!=item['name'][:32].lower():raise ValueError('El hash NCA no coincide. No se instaló este NSP.')
+                if digest.hexdigest()[:32].lower()!=item['name'][:32].lower():raise ValueError('El archivo NSP está dañado (falló la verificación). No se instaló.')
                 added.append((temporary,dest))
         # All parts validated before any become visible to Eden.
         if emulator_busy():raise RuntimeError('Eden se abrió durante la preparación; cerrarlo y reintentar.')

@@ -84,7 +84,7 @@ def update_shortcuts(config,entries,launcher_for,is_running=None):
     """Preserve all other entries and reject concurrent Steam/filesystem writes."""
     if is_running is None:is_running=steam_running
     config=pathlib.Path(config)
-    if is_running():raise SteamRunningError('Steam debe estar cerrado para guardar los accesos.')
+    if is_running():raise SteamRunningError('Steam debe estar cerrado para guardar los accesos directos.')
     config.mkdir(parents=True,exist_ok=True)
     with (config/'shortcuts.vdf.deck-library.lock').open('a') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX)
@@ -96,11 +96,11 @@ def update_shortcuts(config,entries,launcher_for,is_running=None):
         for entry in entries:
             steam_name=entry.name+(' · '+entry.platform if entry.name in duplicate_names else '')
             original=entry.metadata.get('steam_original') if entry.kind=='steam' else entry.metadata.get('steam_override')
-            if original and pathlib.Path(original['account']).resolve()!=config.resolve():raise ValueError('Se requiere la cuenta de Steam a la que pertenece el acceso.')
+            if original and pathlib.Path(original['account']).resolve()!=config.resolve():raise ValueError('Se requiere la cuenta de Steam a la que pertenece el acceso directo.')
             launcher=pathlib.Path(launcher_for(entry)); exe='"'+str(launcher)+'"'
             target_id=entry.metadata.get('steam_appid') if entry.metadata.get('steam_account')==str(config) else None
             match=next((v[1] for v in shortcuts.values() if v[0]==0 and ((target_id is not None and get(v[1],'appid')==target_id) or (target_id is None and (get(v[1],'exe')==exe or get(v[1],'appname')==steam_name)))),None)
-            if original and match is None:raise ValueError('El acceso de Steam ya no existe. Buscar juegos de nuevo antes de editarlo.')
+            if original and match is None:raise ValueError('El acceso directo de Steam ya no existe. Buscar juegos de nuevo antes de editarlo.')
             if match is None:
                 match={}; index=str(max([int(k) for k in shortcuts if k.isdigit()]+[-1])+1); shortcuts[index]=(0,match)
                 for k,v in {'appid':shortcut_id(exe,steam_name),'ShortcutPath':'','IsHidden':0,'AllowDesktopConfig':0,'AllowOverlay':1,'OpenVR':0,'Devkit':0,'DevkitGameID':'','DevkitOverrideAppID':0,'LastPlayTime':0,'FlatpakAppID':''}.items():set_value(match,k,v)
@@ -128,7 +128,7 @@ def remove_shortcuts(config,appids,is_running=None):
     """Delete shortcuts by app ID, renumber the rest and keep a backup. Returns the removed names."""
     if is_running is None:is_running=steam_running
     config=pathlib.Path(config);wanted={int(a)&0xffffffff for a in appids}
-    if is_running():raise SteamRunningError('Steam debe estar cerrado para quitar los accesos.')
+    if is_running():raise SteamRunningError('Steam debe estar cerrado para quitar los accesos directos.')
     path=config/'shortcuts.vdf'
     if not path.exists():return [],None
     with (config/'shortcuts.vdf.deck-library.lock').open('a') as lock:

@@ -148,7 +148,7 @@ def library_mapping(text):
             if name=='group_source_bindings' and isinstance(bindings,list):
                 bindings[:]=[(k,v) for k,v in bindings if not isinstance(v,str) or not v.startswith('right_trackpad ')]
                 bindings.append((identifier,'right_trackpad active'))
-    for key,value in [('title','Deck Library'),('description','Palanca izquierda: navegar. Palanca derecha: desplazar. A: seleccionar. B: volver. Trackpad derecho: ratón.'),('revision','2')]:
+    for key,value in [('title','Deck Library'),('description','Stick izquierdo: navegar. Stick derecho: desplazar. A: seleccionar. B: volver. Trackpad derecho: ratón.'),('revision','2')]:
         mapping[:]=[(k,v) for k,v in mapping if k!=key];mapping.append((key,value))
     return render(mapping,root='controller_mappings')
 

@@ -49,10 +49,10 @@ def game_target(entry,adapter):
                         if len(raw)==8:tid=f'{int.from_bytes(raw,"little"):016X}'
             except OSError:pass
         if re.fullmatch('0004[0-9A-Fa-f]{12}',tid):return root/'custom'/(tid.upper()+'.ini')
-        raise ValueError('Falta el Title ID de Nintendo 3DS; completarlo en Editar acceso.')
+        raise ValueError('Falta el Title ID de Nintendo 3DS; completarlo en Editar acceso directo.')
     if adapter=='ppsspp':
         identity=serial(entry,adapter)
-        if not identity:raise ValueError('Falta el ID de PSP (por ejemplo ULUS10567); completarlo en Editar acceso.')
+        if not identity:raise ValueError('Falta el ID de PSP (por ejemplo ULUS10567); completarlo en Editar acceso directo.')
         return root/(identity+'_ppsspp.ini')
     raise ValueError('mGBA se captura como referencia. Sus opciones globales se cambian desde el emulador.')
 
