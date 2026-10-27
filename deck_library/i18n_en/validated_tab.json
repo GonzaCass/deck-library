@@ -1,0 +1,7 @@
+{
+  "Buscar juegos validados · X: teclado": "Search validated games · X: keyboard",
+  "No hay juegos validados con ese nombre.": "No validated games match that name.",
+  "Pruebas de juego confirmadas. Revisar la versión y las limitaciones antes de instalar.": "Confirmed gameplay reports. Check the tested version and limitations before installing.",
+  "Gameplay fluido y controles confirmados tras aplicar la corrección de pantalla negra.": "Smooth gameplay and working controls reported after applying the black-screen fix.",
+  "Se observaron pausas en algunas cinemáticas. Ajuste probado: 720p, objetivo de 60 FPS y MSAA desactivado. Puede faltar algún efecto al omitir shaders problemáticos; no hay una medición sostenida de FPS.": "Pauses were observed in some cutscenes. Tested settings: 720p, 60 FPS target and MSAA off. Skipping problematic shaders can leave some effects undrawn; no sustained FPS measurement is available."
+}

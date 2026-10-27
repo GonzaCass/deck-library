@@ -42,7 +42,7 @@ docker compose --env-file community/.env -f community/compose.yaml exec api pyth
 docker compose --env-file community/.env -f community/compose.yaml exec api python -m community.server backup /data/backup.sqlite3
 ```
 
-Exportar el backup fuera del volumen y restaurarlo solo con el servicio parado. `docker compose down` conserva el volumen; no usar `down -v` si se quieren conservar los aportes. Esta primera versión no tiene panel web, administración pública; las valoraciones se muestran en la aplicación. La moderación y los backups se administran por consola.
+Exportar el backup fuera del volumen y restaurarlo solo con el servicio parado. `docker compose down` conserva el volumen; no usar `down -v` si se quieren conservar los aportes. Esta primera versión no tiene panel web, administración pública; las valoraciones se muestran en la aplicación. La moderación y los backups se administran por consola. El nombre de usuario o ser administrador de Keycloak no concede permisos de moderación en Deck Library. No hay una bandeja de aprobación en la cuenta ni avisos por correo; la cola pendiente solo se habilita con `COMMUNITY_REVIEW_REQUIRED=true`.
 
 «Mis aportes» consulta solo los perfiles del usuario autenticado, incluidos pendientes y rechazados.
 
