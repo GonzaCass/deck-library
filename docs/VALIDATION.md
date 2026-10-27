@@ -1,5 +1,12 @@
 # Validación
 
+## 1.3.4 — Previous game errors do not block the library
+
+- A pending game-launch notice previously opened an inline page titled as a failed launch while the library navigation was disabled. Notices now show a dismissible banner, identify the game when available and save the details under Help. Opening a diagnostic is explicit; its game action returns to the library entry. GTK regressions cover legacy and structured notices, enabled navigation, one-time consumption, dismissal, Help and the return to the game.
+- The installed application was opened on an isolated display through its Desktop and Gaming Mode entry points without reproducing an application startup failure. A managed Broken Bond Steam shortcut reached its 3D title screen on the physical Steam Deck and remained running beyond the earlier reported startup duration. This is startup evidence, not new gameplay or a full-playthrough test. The game files, originals and library entry were present.
+- The same optional Proton `amdxcffx64.dll` copy warning was present in the successful launch, so it was not treated as proof of the exit-code-3 cause. No Proton distribution files, game executable, saves or shader records were changed by this release; existing bounded shader recovery remains in place.
+
+
 ## 1.3.3 — Validated games navigation
 
 - The validated-games catalog is a main stack page, with text filtering, expandable conditions and controller search. GTK regressions cover opening it from Help without leaving an inline workflow active, tab highlighting, LB/RB routing, B/Back from a game to its report, focus restoration and returning to Library. Bounds checks cover 1280×800 and 840×640. Navigation icons collapse at Deck density to leave room for tab names.
