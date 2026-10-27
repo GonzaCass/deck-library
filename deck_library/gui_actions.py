@@ -28,6 +28,7 @@ class ActionsMixin:
         except (OSError,ValueError):pass
         self.refresh_pending();return True
     def sync_summary(self,value):
+        if value.get('state')=='failed':return 'No se pudieron aplicar los cambios de Steam: '+value.get('error','')
         parts=[]
         if value.get('shortcuts'):parts.append(f'{len(value["shortcuts"])} accesos guardados')
         if value.get('removed'):parts.append(f'{len(value["removed"])} accesos quitados')
@@ -192,7 +193,7 @@ class ActionsMixin:
         self.add_button.set_sensitive(True);self.update_selection()
         if result['state']=='idle':self.set_status('Sin cambios.');return False
         if result['state']=='pending':
-            self.refresh_pending();self.set_status('Cambios preparados.');self.toast('Cambios preparados para Steam')
+            self.refresh_pending();self.set_status('Cambio en espera: se guardará cuando Steam se cierre.');self.toast('Se aplicará al cerrar Steam o al iniciar la próxima sesión.')
         else:
             self.set_status('Cambios guardados. Abrir Steam para verlos.');self.toast('Cambios guardados en Steam');self.discover()
         return False

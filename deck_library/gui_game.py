@@ -126,7 +126,7 @@ class GameMixin:
             ])
         from .originals import pairs
         if any(entry.id==o.id or any(entry.id==p.id for p in ports) for o,ports in pairs(self.entries)):
-            rows.append(('Administrar original y port','folder',lambda:self.originals_dialog(entry)))
+            rows.append(('Gestionar ROM asociada','folder',lambda:self.originals_dialog(entry)))
         rows.extend([
             ('Cambiar carátula', 'image', lambda: self.artwork_dialog(entry)),
             ('Archivos y acceso de Steam', 'folder', lambda: self.open_game_section('files')),
@@ -255,12 +255,12 @@ class GameMixin:
         control=self.game_steam_button
         registered=self.in_steam(entry) or entry.metadata.get('steam_store')
         pending=self.game_steam_pending(entry)
-        control.set_label('En Steam' if registered else 'Acceso pendiente' if pending else 'Agregar a Steam')
+        control.set_label('En Steam' if registered else 'En espera' if pending else 'Agregar a Steam')
         control.set_icon('check' if registered else 'steam')
         style=control.get_style_context()
         style.remove_class('steam');style.remove_class('steam-outline')
         style.add_class('steam-outline' if registered or pending else 'steam')
-        control.set_tooltip_text('Administrar el acceso de Steam' if registered else 'Ver el cambio preparado para Steam' if pending else 'Crear un acceso directo en Steam')
+        control.set_tooltip_text('Administrar el acceso de Steam' if registered else 'Se agregará al cerrar Steam o al iniciar la próxima sesión. Ver detalles.' if pending else 'Crear un acceso directo en Steam')
 
     def launch_from_game(self, entry, control):
         control.set_sensitive(False)

@@ -13,7 +13,9 @@ def main():
         p=sub.add_parser(name)
         if name in ('launch','check'):p.add_argument('id')
         p.add_argument('--data-dir')
-        if name=='sync':p.add_argument('--no-wait',action='store_true')
+        if name=='sync':
+            p.add_argument('--no-wait',action='store_true')
+            p.add_argument('--before-steam',action='store_true')
     args=parser.parse_args()
     if not args.action:
         # Steam shortcuts can call app.py directly instead of launch.sh.
@@ -26,7 +28,16 @@ def main():
         print(json.dumps([e.to_dict() for e in scan()],indent=2,ensure_ascii=False));return 0
     if args.action=='sync':
         from deck_library.service import sync
-        print(json.dumps(sync(store,wait=not args.no_wait)));return 0
+        try:
+            if args.before_steam:
+                from deck_library.steam_sync import before_steam
+                result=before_steam(store)
+            else:result=sync(store,wait=not args.no_wait)
+        except Exception as error:
+            from deck_library.models import atomic_json
+            atomic_json(store.root/'last-sync.json',{'state':'failed','error':str(error)})
+            raise
+        print(json.dumps(result));return 0
     entry=next((e for e in store.load() if e.id==args.id),None)
     if entry is None:raise ValueError('El juego ya no está en la biblioteca. Volver a agregarlo desde Deck Library.')
     if args.action=='check':

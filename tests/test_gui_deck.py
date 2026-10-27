@@ -449,13 +449,30 @@ class DeckUITests(unittest.TestCase):
             self.w.controller_action('back');self.settle()
             self.assertFalse(self.w.inline_workflows);self.assertTrue(resize.called)
 
+    def test_steam_button_never_wraps_at_deck_and_compact_sizes(self):
+        from deck_library.models import Entry,atomic_json
+        entry=Entry('Naruto: Rise of a Ninja',['/bin/true'],platform='Xbox 360',kind='port')
+        self.w.entries=[entry]
+        for width,height in ((1280,800),(840,640)):
+            self.w.resize(width,height);self.w.select_game(entry);self.settle()
+            for pending in (False,True):
+                if pending:atomic_json(self.store.root/'pending.json',{'ids':[entry.id]})
+                else:(self.store.root/'pending.json').unlink(missing_ok=True)
+                self.w.refresh_game_steam();self.settle()
+                control=self.w.game_steam_button;caption=control.caption
+                self.assertFalse(caption.get_line_wrap())
+                self.assertEqual(caption.get_layout().get_line_count(),1)
+                self.assertGreaterEqual(caption.get_allocated_width(),caption.get_layout().get_pixel_size()[0])
+                point=control.translate_coordinates(self.w,0,0)
+                self.assertLessEqual(point[0]+control.get_allocated_width(),self.w.get_allocated_width())
+
     def test_pending_steam_action_changes_the_button_without_another_prompt(self):
         from deck_library.models import atomic_json
         entry=self.w.entries[0];self.w.select_game(entry)
         self.assertEqual(self.w.game_steam_button.get_label(),'Agregar a Steam')
         atomic_json(self.store.root/'pending.json',{'ids':[entry.id]})
         self.w.refresh_pending()
-        self.assertEqual(self.w.game_steam_button.get_label(),'Acceso pendiente')
+        self.assertEqual(self.w.game_steam_button.get_label(),'En espera')
         with patch.object(self.w,'pending_details') as details,patch.object(self.w,'single_steam') as queue:
             self.w.game_steam_button.emit('clicked');details.assert_called_once();queue.assert_not_called()
 
@@ -1358,9 +1375,9 @@ class DeckUITests(unittest.TestCase):
         def run(page):
             def check():
                 try:
-                    next(w for w in walk(page) if isinstance(w,Gtk.Button) and w.get_label()=='Mostrar separado').clicked()
+                    next(w for w in walk(page) if isinstance(w,Gtk.Button) and w.get_label()=='Mostrar ROM en la biblioteca').clicked()
                     self.assertEqual(len(self.w.visible()),2);self.assertIn(original.id,settings(self.store)['unlinked_originals'])
-                    next(w for w in walk(page) if isinstance(w,Gtk.Button) and w.get_label()=='Asociar al port').clicked()
+                    next(w for w in walk(page) if isinstance(w,Gtk.Button) and w.get_label()=='Ocultar ROM duplicada').clicked()
                     self.assertEqual(self.w.visible(),[port]);self.assertNotIn(original.id,settings(self.store)['unlinked_originals']);self.assertTrue(rom.exists());seen.append(True)
                 finally:page.response(Gtk.ResponseType.CLOSE)
                 return False

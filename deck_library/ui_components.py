@@ -170,6 +170,8 @@ class ActionButton(Gtk.Button):
         self.body.set_halign(Gtk.Align.CENTER)
         self.icon = Icon(icon)
         self.caption = text(caption)
+        self.caption.set_line_wrap(False)
+        self.caption.set_single_line_mode(True)
         self.body.pack_start(self.icon, False, False, 0)
         self.body.pack_start(self.caption, False, False, 0)
         self.add(self.body)

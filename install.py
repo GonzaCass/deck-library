@@ -42,4 +42,8 @@ try:
  count=refresh_existing_art(app=dest/'app.py')
  if count:print('Arte de Deck Library preparado para Steam:',count)
 except (OSError,ValueError,ImportError) as error:print('Arte de Steam:',error)
+try:
+ from deck_library.steam_sync import install as install_sync
+ install_sync(app=dest/'app.py')
+except (OSError,ValueError,ImportError,RuntimeError,subprocess.TimeoutExpired) as error:print('Sincronización de Steam:',error)
 print('Instalado:',dest,'\nDeck Library está disponible en el menú de aplicaciones.')
