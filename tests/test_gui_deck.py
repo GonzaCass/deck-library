@@ -649,13 +649,14 @@ class DeckUITests(unittest.TestCase):
                 try:
                     ready=page._buttons[Gtk.ResponseType.OK];seen.append(ready.get_sensitive())
                     controls=self.w.control_targets(page);names=[c.get_accessible().get_name() for c in controls]
-                    self.assertNotIn('Elegir carpeta extraída',names);self.assertNotIn('Elegir ISO de Xbox',names)
+                    self.assertIn('Elegir carpeta extraída',names);self.assertNotIn('Elegir ISO de Xbox',names)
                     next(c for c in controls if c.get_accessible().get_name()=='Elegir ISO de Xbox 360').clicked()
                     seen.append(ready.get_sensitive())
                 except Exception as error:errors.append(str(error))
                 page.response(Gtk.ResponseType.OK);return False
             GLib.timeout_add(200,choose);return original_run(page)
-        with patch.object(self.w,'pick_file',return_value=str(iso)),patch.object(self.inline,'run',run),patch.object(ports,'ports_root',return_value=pathlib.Path(self.temp.name)/'ports'):self.assertTrue(self.w.port_inputs(item))
+        with patch.object(self.w,'pick_file',return_value=str(iso)) as choose_file,patch.object(self.inline,'run',run),patch.object(ports,'ports_root',return_value=pathlib.Path(self.temp.name)/'ports'):self.assertTrue(self.w.port_inputs(item))
+        self.assertEqual(choose_file.call_args.kwargs['patterns'],('*.iso',));self.assertFalse(choose_file.call_args.kwargs['folder'])
         self.assertEqual(errors,[]);self.assertEqual(seen,[False,True]);self.assertEqual(self.application_windows(),windows)
         self.assertEqual(ports.records(self.store)[item['repository']]['inputs']['original_data'],str(iso));self.assertEqual(iso.read_bytes(),data)
 
