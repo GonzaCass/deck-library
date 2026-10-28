@@ -96,3 +96,24 @@ def remove_source(folder,record,progress=lambda event:None,cancel=None):
     try:atomic_json(folder/MANIFEST,data)
     except OSError:pass
     return info['size']
+
+
+def extract_folder(source,root,progress=lambda event:None,cancel=None):
+    """Extract an Xbox/Xbox 360 XISO into root/<ISO name>. The ISO is only read; the folder appears once every file is verified.
+    Returns {'path','files','size'}."""
+    import re
+    from .ports import check_cancel
+    source=pathlib.Path(source).resolve();root=pathlib.Path(root).expanduser();root.mkdir(parents=True,exist_ok=True)
+    if root.is_symlink():raise ValueError('La carpeta de destino es un enlace; no se modificó.')
+    name=re.sub(r'[^\w.\- ]+','_',source.stem).strip(' ._') or 'iso';destination=root/name
+    if destination.is_symlink():raise ValueError('La carpeta de destino es un enlace; no se modificó.')
+    if destination.exists() and any(destination.iterdir()):raise ValueError(f'La carpeta {name} ya existe y no está vacía. Elegir otro destino o moverla.')
+    with tempfile.TemporaryDirectory(prefix='.deck-library-iso-',dir=root) as temporary:
+        staged=pathlib.Path(temporary)/'game'
+        with Image(source,cancel) as image:
+            if shutil.disk_usage(root).free<image.total*1.05+64*1024**2:raise ValueError('No hay espacio suficiente en la carpeta de destino.')
+            manifest=image.extract(staged,progress);image.unchanged()
+        check_cancel(cancel)
+        if destination.exists():destination.rmdir()
+        staged.rename(destination)
+    return {'path':str(destination),'files':len(manifest),'size':sum(row['size'] for row in manifest)}

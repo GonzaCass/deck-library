@@ -15,12 +15,13 @@ class ShellMixin:
         from .gui import label,button,PageStack
         self.set_wmclass('deck-library','deck-library');self.set_icon_from_file(str(self.asset('icon.png')));self.set_default_size(1240,760);self.set_size_request(840,520)
         if self.compact_screen() and not os.environ.get('DECK_LIBRARY_UI_TESTS'):self.maximize()
-        self.store=Store();self.preferences=settings(self.store);self.view=self.preferences.get('view','covers');self.checked=set();self.selected=None;self.selection_mode=False;self.platform_filter='all';self.type_filter='all';self.artwork_attempted=set();self.artwork_busy=False;self.discover_busy=False;self.wizard_step=0;self.game_tab='profiles';self.detail_game_id=None;self.profile_choice={}
+        from . import layout
+        layout.ensure();self.store=Store();self.preferences=settings(self.store);self.view=self.preferences.get('view','covers');self.checked=set();self.selected=None;self.selection_mode=False;self.platform_filter='all';self.type_filter='all';self.artwork_attempted=set();self.artwork_busy=False;self.discover_busy=False;self.wizard_step=0;self.game_tab='profiles';self.detail_game_id=None;self.profile_choice={}
         self.ui_closed=False;self.ui_sources=[];self.library_focus_id=None;self.library_targets={};self.controller_mode=False
         self.connect('size-allocate',self.update_density);self.connect('destroy',Gtk.main_quit);self.connect('destroy',self.close_ui_sources);self.connect('delete-event',lambda *_:not self.discard_game_edits());self.connect('key-press-event',self.library_key);self.connect('set-focus',self.library_focus_changed);self.connect('map',self.fit_window);self.connect('size-allocate',self.update_game_size);self.connect('size-allocate',lambda *_:self.update_controller_hints(self))
         root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.add(root);self.build_navigation(root)
         overlay=Gtk.Overlay();root.pack_start(overlay,True,True,0);self.pages=PageStack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);self.inline_workflows=[];self.workflow_stack=Gtk.Stack();self.workflow_stack.set_homogeneous(False);self.workflow_stack.connect('notify::visible-child',self.refresh_layout);self.workflow_stack.add_named(self.pages,'main');overlay.add(self.workflow_stack);self.toast_widget=motion.Toast();overlay.add_overlay(self.toast_widget)
-        self.build_library_page();self.home_box=self.scrolled_page('home');self.validated_box=self.scrolled_page('validated');self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.detail.set_border_width(20);self.pages.add_named(self.detail,'detail');self.settings_box=self.scrolled_page('settings');self.updates_box=self.scrolled_page('updates');self.catalog_box=self.scrolled_page('catalog');self.add_box=self.scrolled_page('add');self.pending_box=self.scrolled_page('pending')
+        self.build_library_page();self.home_box=self.scrolled_page('home');self.validated_box=self.scrolled_page('validated');self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.detail.set_border_width(20);self.pages.add_named(self.detail,'detail');self.settings_box=self.scrolled_page('settings');self.updates_box=self.scrolled_page('updates');self.catalog_box=self.scrolled_page('catalog');self.add_box=self.scrolled_page('add');self.pending_box=self.scrolled_page('pending');self.tools_box=self.scrolled_page('tools');self.help_box=self.scrolled_page('help')
         self.wizard_box=Gtk.Stack();self.wizard_box.set_homogeneous(False);self.wizard_box.connect('notify::visible-child',self.refresh_layout);wizard_scroll=self.new_scroll();wizard_scroll.add(self.wizard_box);self.pages.add_named(wizard_scroll,'welcome')
         footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);footer.set_margin_start(24);footer.set_margin_end(24);footer.set_margin_bottom(8);root.pack_end(footer,False,False,0)
         self.build_pending_banner(footer)
@@ -29,7 +30,7 @@ class ShellMixin:
         self.controller_hint=ControllerHints();self.controller_hint.hide();self.controller_hint.set_no_show_all(True);footer.pack_start(self.controller_hint,False,False,0)
         status_row=Gtk.Box(spacing=12);footer.pack_start(status_row,False,False,0)
         self.status=label('','status');self.status.set_line_wrap(False);self.status.set_ellipsize(Pango.EllipsizeMode.END);self.status.set_no_show_all(True);self.status.hide();status_row.pack_start(self.status,True,True,0)
-        self.version_label=label('v'+__version__);self.version_label.set_line_wrap(False);self.version_label.set_max_width_chars(48);self.version_label.set_ellipsize(Pango.EllipsizeMode.END);self.version_label.set_halign(Gtk.Align.END);self.version_label.set_tooltip_text('Instalación en uso: '+str(pathlib.Path(__file__).resolve().parent.parent));status_row.pack_end(self.version_label,False,False,0)
+        self.version_label=label('v'+__version__);self.version_label.set_line_wrap(False);self.version_label.set_max_width_chars(48);self.version_label.set_ellipsize(Pango.EllipsizeMode.END);self.version_label.set_halign(Gtk.Align.START);self.version_label.set_tooltip_text('Instalación en uso: '+str(pathlib.Path(__file__).resolve().parent.parent))
         try:self.entries=self.store.load()
         except Exception as error:self.entries=[];self.set_status('No se pudo leer la biblioteca: '+str(error))
         self.apply_motion();self.refresh_platforms();self.animate_next=True;self.render();self.pages.set_visible_child_name('library')
@@ -105,9 +106,9 @@ class ShellMixin:
         bar=Gtk.Box(spacing=8);bar.get_style_context().add_class('app-header');bar.set_border_width(6);root.pack_start(bar,False,False,0)
         from . import ui_theme;self.brand_icon=Gtk.Image.new_from_pixbuf(ui_theme.brand_pixbuf(self.asset('brand.png'),28,self.preferences.get('theme','dark')));bar.pack_start(self.brand_icon,False,False,4);brand=label('Deck Library','brand');brand.set_margin_end(12);self.brand_label=brand;bar.pack_start(brand,False,False,0)
         self.nav_buttons={};self.nav_icons=[];self.update_badge=label('','badge');self.update_badge.set_no_show_all(True);self.update_badge.set_valign(Gtk.Align.CENTER);self.update_badge.set_halign(Gtk.Align.CENTER)
-        for name,callback in [('Inicio',lambda _:self.home_page()),('Biblioteca',lambda _:self.open_library()),('Verificados',lambda _:self.validated_page()),('Catálogo de ports',lambda _:self.catalog_page()),('Actualizaciones',lambda _:self.updates_page()),('Ajustes',lambda _:self.settings_page())]:
+        for name,callback in [('Inicio',lambda _:self.home_page()),('Biblioteca',lambda _:self.open_library()),('Verificados',lambda _:self.validated_page()),('Catálogo de ports',lambda _:self.catalog_page()),('Actualizaciones',lambda _:self.updates_page()),('Herramientas',lambda _:self.tools_page()),('Ajustes',lambda _:self.settings_page())]:
             control=button(name,lambda w,action=callback:self.navigate_from_game(action,w));control.get_style_context().add_class('nav');control.set_valign(Gtk.Align.CENTER);bar.pack_start(control,False,False,0);self.nav_buttons[name]=control
-            caption=control.get_child();control.remove(caption);content=Gtk.Box(spacing=7);icon=Icon({'Inicio':'grid','Biblioteca':'library','Verificados':'check','Catálogo de ports':'controller','Actualizaciones':'download','Ajustes':'sliders'}[name],18);self.nav_icons.append(icon);content.pack_start(icon,False,False,0);content.pack_start(caption,False,False,0);control.add(content);control.get_accessible().set_name(name)
+            caption=control.get_child();control.remove(caption);content=Gtk.Box(spacing=7);icon=Icon({'Inicio':'grid','Biblioteca':'library','Verificados':'check','Catálogo de ports':'controller','Actualizaciones':'download','Herramientas':'folder','Ajustes':'sliders'}[name],18);self.nav_icons.append(icon);content.pack_start(icon,False,False,0);content.pack_start(caption,False,False,0);control.add(content);control.get_accessible().set_name(name)
             if name=='Actualizaciones':
                 content.pack_start(self.update_badge,False,False,0)
         self.steam_library_button=button('Agregar a Steam',self.add_library_to_steam);self.steam_library_button.set_valign(Gtk.Align.CENTER);self.steam_library_button.set_tooltip_text('Agregar Deck Library a Steam');self.steam_library_button.get_accessible().set_name('Agregar Deck Library a Steam');self.steam_library_button.get_style_context().add_class('steam-add');bar.pack_start(self.steam_library_button,False,False,0)
@@ -116,13 +117,16 @@ class ShellMixin:
         self.steam_library_button.set_visible(not gaming)
         from .gui_account import account_dialog
         from .ui_components import ActionButton
-        help_button=ActionButton('Ayuda','file',self.help_page,'quiet');bar.pack_end(help_button,False,False,0)
+        help_button=ActionButton('Ayuda','file',self.help_page,'quiet');self.help_button=help_button;bar.pack_end(help_button,False,False,0)
         account_button=ActionButton('Cuenta','community',lambda _:account_dialog(self),'quiet');account_button.set_valign(Gtk.Align.CENTER);self.account_button=account_button;bar.pack_end(account_button,False,False,0);self.refresh_account_button()
         self.navigation_controls=[*self.nav_buttons.values(),self.steam_library_button,account_button,help_button]
         # Keep all tabs and the Steam action reachable at compact widths.
         header_scroll=self.new_scroll();header_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);header_scroll.set_overlay_scrolling(False);root.remove(bar);header_scroll.add(bar);root.pack_start(header_scroll,False,False,0);root.reorder_child(header_scroll,0)
-        self.update_banner=Gtk.Box(spacing=12);self.update_banner.set_no_show_all(True);self.update_banner.get_style_context().add_class('banner');self.banner_text=label('');self.banner_action=button('Ver',lambda _:self.banner_clicked());self.update_banner.pack_start(self.banner_text,True,True,0);self.update_banner.pack_end(self.banner_action,False,False,0);root.pack_start(self.update_banner,False,False,0)
+        self.update_banner=Gtk.Box(spacing=12);self.update_banner.set_no_show_all(True);self.update_banner.get_style_context().add_class('banner');self.banner_text=label('');self.banner_action=button('Ver',lambda _:self.banner_clicked());self.update_banner.pack_start(self.banner_text,True,True,0);self.banner_close=Gtk.Button();self.banner_close.add(Icon('close',18));self.banner_close.get_style_context().add_class('quiet');self.banner_close.set_tooltip_text('Cerrar el aviso');self.banner_close.get_accessible().set_name('Cerrar el aviso');self.banner_close.connect('clicked',lambda _:self.dismiss_banner());self.update_banner.pack_end(self.banner_close,False,False,0);self.update_banner.pack_end(self.banner_action,False,False,0);root.pack_start(self.update_banner,False,False,0)
         self.build_launch_notice(root)
+    def dismiss_banner(self):
+        """Hide the notice until its text changes (another update, or a different state)."""
+        self.banner_dismissed=self.banner_text.get_text();self.update_banner.hide()
     def scrolled_page(self,name):
         scroll=self.new_scroll();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);box.set_border_width(14);box.set_margin_end(4);scroll.add(box);self.pages.add_named(scroll,name);return box
     def card(self,parent,title=None):
@@ -131,7 +135,8 @@ class ShellMixin:
         if title:box.pack_start(label(title,'title'),False,False,0)
         parent.pack_start(box,False,False,0);return box
     def page_changed(self,*_):
-        page=self.pages.get_visible_child_name();active={'home':'Inicio','library':'Biblioteca','validated':'Verificados','detail':{'home':'Inicio','validated':'Verificados'}.get(getattr(self,'detail_origin','library'),'Biblioteca'),'add':'Catálogo de ports','catalog':'Catálogo de ports','updates':'Actualizaciones','settings':'Ajustes','pending':'Actualizaciones'}.get(page)
+        page=self.pages.get_visible_child_name();active={'home':'Inicio','library':'Biblioteca','validated':'Verificados','detail':{'home':'Inicio','validated':'Verificados'}.get(getattr(self,'detail_origin','library'),'Biblioteca'),'add':'Catálogo de ports','catalog':'Catálogo de ports','updates':'Actualizaciones','tools':'Herramientas','settings':'Ajustes','pending':'Actualizaciones'}.get(page)
+        style=self.help_button.get_style_context();style.add_class('active') if page=='help' else style.remove_class('active')
         for name,control in self.nav_buttons.items():
             style=control.get_style_context();style.add_class('active') if name==active else style.remove_class('active')
     def build_library_page(self):
@@ -290,10 +295,16 @@ class ShellMixin:
         device=hardware.describe()
         if device:self.settings_box.pack_start(label(device,'muted'),False,False,0);self.settings_box.pack_start(label('Con una TV o un monitor externo se pueden usar otras frecuencias: Deck Library no limita la pantalla.','meta'),False,False,0)
         from .ui_components import ActionButton
-        for title,description,caption,icon,action in [('Instalaciones y carpetas','Emuladores y carpetas de juegos.','Elegir carpetas','folder',lambda _:self.installation_dialog()),('Carátulas y apariencia','Proveedor de imágenes y animaciones.','Configurar','image',lambda _:self.appearance_dialog()),('ROMs y ports instalados','Gestionar la copia de consola de un juego que ya tiene un port.','Gestionar ROMs','folder',lambda _:self.originals_dialog()),('Juegos de Switch','Convertir un XCI o NSP en la carpeta exefs y romfs que piden algunos ports.','Convertir','folder',lambda _:self.switch_convert_page()),*([('Solicitudes recibidas','Los pedidos de juegos que llegaron al servicio. Solo se ven con la cuenta del propietario.','Ver','community',lambda _:self.owner_requests_page())] if self.preferences.get('owner_mode') else []),('Duplicados y conflictos','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam),('Configuración inicial','Volver a detectar instalaciones.','Iniciar asistente','plus',lambda _:self.start_wizard())]:
-            if title=='Deck Library en Steam' and motion.gaming_mode():continue
-            row=Gtk.Box(spacing=16);row.get_style_context().add_class('settings-row');texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.pack_start(label(title,'title'),False,False,0);texts.pack_start(label(description,'muted'),False,False,0);row.pack_start(texts,True,True,0);row.pack_end(ActionButton(caption,icon,action,'steam' if icon=='steam' else 'quiet'),False,False,0);self.settings_box.pack_start(row,False,False,0)
-            if icon=='steam':self.settings_box.pack_start(label('Si Steam está abierto, el acceso directo se guarda al cerrarlo. Después buscar «Deck Library» en su biblioteca y pulsar Jugar.','meta'),False,False,0)
+        groups=[('General',[('Carátulas y apariencia','Proveedor de imágenes, tema, tamaño de la interfaz, idioma y animaciones.','Configurar','image',lambda _:self.appearance_dialog())]),
+                ('Biblioteca',[('Instalaciones y carpetas','Emuladores y carpetas de juegos.','Elegir carpetas','folder',lambda _:self.installation_dialog())]),
+                ('Mantenimiento',[('Configuración inicial','Volver a detectar instalaciones.','Iniciar asistente','plus',lambda _:self.start_wizard())])]
+        for heading,rows in groups:
+            self.settings_box.pack_start(label(heading,'section-title'),False,False,0)
+            for title,description,caption,icon,action in rows:
+                row=Gtk.Box(spacing=16);row.get_style_context().add_class('settings-row');texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.pack_start(label(title,'title'),False,False,0);texts.pack_start(label(description,'muted'),False,False,0);row.pack_start(texts,True,True,0);row.pack_end(ActionButton(caption,icon,action,'quiet'),False,False,0);self.settings_box.pack_start(row,False,False,0)
+        self.settings_box.pack_start(label('Convertir juegos de Switch, extraer ISO, agregar Deck Library a Steam y revisar duplicados está en Herramientas.','meta'),False,False,0)
+        if self.version_label.get_parent() is not None:self.version_label.get_parent().remove(self.version_label)
+        self.settings_box.pack_start(self.version_label,False,False,0)
         self.settings_box.show_all();self.pages.set_visible_child_name('settings')
     def appearance_dialog(self):
         from .gui import label,button

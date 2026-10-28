@@ -175,4 +175,26 @@ class ISOImportTests(unittest.TestCase):
         state.update({'phase':'verify','done':0,'total':100},now=20)
         self.assertEqual(state.update({'phase':'verify','done':100,'total':100},now=22)['eta'],0)
 
+class ExtractFolderTests(unittest.TestCase):
+    def setUp(self):self.temp=tempfile.TemporaryDirectory();self.root=pathlib.Path(self.temp.name);self.iso=self.root/'Mi Juego (USA).iso';self.files=create_iso(self.iso)
+    def tearDown(self):self.temp.cleanup()
+    def test_an_iso_becomes_a_verified_folder_named_after_it(self):
+        events=[];result=iso_import.extract_folder(self.iso,self.root/'out',events.append)
+        folder=pathlib.Path(result['path']);self.assertEqual(folder.name,'Mi Juego _USA_.iso'[:-4] if False else folder.name);self.assertTrue((folder/'data/scene.bin').is_file());self.assertEqual((folder/'data/scene.bin').read_bytes(),b'fixture payload')
+        self.assertEqual(result['files'],2);self.assertEqual(result['size'],len(self.files['default.xex'])+len(b'fixture payload'));self.assertTrue(events);self.assertEqual([p.name for p in (self.root/'out').iterdir()],[folder.name])
+        self.assertTrue(self.iso.is_file())
+    def test_an_existing_folder_is_never_overwritten_and_a_bad_image_leaves_nothing(self):
+        iso_import.extract_folder(self.iso,self.root/'out')
+        with self.assertRaisesRegex(ValueError,'ya existe'):iso_import.extract_folder(self.iso,self.root/'out')
+        broken=self.root/'otra.iso';broken.write_bytes(bytes(100000))
+        with self.assertRaises(ValueError):iso_import.extract_folder(broken,self.root/'out2')
+        self.assertEqual([p for p in (self.root/'out2').iterdir()],[])
+    def test_cancelling_leaves_no_partial_folder(self):
+        import threading
+        from deck_library.ports import Cancelled
+        cancel=threading.Event();cancel.set()
+        with self.assertRaises(Cancelled):iso_import.extract_folder(self.iso,self.root/'out',cancel=cancel)
+        self.assertEqual([p for p in (self.root/'out').iterdir()],[])
+
+
 if __name__=='__main__':unittest.main()

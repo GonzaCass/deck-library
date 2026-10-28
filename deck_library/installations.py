@@ -36,7 +36,7 @@ def wiicompiled_roots(home=None,preferences=None):
 def report(home=None,preferences=None):
     from .discovery import available_emulators,prism_installations
     home=pathlib.Path(home or pathlib.Path.home());preferences=preferences or DEFAULTS;emudeck=emudeck_paths(home)
-    return {'emudeck':emudeck,'emulators':available_emulators(home,preferences),'prism':prism_installations(home,preferences),'wiicompiled':[str(p) for p in wiicompiled_roots(home,preferences)],'rom_roots':list(dict.fromkeys([emudeck['roms'],*preferences.get('rom_roots',[])])),'port_roots':list(dict.fromkeys([str(home/'ports'),*preferences.get('port_roots',[])]))}
+    return {'emudeck':emudeck,'emulators':available_emulators(home,preferences),'prism':prism_installations(home,preferences),'wiicompiled':[str(p) for p in wiicompiled_roots(home,preferences)],'rom_roots':list(dict.fromkeys([emudeck['roms'],str(home/'DeckLibrary/roms'),*preferences.get('rom_roots',[])])),'port_roots':list(dict.fromkeys([str(home/'ports'),str(home/'DeckLibrary/ports'),*preferences.get('port_roots',[])]))}
 
 
 def apps_folder(root):

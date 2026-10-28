@@ -89,3 +89,13 @@ Los cambios de biblioteca pendientes en Steam son una cola separada: accesos, im
 - **Verificados por Deck Library** (antes «Juegos validados»). Cada juego comprobado muestra **qué se arregló**, cómo se aplica (lo hace Deck Library, perfil incluido o guía manual) y la evidencia. Ahora incluye GTA IV y Spider-Man: Shattered Dimensions, ambos como confirmación de experiencia de usuario.
 - **Pedir un juego** (en Verificados y en Ayuda): nombre, plataforma y qué falla. No se aceptan juegos, archivos ni enlaces; se intenta que funcione y, si se logra, el arreglo se publica sin incluir el juego. Solo la cuenta del propietario ve lo recibido (Ajustes → Solicitudes recibidas); ver [community/README.md](../community/README.md).
 - **Etiquetas del catálogo:** plataforma, requisito de ROM, sistema y estado se muestran sobre la imagen de cada tarjeta; debajo quedan el título, la descripción y el estado de la integración.
+
+## Herramientas, páginas sin ventanas y carpeta DeckLibrary (1.4.1)
+
+- **Herramientas** es una pestaña nueva con las acciones que no son ajustes: **Convertir un juego de Switch** (NSP/XCI a `exefs` + `romfs`), **Extraer una ISO de Xbox o Xbox 360** (verificada, la ISO no se modifica), ROMs y ports instalados, duplicados y conflictos, agregar Deck Library a Steam (solo en Escritorio), reportar un problema y, solo con la cuenta del propietario, las solicitudes recibidas. **Ajustes** queda agrupado en General, Biblioteca y Mantenimiento.
+- **Ports de Switch:** el asistente de Bayonetta 2 ofrece **Convertir un XCI o NSP** además de elegir la carpeta, y al instalar Savage Wind (Breath of the Wild) la app propone convertir el juego en ese momento.
+- **Sin ventanas.** Ayuda es una página de la ventana (la pestaña queda marcada) y todas las páginas internas (reportar, convertir, extraer, pedir un juego…) muestran una **flecha arriba a la izquierda** en lugar del botón Volver. B en el mando vuelve igual.
+- **Mando:** Y abre las opciones del juego (o los filtros de la biblioteca) y Menú abre los filtros.
+- **Avisos y versión.** El aviso de actualizaciones tiene una ✕ para cerrarlo y reaparece solo si cambia. La versión ya no ocupa una fila: está al final de Ajustes y en Actualizaciones.
+- **Verificados** muestra una carátula en cada juego (la de la biblioteca o la del catálogo si existe; si no, el cartel con su nombre).
+- **Carpeta `~/DeckLibrary`** con `ports`, `roms`, `switch` e `iso`. Los ports nuevos se instalan en `~/DeckLibrary/ports`; si `~/ports` ya tiene instalaciones se sigue usando esa carpeta sin moverla. Los ROM puestos en `~/DeckLibrary/roms` se detectan además de los de EmuDeck.

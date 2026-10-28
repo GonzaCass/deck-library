@@ -10,7 +10,8 @@ SWITCH_PORTS={'revivedx/savagewindrecomp','k0nl/b2recomp'}
 PREPARE='Se descarga nstool 1.9.2 (menos de 2 MB), se comprueba su suma SHA-256 y se guarda en la carpeta de datos de Deck Library. Se hace una sola vez.'
 
 class SwitchMixin:
-    def switch_convert_page(self,*_):
+    def switch_convert_page(self,*_,on_done=None):
+        """The conversion page. `on_done(folder)` is called with the converted folder, so a port's setup can use it right away."""
         from .ports import Cancelled
         page=InlineDialog(title='Convertir un juego de Switch',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
         body=page.get_content_area();body.set_spacing(10)
@@ -63,6 +64,7 @@ class SwitchMixin:
             else:
                 facts=[f"{result['files']} archivos",f"{result['size']/1024**3:.1f} GB"]+(['Incluye la actualización'] if result['update'] else [])
                 status.set_text(result['path']+'\n'+' · '.join(facts)+'\nListo. Elegir esa carpeta en el asistente del port.');self.toast('Juego convertido')
+                if on_done:on_done(result['path'])
             refresh();return False
         def run_convert(_):
             if state['busy']:return

@@ -6,32 +6,59 @@ from .ui_components import ActionButton,text,badge,badge_row,Reveal
 from . import bug_report,validated_games
 
 GUIDE=[
- ('1. Encontrar o instalar juegos','Biblioteca muestra los juegos encontrados en la Deck. Catálogo de ports descarga el programa del port; después puede pedir la ROM, ISO o carpeta original para prepararlo.'),
- ('2. Preparar y jugar','Preparar indica que faltan archivos o una compilación. Jugar abre el juego listo. Si no encuentra los originales, elegir su ubicación desde la ficha del port.'),
- ('3. Elegir ajustes','Abrir una carátula y elegir un perfil. Ver detalles muestra sus cambios. Aplicar guarda un respaldo; Deshacer recupera los valores anteriores. Cerrar el juego antes de cambiarlos.'),
- ('4. Usar Steam','Agregar a Steam crea el acceso directo y copia su carátula. Si Steam está abierto, el cambio espera hasta que se cierre; se recupera al iniciar la siguiente sesión. No hace falta recrear el acceso directo al cambiar Proton.'),
- ('5. Compartir con la comunidad','No hace falta una cuenta para jugar o usar perfiles locales. Para publicar o comentar: Cuenta → Crear cuenta, verificar el correo e iniciar sesión. Dentro del juego, Comunidad → Compartir mis ajustes permite capturar la configuración, revisarla y publicarla.'),
- ('6. Entender las pruebas','Instalado significa que hay archivos en la Deck. Sin verificar es una propuesta. Verificado por usuario corresponde a una prueba concreta. Verificados muestra equipo, versión, resultado y limitaciones; no es una certificación de Valve.')
+ ('1. Encontrar juegos','Biblioteca muestra lo que hay en la Deck. Si falta algo, Actualizar biblioteca vuelve a buscar.'),
+ ('2. Instalar un port','Catálogo de ports → elegir un juego → Instalar. La tarjeta indica si hace falta una ROM o un disco.'),
+ ('3. Preparar los originales','Algunos ports piden archivos propios. En Herramientas se convierte un XCI o NSP de Switch y se extrae una ISO de Xbox.'),
+ ('4. Elegir un perfil','Abrir un juego → Perfiles. Elegir uno no cambia nada hasta Aplicar; Deshacer vuelve atrás. Aplicar y jugar hace las dos cosas.'),
+ ('5. Jugar desde Steam','Agregar a Steam crea el acceso con su carátula. Aparece cuando Steam se cierra y se vuelve a abrir.'),
+ ('6. Ver qué está probado','Verificados muestra los juegos comprobados en una Steam Deck y el arreglo de cada uno. No es una certificación de Valve.'),
+ ('7. Pedir un juego','En Verificados, Pedir un juego. No se envía ni se acepta ningún archivo del juego.'),
+ ('8. Usar el mando','A selecciona, B vuelve, LB y RB cambian de pestaña, X abre el teclado, Y abre las opciones del juego, Menú abre los filtros y la palanca derecha desplaza.'),
 ]
 
 class HelpMixin:
     def help_page(self,*_):
-        page=InlineDialog(title='Guía de Deck Library',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
-        body=page.get_content_area();body.set_spacing(12)
-        body.pack_start(text('La biblioteca y los ajustes locales se pueden usar sin cuenta.','muted',90),False,False,0)
+        """Help is a page of the window, not a window: an arrow at the top left leads back to where the person was."""
+        from .ui_components import Icon
+        if not self.discard_game_edits():return
+        current=self.pages.get_visible_child_name()
+        if current!='help':self.help_return=current
+        box=self.help_box;self.reset_page(box);box.set_spacing(12)
+        head=Gtk.Box(spacing=10);back=Gtk.Button();back.add(Icon('back',20));back.get_style_context().add_class('quiet');back.set_tooltip_text('Volver');back.get_accessible().set_name('Volver');back.connect('clicked',lambda _:self.leave_help());back.set_valign(Gtk.Align.CENTER)
+        head.pack_start(back,False,False,0);head.pack_start(text('Ayuda','hero'),True,True,0);box.pack_start(head,False,False,0)
+        box.pack_start(text('La biblioteca y los ajustes locales se pueden usar sin cuenta.','muted',90),False,False,0)
         for title,description in GUIDE:
-            panel=self.card(body,title);panel.pack_start(text(description,'muted',95),False,False,0)
-        actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);body.pack_start(actions,False,False,0)
-        def open_validated(_):
-            page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.validated_page(),False)[1])
-        actions.pack_start(ActionButton('Verificados','check',open_validated,'steam'),False,False,0)
-        actions.pack_start(ActionButton('Pedir un juego','plus',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.request_game_page(),False)[1])),'neutral'),False,False,0)
+            panel=self.card(box,title);panel.pack_start(text(description,'muted',95),False,False,0)
+        actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);box.pack_start(actions,False,False,0)
+        actions.pack_start(ActionButton('Verificados','check',lambda _:self.validated_page(),'steam'),False,False,0)
+        actions.pack_start(ActionButton('Pedir un juego','plus',lambda _:self.request_game_page(),'neutral'),False,False,0)
         actions.pack_start(ActionButton('Reportar un problema','file',lambda _:self.bug_report_page(),'violet-outline'),False,False,0)
-        if (self.store.root/'last-launch-error.json').is_file():
-            def open_launch_error(_):
-                page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.launch_error_page(),False)[1])
-            actions.pack_start(ActionButton('Último error de un juego','file',open_launch_error,'quiet'),False,False,0)
-        page.connect('response',lambda *_:page.destroy());page._mount()
+        if (self.store.root/'last-launch-error.json').is_file():actions.pack_start(ActionButton('Último error de un juego','file',lambda _:self.launch_error_page(),'quiet'),False,False,0)
+        box.show_all();self.pages.set_visible_child_name('help');self.refresh_layout()
+        GLib.idle_add(lambda:(box.get_ancestor(Gtk.ScrolledWindow).get_vadjustment().set_value(0),False)[1])
+
+    def resolve_verified_covers(self,items):
+        """Covers for the verified list: the installed game's own art first, then the catalog's (cached or searched off the GTK thread). Without one the poster keeps its name."""
+        from . import ports
+        from .artwork import find_cover
+        catalog=self.catalog_entries();offline=self.preferences.get('artwork_provider')=='off'
+        lists={'eden':'Nintendo Switch','wiicompiled':'Wii'}
+        local=[(game,find_cover(installed) if installed else '',cover) for game,installed,cover in items]
+        for game,path,cover in local:
+            if path:cover.set_path(path)
+        def work():
+            for game,path,cover in local:
+                if path or offline:continue
+                item=next((v for v in catalog if game['repository'] and v['repository'].casefold()==game['repository'].casefold()),None) or {'name':game['name'],'game_title':game['name'],'list':lists.get(game['adapter'],''),'repository':'verified/'+game['id']}
+                try:found=ports.icon_path(self.store,item)
+                except Exception:found=''
+                if found and not self.ui_closed:GLib.idle_add(cover.set_path,found)
+        threading.Thread(target=work,daemon=True).start()
+
+    def leave_help(self,*_):
+        """Back from Help to the page it was opened from."""
+        target={'home':self.home_page,'validated':self.validated_page,'catalog':self.catalog_page,'updates':self.updates_page,'tools':self.tools_page,'settings':self.settings_page}.get(getattr(self,'help_return','library'),self.open_library)
+        target()
 
     def validated_page(self,*_):
         if not self.discard_game_edits():return
@@ -41,8 +68,14 @@ class HelpMixin:
         body.pack_start(ActionButton('Pedir un juego','plus',lambda _:self.request_game_page(),'steam'),False,False,0)
         search=Gtk.SearchEntry();search.set_placeholder_text('Buscar juegos validados · X: teclado');self.bind_search_keyboard(search);self.validated_search=search;body.pack_start(search,False,False,0)
         results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);body.pack_start(results,False,False,0);self.validated_targets={};panels=[]
+        from .gui import Poster
+        from .models import Entry
+        shown_as={'eden':'Switch','wiicompiled':'Wii','narutorise':'Windows'};covers=[]
         for game in validated_games.catalog():
-            panel=self.card(results,game['name']);panels.append((game,panel))
+            card=self.card(results,None);panels.append((game,card));installed=validated_games.matching(game,self.entries)
+            row=Gtk.Box(spacing=16);card.pack_start(row,False,False,0)
+            cover=Poster(Entry(game['name'],['x'],platform=shown_as.get(game['adapter'],'PC')),'',112,168);cover.set_valign(Gtk.Align.START);row.pack_start(cover,False,False,0);covers.append((game,installed,cover))
+            panel=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);row.pack_start(panel,True,True,0);panel.pack_start(text(game['name'],'title'),False,False,0)
             how={'automatic':('Lo aplica Deck Library','green'),'profile':('Perfil incluido','blue'),'manual':('Guía manual','yellow')}[game['fix_how']]
             panel.pack_start(badge_row([('Gameplay confirmado','green'),how]),False,False,0)
             panel.pack_start(text(game['program']+' · '+game['version'],'meta',85),False,False,0)
@@ -51,7 +84,6 @@ class HelpMixin:
             panel.pack_start(text('Arreglo','title'),False,False,0);panel.pack_start(text(game['fix'],'muted',95),False,False,0)
             details=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);details.pack_start(text('Limitaciones','title'),False,False,0);details.pack_start(text(game['limitations'],'muted',95),False,False,0);details.pack_start(text('Evidencia','title'),False,False,0);details.pack_start(text(game['fix_evidence'],'muted',95),False,False,0);details.pack_start(text('Fecha del registro: '+game['date'],'meta'),False,False,0)
             panel.pack_start(Reveal('Ver condiciones de la prueba',details),False,False,0)
-            installed=validated_games.matching(game,self.entries)
             def open_game(_,entry=installed):
                 self.select_game(entry)
             if installed:
@@ -65,6 +97,7 @@ class HelpMixin:
                 profile=next((p for p in presets.catalog(self.store) if p['id']==game['profile_id']),None)
                 if profile:details.pack_start(text(profile['objective'],'meta',95),False,False,0)
         empty=text('No hay juegos validados con ese nombre.','muted');results.pack_start(empty,False,False,0);empty.set_no_show_all(True)
+        self.resolve_verified_covers(covers)
         def filter_games(_):
             query=search.get_text().strip().casefold();count=0
             for game,panel in panels:

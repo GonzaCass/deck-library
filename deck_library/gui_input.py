@@ -323,6 +323,14 @@ class InputMixin:
                 return True
         return True
 
+    def controller_options(self,action):
+        """Y opens the options of the game on screen (or the library filters); Start opens the library filters."""
+        page=self.pages.get_visible_child_name()
+        if page=='library':self.toggle_library_filters();return True
+        if page=='detail' and action=='options':
+            menu=next((m for m in getattr(self,'game_menus',[]) if m.get_mapped()),None)
+            if menu is not None:menu.clicked()
+        return True
     def controller_action(self,action,window=None):
         import time
         now=time.monotonic();previous=getattr(self,'last_controller_action',('',0))
@@ -352,7 +360,8 @@ class InputMixin:
             return True
         if workflow and action in ('previous_tab','next_tab'):return True
         if action in ('previous_tab','next_tab') and window is self:
-            names=list(self.nav_buttons);tab={'home':'Inicio','library':'Biblioteca','validated':'Verificados','detail':{'home':'Inicio','validated':'Verificados'}.get(getattr(self,'detail_origin','library'),'Biblioteca'),'catalog':'Catálogo de ports','updates':'Actualizaciones','settings':'Ajustes'}.get(self.pages.get_visible_child_name(),'Biblioteca');active=names.index(tab);self.nav_buttons[names[(active+(-1 if action=='previous_tab' else 1))%len(names)]].clicked();return True
+            names=list(self.nav_buttons);tab={'home':'Inicio','library':'Biblioteca','validated':'Verificados','detail':{'home':'Inicio','validated':'Verificados'}.get(getattr(self,'detail_origin','library'),'Biblioteca'),'catalog':'Catálogo de ports','updates':'Actualizaciones','tools':'Herramientas','settings':'Ajustes'}.get(self.pages.get_visible_child_name(),'Biblioteca');active=names.index(tab);self.nav_buttons[names[(active+(-1 if action=='previous_tab' else 1))%len(names)]].clicked();return True
+        if action in ('options','menu') and window is self and not workflow:return self.controller_options(action)
         if action=='back':
             popover=self.current_popover(window)
             if popover:

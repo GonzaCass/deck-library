@@ -62,7 +62,8 @@ button.primary:hover,button.play:hover,button.violet:hover { background-color:@a
 button.play { min-height:36px; }
 button.flat,button.quiet,button.nav,button.game-menu,button.breadcrumb { background:transparent; border-color:transparent; }
 button.quiet:hover,button.nav:hover,button.game-menu:hover { background:@raised; border-color:transparent; }
-button.nav { padding:7px 12px; border-radius:8px; min-height:30px; }
+button.quiet.active { background:#29323d; border-bottom:2px solid @accent; }
+button.nav { padding:7px 9px; border-radius:8px; min-height:30px; }
 button.nav label { color:#c4ccd6; font-size:15px; }
 button.nav.active { background:#29323d; border-bottom:2px solid @accent; }
 button.nav.active label { color:#ffffff; }

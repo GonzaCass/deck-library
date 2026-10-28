@@ -46,7 +46,7 @@ class CatalogMixin:
         box=self.catalog_box;self.reset_page(box)
         head=Gtk.Box(spacing=12);titles=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
         titles.pack_start(label('Catálogo de ports','hero'),False,False,0)
-        intro=label('Catálogos públicos, recomendados y repositorios propios. Se instalan en ~/ports desde la última versión publicada en GitHub. La mayoría necesita los archivos del juego original.','subtitle');intro.set_tooltip_text(intro.get_text())
+        intro=label('Catálogos públicos, recomendados y repositorios propios. Se instalan en ~/DeckLibrary/ports (o en ~/ports si ya se usaba) desde la última versión publicada en GitHub. La mayoría necesita los archivos del juego original.','subtitle');intro.set_tooltip_text(intro.get_text())
         if self.compact_screen():intro.set_line_wrap(False);intro.set_ellipsize(Pango.EllipsizeMode.END);intro.set_max_width_chars(60)
         titles.pack_start(intro,False,False,0)
         head.pack_start(titles,True,True,0);actions=Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL if self.compact_screen() else Gtk.Orientation.VERTICAL,spacing=8);actions.set_valign(Gtk.Align.CENTER)
@@ -484,7 +484,7 @@ class CatalogMixin:
         if not record:self.message('Sin instalación','Deck Library no instaló este port.');return
         linked=[e for e in self.entries if e.metadata.get('port_repository')==item['repository']];in_steam=[e for e in linked if self.in_steam(e)]
         steam='\n\nTambién se quita su acceso directo de Steam, con su carátula y su configuración de mando.' if in_steam else ''
-        if not self.confirm('Desinstalar '+record.get('name',item['name']),'La carpeta ~/ports/'+record['folder']+' se mueve a ~/ports/'+ports.REMOVED+' y el juego sale de la biblioteca. Las partidas guardadas dentro de esa carpeta se van con ella y pueden recuperarse de ahí; nada se borra.'+steam,'Desinstalar',danger=True):return
+        if not self.confirm('Desinstalar '+record.get('name',item['name']),'La carpeta '+ports.display_root()+'/'+record['folder']+' se mueve a '+ports.display_root()+'/'+ports.REMOVED+' y el juego sale de la biblioteca. Las partidas guardadas dentro de esa carpeta se van con ella y pueden recuperarse de ahí; nada se borra.'+steam,'Desinstalar',danger=True):return
         try:result=ports.uninstall(item['repository'],self.store)
         except (OSError,ValueError) as error:self.message('No se pudo desinstalar',str(error));return
         accounts={e.metadata['steam_account'] for e in in_steam if e.metadata.get('steam_account')}
@@ -493,7 +493,7 @@ class CatalogMixin:
             if ids:self.run_queue(lambda:queue_removals(ids,account,self.store),'Preparando la eliminación del acceso directo…')
         self.entries=self.store.load();self.library_dirty=True;self.checked-={e.id for e in linked};self.refresh_platforms()
         if self.selected and self.selected.id in result['ids']:self.selected=None
-        self.set_status(result['name']+' desinstalado. Carpeta guardada en ~/ports/'+ports.REMOVED+'.')
+        self.set_status(result['name']+' desinstalado. Carpeta guardada en '+ports.display_root()+'/'+ports.REMOVED+'.')
         if self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
         elif self.pages.get_visible_child_name()=='library':self.render()
 
@@ -508,7 +508,9 @@ class CatalogMixin:
             self.set_status(item['name']+' instalado. Preparando la configuración…');self.configure_port(item,automatic=True)
         elif record.get('sandbox'):self.message(item['name']+' instalado','Abrirlo desde la biblioteca inicia el asistente: pide el disco y la BIOS propios y compila el juego dentro del SDK de KDE (la primera vez tarda varios minutos). Después se agrega a Steam como cualquier otro juego.')
         elif record['executable']:self.set_status(f'{item["name"]} {record["tag"]} instalado.'+(' Abrir el port para elegir los archivos originales.' if item.get('preparation')=='launcher' else ' Revisar la preparación manual en su ficha.' if item.get('preparation')=='manual' else ''))
-        else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en ~/ports/{record["folder"]}, pero hay varios ejecutables posibles. Elegir el correcto con «Agregar juegos → Elegir un juego o una app».')
+        else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en {ports.display_root()}/{record["folder"]}, pero hay varios ejecutables posibles. Elegir el correcto con «Agregar juegos → Elegir un juego o una app».')
+        from .gui_switch import SWITCH_PORTS
+        if item['repository'].lower() in SWITCH_PORTS and not record.get('setup') and self.confirm('Archivos originales de Switch','Este port pide la carpeta con exefs y romfs del juego. ¿Convertir ahora un XCI o NSP propio para dejarla lista?','Convertir ahora'):GLib.idle_add(lambda:(self.switch_convert_page(),False)[1])
         if getattr(self,'update_state',None):self.update_state['catalog']=[u for u in self.update_state.get('catalog') or [] if u['repository']!=item['repository']];self.refresh_update_badges()
         self.discover()
         if not record.get('setup'):self.port_setup_finished(item)
@@ -539,6 +541,13 @@ class CatalogMixin:
                 if not path:return
                 try:ports.set_input(item['repository'],'original_data',path,self.store);error.set_text('');refresh()
                 except (ValueError,OSError) as exc:error.set_text(str(exc))
+            if record['original_data'].get('kind')=='switch-dump':
+                def convert_package(_):
+                    def converted(folder):
+                        try:ports.set_input(item['repository'],'original_data',folder,self.store);error.set_text('');refresh()
+                        except (ValueError,OSError) as exc:error.set_text(str(exc))
+                    self.switch_convert_page(on_done=converted)
+                body.pack_start(button('Convertir un XCI o NSP',convert_package,True),False,False,0)
             if not record['original_data'].get('iso_only'):body.pack_start(button('Elegir carpeta extraída',lambda w:original_data(w,True)),False,False,0)
             if record['original_data'].get('iso'):body.pack_start(button('Elegir ISO de Xbox 360' if record['original_data'].get('kind') in ('xbox360-dante','xbox360') else 'Elegir ISO de Xbox',original_data),False,False,0)
         for key,caption in (('rom','Elegir ROM'),('disc','Elegir disco'),('bios','Elegir BIOS'),('wiiu','Elegir imagen de Wii U')):
