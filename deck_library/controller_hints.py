@@ -3,12 +3,12 @@ from gi.repository import Gtk
 
 class ControllerHints(Gtk.Box):
     def __init__(self,compact=False):
-        super().__init__(spacing=14)
+        super().__init__(spacing=10)
         self.set_valign(Gtk.Align.CENTER);self.items={};self.compact=compact;self._state=None
         groups=[('activate','A / ✕','Seleccionar'),('back','B / ○','Volver')]
         if not compact:groups += [('move','L','Mover'),('scroll','R','Desplazar'),('tabs','LB/RB · L1/R1','Pestañas'),('search','X / □','Teclado')]
         for name,glyph,caption in groups:
-            item=Gtk.Box(spacing=6);badge=Gtk.Label(label=glyph);badge.get_style_context().add_class('control-glyph')
+            item=Gtk.Box(spacing=5);badge=Gtk.Label(label=glyph);badge.get_style_context().add_class('control-glyph')
             if name in ('move','scroll'):badge.get_style_context().add_class('control-stick');badge.set_tooltip_text('Stick izquierdo / cruceta' if name=='move' else 'Stick derecho')
             label=Gtk.Label(label=caption);label.get_style_context().add_class('control-caption')
             item.pack_start(badge,False,False,0);item.pack_start(label,False,False,0);self.pack_start(item,False,False,0);self.items[name]=(item,label)

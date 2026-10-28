@@ -13,7 +13,8 @@ class PortImage(Gtk.Image):
     def do_get_preferred_height(self):return (148,148)
     def do_draw(self,cr):
         width,height=self.get_allocated_width(),self.get_allocated_height();cr.save();cr.rectangle(0,0,width,height);cr.clip()
-        cr.set_source_rgb(.11,.125,.145);cr.paint()
+        from . import ui_theme
+        cr.set_source_rgb(*ui_theme.drawn('image'));cr.paint()
         pix=self.get_pixbuf() if self.get_storage_type()==Gtk.ImageType.PIXBUF else None
         if pix:
             scale=max(width/pix.get_width(),height/pix.get_height());cr.translate((width-pix.get_width()*scale)/2,(height-pix.get_height()*scale)/2);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,pix,0,0);cr.paint()
@@ -46,9 +47,9 @@ def badge(value, tone='neutral', limit=32):
     return widget
 
 
-def badge_row(values):
+def badge_row(values,per_line=12):
     row=styled(Gtk.FlowBox(),'tag-row');row.set_selection_mode(Gtk.SelectionMode.NONE);row.set_can_focus(False)
-    row.set_min_children_per_line(1);row.set_max_children_per_line(12)
+    row.set_min_children_per_line(1);row.set_max_children_per_line(per_line)
     row.set_column_spacing(6);row.set_row_spacing(5)
     for value,tone in values:
         row.add(badge(value,tone));row.get_children()[-1].set_can_focus(False)
@@ -148,6 +149,13 @@ class Icon(Gtk.DrawingArea):
             for x in (5,12,19):cr.arc(x,12,1.6,0,math.tau);cr.fill()
         elif name == 'library':
             for x,h in [(3,16),(10,19),(17,14)]:cr.rectangle(x,22-h,4,h);cr.stroke()
+        elif name in ('star','star-fill'):
+            for i in range(10):
+                radius=10 if i%2==0 else 4.3;angle=-math.pi/2+i*math.pi/5;point=(12+radius*math.cos(angle),12.8+radius*math.sin(angle))
+                cr.move_to(*point) if i==0 else cr.line_to(*point)
+            cr.close_path()
+            if name=='star-fill':cr.fill_preserve()
+            cr.stroke()
         elif name == 'plus':
             line((4,12),(20,12));line((12,4),(12,20))
         elif name == 'refresh':
@@ -246,7 +254,7 @@ class GameBackdrop(Gtk.DrawingArea):
         w,h=widget.get_allocated_width(),widget.get_allocated_height();radius=12
         cr.save();cr.new_path()
         for x,y,a,b in [(w-radius,radius,-math.pi/2,0),(w-radius,h-radius,0,math.pi/2),(radius,h-radius,math.pi/2,math.pi),(radius,radius,math.pi,math.pi*1.5)]:cr.arc(x,y,radius,a,b)
-        cr.close_path();cr.clip();cr.set_source_rgb(0.071,0.078,0.090);cr.paint();cr.restore()
+        cr.close_path();cr.clip();from . import ui_theme;cr.set_source_rgb(*ui_theme.drawn('backdrop'));cr.paint();cr.restore()
         return False
 
 def tooltip_when_cut(widget,value):

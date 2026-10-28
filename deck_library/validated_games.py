@@ -2,15 +2,18 @@
 import json,pathlib,re
 from . import presets
 
+FIX_HOW=('automatic','profile','manual')
+
 def catalog(path=None):
     path=pathlib.Path(path or pathlib.Path(__file__).resolve().parent.parent/'catalog/validated-games.json')
     value=json.loads(path.read_text())
     if value.get('schema_version')!=1 or not isinstance(value.get('games'),list):raise ValueError('Catálogo de juegos validados inválido.')
     found=set()
     for game in value['games']:
-        if set(game)!={'id','name','game_id','adapter','program','version','repository','hardware','date','profile_id','result','limitations'}:raise ValueError('Ficha de validación incompleta.')
+        if set(game)!={'id','name','game_id','adapter','program','version','repository','hardware','date','profile_id','result','limitations','fix','fix_how','fix_evidence'}:raise ValueError('Ficha de validación incompleta.')
         if not re.fullmatch(r'[a-z0-9-]{1,80}',game['id']) or game['id'] in found or game['adapter'] not in presets.REGISTRY:raise ValueError('Identidad de validación inválida.')
         if game['hardware'] not in ('steam-deck-lcd','steam-deck-oled') or not re.fullmatch(r'\d{4}-\d{2}-\d{2}',game['date']):raise ValueError('Prueba sin equipo o fecha.')
+        if game['fix_how'] not in FIX_HOW or not game['fix'].strip():raise ValueError('Falta qué se arregló y cómo se aplica.')
         if any(not isinstance(v,str) or len(v)>1000 for v in game.values()):raise ValueError('Datos de validación inválidos.')
         if game['repository'] and not re.fullmatch(r'[\w.-]+/[\w.-]+',game['repository']):raise ValueError('Repositorio de validación inválido.')
         found.add(game['id'])

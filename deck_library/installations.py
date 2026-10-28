@@ -2,7 +2,7 @@
 import configparser,json,os,pathlib,re,shutil,subprocess
 from .models import Store,atomic_json
 
-DEFAULTS={'rom_roots':[],'port_roots':[],'quiver_roots':[],'catalog_sources':[],'custom_ports':[],'prefer_ports':True,'emulators':{},'prism_roots':[],'wiicompiled_roots':[],'eden_config':'','view':'covers','catalog_url':'','onboarding_complete':False,'artwork_provider':'automatic','steamgriddb_key':'','animations':True,'community_ratings':True,'check_updates':True,'auto_update':True,'auto_update_ports':False,'catalog_auto':True,'fix_controllers':True,'eden_controls_declined':''}
+DEFAULTS={'rom_roots':[],'port_roots':[],'quiver_roots':[],'catalog_sources':[],'custom_ports':[],'prefer_ports':True,'emulators':{},'prism_roots':[],'wiicompiled_roots':[],'eden_config':'','view':'covers','catalog_url':'','onboarding_complete':False,'artwork_provider':'automatic','steamgriddb_key':'','animations':True,'ui_scale':'normal','theme':'dark','favorites':[],'library_sort':'name','community_ratings':True,'check_updates':True,'auto_update':True,'auto_update_ports':False,'catalog_auto':True,'fix_controllers':True,'eden_controls_declined':''}
 
 def settings(store=None):
     store=store or Store();path=store.root/'settings.json'

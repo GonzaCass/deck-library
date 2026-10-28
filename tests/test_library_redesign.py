@@ -75,7 +75,12 @@ class CommunityTests(unittest.TestCase):
     def test_feedback_one_record_per_user_and_logout(self):
         r=self.request('POST','/v1/presets',self.value,self.token)
         with self.api.db() as db:db.execute("UPDATE presets SET status='approved'")
-        for status in ('works','issues'):self.request('POST','/v1/presets/'+r['id']+'/feedback',{'result':status},self.token)
+        # The author cannot rate their own profile, so a second account gives the feedback.
+        from community.server import digest
+        import time
+        with self.api.db() as db:db.execute('INSERT INTO tokens VALUES(?,?,?,?)',(digest('other-token'),'other-user','Other',time.time()+100))
+        with self.assertRaises(ValueError):self.request('POST','/v1/presets/'+r['id']+'/feedback',{'result':'works'},self.token)
+        for status in ('works','issues'):self.request('POST','/v1/presets/'+r['id']+'/feedback',{'result':status},'other-token')
         with self.api.db() as db:self.assertEqual(db.execute('SELECT count(*) FROM feedback').fetchone()[0],1)
         self.request('POST','/v1/logout',token=self.token)
         with self.assertRaises(PermissionError):self.api.session(self.token)

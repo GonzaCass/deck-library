@@ -65,3 +65,27 @@ Si la API de GitHub falla, la app consulta la redirección pública de la últim
 Se puede instalar la actualización desde modo Juego. La app espera si hay otra instalación o un asistente activo. Después se vuelve a abrir Deck Library; en modo Juego, el botón la cierra para abrirla otra vez desde Steam. El instalador renueva el acceso existente del escritorio y el lanzador administrado de Steam para que apunten a la instalación actual, conservando el AppID, las carátulas personalizadas y los metadatos del acceso. No modifica accesos manuales desconocidos ni otras apps.
 
 Los cambios de biblioteca pendientes en Steam son una cola separada: accesos, imágenes o controles. Por ejemplo, renovar las cinco imágenes oficiales de Deck Library puede producir cinco operaciones pendientes sin que el usuario haya editado cinco juegos. Se muestran una sola vez con su detalle y se aplican cuando Steam está cerrado. La actualización del código de la app no necesita reiniciar Steam; el cliente sí necesita cerrarse para aplicar esa cola de imágenes.
+
+## Legibilidad y objetivos táctiles en la Deck
+
+- El texto más pequeño de la interfaz pasó de 13 a 15 px y el secundario de 14 a 16 px. Botones, campos y desplegables miden unos 48 px de alto, y las casillas 24 px, para pantalla táctil y mando.
+- **Ajustes → Carátulas y apariencia → Tamaño de la interfaz** ofrece Normal, Grande (×1,15) y Muy grande (×1,3). Escala todos los tamaños de fuente y se aplica al guardar, sin reiniciar.
+- Cuenta y Ayuda usan el estilo discreto: el registro es opcional y ya no es lo más llamativo de la cabecera. Las pestañas de la ficha de juego son neutras; el color queda para Jugar, Steam y Aplicar ajustes.
+- Nombres unificados: la página de inicio se llama **Inicio** en todas partes (antes «Resumen»), la pestaña de la ficha es **Perfiles** (antes «Ajustes», que también es el menú de la aplicación), **Actualizar biblioteca** reemplaza a «Buscar instalados» y **Ayuda** reemplaza a «Guía de uso».
+- Un juego sin perfiles ya no reserva la barra fija «Aplicar ajustes». La carátula de relleno de una miniatura muestra una inicial en vez de texto cortado. Las etiquetas del catálogo se agrupan de a dos por fila para que entren tres tarjetas en 1280 px.
+
+## Catálogo, biblioteca vacía y Steam pendiente
+
+- Las tarjetas del catálogo ya no muestran el porcentaje de compatibilidad: una frase llana indica si es **Listo para instalar**, **Se instala con Proton** o **Solo código fuente**, y las etiquetas quedan en plataforma, revisión, variantes y «Nuevo». El índice y su explicación siguen en la ficha del port y en la Guía de compatibilidad. «Juegos validados» comparte fila con esa guía en lugar de ocupar una fila propia.
+- La biblioteca vacía explica qué es un port y ofrece tres acciones: buscar juegos instalados, instalar un port del catálogo y elegir carpetas de juegos.
+- Un juego con un acceso de Steam pendiente muestra **Pendiente en Steam** en su carátula y en su botón; la pantalla de cambios pendientes explica en una frase qué hacer según el modo.
+- **Ajustes → Juegos de Switch** (y un botón en la ficha de Savage Wind y Bayonetta 2) abre la conversión de NSP/XCI a `exefs` + `romfs`; ver [PORTS.md](PORTS.md).
+
+## Temas, favoritos, verificados y solicitudes
+
+- **Temas Negro y Claro** (Ajustes → Carátulas y apariencia → Tema). Los colores salen del degradado del logo (azul `#4780cd` a violeta `#6152b6`); los botones principales (Jugar, Aplicar) usan ese degradado con texto blanco. Negro conserva el fondo casi negro, bueno para el panel OLED; Claro invierte superficies y etiquetas y usa un contorno oscuro en el logo. Hay pruebas de contraste (texto, acento, botones y etiquetas de colores) para ambos temas.
+- **Favoritos y orden.** Cada ficha tiene **Marcar favorito**; la biblioteca se ordena por nombre, por **jugados hace poco** o con los favoritos primero. Inicio muestra **Continuar jugando** con los últimos juegos abiertos (se anotan en un archivo aparte, `played.json`, para que ningún guardado de ajustes los borre). Las carátulas indican «★ Favorito», «Necesita preparación», «En Steam» o «Pendiente en Steam».
+- **Perfiles.** Cada tarjeta dice para qué está pensada («Imagen y fluidez parejas…», «Pensado para ganar fluidez…», «Pensado para una imagen más nítida…»; es la intención de los ajustes, no una medición) y marca **Recomendado** al favorito. **Aplicar y jugar** guarda el perfil con respaldo y abre el juego.
+- **Verificados por Deck Library** (antes «Juegos validados»). Cada juego comprobado muestra **qué se arregló**, cómo se aplica (lo hace Deck Library, perfil incluido o guía manual) y la evidencia. Ahora incluye GTA IV y Spider-Man: Shattered Dimensions, ambos como confirmación de experiencia de usuario.
+- **Pedir un juego** (en Verificados y en Ayuda): nombre, plataforma y qué falla. No se aceptan juegos, archivos ni enlaces; se intenta que funcione y, si se logra, el arreglo se publica sin incluir el juego. Solo la cuenta del propietario ve lo recibido (Ajustes → Solicitudes recibidas); ver [community/README.md](../community/README.md).
+- **Etiquetas del catálogo:** plataforma, requisito de ROM, sistema y estado se muestran sobre la imagen de cada tarjeta; debajo quedan el título, la descripción y el estado de la integración.

@@ -37,6 +37,18 @@ def intent(profile):
     return 'monitor', profile['objective']
 
 
+OUTCOMES = {
+    'equilibrado': 'Imagen y fluidez parejas: un buen punto de partida.',
+    'rendimiento': 'Pensado para ganar fluidez y gastar menos; la imagen baja.',
+    'calidad': 'Pensado para una imagen más nítida; puede costar fluidez.',
+}
+
+
+def outcome(profile):
+    """What the profile is designed for, in one sentence. It describes the intent of its settings, not a measured result."""
+    return OUTCOMES.get(title(profile).casefold(), '')
+
+
 def value_text(adapter, key, value):
     if value == 'predeterminado' or value is None:
         return 'Del programa'

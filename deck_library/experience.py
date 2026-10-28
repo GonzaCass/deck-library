@@ -108,7 +108,7 @@ class ExperienceMixin:
             body.pack_start(label('Cada carátula abre la ficha del juego: jugar, aplicar ajustes o agregarlo a Steam.','title'),False,False,16)
             body.pack_start(label('Para agregar varios a la vez, activar «Seleccionar». Los accesos directos se guardan cuando Steam se cierra. Una cuenta solo hace falta para publicar o comentar ajustes.','muted'),False,False,0)
             body.pack_start(button('Ver la guía de uso',self.help_page),False,False,0)
-            body.pack_start(button('Juegos validados',lambda _:self.validated_page()),False,False,0)
+            body.pack_start(button('Verificados',lambda _:self.validated_page()),False,False,0)
             footer.pack_start(button('Atrás',lambda _:self.wizard_back()),False,False,0);footer.pack_end(button('Abrir biblioteca',lambda _:self.leave_wizard(True),True),False,False,0)
         box.show_all();stack.set_visible_child(box)
         def remove_previous():

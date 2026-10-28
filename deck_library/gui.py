@@ -14,6 +14,8 @@ from .steam import find_accounts,active_account
 from .installations import settings,save_settings,report
 from .gui_tools import ToolsMixin
 from .gui_library import LibraryToolsMixin
+from .gui_switch import SwitchMixin
+from .gui_requests import RequestsMixin
 from .gui_community import CommunityMixin
 from .gui_updates import UpdatesMixin
 from .gui_catalog import CatalogMixin
@@ -21,8 +23,9 @@ from .library_view import TYPES,entry_type,visible_entries
 from .experience import ExperienceMixin
 from .artwork import find_cover
 
-from .ui_theme import CSS,load_fonts
+from .ui_theme import CSS,css,load_fonts
 load_fonts()
+PROVIDER=None
 
 TONES={'play':'play','danger':'danger','presets':'violet','steam':'steam','controls':'amber'}
 
@@ -105,6 +108,8 @@ class Poster(Gtk.DrawingArea):
             pw=self.pixbuf.get_width();ph=self.pixbuf.get_height();scale=max(w/pw,h/ph);cr.save();cr.rectangle(0,0,w,h);cr.clip();cr.translate((w-pw*scale)/2,(h-ph*scale)/2);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,self.pixbuf,0,0);cr.get_source().set_extend(cairo.EXTEND_PAD);cr.paint();cr.restore()
         else:
             from gi.repository import PangoCairo
+            if w<100:
+                layout=self.create_pango_layout(self.entry.name.strip()[:1].upper() or '?');layout.set_font_description(Pango.FontDescription('Sans Bold '+str(max(10,int(w/2.4)))));tw,th=layout.get_pixel_size();cr.set_source_rgb(.93,.95,.98);cr.move_to((w-tw)/2,(h-th)/2);PangoCairo.show_layout(cr,layout);return False
             cr.set_source_rgba(1,1,1,.06)
             for offset in range(-int(h),int(w),38):cr.move_to(offset,0);cr.line_to(offset+h,h)
             cr.set_line_width(14);cr.stroke()
@@ -135,16 +140,18 @@ from .gui_home import HomeMixin
 from .gui_help import HelpMixin
 from .gui_variants import VariantsMixin
 
-class Window(VariantsMixin,HelpMixin,HomeMixin,OriginalsMixin,InputMixin,ProgressMixin,GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,ActionsMixin,CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
+class Window(RequestsMixin,SwitchMixin,VariantsMixin,HelpMixin,HomeMixin,OriginalsMixin,InputMixin,ProgressMixin,GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,ActionsMixin,CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self,title='Deck Library');self.init_shell()
 
 
 def run():
     GLib.set_prgname('deck-library');GLib.set_application_name('Deck Library')
-    Gtk.Settings.get_default().set_property('gtk-application-prefer-dark-theme',True)
+    from . import ui_theme
+    chosen=settings(Store()).get('theme','dark');ui_theme.set_theme(chosen);Gtk.Settings.get_default().set_property('gtk-application-prefer-dark-theme',chosen!='light')
     Gtk.Window.set_default_icon_from_file(str(pathlib.Path(__file__).resolve().parent.parent/'assets/icon.png'))
-    provider=Gtk.CssProvider();provider.load_from_data(CSS);Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
+    global PROVIDER
+    PROVIDER=Gtk.CssProvider();PROVIDER.load_from_data(css(settings(Store()).get('ui_scale','normal'),chosen));Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),PROVIDER,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
     from . import i18n
     i18n.setup(settings(Store()))
     window=Window();window.show_all();Gtk.main();i18n.dump_missed()
