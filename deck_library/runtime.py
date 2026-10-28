@@ -95,7 +95,10 @@ def launch(entry,store=None,notify=True):
     if blocking:
         if notify:show_error('\n'.join(blocking),store,entry)
         return 1
-    try:env=prepare_eden_profile(entry,store,clean_environment())
+    try:
+        env=prepare_eden_profile(entry,store,clean_environment())
+        from .switch_port import launch_environment
+        env=launch_environment(entry,env,store)
     except (OSError,configparser.Error,RuntimeError) as error:
         if notify:show_error('No se pudo preparar '+entry.name+'.\n'+str(error),store,entry)
         return 1

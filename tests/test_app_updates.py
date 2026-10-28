@@ -11,6 +11,16 @@ class AppUpdatesTests(unittest.TestCase):
     def setUp(self):self.temp=tempfile.TemporaryDirectory();self.root=pathlib.Path(self.temp.name);self.store=Store(self.root/'private')
     def tearDown(self):self.temp.cleanup()
 
+    def test_an_inflight_check_cannot_restore_an_offer_for_a_port_just_installed(self):
+        row={'name':'Game','repository':'Example/Port','installed':'v1','latest':'v2'}
+        state={'catalog':[row],'ports':[row],'app':None}
+        atomic_json(self.store.root/'ports.json',{'example/port':{'tag':'v2'}})
+        reconciled=updates.reconcile_ports(state,self.store)
+        self.assertEqual(reconciled['catalog'],[]);self.assertEqual(reconciled['ports'],[])
+        self.assertEqual(len(state['catalog']),1)
+        atomic_json(self.store.root/'ports.json',{'example/port':{'tag':'v1'}})
+        self.assertEqual(updates.reconcile_ports(state,self.store)['catalog'],[row])
+
     def test_upgrading_the_app_invalidates_its_own_check_without_rescanning_ports(self):
         now=time.time();atomic_json(updates.cache_path(self.store),{'checked':now,'app_checked':now,'app_checked_version':'old','app':None})
         calls=[]

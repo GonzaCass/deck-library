@@ -510,11 +510,7 @@ class CatalogMixin:
         elif record.get('sandbox'):self.message(item['name']+' instalado','Abrirlo desde la biblioteca inicia el asistente: pide el disco y la BIOS propios y compila el juego dentro del SDK de KDE (la primera vez tarda varios minutos). Después se agrega a Steam como cualquier otro juego.')
         elif record['executable']:self.set_status(f'{item["name"]} {record["tag"]} instalado.'+(' Abrir el port para elegir los archivos originales.' if item.get('preparation')=='launcher' else ' Revisar la preparación manual en su ficha.' if item.get('preparation')=='manual' else ''))
         else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en {ports.display_root()}/{record["folder"]}, pero hay varios ejecutables posibles. Elegir el correcto con «Agregar juegos → Elegir un juego o una app».')
-        from .gui_switch import SWITCH_PORTS
-        if item['repository'].lower() in SWITCH_PORTS and not record.get('setup') and self.confirm('Archivos originales de Switch','Este port pide la carpeta con exefs y romfs del juego. ¿Convertir ahora un XCI o NSP propio para dejarla lista?','Convertir ahora'):
-            from .gui_switch import minimum_for
-            GLib.idle_add(lambda:(self.switch_convert_page(minimum=minimum_for(item['repository'])),False)[1])
-        if getattr(self,'update_state',None):self.update_state['catalog']=[u for u in self.update_state.get('catalog') or [] if u['repository']!=item['repository']];self.refresh_update_badges()
+        if getattr(self,'update_state',None):self.update_state=updates.reconcile_ports(self.update_state,self.store);self.refresh_update_badges()
         self.discover()
         if not record.get('setup'):self.port_setup_finished(item)
         if self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
@@ -522,6 +518,14 @@ class CatalogMixin:
 
     def port_inputs(self,item):
         from .gui import label,button
+        record=ports.records(self.store).get(item['repository'],{})
+        if (record.get('original_data') or {}).get('kind')=='switch-dump':
+            chosen=[False]
+            def selected(folder):
+                ports.set_input(item['repository'],'original_data',folder,self.store);chosen[0]=True
+            from .gui_switch import minimum_for
+            page=self.switch_convert_page(on_done=selected,minimum=minimum_for(item['repository']))
+            page.run();page.destroy();return chosen[0]
         page=InlineDialog(title='Preparar '+item['name'],transient_for=self);page.add_button('Más tarde',Gtk.ResponseType.CANCEL);ready=page.add_button('Preparar',Gtk.ResponseType.OK)
         body=page.get_content_area();summary=label('','muted');body.pack_start(summary,False,False,0)
         error=label('','status');body.pack_start(error,False,False,0)

@@ -25,8 +25,8 @@ def validate(path,spec):
         from .dante import validate as check
         return check(path)
     if spec.get('kind')=='switch-dump':
-        if path.is_dir() and (path/'exefs/main').is_file() and (path/'romfs').is_dir():return path
-        raise ValueError('Elegir la carpeta extraída con exefs/main y romfs de Bayonetta 2 v1.2. No sirve un NSP/XCI cifrado: se convierte desde Ajustes → Juegos de Switch.')
+        from .switch_extract import extracted_folder
+        return extracted_folder(path)
     if path.is_file() and spec.get('iso') and path.suffix.lower() in ('.iso','.xiso') and path.stat().st_size:return path
     if path.is_dir() and (path/'default.xbe').is_file():
         from .ports import sha256_file

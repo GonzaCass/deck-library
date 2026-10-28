@@ -81,10 +81,10 @@ class GameMixin:
     def build_game_navigation(self,entry):
         tabs=Gtk.Box(spacing=8);styled(tabs,'game-tabs')
         self.game_section_controls={}
-        sections=[('profiles','Perfiles','sliders','neutral'),('controls','Controles','controller','neutral')]
-        sections.append(('content','Contenido','folder','neutral') if entry.platform=='Switch' else ('files','Archivos y Steam','folder','neutral'))
+        sections=[('profiles','Perfiles','sliders','violet-outline'),('controls','Controles','controller','cyan')]
+        sections.append(('content','Contenido','folder','steam') if entry.platform=='Switch' else ('files','Archivos y Steam','folder','steam'))
         if presets.adapter_for(entry) in ('eden','duckstation','dolphin','prism','pcsx2','azahar','ppsspp'):
-            sections.append(('options','Avanzados','monitor','neutral'))
+            sections.append(('options','Avanzados','monitor','amber'))
         for section,caption,icon,tone in sections:
             control=ActionButton(caption,icon,lambda _,s=section:self.open_game_section(s),tone)
             styled(control,'game-section');control.section_id=section
@@ -93,7 +93,7 @@ class GameMixin:
         linked=associations(self.entries,self.preferences.get('unlinked_originals',[])).get(entry.id,[])
         if linked:tabs.pack_start(ActionButton(rom_caption(linked),'file',lambda _:self.originals_dialog(entry),'quiet'),False,False,0)
         if presets.adapter_for(entry) in presets.REGISTRY:
-            tabs.pack_end(ActionButton('Comunidad','community',lambda _:self.community_dialog(entry),'neutral'),False,False,0)
+            tabs.pack_end(ActionButton('Comunidad','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0)
         scroll=self.new_scroll();scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);scroll.add(tabs)
         self.detail.pack_start(scroll,False,False,0)
         self.update_game_navigation()
@@ -194,10 +194,10 @@ class GameMixin:
         self.game_steam_entry=entry
         self.refresh_game_steam()
         actions.pack_start(steam, False, False, 0)
-        artwork = ActionButton('Carátula', 'image', lambda _: self.artwork_dialog(entry))
+        artwork = ActionButton('Carátula', 'image', lambda _: self.artwork_dialog(entry),'cyan')
         actions.pack_start(artwork, False, False, 0)
         favourite = self.is_favorite(entry)
-        self.game_favorite_button = ActionButton('Favorito' if favourite else 'Marcar favorito', 'star-fill' if favourite else 'star', lambda _: self.toggle_favorite(entry), 'neutral')
+        self.game_favorite_button = ActionButton('Favorito' if favourite else 'Marcar favorito', 'star-fill' if favourite else 'star', lambda _: self.toggle_favorite(entry), 'amber')
         actions.pack_start(self.game_favorite_button, False, False, 0)
         compact_menu=self.game_menu(entry,compact=True)
         compact_menu.set_tooltip_text('Más opciones del juego')
@@ -354,7 +354,7 @@ class GameMixin:
         card = Gtk.Button()
         styled(card, 'profile-card')
         card.profile_id = profile['id']
-        body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=6)
+        body = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         top = Gtk.Box(spacing=8)
         icon_name, description = display.intent(profile)
         top.pack_start(styled(Icon(icon_name,20),'violet-icon'), False, False, 0)
@@ -366,7 +366,8 @@ class GameMixin:
         top.pack_end(card.selection_icon, False, False, 0)
         body.pack_start(top, False, False, 0)
         sentence = display.outcome(profile)
-        if sentence:body.pack_start(text(sentence, 'muted', 44), False, False, 0)
+        if sentence:
+            summary_label=text(sentence,'muted',44);summary_label.set_lines(2);summary_label.set_ellipsize(Pango.EllipsizeMode.END);body.pack_start(summary_label,False,False,0)
         values = display.highlights(profile)
         summary = ' · '.join(value for _,value in values)
         spec=text(summary or description, 'profile-spec', 40);spec.set_line_wrap(False);spec.set_ellipsize(Pango.EllipsizeMode.END)
@@ -376,7 +377,7 @@ class GameMixin:
         verified=badge(display.verification(profile),'green' if profile['tested']['status']!='proposal' else 'neutral',22);verified.set_tooltip_text(state);foot.pack_start(verified,False,False,0)
         if favourite:foot.pack_start(badge('Recomendado','blue',14),False,False,0)
         card.rating_label=text('★ Sin valoraciones','rating',20);card.rating_label.set_line_wrap(False);card.rating_label.set_ellipsize(Pango.EllipsizeMode.END)
-        foot.pack_end(card.rating_label,False,False,0);body.pack_start(foot,False,False,0)
+        body.pack_start(foot,False,False,0);body.pack_start(card.rating_label,False,False,0)
         card.add(body)
         card.get_accessible().set_name(display.title(profile)+' · '+description+' · '+state)
         card.set_tooltip_text(profile['name']+'\n'+profile['objective']+(('\n'+summary) if summary else ''))
@@ -386,6 +387,13 @@ class GameMixin:
 
     def build_profile_picker(self, entry, content, parent):
         self.community_profile_box=None
+        actions=Gtk.Box(spacing=8)
+        for caption,icon,action,tone in [
+            ('Crear mis ajustes','upload',lambda _:self.community_dialog(entry,mode='publish'),'cyan'),
+            ('Buscar en la comunidad','community',lambda _:self.community_dialog(entry),'violet'),
+            ('Importar archivo','download',lambda _:self.import_game_profile(entry),'steam-outline')]:
+            actions.pack_start(ActionButton(caption,icon,action,tone),False,False,0)
+        content.pack_start(actions,False,False,0)
         profiles = presets.recommended(entry, self.store)
         best = presets.best_for(entry, self.store) or next((p['id'] for p in profiles[:3] if presets.is_bundled(p) and p['tested']['status']=='user-confirmed'),next((p['id'] for p in profiles[:3] if presets.is_bundled(p) and p['tested']['status']=='boot-tested'),''))
         self.profile_selection = None
@@ -417,15 +425,18 @@ class GameMixin:
         self.profile_restore = ActionButton('Deshacer','undo',lambda _:self.restore_game_profile(entry))
         self.profile_restore.set_tooltip_text('Restaurar la configuración anterior al último ajuste')
         self.profile_restore.set_sensitive((self.store.root/'applied-presets'/(entry.id+'.json')).exists())
-        self.profile_apply = ActionButton('Aplicar ajustes','sliders',lambda _:self.apply_game_profile(entry),'neutral')
+        self.profile_apply = ActionButton('Aplicar ajustes','sliders',lambda _:self.apply_game_profile(entry),'cyan')
         self.profile_apply.set_sensitive(False)
         self.profile_apply_play = ActionButton('Aplicar y jugar','play',lambda _:self.apply_game_profile(entry,True),'play')
         self.profile_apply_play.set_sensitive(False)
-        self.profile_apply.connect('notify::sensitive',lambda button,_:self.profile_apply_play.set_sensitive(button.get_sensitive()))
         dock.pack_end(self.profile_apply_play,False,False,0)
         dock.pack_end(self.profile_apply,False,False,0)
         dock.pack_end(self.profile_restore,False,False,0)
         parent.pack_end(dock,False,False,0)
+        self.profile_rate=ActionButton('Valorar este perfil','community',lambda _:self.community_dialog(entry,self.profile_selection['id'],mode='feedback') if self.profile_selection else None,'violet-outline')
+        self.profile_feedback.pack_end(self.profile_rate,False,False,0)
+        self.profile_apply.set_tooltip_text('Guarda los ajustes y un respaldo. No abre el juego.')
+        self.profile_apply_play.set_tooltip_text('Guarda los ajustes y abre el juego en un paso.')
         self.profile_dock = dock
 
         def choose(profile):
@@ -448,7 +459,7 @@ class GameMixin:
             notes.set_visible(bool(guide))
             if not presets.automatic(profile):
                 self.profile_status.set_text('Guía manual · Los pasos y comandos se muestran como texto.')
-                self.profile_dock_note.set_text('Revisar las instrucciones del perfil.');self.profile_apply.set_sensitive(False)
+                self.profile_dock_note.set_text('Revisar las instrucciones del perfil.');self.profile_apply.set_sensitive(False);self.profile_apply_play.set_sensitive(False)
                 self.profile_disclosure.control.set_label('Ver instrucciones');self.profile_disclosure.revealer.set_reveal_child(True);self.profile_disclosure.control.set_icon('down')
                 changes.show_all();return
             self.reset_page(changes)
@@ -473,6 +484,8 @@ class GameMixin:
                 self.profile_apply.set_label('Aplicar ajustes' if count else 'Aplicado')
                 self.profile_apply.set_icon('sliders' if count else 'check')
                 self.profile_apply.set_sensitive(bool(count) and not getattr(self,'profile_job',False))
+                self.profile_apply_play.set_sensitive(not getattr(self,'profile_job',False))
+                self.profile_apply_play.set_label('Aplicar y jugar' if count else 'Jugar')
                 self.profile_feedback_icon.name = 'sliders' if count else 'check'
                 self.profile_feedback_icon.queue_draw()
                 self.profile_disclosure.control.set_label(f'Detalles del perfil · {count} cambios' if count else 'Ver detalles del perfil')
@@ -480,7 +493,7 @@ class GameMixin:
             except Exception as error:
                 self.profile_status.set_text('Falta completar la configuración: '+str(error))
                 self.profile_dock_note.set_text('Completar los datos del acceso directo para aplicar ajustes.')
-                self.profile_apply.set_sensitive(False)
+                self.profile_apply.set_sensitive(False);self.profile_apply_play.set_sensitive(False)
                 changes.pack_start(ActionButton('Completar datos del juego','file',lambda _:self.manual(entry),'steam-outline'),False,False,0)
             changes.show_all()
         self.refresh_profile_preview = lambda: choose(self.profile_selection) if self.profile_selection else None
@@ -493,28 +506,18 @@ class GameMixin:
             content.pack_start(cards,False,False,0)
             content.pack_start(self.profile_feedback,False,False,0)
             content.pack_start(self.profile_disclosure,False,False,0)
-            self.community_profile_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
-            community_head=Gtk.Box(spacing=10);community_head.pack_start(text('Ajustes de la comunidad','section-title'),True,True,0);community_head.pack_end(ActionButton('Ver todos','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0);content.pack_start(community_head,False,False,10)
-            content.pack_start(self.community_profile_box,False,False,0)
-            if not self.signed_in():content.pack_start(text('Para publicar ajustes o valorar perfiles hace falta una cuenta (botón Cuenta, arriba).','muted'),False,False,0)
-            self.community_profile_box.pack_start(text('Consultar perfiles, valoraciones y comentarios.','muted'),False,False,0)
-            others = [p for p in profiles[3:] if not presets.is_bundled(p)]  # only the three standard profiles are ours; the rest are imported or saved by the user
-            if others:
-                extra = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
-                for profile in others:extra.pack_start(self.profile_card(profile,choose,profile['id']==best),False,False,0)
-                content.pack_start(text('Otros perfiles · '+str(len(others)),'section-title'),False,False,10)
-                content.pack_start(extra,False,False,0)
+            alternatives=[p for p in profiles[3:] if not presets.is_bundled(p)]
+            if alternatives:
+                extra=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
+                extra.pack_start(text('Alternativas y perfiles guardados. Compatibilidad prioriza la precisión de la emulación y puede reducir los FPS; no indica que el juego esté verificado.','muted',85),False,False,0)
+                for profile in alternatives:extra.pack_start(self.profile_card(profile,choose,profile['id']==best),False,False,0)
+                content.pack_start(Reveal('Alternativas y perfiles guardados · '+str(len(alternatives)),extra),False,False,0)
             selected = self.profile_choice.get(entry.id,best)
             choose(next((value for value in profiles if value['id']==selected),profiles[0]))
         else:
             empty = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10),'surface-panel')
             empty.pack_start(text('Todavía no hay un perfil para este juego.','title'),False,False,0)
             if entry.metadata.get('engine')=='reeot':empty.pack_start(text('Project 2099 Beta 5 cambió de motor. Los perfiles verificados de Beta 4.1 se conservan para esa versión; no se aplican a la nueva.','muted'),False,False,0)
-            row = Gtk.Box(spacing=10)
-            row.pack_start(ActionButton('Buscar en la comunidad','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0)
-            row.pack_start(ActionButton('Crear mis ajustes','upload',lambda _:self.community_dialog(entry,mode='publish'),'cyan'),False,False,0)
-            row.pack_start(ActionButton('Importar archivo','download',lambda _:self.import_game_profile(entry)),False,False,0)
-            empty.pack_start(row,False,False,0)
             if presets.adapter_for(entry) in ('eden','duckstation','dolphin','prism','pcsx2','azahar','ppsspp'):
                 empty.pack_start(ActionButton('Editar ajustes manualmente','sliders',lambda _:self.open_game_section('options')),False,False,0)
             content.pack_start(empty,False,False,0)
@@ -523,6 +526,13 @@ class GameMixin:
             # Without profiles there is nothing to apply: do not reserve a bar for disabled buttons.
             dock.set_no_show_all(True);dock.hide()
 
+        if not profiles:self.profile_rate.hide();self.profile_rate.set_no_show_all(True)
+        community_head=Gtk.Box(spacing=8);community_head.pack_start(text('Ajustes de la comunidad','section-title'),True,True,0)
+        community_head.pack_end(ActionButton('Ver perfiles y valoraciones','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0)
+        content.pack_start(community_head,False,False,0)
+        self.community_profile_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);content.pack_start(self.community_profile_box,False,False,0)
+        self.community_profile_box.pack_start(text('Consultar perfiles, valoraciones y comentarios.','muted'),False,False,0)
+        if not self.signed_in():content.pack_start(text('Hace falta una cuenta para publicar, valorar o comentar.','meta',85),False,False,0)
         self.fetch_game_ratings(entry)
 
     def fetch_game_ratings(self,entry):
@@ -562,12 +572,16 @@ class GameMixin:
 
     def apply_game_profile(self, entry, then_play=False):
         value = self.profile_selection
-        if not value or not self.profile_apply.get_sensitive() or getattr(self,'profile_job',False):return
+        if not value or getattr(self,'profile_job',False):return
+        if then_play and not self.profile_apply.get_sensitive() and self.profile_apply_play.get_sensitive():
+            self.launch_from_game(entry,self.game_play_button);return
+        if not self.profile_apply.get_sensitive():return
         self.profile_job = True
         owner = self.profile_dock
         cards = list(self.profile_cards)
         for card in cards:card.set_sensitive(False)
         self.profile_apply.set_sensitive(False)
+        self.profile_apply_play.set_sensitive(False)
         self.profile_apply.set_label('Aplicando…')
         self.profile_restore.set_sensitive(False)
         self.profile_status.set_text('Guardando respaldo y ajustes…')
@@ -590,6 +604,7 @@ class GameMixin:
             for card in cards:card.set_sensitive(True)
             if error:
                 self.profile_status.set_text('No se pudo aplicar: '+error)
+                self.profile_apply_play.set_sensitive(True)
                 self.profile_apply.set_label('Reintentar')
                 self.profile_apply.set_sensitive(True)
                 self.profile_restore.set_sensitive((self.store.root/'applied-presets'/(entry.id+'.json')).exists())
@@ -699,7 +714,7 @@ class GameMixin:
         self.proton_combo=combo;self.proton_save_button=control
 
     def build_game_files(self, entry, body):
-        body.pack_start(ActionButton('Reportar un problema con este juego','file',lambda _:self.bug_report_page(entry),'violet-outline'),False,False,0)
+        body.pack_start(ActionButton('Reportar un problema o hacer una solicitud','file',lambda _:self.support_page(entry),'violet'),False,False,0)
         self.build_proton_selector(entry,body)
         if entry.metadata.get('port_repository'):
             from . import ports

@@ -62,7 +62,7 @@ class Index:
         for issue in self.issues.get(repo,[]):
             if normalized and normalized in {version(v) for v in issue['versions']}:
                 return {**result,'state':'issue','label':'Problema conocido · '+tag,'tone':'red','issue':issue['description'],'report':alternative[-1] if alternative else None}
-        if exact:return {**result,'state':'verified','label':'Verificado en Deck · '+exact['version'],'tone':'green','report':exact}
+        if exact:return {**result,'state':'verified','label':'Verificado en Deck','tone':'green','report':exact}
         if reports:
             report=reports[-1]
             return {**result,'state':'different-version' if normalized else 'version-unknown','label':'Versión sin validar' if normalized else 'Prueba disponible · '+report['version'],'tone':'yellow' if normalized else 'blue','report':report}

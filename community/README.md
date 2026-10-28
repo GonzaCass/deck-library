@@ -100,3 +100,11 @@ API: `POST /v1/requests` (sin cuenta, 5 por hora y cliente), `GET /v1/me/request
 
 
 Desde 1.4.3, «Mis solicitudes» se vincula a la identidad autenticada (`uid`), no al alias. Un cambio de nombre mantiene los pedidos propios y otra cuenta con el mismo alias no los recibe. La migración conserva los pedidos anteriores sin asignarlos a una identidad por su nombre: siguen disponibles en el panel del propietario. `COMMUNITY_ADMINS` controla ese panel; no convierte a la cuenta en moderadora de perfiles comunitarios.
+
+## Solicitudes y respuestas
+
+La entrada **Reportar un problema o hacer una solicitud** separa los diagnósticos de las solicitudes de soporte. Las solicitudes distinguen ports (con repositorio público de GitHub), juegos emulados, juegos nativos e instancias de Minecraft. No se reciben archivos de juegos.
+
+En **Herramientas → Solicitudes recibidas**, los administradores de `COMMUNITY_ADMINS` pueden responder con texto, cambiar el estado o hacer ambas cosas. Las respuestas conservan su historial. Quien envió la solicitud con una cuenta recibe un aviso destacado dentro de la app; se consulta al iniciar sesión y cada 45 segundos mientras está abierta. Leer las respuestas marca solo la versión mostrada como leída. Las solicitudes anónimas no permiten avisar al remitente. No se envían notificaciones de escritorio, correo ni mensajes externos para estas respuestas.
+
+La actualización migra SQLite automáticamente: añade tipo, repositorio, fecha de lectura y la tabla de respuestas. Conservar el volumen y hacer un respaldo antes de desplegar. Tanto `/v1/me/requests` como sus confirmaciones de lectura se limitan a la identidad autenticada. Las rutas de administración siguen restringidas a cuentas Keycloak autorizadas.

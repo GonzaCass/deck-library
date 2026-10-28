@@ -10,6 +10,7 @@ HACTOOL={'tag':'1.4.0','commit':'3121a5bf08cd81d3a99719feb2cab3b60767afd5','sha2
 HACTOOL['url']='https://github.com/SciresM/hactool/archive/'+HACTOOL['commit']+'.tar.gz'
 # nstool applies recent updates (BKTR) that hactool 1.4.0 cannot read, and it ships a prebuilt Linux binary: it is the preferred tool.
 NSTOOL={'tag':'1.9.2','sha256':'2ab1d484d79199d1bb428cb920a49cece0ae4d7129c80120eaf48b7361785351','url':'https://github.com/jakcron/nstool/releases/download/v1.9.2/nstool-v1.9.2-ubuntu_x86_64.zip'}
+NSTOOL_BINARY_SHA256='b77319d6fb1840599b822a710ec9260a9b32bd51e0f32a472852a8fd2430b67c'
 MANIFEST='.deck-library-switch-extract.json'
 SUFFIXES=('.nsp','.xci')
 # Ports that ask for an extracted exefs/romfs folder, with the Title ID of the game they expect.
@@ -127,6 +128,23 @@ def tool_folder(store):return pathlib.Path(store.root)/'tools/hactool'
 
 def nstool_folder(store):return pathlib.Path(store.root)/'tools/nstool'
 
+def bundled_tool():
+    """Redistributed upstream Linux x86-64 executable, with its license and pinned digest."""
+    import platform
+    from .ports import sha256_file
+    path=pathlib.Path(__file__).resolve().parent.parent/'assets/tools/nstool/nstool'
+    if platform.system()!='Linux' or platform.machine().lower() not in ('x86_64','amd64'):return ''
+    if path.is_file() and os.access(path,os.X_OK) and sha256_file(path)==NSTOOL_BINARY_SHA256:return str(path)
+    return ''
+
+def extracted_folder(path):
+    """Accept a dump root, or its exefs/romfs child. No guessing by game name."""
+    path=pathlib.Path(path).expanduser()
+    if path.name.lower() in ('exefs','romfs'):path=path.parent
+    if not path.is_dir() or not (path/'exefs/main').is_file() or not (path/'romfs').is_dir():
+        raise ValueError('Elegir la carpeta que contiene exefs/main y romfs.')
+    return path.resolve()
+
 def fetch_nstool(store,progress=print,cancel=None,fetch=None):
     """Download the pinned nstool release, check its SHA-256 and keep only its executable. No compiler is needed."""
     import zipfile
@@ -160,7 +178,7 @@ def tool_path(store=None,preferences=None,home=None):
     if store is not None:candidates.append(str(tool_folder(store)/'hactool'))
     for candidate in candidates:
         if candidate and os.access(candidate,os.X_OK) and is_hactool(candidate):return str(candidate)
-    return ''
+    return bundled_tool()
 
 def build_tool(store,progress=print,cancel=None,run=None,fetch=None):
     """Download the pinned hactool source, check its SHA-256 and compile it. Uses the KDE SDK when the system has no compiler."""
