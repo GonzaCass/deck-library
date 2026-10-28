@@ -624,7 +624,7 @@ class DeckUITests(unittest.TestCase):
         page.response(Gtk.ResponseType.CLOSE);self.settle()
 
     def test_the_update_notice_can_be_closed_and_returns_only_when_it_changes(self):
-        self.w.app_update_ready({'app':{'version':'99.0.0','notes':'x'}});self.settle();self.assertTrue(self.w.update_banner.get_mapped())
+        self.w.app_update_ready({'app':{'version':'99.0.0','notes':'x'}});self.settle();self.assertTrue(self.w.update_banner.get_mapped());self.assertTrue(self.w.banner_close.get_mapped())
         self.w.banner_close.clicked();self.settle();self.assertFalse(self.w.update_banner.get_visible())
         self.w.app_update_ready({'app':{'version':'99.0.0','notes':'x'}});self.settle();self.assertFalse(self.w.update_banner.get_visible())
         self.w.app_update_ready({'app':{'version':'99.1.0','notes':'x'}});self.settle();self.assertTrue(self.w.update_banner.get_mapped())
@@ -1493,6 +1493,12 @@ class DeckUITests(unittest.TestCase):
             button.clicked();queued.assert_called_once()
         self.w.resize(840,640);self.settle();self.assertLessEqual(self.w.get_size().width,840)
 
+    def test_the_header_fits_the_deck_width_without_a_slider(self):
+        from gi.repository import Gtk
+        self.w.resize(1280,800);self.settle()
+        scroll=self.w.nav_buttons['Ports'].get_ancestor(Gtk.ScrolledWindow);adjustment=scroll.get_hadjustment()
+        self.assertLessEqual(adjustment.get_upper(),adjustment.get_page_size()+1)
+
     def test_launcher_error_does_not_block_library_and_opens_details_only_on_request(self):
         from deck_library.models import atomic_json
         path=self.store.root/'launch-notice.json';atomic_json(path,{'message':'Falta el ejecutable.'})
@@ -1733,6 +1739,19 @@ class DeckUITests(unittest.TestCase):
         self.assertIn('Deck Library en Steam',labels(self.w.tools_box))
         for expected in ('Convertir un juego de Switch','Extraer una ISO de Xbox o Xbox 360'):self.assertIn(expected,labels(self.w.tools_box))
         self.w.settings_page();self.assertNotIn('Deck Library en Steam',labels(self.w.settings_box));self.assertIn('Mantenimiento',labels(self.w.settings_box))
+
+    def test_a_port_that_needs_an_update_asks_for_the_base_and_the_update_files(self):
+        from gi.repository import Gtk
+        from deck_library.gui_switch import minimum_for
+        def labels(widget):
+            result=[widget.get_text()] if isinstance(widget,Gtk.Label) else []
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():result.extend(labels(child))
+            return result
+        minimum=minimum_for('RevivedX/SavageWindRecomp');self.assertEqual(minimum['label'],'1.9.0');self.assertIsNone(minimum_for('k0nl/b2recomp'))
+        page=self.w.switch_convert_page(minimum=minimum);self.settle();text=' '.join(labels(page))
+        self.assertIn('1.9.0',text);self.assertIn('Actualización (si está en otro archivo)',text);self.assertIn('Juego (XCI o NSP)',text)
+        page.destroy();page=self.w.switch_convert_page();self.settle();self.assertIn('Actualización (opcional)',' '.join(labels(page)));page.destroy()
 
     def test_async_community_results_receive_visible_row_allocations(self):
         from gi.repository import Gtk,GLib

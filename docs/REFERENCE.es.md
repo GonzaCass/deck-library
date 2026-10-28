@@ -71,7 +71,7 @@ Las tarjetas del catálogo muestran los requisitos revisados del original: ident
 
 ### Diseño, movimiento y actualizaciones propias
 
-- **Interfaz:** pestañas superiores Inicio, Biblioteca, Catálogo de ports, Actualizaciones y Ajustes. Inicio reúne ports instalados, contadores reales, almacenamiento y herramientas. En Apariencia se puede elegir abrir Resumen o Biblioteca. La biblioteca conserva las carátulas verticales y la vista elegida; la ficha destaca Jugar y diferencia Steam y las tareas por color. Las tarjetas compactas conservan nombre, resumen, verificación y valoración. Elegir una tarjeta y abrir **Detalles del perfil** para ver objetivo, procedencia, instrucciones y cambios; **Aplicar ajustes** los guarda con respaldo. Seleccionar o desplegar detalles no escribe cambios. Las pestañas **Controles**, **Contenido** y **Avanzados** permanecen visibles al cambiar de tarea. Importar, exportar, carátulas y archivos están en **Más opciones**.
+- **Interfaz:** pestañas superiores Inicio, Biblioteca, Ports, Actualizaciones y Ajustes. Inicio reúne ports instalados, contadores reales, almacenamiento y herramientas. En Apariencia se puede elegir abrir Resumen o Biblioteca. La biblioteca conserva las carátulas verticales y la vista elegida; la ficha destaca Jugar y diferencia Steam y las tareas por color. Las tarjetas compactas conservan nombre, resumen, verificación y valoración. Elegir una tarjeta y abrir **Detalles del perfil** para ver objetivo, procedencia, instrucciones y cambios; **Aplicar ajustes** los guarda con respaldo. Seleccionar o desplegar detalles no escribe cambios. Las pestañas **Controles**, **Contenido** y **Avanzados** permanecen visibles al cambiar de tarea. Importar, exportar, carátulas y archivos están en **Más opciones**.
 - **Movimiento:** entrada de la ficha y de las tarjetas, transiciones entre tareas, despliegue de detalles, estados de botones y confirmaciones al guardar. Se desactiva desde **Ajustes → Carátulas y apariencia → Animaciones**.
 - **Ajustes:** la vista previa compara valores del archivo del juego y distingue los perfiles pendientes de los que ya coinciden. Aplicar guarda un respaldo y **Deshacer** restaura la configuración anterior. La edición manual conserva los cambios sin guardar durante una actualización de carátulas o detección.
 - **Clave de SteamGridDB:** Ajustes explica cómo conseguirla (iniciar sesión en steamgriddb.com, Perfil → Preferencias → API), permite mostrarla u ocultarla y tiene un botón **Probar clave**.
@@ -97,7 +97,7 @@ Las carátulas tienen formato vertical 2:3. Tocar una para abrir su ficha: **Jug
 
 Para agregar varios juegos, tocar **Seleccionar**, marcar las carátulas y usar **Agregar a Steam** en la barra inferior. Si Steam está abierto, los cambios quedan preparados hasta cerrar Steam una vez al terminar. Los accesos aparecen en **No Steam** en modo Juego.
 
-**Catálogo de ports** abre directamente los ports disponibles para instalar. En **Ajustes → Instalaciones y carpetas** se pueden corregir las rutas de emuladores, ports, Prism y bibliotecas en microSD. Los ejecutables Windows necesitan un launcher de Wine/Proton configurado.
+**Ports** abre directamente los ports disponibles para instalar. En **Ajustes → Instalaciones y carpetas** se pueden corregir las rutas de emuladores, ports, Prism y bibliotecas en microSD. Los ejecutables Windows necesitan un launcher de Wine/Proton configurado.
 
 ## Carátulas automáticas
 

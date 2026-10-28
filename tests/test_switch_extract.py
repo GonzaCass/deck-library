@@ -181,6 +181,69 @@ class NstoolConversionTests(unittest.TestCase):
         info=sx.parse_nstool_info(['[NCA Header]','  Content Type:    Program','  Key Generation:  3','  Size:            0x3ae96c00','  ProgID:          0x01007ef00011e000','  RightsId:        01007EF00011E8000000000000000003'])
         self.assertEqual((info['type'],info['title_id'],info['size'],info['rights_id']),('Program','01007ef00011e000',0x3ae96c00,'01007ef00011e8000000000000000003'))
 
+def make_nsp(path,files):
+    """A minimal NSP (PFS0) holding `files` ({name: bytes})."""
+    names=b'';entries=b'';offset=0
+    for name,data in files.items():
+        entries+=struct.pack('<QQII',offset,len(data),len(names),0);names+=name.encode()+bytes(1);offset+=len(data)
+    pathlib.Path(path).write_bytes(b'PFS0'+struct.pack('<II',len(files),len(names))+bytes(4)+entries+names+b''.join(files.values()))
+
+def cnmt(version,kind=0x80):return struct.pack('<QIB',int(BASE_TID,16),version,kind)+bytes(40)
+
+class VersionedNstool(FakeNstool):
+    """FakeNstool that also answers the small content-meta read, with the version of the file being read."""
+    def __init__(self,versions):super().__init__();self.versions=versions
+    def __call__(self,command,progress=print,**kw):
+        args=command[3:]
+        if args[:2]==['-x','/0'] and pathlib.Path(args[-1]).name=='meta.nca':
+            folder=pathlib.Path(args[2]);folder.mkdir(parents=True,exist_ok=True);(folder/'Application_x.cnmt').write_bytes(cnmt(self.versions.pop(0)));self.calls.append(command);return 0
+        return super().__call__(command,progress=progress,**kw)
+
+class MinimumVersionTests(unittest.TestCase):
+    def setUp(self):
+        self.temp=tempfile.TemporaryDirectory();self.root=pathlib.Path(self.temp.name);self.out=self.root/'out'
+        self.keys=self.root/'prod.keys';self.keys.write_text(KEYS)
+        self.base=self.root/'base.nsp';make_nsp(self.base,{'a.cnmt.nca':bytes(64),'game.nca':bytes(32)})
+        self.update=self.root/'update.nsp';make_nsp(self.update,{'b.cnmt.nca':bytes(64),'update.nca':bytes(32)})
+        self.minimum={'label':'1.9.0','version':1114112}
+    def tearDown(self):self.temp.cleanup()
+    def job(self,versions):
+        self.fake=VersionedNstool(versions);return sx.Job('/fake/nstool',self.keys,progress=lambda t:None,run=self.fake)
+    def test_a_nsp_entry_and_a_content_meta_record_are_read(self):
+        name,offset,size=sx.pfs0_entry(self.base,'.cnmt.nca');self.assertEqual((name,size),('a.cnmt.nca',64));self.assertEqual(self.base.read_bytes()[offset:offset+size],bytes(64))
+        self.assertIsNone(sx.pfs0_entry(self.base,'.tik'));self.assertIsNone(sx.pfs0_entry(self.root/'prod.keys','.nca'))
+        self.assertEqual(sx.parse_cnmt(cnmt(1114112,0x81)),{'title_id':BASE_TID,'version':1114112,'type':0x81})
+        with self.assertRaises(ValueError):sx.parse_cnmt(b'short')
+    def test_a_base_version_alone_is_refused_before_any_extraction(self):
+        job=self.job([0])
+        with self.assertRaisesRegex(sx.NeedsUpdate,'1.9.0'):job.convert(self.base,self.out,minimum=self.minimum)
+        self.assertFalse(any(c[3:5]==['-x','/'] for c in self.fake.calls));self.assertFalse((self.out/BASE_TID).exists())
+    def test_an_old_update_is_refused_and_a_new_enough_one_is_converted(self):
+        with self.assertRaisesRegex(sx.NeedsUpdate,'anterior'):self.job([0,65536]).convert(self.base,self.out,update=self.update,minimum=self.minimum)
+        result=self.job([0,1114112]).convert(self.base,self.out,update=self.update,minimum=self.minimum);self.assertTrue(result['update'])
+    def test_a_game_that_already_has_the_version_is_converted_alone(self):
+        self.assertTrue(self.job([1114112]).convert(self.base,self.out,minimum=self.minimum)['files'])
+    def test_an_unreadable_version_never_blocks_the_conversion(self):
+        plain=self.root/'plain.nsp';plain.write_bytes(b'PFS0'+bytes(100))
+        self.assertTrue(self.job([0]).convert(plain,self.out,minimum=self.minimum)['files'])
+
+class CleanupTests(unittest.TestCase):
+    def setUp(self):self.temp=tempfile.TemporaryDirectory();self.root=pathlib.Path(self.temp.name)
+    def tearDown(self):self.temp.cleanup()
+    def test_only_this_apps_leftovers_are_listed_and_deleted(self):
+        (self.root/'.deck-library-switch-abc').mkdir();(self.root/'.deck-library-switch-abc/part').write_bytes(bytes(1000))
+        (self.root/'.deck-library-original-backups/1').mkdir(parents=True);(self.root/'.deck-library-original-backups/1/f').write_bytes(bytes(500))
+        game=self.root/BASE_TID;game.mkdir();(game/'exefs').write_bytes(b'keep');(self.root/'mine').mkdir()
+        found=sx.leftovers(self.root);self.assertEqual(sorted(size for _,size in found),[500,1000])
+        self.assertEqual(sx.clean(self.root),1500);self.assertEqual(sx.leftovers(self.root),[])
+        self.assertTrue((game/'exefs').is_file());self.assertTrue((self.root/'mine').is_dir())
+    def test_a_missing_destination_and_links_are_ignored(self):
+        self.assertEqual(sx.leftovers(self.root/'none'),[])
+        outside=self.root/'outside';outside.mkdir();(outside/'f').write_bytes(b'x');link=self.root/'.deck-library-switch-link'
+        try:link.symlink_to(outside,target_is_directory=True)
+        except OSError:self.skipTest('no symlinks')
+        self.assertEqual(sx.leftovers(self.root),[]);sx.clean(self.root);self.assertTrue((outside/'f').is_file())
+
 class NstoolDownloadTests(unittest.TestCase):
     def setUp(self):self.temp=tempfile.TemporaryDirectory();self.store=Store(self.temp.name)
     def tearDown(self):self.temp.cleanup()

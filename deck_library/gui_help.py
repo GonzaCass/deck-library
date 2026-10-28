@@ -7,7 +7,7 @@ from . import bug_report,validated_games
 
 GUIDE=[
  ('1. Encontrar juegos','Biblioteca muestra lo que hay en la Deck. Si falta algo, Actualizar biblioteca vuelve a buscar.'),
- ('2. Instalar un port','Catálogo de ports → elegir un juego → Instalar. La tarjeta indica si hace falta una ROM o un disco.'),
+ ('2. Instalar un port','Ports → elegir un juego → Instalar. La tarjeta indica si hace falta una ROM o un disco.'),
  ('3. Preparar los originales','Algunos ports piden archivos propios. En Herramientas se convierte un XCI o NSP de Switch y se extrae una ISO de Xbox.'),
  ('4. Elegir un perfil','Abrir un juego → Perfiles. Elegir uno no cambia nada hasta Aplicar; Deshacer vuelve atrás. Aplicar y jugar hace las dos cosas.'),
  ('5. Jugar desde Steam','Agregar a Steam crea el acceso con su carátula. Aparece cuando Steam se cierra y se vuelve a abrir.'),

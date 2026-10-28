@@ -69,7 +69,7 @@ El icono de la app y del escritorio se actualiza con la instalación. El arte of
 
 Un port puede necesitar una ROM, revisión de disco, BIOS o carpeta extraída específica. La app detecta los originales compatibles o permite elegir su ubicación. No incluye archivos de juegos.
 
-El porcentaje de compatibilidad es un índice basado en metadatos; no mide el rendimiento del juego. **Catálogo de ports → Guía de compatibilidad** explica los colores y el cálculo.
+El porcentaje de compatibilidad es un índice basado en metadatos; no mide el rendimiento del juego. **Ports → Guía de compatibilidad** explica los colores y el cálculo.
 
 Hace falta una cuenta para publicar o valorar ajustes comunitarios. La biblioteca y los perfiles locales se pueden usar sin iniciar sesión. Algunos proyectos necesitan preparación manual; [requisitos y rutas admitidas](docs/PORTS.md) detalla esos casos.
 
