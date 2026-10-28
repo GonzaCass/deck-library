@@ -360,7 +360,7 @@ class InputMixin:
             return True
         if workflow and action in ('previous_tab','next_tab'):return True
         if action in ('previous_tab','next_tab') and window is self:
-            names=list(self.nav_buttons);tab={'home':'Inicio','library':'Biblioteca','validated':'Verificados','detail':{'home':'Inicio','validated':'Verificados'}.get(getattr(self,'detail_origin','library'),'Biblioteca'),'catalog':'Catálogo de ports','updates':'Actualizaciones','tools':'Herramientas','settings':'Ajustes'}.get(self.pages.get_visible_child_name(),'Biblioteca');active=names.index(tab);self.nav_buttons[names[(active+(-1 if action=='previous_tab' else 1))%len(names)]].clicked();return True
+            names=list(self.nav_buttons);tab={'home':'Inicio','library':'Biblioteca','validated':'Verificados','detail':{'home':'Inicio','validated':'Verificados'}.get(getattr(self,'detail_origin','library'),'Biblioteca'),'catalog':'Ports','updates':'Actualizaciones','tools':'Herramientas','settings':'Ajustes'}.get(self.pages.get_visible_child_name(),'Biblioteca');active=names.index(tab);self.nav_buttons[names[(active+(-1 if action=='previous_tab' else 1))%len(names)]].clicked();return True
         if action in ('options','menu') and window is self and not workflow:return self.controller_options(action)
         if action=='back':
             popover=self.current_popover(window)

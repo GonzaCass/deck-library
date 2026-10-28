@@ -3,7 +3,7 @@
 The container and cipher work is done by hactool, built from a pinned source release. Keys and tickets stay on this
 machine: the user's prod.keys is only read, tickets are copied to a private temporary folder, and neither reaches a log.
 """
-import glob,json,os,pathlib,re,shutil,subprocess,tempfile,time
+import glob,json,os,pathlib,re,shutil,struct,subprocess,tempfile,time
 from .models import atomic_json
 
 HACTOOL={'tag':'1.4.0','commit':'3121a5bf08cd81d3a99719feb2cab3b60767afd5','sha256':'5307bbc57131e29a324c18e2c7cdde3a679c2f7d046e82c75e7cea99045ab382'}
@@ -18,6 +18,51 @@ KNOWN_TITLES={'01007ef00011e000':'The Legend of Zelda: Breath of the Wild'}
 TICKET_BODY={0x10000:0x240,0x10001:0x140,0x10002:0x80,0x10003:0x240,0x10004:0x140,0x10005:0x80}
 
 class NeedsTool(Exception):pass
+class NeedsUpdate(ValueError):
+    """The game is older than the version a port asks for and no (new enough) update was given."""
+
+def pfs0_entry(path,suffix):
+    """(name, offset, size) of the first file in an NSP whose name ends with `suffix`, or None."""
+    with open(path,'rb') as stream:
+        head=stream.read(16)
+        if head[:4]!=b'PFS0':return None
+        count,strings=struct.unpack('<II',head[4:12])
+        if not 0<count<4096 or strings>1<<20:return None
+        entries=stream.read(24*count);names=stream.read(strings);base=16+24*count+strings
+    for index in range(count):
+        offset,size,name_at=struct.unpack('<QQI',entries[24*index:24*index+20])
+        end=names.find(b'\0',name_at)
+        name=names[name_at:end if end>=0 else None].decode('utf-8','replace')
+        if name.endswith(suffix):return name,base+offset,size
+    return None
+
+def parse_cnmt(data):
+    """Title ID, version and type (0x80 application, 0x81 patch) from a content-meta record."""
+    if len(data)<16:raise ValueError('El registro de versión del juego está incompleto.')
+    return {'title_id':format(int.from_bytes(data[:8],'little'),'016x'),'version':int.from_bytes(data[8:12],'little'),'type':data[12]}
+
+def leftovers(root):
+    """Folders this app left in a destination (interrupted conversions, backups of replaced ones) and their sizes."""
+    root=pathlib.Path(root).expanduser();found=[]
+    try:children=sorted(root.glob('.deck-library-*'))
+    except OSError:return found
+    for path in children:
+        if path.is_symlink() or not path.is_dir():continue
+        size=0
+        for item in path.rglob('*'):
+            try:
+                if item.is_file() and not item.is_symlink():size+=item.stat().st_size
+            except OSError:pass
+        found.append((path,size))
+    return found
+
+def clean(root):
+    """Delete what `leftovers` lists. Returns the bytes freed; the converted games themselves are never touched."""
+    freed=0
+    for path,size in leftovers(root):
+        shutil.rmtree(path,ignore_errors=True)
+        if not path.exists():freed+=size
+    return freed
 
 def find_keys(home=None,extra=()):
     """prod.keys files left by Switch emulators or by hactool's own folder, most likely first."""
@@ -209,8 +254,25 @@ class Job:
             info=parse_nstool_info(self.hactool([str(path)],capture=True)) if self.backend=='nstool' else parse_info(self.hactool(['-t','nca','-i',str(path)],capture=True))
             if info.get('type')=='Program' and info.get('title_id'):found.append({**info,'path':path})
         return found
-    def convert(self,source,root,update=None):
-        """Extract `source` (and the patch in `update`, if any) into `root`/<Title ID>. Returns a summary."""
+    def version(self,source):
+        """Version of an NSP read from its small content-meta file alone (no full extraction); None when it cannot be told cheaply."""
+        if container_kind(source)!='nsp' or self.backend!='nstool':return None
+        try:
+            found=pfs0_entry(source,'.cnmt.nca')
+            if not found or found[2]>4*1024**2:return None
+            name,offset,size=found;meta=pathlib.Path(tempfile.mkdtemp(prefix='meta-',dir=self.work));package=meta/'meta.nca'
+            with open(source,'rb') as stream:stream.seek(offset);package.write_bytes(stream.read(size))
+            target=meta/'out';target.mkdir();self.hactool(['-x','/0',str(target),str(package)],capture=True)
+            record=next(target.rglob('*.cnmt'),None)
+            return parse_cnmt(record.read_bytes())['version'] if record else None
+        except (OSError,ValueError,struct.error):return None
+    def check_minimum(self,source,update,minimum):
+        label=minimum['label'];base=self.version(source);patch=self.version(update) if update else None
+        if update and patch is not None and patch<minimum['version']:raise NeedsUpdate(f'La actualización elegida es anterior a la {label}. Elegir una actualización {label} o posterior.')
+        if not update and base is not None and base<minimum['version']:raise NeedsUpdate(f'Este archivo es la versión base del juego. El port pide la actualización {label} o posterior: elegir también el archivo de la actualización.')
+    def convert(self,source,root,update=None,minimum=None):
+        """Extract `source` (and the patch in `update`, if any) into `root`/<Title ID>. Returns a summary.
+        `minimum` ({'label','version'}) makes a game older than that version fail early, before the long extraction."""
         from .ports import check_cancel
         root=pathlib.Path(root).expanduser();root.mkdir(parents=True,exist_ok=True)
         if root.is_symlink():raise ValueError('La carpeta de destino es un enlace; no se modificó.')
@@ -220,6 +282,7 @@ class Job:
         if shutil.disk_usage(root).free<need:raise ValueError(f'No hay espacio suficiente en la carpeta de destino (hacen falta unos {need/1024**3:.0f} GB libres).')
         with tempfile.TemporaryDirectory(prefix='.deck-library-switch-',dir=root) as temporary:
             self.work=pathlib.Path(temporary);self.home=self.work/'home';self.home.mkdir(mode=0o700)
+            if minimum:self.check_minimum(source,update,minimum)
             base=self.programs(self.unpack(source,0));patch=None
             if update:patch=self.programs(self.unpack(update,1))
             if not base:raise ValueError('No se encontró el programa del juego en el archivo base. Puede ser solo una actualización o contenido descargable.')

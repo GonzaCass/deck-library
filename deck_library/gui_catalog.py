@@ -45,7 +45,7 @@ class CatalogMixin:
         self.catalog_ready=True
         box=self.catalog_box;self.reset_page(box)
         head=Gtk.Box(spacing=12);titles=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
-        titles.pack_start(label('Catálogo de ports','hero'),False,False,0)
+        titles.pack_start(label('Ports','hero'),False,False,0)
         intro=label('Catálogos públicos, recomendados y repositorios propios. Se instalan en ~/DeckLibrary/ports (o en ~/ports si ya se usaba) desde la última versión publicada en GitHub. La mayoría necesita los archivos del juego original.','subtitle');intro.set_tooltip_text(intro.get_text())
         if self.compact_screen():intro.set_line_wrap(False);intro.set_ellipsize(Pango.EllipsizeMode.END);intro.set_max_width_chars(60)
         titles.pack_start(intro,False,False,0)
@@ -233,7 +233,8 @@ class CatalogMixin:
         from .gui_switch import SWITCH_PORTS
         if item['repository'].lower() in SWITCH_PORTS:
             from .ui_components import ActionButton
-            def convert(_):page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.switch_convert_page(),False)[1])
+            from .gui_switch import minimum_for
+            def convert(_):page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.switch_convert_page(minimum=minimum_for(item['repository'])),False)[1])
             originals.pack_start(ActionButton('Convertir XCI/NSP a carpeta','folder',convert,'steam-outline'),False,False,0)
         status=label('Cargando imagen…','meta');box.pack_start(status,False,False,0)
         def artwork(force=False):
@@ -510,7 +511,9 @@ class CatalogMixin:
         elif record['executable']:self.set_status(f'{item["name"]} {record["tag"]} instalado.'+(' Abrir el port para elegir los archivos originales.' if item.get('preparation')=='launcher' else ' Revisar la preparación manual en su ficha.' if item.get('preparation')=='manual' else ''))
         else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en {ports.display_root()}/{record["folder"]}, pero hay varios ejecutables posibles. Elegir el correcto con «Agregar juegos → Elegir un juego o una app».')
         from .gui_switch import SWITCH_PORTS
-        if item['repository'].lower() in SWITCH_PORTS and not record.get('setup') and self.confirm('Archivos originales de Switch','Este port pide la carpeta con exefs y romfs del juego. ¿Convertir ahora un XCI o NSP propio para dejarla lista?','Convertir ahora'):GLib.idle_add(lambda:(self.switch_convert_page(),False)[1])
+        if item['repository'].lower() in SWITCH_PORTS and not record.get('setup') and self.confirm('Archivos originales de Switch','Este port pide la carpeta con exefs y romfs del juego. ¿Convertir ahora un XCI o NSP propio para dejarla lista?','Convertir ahora'):
+            from .gui_switch import minimum_for
+            GLib.idle_add(lambda:(self.switch_convert_page(minimum=minimum_for(item['repository'])),False)[1])
         if getattr(self,'update_state',None):self.update_state['catalog']=[u for u in self.update_state.get('catalog') or [] if u['repository']!=item['repository']];self.refresh_update_badges()
         self.discover()
         if not record.get('setup'):self.port_setup_finished(item)
@@ -546,7 +549,8 @@ class CatalogMixin:
                     def converted(folder):
                         try:ports.set_input(item['repository'],'original_data',folder,self.store);error.set_text('');refresh()
                         except (ValueError,OSError) as exc:error.set_text(str(exc))
-                    self.switch_convert_page(on_done=converted)
+                    from .gui_switch import minimum_for
+                    self.switch_convert_page(on_done=converted,minimum=minimum_for(item['repository']))
                 body.pack_start(button('Convertir un XCI o NSP',convert_package,True),False,False,0)
             if not record['original_data'].get('iso_only'):body.pack_start(button('Elegir carpeta extraída',lambda w:original_data(w,True)),False,False,0)
             if record['original_data'].get('iso'):body.pack_start(button('Elegir ISO de Xbox 360' if record['original_data'].get('kind') in ('xbox360-dante','xbox360') else 'Elegir ISO de Xbox',original_data),False,False,0)
