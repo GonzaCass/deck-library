@@ -20,7 +20,13 @@ FOLDER=re.compile(r'[A-Za-z0-9][A-Za-z0-9 ._()-]{0,79}')
 SKIP_NAMES=re.compile(r'setup|install|uninstall|updater|crashpad|crashhandler|\.so(\.|$)',re.I)
 LAUNCHERS=('launch.sh','run.sh','start.sh')
 
-def ports_root(home=None):return pathlib.Path(home or pathlib.Path.home())/'ports'
+def display_root(home=None):
+    from . import layout
+    return layout.display_ports(home)
+
+def ports_root(home=None):
+    from . import layout
+    return layout.ports_folder(home)
 
 SETUP_KIT='Kit de instalación: requiere el disco y la BIOS propios y compila el juego en el primer inicio. En la Deck corre dentro del SDK de KDE de Flatpak, que la app instala una vez (sin root).'
 WEB_HOSTS=('dl.openpete.com','ctr.cmzi.uk','codeload.github.com')

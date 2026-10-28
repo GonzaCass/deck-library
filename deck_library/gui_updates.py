@@ -94,6 +94,7 @@ class UpdatesMixin:
         elif state.get('app_error'):
             self.banner_text.set_text('No se pudo comprobar la actualización de Deck Library.');self.banner_action.set_label('Reintentar');self.banner_action.show();self.update_banner.show()
         else:self.update_banner.hide()
+        if self.update_banner.get_visible() and getattr(self,'banner_dismissed','')==self.banner_text.get_text():self.update_banner.hide()
 
     def banner_clicked(self):
         if getattr(self,'update_installed',None):self.restart_app()

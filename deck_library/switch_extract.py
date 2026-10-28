@@ -273,4 +273,5 @@ def details(folder):
 
 def default_root(home=None):
     """Where converted games go unless the user picks another folder; each game gets its Title ID as subfolder."""
-    return pathlib.Path(home or pathlib.Path.home())/'Games/Switch'
+    from . import layout
+    return layout.folder('switch',home)

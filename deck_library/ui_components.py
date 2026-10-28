@@ -149,6 +149,8 @@ class Icon(Gtk.DrawingArea):
             for x in (5,12,19):cr.arc(x,12,1.6,0,math.tau);cr.fill()
         elif name == 'library':
             for x,h in [(3,16),(10,19),(17,14)]:cr.rectangle(x,22-h,4,h);cr.stroke()
+        elif name == 'close':
+            line((6,6),(18,18));line((18,6),(6,18))
         elif name in ('star','star-fill'):
             for i in range(10):
                 radius=10 if i%2==0 else 4.3;angle=-math.pi/2+i*math.pi/5;point=(12+radius*math.cos(angle),12.8+radius*math.sin(angle))

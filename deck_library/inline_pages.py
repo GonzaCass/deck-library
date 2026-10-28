@@ -12,7 +12,10 @@ class InlineDialog(Gtk.Box):
         self.owner=transient_for.owner if isinstance(transient_for,InlineDialog) else transient_for
         self._loop=None;self._answer=None;self._mounted=False;self._closed=False;self._deletable=True;self._buttons={};self._default_size=(640,480)
         self.set_border_width(12);self.set_hexpand(True);self.set_vexpand(True)
-        heading=Gtk.Label(label=title,xalign=0);heading.set_line_wrap(True);heading.get_style_context().add_class('inline-page-heading');self.pack_start(heading,False,False,0)
+        from .ui_components import Icon
+        head=Gtk.Box(spacing=10);self.back_button=Gtk.Button();self.back_button.add(Icon('back',20));self.back_button.get_style_context().add_class('quiet');self.back_button.set_can_focus(False);self.back_button.set_valign(Gtk.Align.CENTER)
+        self.back_button.set_tooltip_text('Volver');self.back_button.get_accessible().set_name('Volver');self.back_button.connect('clicked',lambda _:self.cancel());head.pack_start(self.back_button,False,False,0)
+        heading=Gtk.Label(label=title,xalign=0);heading.set_line_wrap(True);heading.get_style_context().add_class('inline-page-heading');head.pack_start(heading,True,True,0);self.pack_start(head,False,False,0)
         self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
         self.scroll=self.owner.new_scroll();self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC);self.scroll.set_overlay_scrolling(False);self.scroll.set_vexpand(True);self.scroll.add(self.content);self.pack_start(self.scroll,True,True,0)
         self.actions=Gtk.ButtonBox(orientation=Gtk.Orientation.HORIZONTAL);self.actions.set_layout(Gtk.ButtonBoxStyle.END);self.actions.set_spacing(10);self.pack_end(self.actions,False,False,0)
@@ -28,6 +31,8 @@ class InlineDialog(Gtk.Box):
     def add_button(self,text,response):
         button=Gtk.Button(label=text);button.connect('clicked',lambda _:self.response(response));self.actions.add(button);self._buttons[response]=button
         if response in (Gtk.ResponseType.OK,Gtk.ResponseType.ACCEPT):button.get_style_context().add_class('primary')
+        # A page that only closes does so with the arrow at the top left; the bottom button would be a second way to do the same.
+        if response==Gtk.ResponseType.CLOSE and text in ('Volver','Cerrar','Volver al catálogo'):button.set_no_show_all(True);button.hide()
         return button
     def add_buttons(self,*pairs):
         for i in range(0,len(pairs),2):self.add_button(pairs[i],pairs[i+1])

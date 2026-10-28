@@ -58,8 +58,9 @@ class DeckUITests(unittest.TestCase):
     def test_running_version_and_update_state_stay_visible_and_refresh_automatically(self):
         from deck_library import __version__
         self.w.preferences['auto_update']=False;self.w.preferences['check_updates']=True
-        for page in ('library','home','validated','catalog','updates','settings'):
-            self.w.pages.set_visible_child_name(page);self.settle();self.assertTrue(self.w.version_label.get_mapped());self.assertIn(__version__,self.w.version_label.get_text())
+        # The version no longer takes a row on every page: it ends the Settings page, and Updates shows it too.
+        self.w.settings_page();self.settle();self.assertTrue(self.w.version_label.get_mapped());self.assertIn(__version__,self.w.version_label.get_text())
+        self.w.library_stack.show();self.w.open_library();self.settle();self.assertFalse(self.w.version_label.get_mapped())
         self.w.updates_page();self.w.app_update_ready({'app':{'version':'99.0.0','notes':'New release'}});self.settle()
         self.assertIn('99.0.0',self.w.version_label.get_text());self.assertTrue(self.w.update_banner.get_mapped())
         def labels(widget):
@@ -67,7 +68,7 @@ class DeckUITests(unittest.TestCase):
             return ([widget.get_text()] if isinstance(widget,Gtk.Label) else [])+[text for child in (widget.get_children() if isinstance(widget,Gtk.Container) else []) for text in labels(child)]
         self.assertIn('Deck Library 99.0.0',labels(self.w.updates_box))
         self.w.app_update_ready({'app_error':'offline'});self.settle();self.assertIn('No se pudo comprobar',self.w.version_label.get_text());self.assertTrue(self.w.update_banner.get_mapped())
-        self.w.resize(840,640);self.settle();position=self.w.version_label.translate_coordinates(self.w,0,0)
+        self.w.settings_page();self.w.resize(840,640);self.settle();position=self.w.version_label.translate_coordinates(self.w,0,0)
         self.assertGreaterEqual(position[0],0);self.assertLessEqual(position[0]+self.w.version_label.get_allocated_width(),840)
 
     def test_gaming_mode_can_install_an_app_update_and_requests_only_reopening_the_app(self):
@@ -455,8 +456,9 @@ class DeckUITests(unittest.TestCase):
         self.w.wizard_next();self.w.wizard_detection_ready({'emudeck':{'installed':False},'emulators':{},'prism':{}})
         self.assertTrue(self.w.wizard_checks);self.assertFalse(any(w.get_active() for w in self.w.wizard_checks.values()))
         self.w.leave_wizard(False);self.assertTrue(settings(self.store)['onboarding_complete']);self.assertTrue(settings(self.store)['onboarding_skipped'])
-        self.w.help_page();self.settle();self.assertTrue(self.w.inline_workflows)
-        self.w.last_controller_action=('',0);self.w.controller_action('back');self.settle();self.assertFalse(self.w.inline_workflows)
+        self.w.open_library();self.w.help_page();self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'help');self.assertTrue(self.w.help_button.get_style_context().has_class('active'))
+        self.w.last_controller_action=('',0);self.w.controller_action('back');self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertFalse(self.w.help_button.get_style_context().has_class('active'))
+        self.w.settings_page();self.w.help_page();self.settle();self.w.leave_help();self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'settings')
 
     def test_validated_games_and_bug_report_fit_without_external_dialogs(self):
         from gi.repository import Gtk
@@ -482,8 +484,8 @@ class DeckUITests(unittest.TestCase):
 
     def test_guide_link_opens_validated_tab_and_restores_navigation(self):
         self.w.help_page();self.settle()
-        guide=self.w.inline_workflows[-1]
-        next(c for c in self.w.control_targets(guide) if c.get_accessible().get_name()=='Verificados').clicked();self.settle()
+        self.assertEqual(self.w.pages.get_visible_child_name(),'help');self.assertFalse(self.w.inline_workflows)
+        next(c for c in self.w.control_targets(self.w.help_box) if c.get_accessible().get_name()=='Verificados').clicked();self.settle()
         self.assertFalse(self.w.inline_workflows);self.assertEqual(self.w.pages.get_visible_child_name(),'validated')
         self.assertTrue(all(c.get_sensitive() for c in self.w.navigation_controls))
 
@@ -620,6 +622,26 @@ class DeckUITests(unittest.TestCase):
             sent=request.call_args[0];self.assertEqual(sent[0],'/v1/requests');self.assertEqual(sent[1]['title'],'Mi juego');self.assertEqual(set(sent[1]),{'title','platform','details'})
             self.assertTrue(any('abcd1234' in w.get_text() for w in walk(page.get_content_area()) if isinstance(w,Gtk.Label)))
         page.response(Gtk.ResponseType.CLOSE);self.settle()
+
+    def test_the_update_notice_can_be_closed_and_returns_only_when_it_changes(self):
+        self.w.app_update_ready({'app':{'version':'99.0.0','notes':'x'}});self.settle();self.assertTrue(self.w.update_banner.get_mapped())
+        self.w.banner_close.clicked();self.settle();self.assertFalse(self.w.update_banner.get_visible())
+        self.w.app_update_ready({'app':{'version':'99.0.0','notes':'x'}});self.settle();self.assertFalse(self.w.update_banner.get_visible())
+        self.w.app_update_ready({'app':{'version':'99.1.0','notes':'x'}});self.settle();self.assertTrue(self.w.update_banner.get_mapped())
+
+    def test_the_options_and_menu_buttons_open_the_library_filters_and_the_game_options(self):
+        self.w.open_library();self.settle();self.assertFalse(self.w.filter_scroll.get_visible())
+        self.w.last_controller_action=('',0);self.w.controller_action('menu');self.settle();self.assertTrue(self.w.filter_scroll.get_visible())
+        self.w.last_controller_action=('',0);self.w.controller_action('options');self.settle();self.assertFalse(self.w.filter_scroll.get_visible())
+        self.w.select_game(self.w.entries[0]);self.settle();self.w.last_controller_action=('',0);self.w.controller_action('options');self.settle()
+        self.assertTrue(any(m.get_active() for m in self.w.game_menus))
+
+    def test_tools_and_inline_pages_use_an_arrow_instead_of_a_back_button(self):
+        from gi.repository import Gtk
+        page=self.w.iso_extract_page();self.settle()
+        self.assertTrue(page.back_button.get_visible());self.assertEqual(page.back_button.get_accessible().get_name(),'Volver')
+        self.assertFalse(any(isinstance(b,Gtk.Button) and b.get_label()=='Volver' and b.get_visible() for b in page.actions.get_children()))
+        page.back_button.clicked();self.settle();self.assertFalse(self.w.inline_workflows)
 
     def test_opening_a_game_starts_at_overview_and_focuses_play(self):
         entry=self.w.entries[0];self.w.select_game(entry);self.w.open_game_section('options');self.w.open_library();self.w.select_game(entry);self.settle()
@@ -818,7 +840,11 @@ class DeckUITests(unittest.TestCase):
             if already_mounted:return
             def act():
                 try:
-                    title=next(child.get_text() for child in page.get_children() if isinstance(child,Gtk.Label) and child.get_style_context().has_class('inline-page-heading'))
+                    def headings(widget):
+                        yield widget
+                        if isinstance(widget,Gtk.Container):
+                            for child in widget.get_children():yield from headings(child)
+                    title=next(child.get_text() for child in headings(page) if isinstance(child,Gtk.Label) and child.get_style_context().has_class('inline-page-heading'))
                     if title.startswith('Preparar '):
                         seen.append('original');next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Elegir ISO de Xbox 360').clicked()
                         self.assertTrue(page._buttons[Gtk.ResponseType.OK].get_sensitive());page.response(Gtk.ResponseType.OK);return False
@@ -1485,8 +1511,8 @@ class DeckUITests(unittest.TestCase):
         entry=self.w.entries[0];value={'message':'Test game error','entry_id':entry.id,'game':entry.name,'time':1}
         atomic_json(self.store.root/'launch-notice.json',value);self.w.poll_sync();self.settle()
         self.assertIn(entry.name,self.w.launch_notice_label.get_text())
-        self.w.help_page();self.settle();guide=self.w.inline_workflows[-1]
-        next(c for c in self.w.control_targets(guide) if c.get_accessible().get_name()=='Último error de un juego').clicked();self.settle()
+        self.w.help_page();self.settle()
+        next(c for c in self.w.control_targets(self.w.help_box) if c.get_accessible().get_name()=='Último error de un juego').clicked();self.settle()
         self.assertEqual(len(self.w.inline_workflows),1);details=self.w.inline_workflows[-1]
         next(c for c in self.w.control_targets(details) if c.get_accessible().get_name()=='Abrir juego en mi biblioteca').clicked();self.settle()
         self.assertFalse(self.w.inline_workflows);self.assertEqual(self.w.selected.id,entry.id)
@@ -1701,10 +1727,12 @@ class DeckUITests(unittest.TestCase):
             if isinstance(root,Gtk.Container):
                 for child in root.get_children():result.extend(labels(child))
             return result
-        with patch.object(motion,'gaming_mode',return_value=True):self.w.settings_page()
-        self.assertNotIn('Deck Library en Steam',labels(self.w.settings_box))
-        with patch.object(motion,'gaming_mode',return_value=False):self.w.settings_page()
-        self.assertIn('Deck Library en Steam',labels(self.w.settings_box))
+        with patch.object(motion,'gaming_mode',return_value=True):self.w.tools_page()
+        self.assertNotIn('Deck Library en Steam',labels(self.w.tools_box))
+        with patch.object(motion,'gaming_mode',return_value=False):self.w.tools_page()
+        self.assertIn('Deck Library en Steam',labels(self.w.tools_box))
+        for expected in ('Convertir un juego de Switch','Extraer una ISO de Xbox o Xbox 360'):self.assertIn(expected,labels(self.w.tools_box))
+        self.w.settings_page();self.assertNotIn('Deck Library en Steam',labels(self.w.settings_box));self.assertIn('Mantenimiento',labels(self.w.settings_box))
 
     def test_async_community_results_receive_visible_row_allocations(self):
         from gi.repository import Gtk,GLib

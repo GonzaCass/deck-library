@@ -16,6 +16,7 @@ from .gui_tools import ToolsMixin
 from .gui_library import LibraryToolsMixin
 from .gui_switch import SwitchMixin
 from .gui_requests import RequestsMixin
+from .gui_toolbox import ToolboxMixin
 from .gui_community import CommunityMixin
 from .gui_updates import UpdatesMixin
 from .gui_catalog import CatalogMixin
@@ -99,6 +100,11 @@ class Poster(Gtk.DrawingArea):
             try:self.pixbuf=GdkPixbuf.Pixbuf.new_from_file_at_scale(path,600,900,True)
             except (GLib.Error,OSError):pass
         self.connect('draw',self.draw_poster)
+    def set_path(self,path):
+        """Show a cover that arrived after the widget was built."""
+        try:self.pixbuf=GdkPixbuf.Pixbuf.new_from_file_at_scale(path,600,900,True) if path else None
+        except (GLib.Error,OSError):self.pixbuf=None
+        self.queue_draw()
     def draw_poster(self,widget,cr):
         import cairo
         w=widget.get_allocated_width();h=widget.get_allocated_height()
@@ -140,7 +146,7 @@ from .gui_home import HomeMixin
 from .gui_help import HelpMixin
 from .gui_variants import VariantsMixin
 
-class Window(RequestsMixin,SwitchMixin,VariantsMixin,HelpMixin,HomeMixin,OriginalsMixin,InputMixin,ProgressMixin,GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,ActionsMixin,CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
+class Window(ToolboxMixin,RequestsMixin,SwitchMixin,VariantsMixin,HelpMixin,HomeMixin,OriginalsMixin,InputMixin,ProgressMixin,GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,ActionsMixin,CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self,title='Deck Library');self.init_shell()
 

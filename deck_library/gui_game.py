@@ -106,6 +106,7 @@ class GameMixin:
 
     def game_menu(self, entry, compact=False):
         menu = Gtk.MenuButton()
+        self.game_menus=[m for m in getattr(self,'game_menus',[]) if m.get_parent() is not None]+[menu]
         styled(menu, 'quiet', 'game-menu')
         body = Gtk.Box(spacing=8)
         body.pack_start(Icon('more'), False, False, 0)

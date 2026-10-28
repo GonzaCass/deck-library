@@ -27,7 +27,7 @@ class Repeater:
         self.held=pressed;self.next={k:v for k,v in self.next.items() if k in pressed};return out
 
 class SDL:
-    BUTTONS={0:'activate',1:'back',2:'search',9:'previous_tab',10:'next_tab',11:'up',12:'down',13:'left',14:'right'}
+    BUTTONS={0:'activate',1:'back',2:'search',3:'options',6:'menu',9:'previous_tab',10:'next_tab',11:'up',12:'down',13:'left',14:'right'}
     def __init__(self):
         name=ctypes.util.find_library('SDL2')
         if not name:raise OSError('SDL2 no está disponible')
