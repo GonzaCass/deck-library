@@ -4,6 +4,7 @@ Every release has its notes on [GitHub](https://github.com/GonzaCass/deck-librar
 
 | Version | Date | Title |
 | --- | --- | --- |
+| [1.4.3](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.3) | 2026-10-28 | Identity-scoped game requests and immediate owner-tools refresh after sign-in |
 | [1.4.2](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.2) | 2026-10-28 | Closable update notice fixed, Ports tab without a slider, Breath of the Wild asks for the base game and its update |
 | [1.4.1](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.1) | 2026-10-28 | Tools tab, window-only pages, DeckLibrary folder, controller options and covers in Verified |
 | [1.4.0](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.0) | 2026-10-28 | Steam Deck-sized interface with Black and Light themes, verified fixes, game requests and Switch NSP/XCI conversion |
