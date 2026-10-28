@@ -81,6 +81,51 @@ class DeckUITests(unittest.TestCase):
         with patch.object(self.w,'signed_in',return_value=False):self.w.check_owner_mode();self.settle()
         self.assertFalse(self.w.preferences['owner_mode']);self.assertFalse(received())
 
+    def test_switch_install_asks_directly_and_accepts_an_extracted_folder_without_keys(self):
+        from gi.repository import Gtk,GLib
+        from deck_library import ports,switch_extract
+        from deck_library.models import atomic_json
+        item=ports.clean({'name':'Savage Wind','repository':'ReviveDX/SavageWindRecomp'})
+        dump=pathlib.Path(self.temp.name)/'dump';(dump/'exefs').mkdir(parents=True);(dump/'exefs/main').write_bytes(b'NSO0');(dump/'romfs').mkdir()
+        atomic_json(self.store.root/'ports.json',{item['repository']:{**item,'inputs':{}}})
+        def choose():
+            page=self.w.inline_workflows[-1]
+            next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Usar carpeta ya extraída').clicked();return False
+        GLib.timeout_add(180,choose)
+        with patch.object(self.w,'pick_file',return_value=str(dump)) as pick,patch.object(self.w,'confirm') as confirm,patch.object(switch_extract,'find_keys',return_value=[]):
+            self.assertTrue(self.w.port_inputs(item));confirm.assert_not_called();pick.assert_called_once_with('Elegir carpeta con exefs y romfs',folder=True)
+        self.assertEqual(ports.records(self.store)[item['repository']]['inputs']['original_data'],str(dump));self.assertEqual(self.w.inline_workflows,[])
+
+    def test_admin_text_reply_creates_a_visible_notice_and_opening_it_marks_only_that_reply_read(self):
+        import time
+        from gi.repository import Gtk
+        from community.server import API,digest
+        api=API(self.store.root/'support.sqlite3',client_id='test');api.admins={'admin'}
+        with api.db() as db:
+            for token,login in [('admin-token','admin'),('user-token','player')]:db.execute('INSERT INTO tokens VALUES(?,?,?,?)',(digest(token),'oidc:test:'+login,login,time.time()+300))
+        identifier=api.handle('POST','/v1/requests',{}, {'title':'Example game','platform':'PC','category':'native','details':'Controller does not respond'},'user-token')['id']
+        token=['admin-token']
+        class Client:
+            def session(_):return {'token':token[0],'login':token[0]}
+            def request(_,path,body=None):return api.handle('GET' if body is None else 'POST',path,{},body or {},token[0])
+        def walk(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from walk(child)
+        with patch.object(self.w,'signed_in',return_value=True),patch.object(self.w,'community_client',return_value=Client()):
+            page=self.w.owner_requests_page();self.settle()
+            view=next(c for c in walk(page) if isinstance(c,Gtk.TextView));view.get_buffer().set_text('Select the SDL controller profile.')
+            next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Enviar respuesta').clicked();self.settle();page.destroy()
+            token[0]='user-token';self.w.poll_request_replies();self.settle()
+            self.assertTrue(self.w.request_notice.get_mapped());self.assertEqual(self.w.request_unread_count,1)
+            page=self.w.my_requests_page();self.settle();self.settle()
+            self.assertIn('Select the SDL controller profile.',[c.get_text() for c in walk(page) if isinstance(c,Gtk.Label)])
+            self.assertEqual(api.handle('GET','/v1/me/requests',{}, {},'user-token')['unread'],0);self.assertFalse(self.w.request_notice.get_visible());page.destroy()
+
+    def test_completed_installs_are_not_offered_as_updates(self):
+        self.w.start_transfer('example/port');self.w.finish_transfer('example/port');self.w.update_state={'catalog':[],'ports':[]};self.w.updates_page();self.settle()
+        self.assertFalse(self.w.pending_updates());self.assertFalse(self.w.transfer_views.get('example/port'))
+
     def test_gaming_mode_can_install_an_app_update_and_requests_only_reopening_the_app(self):
         from deck_library import gui_updates,updates,__version__
         self.w.preferences['auto_update']=False;self.w.update_state={'app':{'version':'99.0.0','archive':'https://example.com/app','checksum':'https://example.com/checksum','name':'test'}}
@@ -616,7 +661,7 @@ class DeckUITests(unittest.TestCase):
             if isinstance(widget,Gtk.Container):
                 for child in widget.get_children():yield from labels(child)
         self.w.validated_page();self.settle();texts=list(labels(self.w.validated_box))
-        for expected in ('Grand Theft Auto IV','Spider-Man: Shattered Dimensions','Arreglo','Pedir un juego','Lo aplica Deck Library','Guía manual'):self.assertIn(expected,texts)
+        for expected in ('Grand Theft Auto IV','Spider-Man: Shattered Dimensions','Arreglo','Reportar un problema o hacer una solicitud','Lo aplica Deck Library','Guía manual'):self.assertIn(expected,texts)
 
     def test_a_game_request_explains_that_no_files_are_sent_and_shows_the_reference_number(self):
         from gi.repository import Gtk
@@ -626,10 +671,13 @@ class DeckUITests(unittest.TestCase):
                 for child in widget.get_children():yield from walk(child)
         with patch('deck_library.community.Client.request',return_value={'id':'abcd1234','received':True}) as request:
             page=self.w.request_game_page();self.settle();everything=list(walk(page.get_content_area()))
-            texts=[w.get_text() for w in everything if isinstance(w,Gtk.Label)];self.assertTrue(any('no se aceptan' in t and 'sin incluir el juego' in t for t in texts))
+            texts=[w.get_text() for w in everything if isinstance(w,Gtk.Label)];self.assertIn('No adjuntar archivos ni enlaces de descarga de juegos.',texts)
             entry=next(w for w in everything if isinstance(w,Gtk.Entry));send=next(w for w in everything if hasattr(w,'get_label') and not isinstance(w,Gtk.Label) and w.get_label()=='Enviar solicitud')
-            send.emit('clicked');self.settle();request.assert_not_called();entry.set_text('Mi juego');send.emit('clicked');self.settle();self.settle()
-            sent=request.call_args[0];self.assertEqual(sent[0],'/v1/requests');self.assertEqual(sent[1]['title'],'Mi juego');self.assertEqual(set(sent[1]),{'title','platform','details'})
+            send.emit('clicked');self.settle();request.assert_not_called();entry.set_text('Mi juego')
+            next(w for w in everything if isinstance(w,Gtk.ComboBoxText) and w.get_accessible().get_name()=='Tipo de solicitud').set_active_id('emulated')
+            next(w for w in everything if isinstance(w,Gtk.TextView)).get_buffer().set_text('No responde el mando')
+            send.emit('clicked');self.settle();self.settle()
+            sent=request.call_args[0];self.assertEqual(sent[0],'/v1/requests');self.assertEqual(sent[1]['title'],'Mi juego');self.assertEqual(set(sent[1]),{'title','platform','details','category','repository'});self.assertEqual(sent[1]['category'],'emulated')
             self.assertTrue(any('abcd1234' in w.get_text() for w in walk(page.get_content_area()) if isinstance(w,Gtk.Label)))
         page.response(Gtk.ResponseType.CLOSE);self.settle()
 
@@ -1158,8 +1206,8 @@ class DeckUITests(unittest.TestCase):
         self.w.entries=[entry];self.w.catalog_page();self.w.catalog_apps=[good,old];self.w.catalog_search.set_text('Naruto: The Broken Bond')
         with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog();self.settle()
         captions=self.catalog_texts()
-        for value in ('Verificado en Deck · 2.5','Problema conocido · v0.1.0-beta','Otra variante instalada','Ver variante probada','2 variantes'):self.assertIn(value,captions)
-        self.assertNotIn('Instalado · v0.1.0-beta',captions[:captions.index('Verificado en Deck · 2.5')])
+        for value in ('Verificado en Deck','Problema conocido · v0.1.0-beta','Otra variante instalada','Ver variante probada','2 variantes'):self.assertIn(value,captions)
+        self.assertNotIn('Instalado · v0.1.0-beta',captions[:captions.index('Verificado en Deck')])
         self.w.catalog_search.set_text('BLACK');self.w.catalog_apps=[ports.clean({'repository':'tgp482/black-xberecomp','name':'BLACK'})]
         with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog();self.settle()
         captions=self.catalog_texts();self.assertNotIn('Sin validar en Steam Deck',captions);self.assertIn('4 variantes',captions)
@@ -1271,7 +1319,7 @@ class DeckUITests(unittest.TestCase):
         self.w.select_game(entry);self.settle();panel=self.w.community_profile_box
         self.assertTrue(panel.get_mapped());self.assertEqual(len(panel.get_children()),1);self.assertIsNone(panel.get_ancestor(Gtk.Revealer))
         self.assertGreater(len(self.w.profile_cards),3)
-        self.assertIsNone(self.w.profile_cards[-1].get_ancestor(Gtk.Revealer))
+        self.assertIsNotNone(self.w.profile_cards[-1].get_ancestor(Gtk.Revealer))  # saved/generic alternatives have their own explanation
         self.w.resize(840,640);self.settle();self.assertLessEqual(self.w.get_size().width,840)
 
     def test_transfer_cancel_and_error_dismiss_are_inline(self):

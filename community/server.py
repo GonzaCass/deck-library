@@ -45,8 +45,10 @@ class API:
             db.execute('CREATE TABLE IF NOT EXISTS bug_reports(id TEXT PRIMARY KEY, body TEXT NOT NULL, created REAL NOT NULL)')
             db.execute("CREATE TABLE IF NOT EXISTS game_requests(id TEXT PRIMARY KEY, login TEXT NOT NULL DEFAULT '', title TEXT NOT NULL, platform TEXT NOT NULL, details TEXT NOT NULL, state TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created REAL NOT NULL, updated REAL NOT NULL)")
             db.execute('BEGIN IMMEDIATE')
-            for table,column,definition in [('devices','provider',"TEXT NOT NULL DEFAULT 'github'"),('feedback','rating','INTEGER'),('feedback','author',"TEXT NOT NULL DEFAULT ''"),('game_requests','uid',"TEXT NOT NULL DEFAULT ''")]:
+            for table,column,definition in [('devices','provider',"TEXT NOT NULL DEFAULT 'github'"),('feedback','rating','INTEGER'),('feedback','author',"TEXT NOT NULL DEFAULT ''"),('game_requests','uid',"TEXT NOT NULL DEFAULT ''"),('game_requests','category',"TEXT NOT NULL DEFAULT 'emulated'"),('game_requests','repository',"TEXT NOT NULL DEFAULT ''"),('game_requests','seen','REAL NOT NULL DEFAULT 0')]:
                 if column not in {r['name'] for r in db.execute('PRAGMA table_info('+table+')')}:db.execute('ALTER TABLE '+table+' ADD COLUMN '+column+' '+definition)
+            db.execute('CREATE TABLE IF NOT EXISTS request_replies(id INTEGER PRIMARY KEY AUTOINCREMENT, request TEXT NOT NULL, note TEXT NOT NULL, state TEXT NOT NULL, created REAL NOT NULL)')
+            db.execute('CREATE INDEX IF NOT EXISTS request_replies_request ON request_replies(request,id)')
     @contextlib.contextmanager
     def db(self):
         with contextlib.closing(sqlite3.connect(self.path,timeout=10)) as connection:
@@ -100,7 +102,7 @@ class API:
         if method=='GET' and path=='/health':
             from deck_library import __version__
             from deck_library.presets import REGISTRY
-            return {'ok':True,'schema_version':1,'version':__version__,'profile_adapters':list(REGISTRY),'profile_instructions':True,'login_available':bool(self.client_id or self.oidc),'review_required':self.review_required,'bug_reports':True,'game_requests':True}
+            return {'ok':True,'schema_version':1,'version':__version__,'profile_adapters':list(REGISTRY),'profile_instructions':True,'login_available':bool(self.client_id or self.oidc),'review_required':self.review_required,'bug_reports':True,'game_requests':True,'request_replies':True}
         if method=='POST' and path=='/v1/bug-reports':
             from deck_library.bug_report import validate_report,sanitize
             self.rate('report:'+remote,5,3600);report=validate_report(sanitize(body))
@@ -108,21 +110,15 @@ class API:
             with self.db() as db:db.execute('INSERT INTO bug_reports VALUES(?,?,?)',(identifier,json.dumps(report,ensure_ascii=False),now))
             return {'id':identifier,'received':True}
         if method=='POST' and path=='/v1/requests':
-            self.rate('request:'+remote,5,3600);self.rate('request:all',300,3600)
-            title=' '.join(str(body.get('title','')).split())[:120];platform=' '.join(str(body.get('platform','')).split())[:60];details=str(body.get('details',''))[:1000].strip()
-            if len(title)<2:raise ValueError('Indicar el nombre del juego.')
-            if not platform:raise ValueError('Indicar la plataforma.')
-            if re.search(r'magnet:|\.(nsp|xci|nsz|xcz|iso|rom|pkg|zip|7z|rar)\b|https?://',title+' '+platform+' '+details,re.I):raise ValueError('No se aceptan enlaces ni archivos de juegos. Describir el juego y qué falla, sin adjuntar nada.')
-            try:user=self.session(token)
-            except PermissionError:user={'uid':'','login':''}
-            identifier=secrets.token_hex(4)
-            with self.db() as db:db.execute('INSERT INTO game_requests(id,login,title,platform,details,state,note,created,updated,uid) VALUES(?,?,?,?,?,?,?,?,?,?)',(identifier,user['login'],title,platform,details,'new','',now,now,user['uid']))
-            self.notify(identifier,title,platform)
-            return {'id':identifier,'received':True}
+            from .requests import create
+            return create(self,body,token,remote)
         if method=='GET' and path=='/v1/me/requests':
-            user=self.session(token)
-            with self.db() as db:rows=db.execute('SELECT id,title,platform,state,note,created FROM game_requests WHERE uid=? AND uid!=\'\' ORDER BY created DESC LIMIT 50',(user['uid'],)).fetchall()
-            return {'requests':[dict(r) for r in rows]}
+            from .requests import mine
+            return mine(self,token)
+        match=re.fullmatch(r'/v1/me/requests/([0-9a-f]{8})/read',path)
+        if method=='POST' and match:
+            from .requests import read
+            return read(self,match[1],body,token)
         if path.startswith('/v1/admin/'):
             # Not an administrator: the route does not exist.
             if not self.is_admin(token):raise FileNotFoundError('Ruta no disponible.')
@@ -132,12 +128,8 @@ class API:
                 return {'requests':[dict(r) for r in rows]}
             match=re.fullmatch(r'/v1/admin/requests/([0-9a-f]{8})',path)
             if method=='POST' and match:
-                state=str(body.get('state',''))
-                if state not in REQUEST_STATES:raise ValueError('Estado no válido.')
-                with self.db() as db:
-                    changed=db.execute('UPDATE game_requests SET state=?,note=?,updated=? WHERE id=?',(state,str(body.get('note',''))[:500],now,match.group(1))).rowcount
-                if not changed:raise FileNotFoundError('No se encontró la solicitud.')
-                return {'ok':True}
+                from .requests import reply
+                return reply(self,match[1],body)
         if method=='GET' and path=='/v1/auth/providers':return {'providers':([{'id':'keycloak','name':'Cuenta propia'}] if self.oidc else [])+([{'id':'github','name':'GitHub'}] if self.client_id else [])}
         if path.startswith('/v1/auth/'):
             self.rate('auth:'+remote,40)

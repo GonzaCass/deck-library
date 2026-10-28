@@ -122,11 +122,19 @@ def cached(store):
     if not isinstance(state,dict):return {}
     # The search is cached for hours: once the app itself is at or beyond the cached release, the offer is stale.
     if state.get('app') and not is_newer(state['app'].get('version'),__version__):state['app']=None
+    clean=reconcile_ports(state,store)
+    if clean!=state:atomic_json(cache_path(store),clean)
+    return clean
+
+def reconcile_ports(state,store):
+    """Discard stale offers against the installed receipt, including checks started before an install finished."""
     from .ports import records
-    installed=records(store)
-    previous=state.get('catalog') or []
-    current=[row for row in previous if not (installed.get(row.get('repository'),{}).get('tag') and not is_newer(row.get('latest'),installed[row['repository']]['tag']))]
-    if current!=previous:state['catalog']=current;atomic_json(cache_path(store),state)
+    installed={repo.lower():record for repo,record in records(store).items()}
+    state={**state}
+    for key in ('catalog','ports'):
+        state[key]=[row for row in state.get(key) or [] if not (
+            installed.get(str(row.get('repository','')).lower(),{}).get('tag') and
+            not is_newer(row.get('latest'),installed[str(row['repository']).lower()]['tag']))]
     return state
 
 def port_completed(store,repository,tag):
@@ -158,7 +166,7 @@ def check_all(store,preferences,entries,force=False,get=fetch_json,on_app=None):
     if preferences.get('catalog_auto',True):
         try:state['presets']=refresh_presets(preferences,store)
         except (OSError,ValueError,KeyError) as error:state['errors'].append(f'presets: {error}')
-    atomic_json(cache_path(store),state);return state
+    state=reconcile_ports(state,store);atomic_json(cache_path(store),state);return state
 
 def sha256_file(path):
     digest=hashlib.sha256()

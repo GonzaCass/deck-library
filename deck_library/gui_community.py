@@ -35,7 +35,8 @@ class CommunityMixin:
         comments=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);comment_page.pack_start(comments,False,False,0)
         feedback=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);add_page(feedback,'feedback')
         feedback.pack_start(ActionButton('Volver al perfil','back',lambda _:stack.set_visible_child_name('profile'),'quiet'),False,False,0)
-        feedback.pack_start(text('Valoración','section-title'),False,False,0)
+        feedback.pack_start(text('Valorar el perfil · 1 a 5 estrellas','section-title'),False,False,0)
+        feedback.pack_start(text('Hace falta una cuenta. Se puede actualizar la valoración y añadir un comentario; no se puede valorar un perfil propio.','muted',85),False,False,0)
         rating=Gtk.ComboBoxText()
         for n in range(1,6):rating.append(str(n),str(n)+' '+('★'*n))
         rating.set_active_id('5');feedback.pack_start(rating,False,False,0)
@@ -83,13 +84,14 @@ class CommunityMixin:
                 if content:label=text(content,'muted',100);label.set_selectable(True);settings.pack_start(label,False,False,0)
             runtime=p.get('runtime')
             if runtime:settings.pack_start(text('Entorno: '+runtime['kind']+' '+runtime.get('version','')+'\n'+runtime.get('launch_options',''),'muted',100),False,False,0)
-            settings.show_all();show_comments([]);stack.set_visible_child_name('profile')
-            GLib.idle_add(lambda:(detail_back.grab_focus(),self.mark_controller_focus(self,detail_back),False)[-1])
+            settings.show_all();show_comments([]);stack.set_visible_child_name('feedback' if mode=='feedback' and profile_id else 'profile')
+            target=rating if stack.get_visible_child_name()=='feedback' else detail_back
+            GLib.idle_add(lambda:(target.grab_focus(),self.mark_controller_focus(self,target),False)[-1])
             if value.get('status')=='pending':status.set_text('Pendiente de revisión.');return
             run(lambda:client.comments(value),lambda result:show_comments(result) if selected[0] is value else None)
         state={'mine':False}
         def found(values):
-            self.reset_page(rows);everything=values;values=[v for v in values if state['mine'] or not presets.is_packaged(v,self.store)]
+            self.reset_page(rows);everything=values
             if not values:rows.add(text('No hay perfiles para este juego. Se pueden compartir perfiles propios.','muted',95))
             for value in values:
                 row=Gtk.ListBoxRow();row.value=value
@@ -101,6 +103,7 @@ class CommunityMixin:
             if profile_id:
                 wanted=next((v for v in everything if v['preset']['id']==profile_id or 'community-'+v['id']==profile_id),None)
                 if wanted:open_profile(wanted)
+                elif mode=='feedback':stack.set_visible_child_name('browse');status.set_text('Este perfil es local. Publicarlo permite recibir valoraciones de la comunidad.')
         def search(_,mine=False):
             state['mine']=mine;run(lambda:client.search(e,mine=mine),found)
         def auth_needed(destination):
@@ -173,8 +176,8 @@ class CommunityMixin:
         dialog.account_controller=controller
         for caption,page,icon in [('Perfiles','browse','community'),('Compartir mis ajustes','publish','upload'),('Mi cuenta','account','controller')]:tabs.pack_start(ActionButton(caption,icon,lambda _,p=page:stack.set_visible_child_name(p),'quiet'),False,False,0)
         tools=Gtk.Box(spacing=8);browse.pack_start(tools,False,False,0);tools.pack_start(ActionButton('Actualizar','refresh',search,'quiet'),False,False,0);tools.pack_start(ActionButton('Mis aportes','upload',lambda w:search(w,True),'quiet'),False,False,0)
-        detail_actions=Gtk.Box(spacing=8);detail.pack_start(detail_actions,False,False,0);detail.reorder_child(detail_actions,2);detail_actions.pack_start(ActionButton('Usar este perfil','download',download,'violet'),False,False,0);detail_actions.pack_start(ActionButton('Comentarios','community',lambda _:stack.set_visible_child_name('comments'),'quiet'),False,False,0);detail_actions.pack_start(ActionButton('Opinar','community',lambda _:stack.set_visible_child_name('feedback'),'quiet'),False,False,0)
-        feedback.pack_start(ActionButton('Publicar opinión','community',rate,'violet'),False,False,0)
+        detail_actions=Gtk.Box(spacing=8);detail.pack_start(detail_actions,False,False,0);detail.reorder_child(detail_actions,2);detail_actions.pack_start(ActionButton('Usar este perfil','download',download,'violet'),False,False,0);detail_actions.pack_start(ActionButton('Comentarios','community',lambda _:stack.set_visible_child_name('comments'),'quiet'),False,False,0);detail_actions.pack_start(ActionButton('Valorar este perfil','community',lambda _:stack.set_visible_child_name('feedback'),'quiet'),False,False,0)
+        feedback.pack_start(ActionButton('Enviar valoración','community',rate,'violet'),False,False,0)
         refresh_account();dialog.show_all();stack.set_visible_child_name(mode);search(None);dialog.run();alive[0]=False;account_page.close();dialog.destroy()
         if self.selected and self.selected.id==e.id:self.show_detail(e)
 

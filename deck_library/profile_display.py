@@ -38,9 +38,9 @@ def intent(profile):
 
 
 OUTCOMES = {
-    'equilibrado': 'Imagen y fluidez parejas: un buen punto de partida.',
-    'rendimiento': 'Pensado para ganar fluidez y gastar menos; la imagen baja.',
-    'calidad': 'Pensado para una imagen más nítida; puede costar fluidez.',
+    'equilibrado': 'Equilibrio entre imagen y fluidez.',
+    'rendimiento': 'Prioriza fluidez y consumo.',
+    'calidad': 'Mayor nitidez; puede reducir los FPS.',
 }
 
 

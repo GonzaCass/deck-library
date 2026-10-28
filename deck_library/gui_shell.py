@@ -42,6 +42,7 @@ class ShellMixin:
         if self.preferences.get('check_updates',True):self.ui_sources.append(GLib.timeout_add_seconds(5,self.check_updates))
         path=self.store.root/'last-sync.json';self.last_sync_seen=path.stat().st_mtime if path.exists() else 0;self.ui_sources.append(GLib.timeout_add_seconds(3,self.poll_sync));self.refresh_pending()
         self.start_gamepad();GLib.timeout_add_seconds(12,self.top_up_library_art)
+        self.ui_sources.append(GLib.timeout_add_seconds(45,self.poll_request_replies))
     def compact_screen(self):
         screen=Gdk.Screen.get_default()
         return bool(screen) and screen.get_height()<=900 and screen.get_width()<=1400
@@ -72,6 +73,7 @@ class ShellMixin:
         button.set_tooltip_text(('Cuenta · '+login) if login else 'Registrarse o iniciar sesión');button.get_accessible().set_name(caption)
         for name in ('steam','quiet'):style.remove_class(name)
         style.add_class('quiet');GLib.idle_add(self.check_owner_mode)
+        GLib.idle_add(lambda:(self.poll_request_replies(),False)[1])
     def update_density(self,_,allocation):
         compact=allocation.height<=900 and allocation.width<=1400
         show_brand=motion.gaming_mode() and allocation.width>=1100
@@ -124,6 +126,7 @@ class ShellMixin:
         header_scroll=self.new_scroll();header_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);header_scroll.set_overlay_scrolling(False);root.remove(bar);header_scroll.add(bar);root.pack_start(header_scroll,False,False,0);root.reorder_child(header_scroll,0)
         self.update_banner=Gtk.Box(spacing=12);self.update_banner.set_no_show_all(True);self.update_banner.get_style_context().add_class('banner');self.banner_text=label('');self.banner_action=button('Ver',lambda _:self.banner_clicked());self.update_banner.pack_start(self.banner_text,True,True,0);self.banner_close=Gtk.Button();self.banner_close.add(Icon('close',18));self.banner_close.get_style_context().add_class('quiet');self.banner_close.set_tooltip_text('Cerrar el aviso');self.banner_close.get_accessible().set_name('Cerrar el aviso');self.banner_close.connect('clicked',lambda _:self.dismiss_banner());self.banner_close.show_all();self.update_banner.pack_end(self.banner_close,False,False,0);self.update_banner.pack_end(self.banner_action,False,False,0);root.pack_start(self.update_banner,False,False,0)
         self.build_launch_notice(root)
+        self.build_request_notification(root)
     def dismiss_banner(self):
         """Hide the notice until its text changes (another update, or a different state)."""
         self.banner_dismissed=self.banner_text.get_text();self.update_banner.hide()

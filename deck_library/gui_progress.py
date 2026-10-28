@@ -38,7 +38,7 @@ class ProgressMixin:
         self.transfer_views[key]=live
 
     def finish_transfer(self,key,error=None):
-        self.transfer_event(key,{'phase':'error' if error else 'done','fraction':0 if error else 1,'text':('Error: '+error) if error else 'Actualización completada','eta':None})
+        self.transfer_event(key,{'phase':'error' if error else 'done','fraction':0 if error else 1,'text':('Error: '+error) if error else 'Tarea completada','eta':None})
 
     def port_progress(self,key):
         last=[0]

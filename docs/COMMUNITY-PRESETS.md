@@ -18,3 +18,9 @@ Se usa el JSON portable de [PRESETS.md](PRESETS.md): ID del juego, adaptador/ver
 La exportación/importación de un archivo JSON sigue disponible desde Más opciones, y los catálogos raw de GitHub no necesitan permisos de escritura. No incluir ROMs, firmware, DLC, texturas extraídas ni mods ajenos sin una licencia que permita compartirlos.
 
 La instalación y moderación del servicio se documentan en [community/README.md](../community/README.md). No tiene panel web público de administración.
+
+## Uso desde un juego (1.4.4)
+
+En la parte superior de Perfiles están **Crear mis ajustes**, **Buscar en la comunidad** e **Importar archivo**. **Valorar este perfil** abre directamente la selección de 1 a 5 estrellas y el comentario opcional. Se necesita una cuenta; una persona puede modificar su valoración, pero no valorar su propio perfil. Los perfiles incluidos también se pueden valorar. Un perfil solo local debe publicarse para recibir valoraciones.
+
+**Aplicar ajustes** guarda la configuración sin abrir el juego; **Aplicar y jugar** hace ambas cosas en un paso. Cuando ya coincide con lo guardado, la segunda acción pasa a **Jugar**. La alternativa **Compatibilidad** de Eden aumenta la precisión gráfica y puede reducir los FPS; no equivale a una verificación de jugabilidad. La etiqueta **Verificado en Deck** conserva el requisito de coincidencia exacta de repositorio y versión; la versión se consulta por separado en las condiciones de la prueba.

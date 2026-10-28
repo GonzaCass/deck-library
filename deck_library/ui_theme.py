@@ -122,6 +122,8 @@ button.summary-game:hover { border-color:#66717e; background:@raised; }
 button.summary-game label.title { font-size:17px; }
 .section-row { padding:4px 0; }
 .game-tabs { padding-bottom:6px; border-bottom:1px solid @line; }
+button.game-section.steam { background:#243449; border-color:#405979; }
+button.game-section.amber { background:#30291d; border-color:#59472c; }
 button.game-section.active { background:#29323d; border-color:@accent; }
 label.game-title { font-size:28px; }
 .compact label.game-title { font-size:25px; }
@@ -139,6 +141,7 @@ label.rating { color:#f1ce90; font-size:16px; }
 .change-details { background:@surface; border:1px solid @line; border-radius:10px; }
 button.disclosure { padding:7px 8px; min-height:32px; background:transparent; border-color:transparent; }
 button.disclosure label { color:@accent_soft; font-size:16px; }
+.request-notice { background:@surface; border-left:4px solid @accent_b; padding:8px 14px; }
 .apply-dock { background:@surface; border:1px solid @line; border-radius:11px; padding:10px 12px; }
 label.dock-title { font-size:16px; font-weight:700; }
 button.applied { background:#1d3529; border-color:#3a674d; }

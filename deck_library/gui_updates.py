@@ -37,6 +37,7 @@ class UpdatesMixin:
 
     def app_update_ready(self,state):
         if self.ui_closed:return False
+        state=updates.reconcile_ports(state,self.store)
         self.app_check_busy=False;self.update_state=state;self.refresh_update_badges()
         if self.pages.get_visible_child_name()=='updates':self.updates_page()
         if state.get('app') and self.preferences.get('auto_update') and not getattr(self,'update_installed',None):self.install_app_update(automatic=True)
@@ -153,8 +154,8 @@ class UpdatesMixin:
         box.pack_start(label('Ports · '+str(len(unique))+' actualizaciones','title'),False,False,0)
         if not unique:box.pack_start(label('No hay actualizaciones de ports en la última revisión.','muted'),False,False,0)
         active_keys={data.get('repository') or 'wiicompiled' for _,_,data in unique}
-        for key in getattr(self,'transfers',{}):
-            if key not in active_keys:
+        for key,transfer in getattr(self,'transfers',{}).items():
+            if key not in active_keys and transfer.state.get('phase') not in ('done','cancelled'):
                 card=self.card(box,key.rsplit('/',1)[-1]);self.transfer_row(card,key)
         prefetched=[0]
         for kind,text,data in unique:

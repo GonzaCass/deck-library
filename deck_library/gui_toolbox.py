@@ -18,11 +18,12 @@ class ToolboxMixin:
                ('ROMs y ports instalados','Gestionar la copia de consola de un juego que ya tiene un port.','Gestionar ROMs','folder',lambda _:self.originals_dialog()),
                ('Duplicados y conflictos','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page())]
         if not motion.gaming_mode():tools.append(('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam))
-        tools.append(('Reportar un problema','Preparar un diagnóstico que se puede revisar antes de compartirlo.','Reportar','file',lambda _:self.bug_report_page()))
+        tools.append(('Reportar un problema o hacer una solicitud','Diagnósticos, pedidos de soporte y respuestas del equipo.','Abrir','file',lambda _:self.support_page()))
+        tools.append(('Mis solicitudes y respuestas','Consultar los pedidos enviados con esta cuenta.','Ver respuestas','community',lambda _:self.my_requests_page()))
         if self.preferences.get('owner_mode'):tools.append(('Solicitudes recibidas','Los pedidos de juegos que llegaron al servicio. Solo se ven con la cuenta del propietario.','Ver','community',lambda _:self.owner_requests_page()))
         for title,description,caption,icon,action in tools:
             row=Gtk.Box(spacing=16);row.get_style_context().add_class('settings-row');words=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);words.pack_start(label(title,'title'),False,False,0);words.pack_start(label(description,'muted'),False,False,0)
-            row.pack_start(words,True,True,0);row.pack_end(ActionButton(caption,icon,action,'steam' if icon=='steam' else 'quiet'),False,False,0);self.tools_box.pack_start(row,False,False,0)
+            row.pack_start(words,True,True,0);row.pack_end(ActionButton(caption,icon,action,'steam' if icon=='steam' else 'violet' if icon=='community' else 'cyan'),False,False,0);self.tools_box.pack_start(row,False,False,0)
         self.tools_box.show_all();self.pages.set_visible_child_name('tools')
 
     def iso_extract_page(self,*_):

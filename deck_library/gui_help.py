@@ -31,8 +31,7 @@ class HelpMixin:
             panel=self.card(box,title);panel.pack_start(text(description,'muted',95),False,False,0)
         actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);box.pack_start(actions,False,False,0)
         actions.pack_start(ActionButton('Verificados','check',lambda _:self.validated_page(),'steam'),False,False,0)
-        actions.pack_start(ActionButton('Pedir un juego','plus',lambda _:self.request_game_page(),'neutral'),False,False,0)
-        actions.pack_start(ActionButton('Reportar un problema','file',lambda _:self.bug_report_page(),'violet-outline'),False,False,0)
+        actions.pack_start(ActionButton('Reportar un problema o hacer una solicitud','file',lambda _:self.support_page(),'violet'),False,False,0)
         if (self.store.root/'last-launch-error.json').is_file():actions.pack_start(ActionButton('Último error de un juego','file',lambda _:self.launch_error_page(),'quiet'),False,False,0)
         box.show_all();self.pages.set_visible_child_name('help');self.refresh_layout()
         GLib.idle_add(lambda:(box.get_ancestor(Gtk.ScrolledWindow).get_vadjustment().set_value(0),False)[1])
@@ -65,7 +64,7 @@ class HelpMixin:
         body=self.validated_box;self.reset_page(body);body.set_spacing(12)
         body.pack_start(text('Verificados por Deck Library','hero'),False,False,0)
         body.pack_start(text('Juegos comprobados en una Steam Deck y el arreglo que necesitó cada uno. Revisar la versión y las limitaciones antes de instalar.','muted',90),False,False,0)
-        body.pack_start(ActionButton('Pedir un juego','plus',lambda _:self.request_game_page(),'steam'),False,False,0)
+        body.pack_start(ActionButton('Reportar un problema o hacer una solicitud','plus',lambda _:self.support_page(),'violet'),False,False,0)
         search=Gtk.SearchEntry();search.set_placeholder_text('Buscar juegos validados · X: teclado');self.bind_search_keyboard(search);self.validated_search=search;body.pack_start(search,False,False,0)
         results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);body.pack_start(results,False,False,0);self.validated_targets={};panels=[]
         from .gui import Poster
@@ -105,10 +104,16 @@ class HelpMixin:
             empty.set_visible(not count)
         search.connect('search-changed',filter_games);body.show_all();filter_games(None)
         body.get_ancestor(Gtk.ScrolledWindow).show();self.pages.set_visible_child_name('validated');self.refresh_layout()
+        attempts=[0]
         def focus():
-            if self.ui_closed or self.pages.get_visible_child_name()!='validated':return False
-            target=self.validated_targets.get(getattr(self,'library_focus_id',None),search);target.grab_focus();self.mark_controller_focus(self,target);self.reveal_focus(target);return False
-        GLib.idle_add(focus)
+            if self.ui_closed or self.pages.get_visible_child_name()!='validated' or self.validated_search is not search:return False
+            attempts[0]+=1
+            target=self.validated_targets.get(getattr(self,'library_focus_id',None),search)
+            if not target.get_mapped():return attempts[0]<5
+            target.grab_focus();self.mark_controller_focus(self,target);self.reveal_focus(target)
+            return self.get_focus() is not target and attempts[0]<5
+        # Stack mapping/layout can restore the old focus after an idle callback.
+        GLib.timeout_add(30,focus)
 
     def bug_report_page(self,entry=None):
         if entry is not None and not hasattr(entry,'metadata'):entry=None

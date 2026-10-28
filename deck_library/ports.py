@@ -177,7 +177,7 @@ def requirements(item,games,home=None):
             else:original=validate(find_source(item,games,home),item['original_data'])
             lines.append((True,('Juego identificado · Title ID '+item['original_data']['title_id']+' · ') + str(original) if item['original_data'].get('extract_iso') and pathlib.Path(original).is_file() else 'Archivos originales: '+str(original)))
         except (ValueError,OSError):
-            message='Archivos originales pendientes: elegir exefs y romfs de Bayonetta 2 v1.2.' if item['original_data'].get('kind')=='switch-dump' else 'Archivos originales de Dante’s Inferno pendientes: elegir una ISO de Xbox 360 o una carpeta extraída con default.xex.' if item['original_data'].get('kind')=='xbox360-dante' else 'Archivos originales de Xbox pendientes: elegir la carpeta extraída'+(' o ISO/XISO.' if item['original_data'].get('iso') else '.')
+            message='Archivos originales pendientes: elegir la carpeta con exefs y romfs o convertir un XCI/NSP.' if item['original_data'].get('kind')=='switch-dump' else 'Archivos originales de Dante’s Inferno pendientes: elegir una ISO de Xbox 360 o una carpeta extraída con default.xex.' if item['original_data'].get('kind')=='xbox360-dante' else 'Archivos originales de Xbox pendientes: elegir la carpeta extraída'+(' o ISO/XISO.' if item['original_data'].get('iso') else '.')
             if item['original_data'].get('kind')=='xbox360':message='Archivos originales de Xbox 360 pendientes: elegir la ISO.' if item['original_data'].get('iso_only') else 'Archivos originales de Xbox 360 pendientes: elegir la ISO o una carpeta extraída con default.xex.' if item['original_data'].get('extract_iso') else 'Archivos originales de Xbox 360 pendientes: elegir la carpeta extraída con default.xex de la revisión admitida.'
             lines.append((False,message))
     if item.get('bios'):
@@ -218,7 +218,7 @@ def clean(item,category='',source=''):
     if not isinstance(folder,str) or not FOLDER.fullmatch(folder):folder=re.sub(r'[^A-Za-z0-9._-]','',repo.split('/')[1]) or 'port'
     name=item.get('name');icon=item.get('appIconUrl') or item.get('icon');category=str(item.get('category') or item.get('list') or category)[:80];note=item.get('note')
     ai=item.get('ai') is True or bool(re.match(r'AI\b',category));category=re.sub(r'^AI\s*-?\s*','',category) if ai else category
-    result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','ctr_native','rom','zelda3','wwhd','project2099','original_data','b2recomp','dante') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
+    result={'name':name if isinstance(name,str) and 0<len(name)<=120 else repo,'repository':repo,'folder':folder,'icon':icon if isinstance(icon,str) and icon.startswith('https://') else '','list':category,'source':source,'ai':ai,'note':note[:400] if isinstance(note,str) else '','kit':item.get('kit') is True,'setup':item.get('setup') if item.get('setup') in ('kit','openpete','ctr','ctr_native','rom','zelda3','wwhd','project2099','original_data','b2recomp','dante','switch_launcher') else '','rom':item.get('rom') if isinstance(item.get('rom'),dict) else None,'wiiu':item.get('wiiu') if isinstance(item.get('wiiu'),dict) else None,'exe':next((v for v in (item.get('executable'),item.get('exe')) if isinstance(v,str) and v),''),'web':item.get('web') if isinstance(item.get('web'),dict) and item['web'].get('kind') in ('openpete','ctr','zelda3') else None,'cover_title':str(item.get('cover_title') or '')[:120],'bios':item.get('bios') if isinstance(item.get('bios'),dict) else None,'disc':item.get('disc') if isinstance(item.get('disc'),dict) else None}
     for field in ('preparation','source_note','asset_prefix','windows_exe','package_role','original_data','preserve','multi_appimage','runtime_status'):
         if field in RECIPES.get(repo.lower(),{}):result[field]=RECIPES[repo.lower()][field]
     for key in ('added_at','release_at','first_seen'):
@@ -746,7 +746,8 @@ def uninstall(repository,store=None,root=None):
     return {'folder':record['folder'],'backup':str(destination) if destination else '','ids':ids,'name':record.get('name',repository)}
 
 def installed_updates(store,get=fetch_json):
-    """Catalog ports whose recorded tag differs from the latest release."""
+    """Catalog ports with a newer release than their installed receipt."""
+    from .updates import is_newer
     result=[]
     for repo,record in records(store).items():
         if record.get('web'):
@@ -757,7 +758,7 @@ def installed_updates(store,get=fetch_json):
         try:release=release_for(repo,get)
         except (OSError,ValueError):continue
         tag=str(release.get('tag_name',''))
-        if tag and tag!=record.get('tag') and package_plan({'repository':repo,**record},release.get('assets',[])):result.append({'name':record.get('name',repo),'repository':repo,'installed':record.get('tag',''),'latest':tag,'page':release.get('html_url',''),'notes':(release.get('body') or '')[:8000]})
+        if tag and is_newer(tag,record.get('tag')) and package_plan({'repository':repo,**record},release.get('assets',[])):result.append({'name':record.get('name',repo),'repository':repo,'installed':record.get('tag',''),'latest':tag,'page':release.get('html_url',''),'notes':(release.get('body') or '')[:8000]})
     return result
 
 def port_id(repository):
@@ -1255,6 +1256,13 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None,c
     disc=find_disc(record['disc'],games) if record.get('disc') else None
     if record.get('disc') and not disc:raise ValueError('No se encontró el disco '+record['disc']['serial']+' en un formato legible (BIN, ISO o CUE).')
     kind=record['setup'];executable=folder/record['executable']
+    if kind=='switch_launcher':
+        from .original_data import validate,find_source
+        source=validate(find_source(record,games,home),record['original_data'])
+        record.update(configured=True,configured_with=source.name,inputs={**inputs,'original_data':str(source)})
+        saved=records(store);saved[repository]=record;atomic_json(store.root/'ports.json',saved);atomic_json(folder/'.deck-library-port.json',record)
+        progress('Archivos preparados. El primer inicio compila el juego con el asistente del port.')
+        return record
     if kind=='dante':
         from .dante import find_source,prepare,arguments
         source=find_source(record,games,home)

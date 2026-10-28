@@ -1,5 +1,15 @@
 # Validación
 
+## 1.4.4 — Setup, profiles and support replies
+
+- Final local runs: 1,040 discovered tests with 130 environment/UI skips; all 128 GTK checks passed. A controller regression found during layout review was corrected by restoring focus after the validated page finished mapping.
+
+- Request tests cover all four request categories, GitHub repository validation, administrator-only text/state replies, account-scoped history and unread receipts. Reading an older response cannot acknowledge a newer one. Legacy requests remain preserved.
+- Switch flow tests cover selecting an extracted root or its exefs/romfs child without keys, direct preparation after installation, retained originals, and first-launch handoff to Savage Wind’s own builder. The redistributed NSTool 1.9.2 executable is verified against a pinned digest and was executed on Linux x86-64. No new real game conversion, compilation or gameplay was performed for this change.
+- Live HTTPS checks used the real administrator account and an isolated, short-lived service session for typed port requests, text replies, unread/read changes, a newer reply surviving an older read receipt, and rejection of administrator routes for the ordinary session. All temporary rows and the test session were removed; the requested demonstration record was preserved. The API deployment was backed up and returned a healthy 1.4.4 response.
+- Update regression coverage checks a port installation completing while an older update check is still in flight; completed installation progress is excluded from available updates.
+- GTK checks cover the direct folder-selection workflow, private administrator response, visible notification, opening the response and acknowledgment, compact profile controls, controller navigation and the revised support entry. Interface checks use isolated virtual displays, including 1280×800 and 840×640 layouts.
+
 ## 1.4.3 — Account identity and owner tools
 
 - Baseline 1.4.2: core discovery ran 1,028 tests with 126 environment/UI skips; all 124 GTK checks passed. Final changes: core discovery ran 1,031 tests with 127 skips, and all 125 GTK checks passed. Regressions first reproduced same-alias request exposure and a stale owner-tools page, then passed after the fixes.
