@@ -13,7 +13,10 @@
       "date": "2026-10-01",
       "profile_id": "wiicompiled-rmcp01-sharp",
       "result": "Imagen nítida y buen funcionamiento confirmados en partida.",
-      "limitations": "No hay una medición de FPS sostenidos. La prueba corresponde a esa versión y configuración."
+      "limitations": "No hay una medición de FPS sostenidos. La prueba corresponde a esa versión y configuración.",
+      "fix": "Perfil «Nítido» de WiiCompiled para Mario Kart Wii: imagen más definida con la configuración propia de la Deck.",
+      "fix_how": "profile",
+      "fix_evidence": "Confirmado en partida por el autor; sin medición de FPS."
     },
     {
       "id": "eden-smash",
@@ -27,7 +30,10 @@
       "date": "2026-10-19",
       "profile_id": "eden-smash-sharp",
       "result": "Mejora de imagen y fluidez confirmada durante el juego.",
-      "limitations": "Requiere la misma versión de Eden y contenido compatible. No certifica todas las arenas ni partidas multijugador."
+      "limitations": "Requiere la misma versión de Eden y contenido compatible. No certifica todas las arenas ni partidas multijugador.",
+      "fix": "Perfil «Nítido» de Eden para Smash Ultimate, incluido en Deck Library.",
+      "fix_how": "profile",
+      "fix_evidence": "Confirmado durante el juego por el autor; no cubre todas las arenas ni el multijugador."
     },
     {
       "id": "narutorise-v03",
@@ -41,7 +47,10 @@
       "date": "2026-10-27",
       "profile_id": "narutorise-deck-balanced",
       "result": "Gameplay confirmado con aproximadamente 45–60 FPS variables.",
-      "limitations": "Equilibrado es la configuración probada. Rendimiento y Calidad siguen pendientes de prueba."
+      "limitations": "Equilibrado es la configuración probada. Rendimiento y Calidad siguen pendientes de prueba.",
+      "fix": "Perfil Equilibrado de Naruto Rise con Proton 11.0 y las correcciones Vulkan de la versión 0.3 del port.",
+      "fix_how": "profile",
+      "fix_evidence": "Gameplay confirmado por el autor; FPS aproximados, no medidos."
     },
     {
       "id": "project2099-beta5",
@@ -55,7 +64,10 @@
       "date": "2026-10-27",
       "profile_id": "",
       "result": "Arranque y jugabilidad confirmados tras actualizar el motor.",
-      "limitations": "No hay una medición sostenida para Beta 5. Los perfiles del motor Beta 4.1 no se aplican a esta versión."
+      "limitations": "No hay una medición sostenida para Beta 5. Los perfiles del motor Beta 4.1 no se aplican a esta versión.",
+      "fix": "Instalador integrado de Project-2099: actualiza el motor a Beta 5 y usa Proton 9 con respaldo completo.",
+      "fix_how": "automatic",
+      "fix_evidence": "Arranque y jugabilidad confirmados por el autor tras actualizar el motor."
     },
     {
       "id": "broken-bond-v25",
@@ -69,7 +81,44 @@
       "date": "2026-10-27",
       "profile_id": "",
       "result": "Gameplay fluido y controles confirmados tras aplicar la corrección de pantalla negra.",
-      "limitations": "Se observaron pausas en algunas cinemáticas. Ajuste probado: 720p, objetivo de 60 FPS y MSAA desactivado. Puede faltar algún efecto al omitir shaders problemáticos; no hay una medición sostenida de FPS."
+      "limitations": "Se observaron pausas en algunas cinemáticas. Ajuste probado: 720p, objetivo de 60 FPS y MSAA desactivado. Puede faltar algún efecto al omitir shaders problemáticos; no hay una medición sostenida de FPS.",
+      "fix": "Corrección de la pantalla negra y ajuste para Steam Deck: 720p, objetivo de 60 FPS, MSAA desactivado y mando SDL.",
+      "fix_how": "automatic",
+      "fix_evidence": "Gameplay y controles confirmados por el autor; se observaron pausas en algunas cinemáticas."
+    },
+    {
+      "id": "gtaiv-fusionfix",
+      "name": "Grand Theft Auto IV",
+      "game_id": "12210",
+      "adapter": "instructions",
+      "program": "FusionFix 4.0.5 · DXVK 2.6.2 · Proton 11.0",
+      "version": "Complete Edition 1.2.0.59",
+      "repository": "",
+      "hardware": "steam-deck-oled",
+      "date": "2026-10-01",
+      "profile_id": "",
+      "result": "El usuario confirmó que anduvo perfecto tras cambiar de FusionFix 5.0.1 a 4.0.5.",
+      "limitations": "Es una confirmación de experiencia, sin frametimes ni recorrido registrado: no demuestra 60 o 100 FPS constantes. No se aisló cuál cambio produjo la mejora.",
+      "fix": "FusionFix 4.0.5 en lugar de la 5.0.1, con el DXVK incluido y dos líneas en dxvk.conf (maxFrameLatency 1, presentInterval 1). El botón Aplicar arreglo de GTA IV lo prepara con respaldo y se puede restaurar.",
+      "fix_how": "automatic",
+      "fix_evidence": "Confirmación de experiencia del usuario en una Steam Deck OLED."
+    },
+    {
+      "id": "spiderman-shattered-dimensions",
+      "name": "Spider-Man: Shattered Dimensions",
+      "game_id": "spiderman-shattered-dimensions",
+      "adapter": "instructions",
+      "program": "Proton 10.0 · XAudio/XACT y d3dx9_43",
+      "version": "Windows (Game.exe)",
+      "repository": "",
+      "hardware": "steam-deck-oled",
+      "date": "2026-10-01",
+      "profile_id": "",
+      "result": "El usuario confirmó que funciona con audio, voces y controles integrados.",
+      "limitations": "Es una configuración observada en una sola instalación y necesita una segunda prueba antes de ofrecerse como arreglo automático. No se documenta una asignación de botones individuales.",
+      "fix": "Proton 10.0 y las dependencias legacy de DirectX (d3dx9_43 y XACT) instaladas en el prefijo del acceso, con el idioma español en el registro. Deck Library todavía no lo aplica solo: hay una guía paso a paso.",
+      "fix_how": "manual",
+      "fix_evidence": "Confirmación de experiencia del usuario en una Steam Deck OLED."
     }
   ]
 }

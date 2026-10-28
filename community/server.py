@@ -23,12 +23,16 @@ def github(url,data=None,token=None):
     if len(raw)>1024*1024:raise ValueError('Respuesta de GitHub demasiado grande.')
     return json.loads(raw)
 
+REQUEST_STATES=('new','investigating','fixed','declined')
+
 class API:
     def __init__(self,path=None,client_id=None,oidc_issuer=None,oidc_client=None,review_required=None):
         self.path=str(path or os.environ.get('COMMUNITY_DB','/data/community.sqlite3'));self.client_id=client_id or os.environ.get('GITHUB_CLIENT_ID','')
         issuer=oidc_issuer or os.environ.get('OIDC_ISSUER','');client=oidc_client or os.environ.get('OIDC_CLIENT_ID','')
         self.oidc=DeviceAuth(issuer,client) if issuer and client else None
         self.review_required=(os.environ.get('COMMUNITY_REVIEW_REQUIRED','false').lower()=='true') if review_required is None else review_required
+        self.admins={login.strip().lower() for login in os.environ.get('COMMUNITY_ADMINS','').split(',') if login.strip()}
+        self.notify_url=os.environ.get('COMMUNITY_NOTIFY_URL','')
         self.trusted_proxies=tuple(ipaddress.ip_network(value.strip()) for value in os.environ.get('COMMUNITY_TRUST_PROXY_CIDRS','').split(',') if value.strip())
         pathlib.Path(self.path).parent.mkdir(parents=True,exist_ok=True)
         with self.db() as db:
@@ -39,6 +43,7 @@ class API:
             CREATE TABLE IF NOT EXISTS feedback(preset TEXT NOT NULL, uid TEXT NOT NULL, result TEXT NOT NULL, notes TEXT NOT NULL, updated REAL NOT NULL, PRIMARY KEY(preset,uid));
             CREATE TABLE IF NOT EXISTS rates(key TEXT PRIMARY KEY, count INTEGER NOT NULL, expires REAL NOT NULL);''')
             db.execute('CREATE TABLE IF NOT EXISTS bug_reports(id TEXT PRIMARY KEY, body TEXT NOT NULL, created REAL NOT NULL)')
+            db.execute("CREATE TABLE IF NOT EXISTS game_requests(id TEXT PRIMARY KEY, login TEXT NOT NULL DEFAULT '', title TEXT NOT NULL, platform TEXT NOT NULL, details TEXT NOT NULL, state TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created REAL NOT NULL, updated REAL NOT NULL)")
             db.execute('BEGIN IMMEDIATE')
             for table,column,definition in [('devices','provider',"TEXT NOT NULL DEFAULT 'github'"),('feedback','rating','INTEGER'),('feedback','author',"TEXT NOT NULL DEFAULT ''")]:
                 if column not in {r['name'] for r in db.execute('PRAGMA table_info('+table+')')}:db.execute('ALTER TABLE '+table+' ADD COLUMN '+column+' '+definition)
@@ -56,6 +61,24 @@ class API:
         with self.db() as db:
             db.execute('DELETE FROM rates WHERE expires<?',(now,));db.execute('INSERT INTO rates VALUES(?,1,?) ON CONFLICT(key) DO UPDATE SET count=count+1',(key,now+seconds));row=db.execute('SELECT count FROM rates WHERE key=?',(key,)).fetchone()
             if row['count']>limit:raise ValueError('Demasiadas solicitudes. Esperá antes de repetir.')
+    def is_admin(self,token):
+        """True for a signed-in account whose login is listed in COMMUNITY_ADMINS. Anyone else, or a bad token, is simply not an administrator."""
+        try:user=self.session(token)
+        except PermissionError:return False
+        return self.admin_user(user)
+    def admin_user(self,user):
+        """Administrators are Keycloak accounts only: a GitHub login with the same name must never match. An entry is a username or `sub:<Keycloak subject id>`."""
+        if not user['uid'].startswith('oidc:'):return False
+        return user['login'].lower() in self.admins or 'sub:'+user['uid'].rsplit(':',1)[-1].lower() in self.admins
+    def notify(self,identifier,title,platform):
+        """Tell the owner a request arrived. Only the number, the game and the platform leave the server; never the author or the details."""
+        if not self.notify_url.startswith('https://'):return
+        text=f'Nueva solicitud {identifier}: {title} ({platform})'
+        discord='discord.com/api/webhooks' in self.notify_url or 'discordapp.com/api/webhooks' in self.notify_url
+        data=json.dumps({'content':text,'allowed_mentions':{'parse':[]}}).encode() if discord else text.encode()
+        request=urllib.request.Request(self.notify_url,data=data,headers={'Content-Type':'application/json' if discord else 'text/plain; charset=utf-8','User-Agent':'DeckLibrary-Community'})
+        try:urllib.request.urlopen(request,timeout=4).close()
+        except Exception:pass  # a notification failure must never lose or reject the request
     def seed_profiles(self,game,adapter,remote='local'):
         from deck_library import presets
         from deck_library.models import Store,Entry
@@ -77,13 +100,44 @@ class API:
         if method=='GET' and path=='/health':
             from deck_library import __version__
             from deck_library.presets import REGISTRY
-            return {'ok':True,'schema_version':1,'version':__version__,'profile_adapters':list(REGISTRY),'profile_instructions':True,'login_available':bool(self.client_id or self.oidc),'review_required':self.review_required,'bug_reports':True}
+            return {'ok':True,'schema_version':1,'version':__version__,'profile_adapters':list(REGISTRY),'profile_instructions':True,'login_available':bool(self.client_id or self.oidc),'review_required':self.review_required,'bug_reports':True,'game_requests':True}
         if method=='POST' and path=='/v1/bug-reports':
             from deck_library.bug_report import validate_report,sanitize
             self.rate('report:'+remote,5,3600);report=validate_report(sanitize(body))
             identifier=secrets.token_hex(8)
             with self.db() as db:db.execute('INSERT INTO bug_reports VALUES(?,?,?)',(identifier,json.dumps(report,ensure_ascii=False),now))
             return {'id':identifier,'received':True}
+        if method=='POST' and path=='/v1/requests':
+            self.rate('request:'+remote,5,3600);self.rate('request:all',300,3600)
+            title=' '.join(str(body.get('title','')).split())[:120];platform=' '.join(str(body.get('platform','')).split())[:60];details=str(body.get('details',''))[:1000].strip()
+            if len(title)<2:raise ValueError('Indicar el nombre del juego.')
+            if not platform:raise ValueError('Indicar la plataforma.')
+            if re.search(r'magnet:|\.(nsp|xci|nsz|xcz|iso|rom|pkg|zip|7z|rar)\b|https?://',title+' '+platform+' '+details,re.I):raise ValueError('No se aceptan enlaces ni archivos de juegos. Describir el juego y qué falla, sin adjuntar nada.')
+            try:login=self.session(token)['login']
+            except PermissionError:login=''
+            identifier=secrets.token_hex(4)
+            with self.db() as db:db.execute('INSERT INTO game_requests VALUES(?,?,?,?,?,?,?,?,?)',(identifier,login,title,platform,details,'new','',now,now))
+            self.notify(identifier,title,platform)
+            return {'id':identifier,'received':True}
+        if method=='GET' and path=='/v1/me/requests':
+            user=self.session(token)
+            with self.db() as db:rows=db.execute('SELECT id,title,platform,state,note,created FROM game_requests WHERE login=? ORDER BY created DESC LIMIT 50',(user['login'],)).fetchall()
+            return {'requests':[dict(r) for r in rows]}
+        if path.startswith('/v1/admin/'):
+            # Not an administrator: the route does not exist.
+            if not self.is_admin(token):raise FileNotFoundError('Ruta no disponible.')
+            if method=='GET' and path=='/v1/admin/requests':
+                state=query.get('state',[''])[0]
+                with self.db() as db:rows=db.execute("SELECT * FROM game_requests WHERE (?='' OR state=?) ORDER BY created DESC LIMIT 200",(state,state)).fetchall()
+                return {'requests':[dict(r) for r in rows]}
+            match=re.fullmatch(r'/v1/admin/requests/([0-9a-f]{8})',path)
+            if method=='POST' and match:
+                state=str(body.get('state',''))
+                if state not in REQUEST_STATES:raise ValueError('Estado no válido.')
+                with self.db() as db:
+                    changed=db.execute('UPDATE game_requests SET state=?,note=?,updated=? WHERE id=?',(state,str(body.get('note',''))[:500],now,match.group(1))).rowcount
+                if not changed:raise FileNotFoundError('No se encontró la solicitud.')
+                return {'ok':True}
         if method=='GET' and path=='/v1/auth/providers':return {'providers':([{'id':'keycloak','name':'Cuenta propia'}] if self.oidc else [])+([{'id':'github','name':'GitHub'}] if self.client_id else [])}
         if path.startswith('/v1/auth/'):
             self.rate('auth:'+remote,40)
@@ -132,7 +186,8 @@ class API:
                 with self.db() as db:
                     db.execute('DELETE FROM tokens WHERE expires<?',(now,));db.execute('DELETE FROM devices WHERE hash=?',(key,));db.execute('INSERT INTO tokens VALUES(?,?,?,?)',(digest(session),uid,login,now+30*86400))
                 return {'state':'connected','token':session,'login':login}
-        if method=='GET' and path=='/v1/me':return {'login':self.session(token)['login']}
+        if method=='GET' and path=='/v1/me':
+            user=self.session(token);return {'login':user['login'],'admin':self.admin_user(user)}
         if method=='POST' and path=='/v1/logout':
             with self.db() as db:db.execute('DELETE FROM tokens WHERE hash=?',(digest(token),))
             return {'ok':True}
@@ -170,7 +225,9 @@ class API:
             if rating is not None and (type(rating) is not int or not 1<=rating<=5):raise ValueError('La valoración debe estar entre 1 y 5.')
             if result not in ('works','issues') or not isinstance(notes,str) or len(notes)>2000:raise ValueError('Comentario inválido.')
             with self.db() as db:
-                if not db.execute("SELECT 1 FROM presets WHERE id=? AND status='approved'",(match[1],)).fetchone():raise ValueError('Perfil no disponible.')
+                owner=db.execute("SELECT uid FROM presets WHERE id=? AND status='approved'",(match[1],)).fetchone()
+                if not owner:raise ValueError('Perfil no disponible.')
+                if owner['uid']==user['uid']:raise ValueError('No se puede valorar el propio perfil.')
                 db.execute('INSERT INTO feedback(preset,uid,result,notes,updated,rating,author) VALUES(?,?,?,?,?,?,?) ON CONFLICT(preset,uid) DO UPDATE SET result=excluded.result,notes=excluded.notes,updated=excluded.updated,rating=excluded.rating,author=excluded.author',(match[1],user['uid'],result,notes,now,rating,user['login']))
             return {'ok':True}
         raise FileNotFoundError('Ruta no disponible.')
@@ -196,9 +253,19 @@ _api=None
 
 if __name__=='__main__':
     import argparse
-    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['pending','approve','reject','backup']);parser.add_argument('id',nargs='?');args=parser.parse_args();api=API()
+    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['pending','approve','reject','backup','requests','request']);parser.add_argument('id',nargs='?');parser.add_argument('--state',default='');parser.add_argument('--note',default='');args=parser.parse_args();api=API()
     with api.db() as db:
         if args.action=='pending':print(json.dumps([dict(r) for r in db.execute("SELECT id,login,body FROM presets WHERE status='pending'")],ensure_ascii=False,indent=2))
+        elif args.action=='requests':
+            for r in db.execute("SELECT id,state,title,platform,login,created FROM game_requests WHERE (?='' OR state=?) ORDER BY created DESC",(args.state,args.state)):print(f"{r['id']}  {r['state']:<13} {time.strftime('%Y-%m-%d',time.localtime(r['created']))}  {r['title']} ({r['platform']})"+(f"  por {r['login']}" if r['login'] else ''))
+        elif args.action=='request':
+            if not args.id:parser.error('Falta el ID.')
+            if args.state:
+                if args.state not in REQUEST_STATES:parser.error('Estado: '+', '.join(REQUEST_STATES))
+                if not db.execute('UPDATE game_requests SET state=?,note=?,updated=? WHERE id=?',(args.state,args.note[:500],time.time(),args.id)).rowcount:raise SystemExit('No se encontró la solicitud.')
+            row=db.execute('SELECT * FROM game_requests WHERE id=?',(args.id,)).fetchone()
+            if row is None:raise SystemExit('No se encontró la solicitud.')
+            print(json.dumps(dict(row),ensure_ascii=False,indent=2))
         elif args.action=='backup':
             if not args.id:parser.error('Falta el archivo de destino.')
             with contextlib.closing(sqlite3.connect(args.id)) as target:db.backup(target)

@@ -10,6 +10,8 @@ services:
     environment:
       COMMUNITY_DB: /data/community.sqlite3
       COMMUNITY_REVIEW_REQUIRED: ${COMMUNITY_REVIEW_REQUIRED:-false}
+      COMMUNITY_ADMINS: ${COMMUNITY_ADMINS:-}
+      COMMUNITY_NOTIFY_URL: ${COMMUNITY_NOTIFY_URL:-}
       COMMUNITY_TRUST_PROXY_CIDRS: ${COMMUNITY_TRUST_PROXY_CIDRS:-}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID:-}
       OIDC_ISSUER: ${OIDC_ISSUER:-https://auth.jokerlan.xyz/realms/master}

@@ -70,9 +70,9 @@ class CommunityPublicationTests(unittest.TestCase):
 
 class ValidatedGamesTests(unittest.TestCase):
     def test_every_entry_has_gameplay_evidence_and_never_claims_installation_is_a_game_test(self):
-        rows=validated_games.catalog();self.assertEqual(len(rows),5)
-        names={row['name'] for row in rows};self.assertIn('Naruto: Rise of a Ninja',names)
-        for row in rows:self.assertTrue(row['result']);self.assertTrue(row['limitations']);self.assertTrue(row['version'])
+        rows=validated_games.catalog();self.assertEqual(len(rows),7)
+        names={row['name'] for row in rows};self.assertIn('Naruto: Rise of a Ninja',names);self.assertIn('Grand Theft Auto IV',names);self.assertIn('Spider-Man: Shattered Dimensions',names)
+        for row in rows:self.assertTrue(row['result']);self.assertTrue(row['limitations']);self.assertTrue(row['version']);self.assertTrue(row['fix']);self.assertTrue(row['fix_evidence']);self.assertIn(row['fix_how'],validated_games.FIX_HOW)
         port=Entry('Naruto',['port'],metadata={'port_repository':'jorjbarbosa/naruto-rise-recomp'})
         row=next(r for r in rows if r['id']=='narutorise-v03');self.assertEqual(validated_games.matching(row,[port]),port)
         other=Entry('Naruto',['port'],metadata={'port_repository':'other/naruto'})

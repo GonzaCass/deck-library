@@ -72,3 +72,28 @@ Si el realm también tiene otros clientes, no cambiar su remitente SMTP global p
 **Ayuda → Reportar un problema** permite revisar un reporte, exportar un ZIP, abrir un issue de GitHub o enviarlo expresamente al servicio. No se envía automáticamente ni se necesita una cuenta. El servidor valida tamaño y formato, vuelve a ocultar credenciales y datos personales conocidos y limita los envíos. La redacción automática no sustituye la revisión del contenido por quien lo comparte.
 
 `POST /v1/bug-reports` devuelve un identificador de recepción. El reporte se guarda en la tabla privada `bug_reports` del volumen SQLite y no tiene una ruta pública de descarga. Solo el administrador con acceso al volumen puede consultarlo por su ID; conviene eliminarlo una vez resuelto el incidente. GitHub recibe únicamente el texto que la persona decide publicar y los adjuntos que añade al issue. El servidor no crea issues en su nombre.
+
+## Solicitudes de juegos y panel del propietario
+
+**Pedir un juego** (en **Verificados** y en **Ayuda**) envía el nombre del juego, la plataforma y, si se quiere, qué falla. No se aceptan juegos, archivos ni enlaces: el servidor rechaza nombres de archivo de juego (`.nsp`, `.xci`, `.iso`, `.zip`…), enlaces y `magnet:`. La solicitud se revisa y se intenta hacer que el juego funcione en la Steam Deck; si se logra, el arreglo se publica desde Deck Library sin incluir el juego. No hace falta una cuenta; con una, la persona ve el estado de sus solicitudes en la misma pantalla.
+
+**Quién las ve.** Se guardan en la tabla privada `game_requests` del volumen SQLite, sin ruta pública de lectura (igual que los reportes de problemas). Solo pueden leerlas y cambiarles el estado las cuentas de **Keycloak** cuyo nombre de usuario figure en `COMMUNITY_ADMINS` (separados por comas; también vale `sub:<id de usuario de Keycloak>`, que no cambia aunque cambie el nombre). Una cuenta de GitHub con el mismo nombre nunca cuenta como administradora. Por ejemplo, `COMMUNITY_ADMINS=joker` si ese es el usuario de Keycloak del propietario. Para cualquier otra cuenta, o sin cuenta, las rutas `/v1/admin/…` responden «no disponible». Con `COMMUNITY_ADMINS=MiUsuario` en `community/.env` y el servicio recreado, iniciar sesión en la app con esa cuenta muestra **Ajustes → Solicitudes recibidas**: lista con el juego, la plataforma, los detalles y quién la envió, y botones para marcarla como *En estudio*, *Resuelta* o *No se pudo*. La persona que la envió, si tenía cuenta, ve ese estado.
+
+**Aviso cuando llega una.** Opcionalmente, `COMMUNITY_NOTIFY_URL` acepta una dirección HTTPS de un webhook de Discord o de un tema de [ntfy](https://ntfy.sh). Al llegar una solicitud el servidor envía una línea corta («Nueva solicitud 3f9a1c2d: Juego (Switch)»); nunca el autor ni los detalles, y si el aviso falla la solicitud se guarda igual. Sin esa variable no hay aviso y se consulta en la app o por consola.
+
+Por consola:
+
+```sh
+docker compose --env-file community/.env -f community/compose.yaml exec api python -m community.server requests --state new
+docker compose --env-file community/.env -f community/compose.yaml exec api python -m community.server request ID --state investigating --note "Probando"
+```
+
+API: `POST /v1/requests` (sin cuenta, 5 por hora y cliente), `GET /v1/me/requests`, `GET /v1/admin/requests?state=new` y `POST /v1/admin/requests/ID` (solo administradores). `GET /v1/me` incluye `admin: true|false`. Las solicitudes entran en el respaldo (`backup`) como el resto de la base.
+
+## Qué puede y qué no puede cambiar cada persona
+
+- **Sin cuenta:** solo leer (perfiles aprobados, valoraciones, estado de salud) y enviar reportes de problemas y solicitudes de juegos (limitados por cliente y con un tope global por hora). No existe ninguna ruta para borrar ni modificar lo de otras personas.
+- **Con cuenta:** publicar y modificar **solo sus propios** perfiles (el identificador se calcula con su identidad, por lo que otra cuenta no puede pisarlos), valorar perfiles ajenos una vez cada uno (un voto por cuenta y perfil; no se puede valorar el propio) y ver sus propias solicitudes. Con `COMMUNITY_REVIEW_REQUIRED=true`, cada modificación vuelve a quedar pendiente hasta aprobarla.
+- **Administradores:** leer y cambiar el estado de las solicitudes. Las rutas `/v1/admin/…` se comprueban en el servidor en cada llamada y, para cualquier otra persona, responden «no disponible».
+- **Moderación y copias:** solo por consola (`pending`, `approve`, `reject`, `backup`, `requests`, `request`), con acceso al volumen. No hay panel web público.
+- **Otras defensas:** consultas SQL parametrizadas, JSON de hasta 128 KiB, tokens guardados como hash, respuestas sin caché ni sniffing de tipo, el aviso a Discord no puede mencionar a nadie (`allowed_mentions` vacío) y todo texto recibido se muestra en la app como texto plano, nunca como marcado.

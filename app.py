@@ -44,6 +44,8 @@ def main():
         from deck_library.runtime import diagnostics
         issues,log=diagnostics(entry,store);print(json.dumps({'issues':issues,'log':log},ensure_ascii=False,indent=2));return int(bool(issues))
     from deck_library.runtime import launch
+    from deck_library import history
+    history.record(store,entry.id)
     return launch(entry,store)
 
 if __name__=='__main__':

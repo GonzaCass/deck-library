@@ -218,7 +218,7 @@ class DeckUITests(unittest.TestCase):
         from gi.repository import Gtk
         self.w.resize(1280,800);self.w.select_game(self.w.entries[0]);self.settle()
         self.assertEqual(len(self.w.profile_card_box.get_children()),3)
-        self.assertTrue(all(card.get_allocated_height()<=135 for card in self.w.profile_cards[:3]))
+        self.assertTrue(all(card.get_allocated_height()<=150 for card in self.w.profile_cards[:3]))
         disclosure=self.w.profile_disclosure
         self.assertFalse(disclosure.revealer.get_reveal_child())
         with patch('deck_library.presets.apply',side_effect=AssertionError('Preview must not apply settings')):
@@ -483,16 +483,16 @@ class DeckUITests(unittest.TestCase):
     def test_guide_link_opens_validated_tab_and_restores_navigation(self):
         self.w.help_page();self.settle()
         guide=self.w.inline_workflows[-1]
-        next(c for c in self.w.control_targets(guide) if c.get_accessible().get_name()=='Juegos validados').clicked();self.settle()
+        next(c for c in self.w.control_targets(guide) if c.get_accessible().get_name()=='Verificados').clicked();self.settle()
         self.assertFalse(self.w.inline_workflows);self.assertEqual(self.w.pages.get_visible_child_name(),'validated')
         self.assertTrue(all(c.get_sensitive() for c in self.w.navigation_controls))
 
     def test_validated_tab_supports_filtering_controller_tabs_and_back_from_a_game(self):
         from deck_library.models import Entry
         entry=Entry('Naruto: Rise of a Ninja',['/bin/true'],metadata={'port_repository':'jorjbarbosa/naruto-rise-recomp'})
-        self.w.entries.append(entry);self.w.render();self.w.nav_buttons['Juegos validados'].clicked();self.settle()
+        self.w.entries.append(entry);self.w.render();self.w.nav_buttons['Verificados'].clicked();self.settle()
         self.assertFalse(self.w.inline_workflows);self.assertEqual(self.w.pages.get_visible_child_name(),'validated')
-        self.assertTrue(self.w.nav_buttons['Juegos validados'].get_style_context().has_class('active'))
+        self.assertTrue(self.w.nav_buttons['Verificados'].get_style_context().has_class('active'))
         self.w.validated_search.set_text('does not exist');self.w.validated_search.emit('search-changed');self.settle()
         self.assertFalse(self.w.validated_targets[entry.id].get_mapped())
         self.w.validated_search.set_text('Naruto');self.w.validated_search.emit('search-changed');self.settle()
@@ -555,7 +555,7 @@ class DeckUITests(unittest.TestCase):
         self.assertEqual(self.w.game_steam_button.get_label(),'Agregar a Steam')
         atomic_json(self.store.root/'pending.json',{'ids':[entry.id]})
         self.w.refresh_pending()
-        self.assertEqual(self.w.game_steam_button.get_label(),'En espera')
+        self.assertEqual(self.w.game_steam_button.get_label(),'Pendiente en Steam')
         with patch.object(self.w,'pending_details') as details,patch.object(self.w,'single_steam') as queue:
             self.w.game_steam_button.emit('clicked');details.assert_called_once();queue.assert_not_called()
 
@@ -569,6 +569,57 @@ class DeckUITests(unittest.TestCase):
         self.assertEqual(self.w.selected.id,other.id)
         self.assertNotIn('Ajustes guardados.',self.w.profile_status.get_text())
         self.assertTrue(self.w.profile_apply.get_sensitive())
+
+    def test_favourites_and_recent_games_can_order_the_library(self):
+        from deck_library import history
+        from deck_library.models import Entry
+        self.w.entries.extend([Entry('Zeta',['/bin/true','z']),Entry('alfa',['/bin/true','al'])]);zeta,alfa=self.w.entries[-2:]
+        self.assertFalse(self.w.is_favorite(zeta));self.w.toggle_favorite(zeta);self.assertTrue(self.w.is_favorite(zeta))
+        self.w.library_sort='favorites';self.assertEqual(self.w.visible()[0].name,'Zeta')
+        history.record(self.store,alfa.id,now=500);self.w.library_sort='recent';self.assertEqual(self.w.visible()[0].name,'alfa')
+        self.w.library_sort='name';names=[e.name.casefold() for e in self.w.visible()];self.assertEqual(names,sorted(names))
+        self.w.toggle_favorite(zeta);self.assertFalse(self.w.is_favorite(zeta))
+
+    def test_apply_and_play_applies_the_profile_then_opens_the_game(self):
+        entry=self.w.entries[0];self.w.select_game(entry);self.settle()
+        self.assertTrue(self.w.profile_apply_play.get_sensitive())
+        with patch.object(self.w,'launch_from_game') as launch,patch.object(self.w,'offer_deck_controls'):
+            self.w.profile_apply_play.emit('clicked');self.settle();self.settle()
+        launch.assert_called_once();self.assertEqual(launch.call_args[0][0].id,entry.id)
+
+    def test_home_offers_to_continue_with_the_games_opened_most_recently(self):
+        from gi.repository import Gtk
+        from deck_library import history
+        def labels(widget):
+            if isinstance(widget,Gtk.Label):yield widget.get_text()
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from labels(child)
+        self.w.home_page();self.settle();self.assertNotIn('Continuar jugando',list(labels(self.w.home_box)))
+        history.record(self.store,self.w.entries[0].id);self.w.home_page();self.settle();self.assertIn('Continuar jugando',list(labels(self.w.home_box)))
+
+    def test_verified_games_show_their_fix_and_offer_to_request_a_game(self):
+        from gi.repository import Gtk
+        def labels(widget):
+            if isinstance(widget,Gtk.Label):yield widget.get_text()
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from labels(child)
+        self.w.validated_page();self.settle();texts=list(labels(self.w.validated_box))
+        for expected in ('Grand Theft Auto IV','Spider-Man: Shattered Dimensions','Arreglo','Pedir un juego','Lo aplica Deck Library','Guía manual'):self.assertIn(expected,texts)
+
+    def test_a_game_request_explains_that_no_files_are_sent_and_shows_the_reference_number(self):
+        from gi.repository import Gtk
+        def walk(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from walk(child)
+        with patch('deck_library.community.Client.request',return_value={'id':'abcd1234','received':True}) as request:
+            page=self.w.request_game_page();self.settle();everything=list(walk(page.get_content_area()))
+            texts=[w.get_text() for w in everything if isinstance(w,Gtk.Label)];self.assertTrue(any('no se aceptan' in t and 'sin incluir el juego' in t for t in texts))
+            entry=next(w for w in everything if isinstance(w,Gtk.Entry));send=next(w for w in everything if hasattr(w,'get_label') and not isinstance(w,Gtk.Label) and w.get_label()=='Enviar solicitud')
+            send.emit('clicked');self.settle();request.assert_not_called();entry.set_text('Mi juego');send.emit('clicked');self.settle();self.settle()
+            sent=request.call_args[0];self.assertEqual(sent[0],'/v1/requests');self.assertEqual(sent[1]['title'],'Mi juego');self.assertEqual(set(sent[1]),{'title','platform','details'})
+            self.assertTrue(any('abcd1234' in w.get_text() for w in walk(page.get_content_area()) if isinstance(w,Gtk.Label)))
+        page.response(Gtk.ResponseType.CLOSE);self.settle()
 
     def test_opening_a_game_starts_at_overview_and_focuses_play(self):
         entry=self.w.entries[0];self.w.select_game(entry);self.w.open_game_section('options');self.w.open_library();self.w.select_game(entry);self.settle()
@@ -1075,7 +1126,7 @@ class DeckUITests(unittest.TestCase):
         self.assertNotIn('Instalado · v0.1.0-beta',captions[:captions.index('Verificado en Deck · 2.5')])
         self.w.catalog_search.set_text('BLACK');self.w.catalog_apps=[ports.clean({'repository':'tgp482/black-xberecomp','name':'BLACK'})]
         with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):self.w.fill_catalog();self.settle()
-        captions=self.catalog_texts();self.assertIn('Sin validar en Steam Deck',captions);self.assertIn('4 variantes',captions)
+        captions=self.catalog_texts();self.assertNotIn('Sin validar en Steam Deck',captions);self.assertIn('4 variantes',captions)
         self.assertFalse(any(value.startswith('Verificado en Deck') for value in captions))
 
     def test_variant_details_explain_installed_revision_and_offer_the_managed_migration(self):

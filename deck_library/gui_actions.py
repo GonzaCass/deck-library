@@ -106,12 +106,12 @@ class ActionsMixin:
             except Exception as error:GLib.idle_add(self.discovery_failed,str(error))
         threading.Thread(target=work,daemon=True).start();return False
     def discovery_failed(self,text):
-        if getattr(self,'explicit_rescan',False):self.explicit_rescan=False;self.rescan_button.set_sensitive(True);self.rescan_button.set_label('Buscar instalados')
+        if getattr(self,'explicit_rescan',False):self.explicit_rescan=False;self.rescan_button.set_sensitive(True);self.rescan_button.set_label('Actualizar biblioteca')
         self.discover_busy=False;self.set_status('La búsqueda no se completó: '+text)
         if self.pages.get_visible_child_name()=='welcome' and self.wizard_step==1:self.wizard_report_label.set_text('La búsqueda falló. Revisar las rutas y repetirla.');self.wizard_continue.set_sensitive(True)
         return False
     def discovered(self,entries,found=None):
-        if getattr(self,'explicit_rescan',False):self.explicit_rescan=False;self.rescan_button.set_sensitive(True);self.rescan_button.set_label('Buscar instalados');self.toast('Biblioteca actualizada')
+        if getattr(self,'explicit_rescan',False):self.explicit_rescan=False;self.rescan_button.set_sensitive(True);self.rescan_button.set_label('Actualizar biblioteca');self.toast('Biblioteca actualizada')
         self.discover_busy=False;self.entries=entries
         if self.selected:self.selected=next((e for e in entries if e.id==self.selected.id),None)
         self.checked&={e.id for e in entries}

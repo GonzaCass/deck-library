@@ -2,7 +2,7 @@
 import json,pathlib,threading,subprocess
 from gi.repository import Gtk,GLib,Gdk
 from .inline_pages import InlineDialog
-from .ui_components import ActionButton,text,badge,Reveal
+from .ui_components import ActionButton,text,badge,badge_row,Reveal
 from . import bug_report,validated_games
 
 GUIDE=[
@@ -11,21 +11,21 @@ GUIDE=[
  ('3. Elegir ajustes','Abrir una carátula y elegir un perfil. Ver detalles muestra sus cambios. Aplicar guarda un respaldo; Deshacer recupera los valores anteriores. Cerrar el juego antes de cambiarlos.'),
  ('4. Usar Steam','Agregar a Steam crea el acceso directo y copia su carátula. Si Steam está abierto, el cambio espera hasta que se cierre; se recupera al iniciar la siguiente sesión. No hace falta recrear el acceso directo al cambiar Proton.'),
  ('5. Compartir con la comunidad','No hace falta una cuenta para jugar o usar perfiles locales. Para publicar o comentar: Cuenta → Crear cuenta, verificar el correo e iniciar sesión. Dentro del juego, Comunidad → Compartir mis ajustes permite capturar la configuración, revisarla y publicarla.'),
- ('6. Entender las pruebas','Instalado significa que hay archivos en la Deck. Sin verificar es una propuesta. Verificado por usuario corresponde a una prueba concreta. Juegos validados muestra equipo, versión, resultado y limitaciones; no es una certificación de Valve.')
+ ('6. Entender las pruebas','Instalado significa que hay archivos en la Deck. Sin verificar es una propuesta. Verificado por usuario corresponde a una prueba concreta. Verificados muestra equipo, versión, resultado y limitaciones; no es una certificación de Valve.')
 ]
 
 class HelpMixin:
     def help_page(self,*_):
         page=InlineDialog(title='Guía de Deck Library',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
         body=page.get_content_area();body.set_spacing(12)
-        body.pack_start(text('Primeros pasos','hero'),False,False,0)
         body.pack_start(text('La biblioteca y los ajustes locales se pueden usar sin cuenta.','muted',90),False,False,0)
         for title,description in GUIDE:
             panel=self.card(body,title);panel.pack_start(text(description,'muted',95),False,False,0)
         actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);body.pack_start(actions,False,False,0)
         def open_validated(_):
             page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.validated_page(),False)[1])
-        actions.pack_start(ActionButton('Juegos validados','check',open_validated,'steam'),False,False,0)
+        actions.pack_start(ActionButton('Verificados','check',open_validated,'steam'),False,False,0)
+        actions.pack_start(ActionButton('Pedir un juego','plus',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.request_game_page(),False)[1])),'neutral'),False,False,0)
         actions.pack_start(ActionButton('Reportar un problema','file',lambda _:self.bug_report_page(),'violet-outline'),False,False,0)
         if (self.store.root/'last-launch-error.json').is_file():
             def open_launch_error(_):
@@ -36,16 +36,20 @@ class HelpMixin:
     def validated_page(self,*_):
         if not self.discard_game_edits():return
         body=self.validated_box;self.reset_page(body);body.set_spacing(12)
-        body.pack_start(text('Juegos validados en Steam Deck','hero'),False,False,0)
-        body.pack_start(text('Pruebas de juego confirmadas. Revisar la versión y las limitaciones antes de instalar.','muted',90),False,False,0)
+        body.pack_start(text('Verificados por Deck Library','hero'),False,False,0)
+        body.pack_start(text('Juegos comprobados en una Steam Deck y el arreglo que necesitó cada uno. Revisar la versión y las limitaciones antes de instalar.','muted',90),False,False,0)
+        body.pack_start(ActionButton('Pedir un juego','plus',lambda _:self.request_game_page(),'steam'),False,False,0)
         search=Gtk.SearchEntry();search.set_placeholder_text('Buscar juegos validados · X: teclado');self.bind_search_keyboard(search);self.validated_search=search;body.pack_start(search,False,False,0)
         results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);body.pack_start(results,False,False,0);self.validated_targets={};panels=[]
         for game in validated_games.catalog():
-            panel=self.card(results,game['name']);panels.append((game,panel));panel.pack_start(badge('Gameplay confirmado','green'),False,False,0)
+            panel=self.card(results,game['name']);panels.append((game,panel))
+            how={'automatic':('Lo aplica Deck Library','green'),'profile':('Perfil incluido','blue'),'manual':('Guía manual','yellow')}[game['fix_how']]
+            panel.pack_start(badge_row([('Gameplay confirmado','green'),how]),False,False,0)
             panel.pack_start(text(game['program']+' · '+game['version'],'meta',85),False,False,0)
             panel.pack_start(text('Steam Deck OLED' if game['hardware']=='steam-deck-oled' else 'Steam Deck LCD','meta'),False,False,0)
             panel.pack_start(text(game['result'],'muted',95),False,False,0)
-            details=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);details.pack_start(text('Limitaciones','title'),False,False,0);details.pack_start(text(game['limitations'],'muted',95),False,False,0);details.pack_start(text('Fecha del registro: '+game['date'],'meta'),False,False,0)
+            panel.pack_start(text('Arreglo','title'),False,False,0);panel.pack_start(text(game['fix'],'muted',95),False,False,0)
+            details=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);details.pack_start(text('Limitaciones','title'),False,False,0);details.pack_start(text(game['limitations'],'muted',95),False,False,0);details.pack_start(text('Evidencia','title'),False,False,0);details.pack_start(text(game['fix_evidence'],'muted',95),False,False,0);details.pack_start(text('Fecha del registro: '+game['date'],'meta'),False,False,0)
             panel.pack_start(Reveal('Ver condiciones de la prueba',details),False,False,0)
             installed=validated_games.matching(game,self.entries)
             def open_game(_,entry=installed):
@@ -64,7 +68,7 @@ class HelpMixin:
         def filter_games(_):
             query=search.get_text().strip().casefold();count=0
             for game,panel in panels:
-                shown=query in (game['name']+' '+game['program']).casefold();panel.set_visible(shown);count+=shown
+                shown=query in (game['name']+' '+game['program']+' '+game['fix']).casefold();panel.set_visible(shown);count+=shown
             empty.set_visible(not count)
         search.connect('search-changed',filter_games);body.show_all();filter_games(None)
         body.get_ancestor(Gtk.ScrolledWindow).show();self.pages.set_visible_child_name('validated');self.refresh_layout()

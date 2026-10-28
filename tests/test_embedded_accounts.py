@@ -36,7 +36,7 @@ class EmbeddedAccountTests(unittest.TestCase):
             api=API(pathlib.Path(tmp)/'db')
             with self.assertRaises(PermissionError):api.handle('GET','/v1/me',{}, {})
             with api.db() as db:db.execute('INSERT INTO tokens VALUES(?,?,?,?)',(digest('test'),'id','Player',time.time()+60))
-            self.assertEqual(api.handle('GET','/v1/me',{}, {},'test'),{'login':'Player'})
+            self.assertEqual(api.handle('GET','/v1/me',{}, {},'test'),{'login':'Player','admin':False})
             api.handle('POST','/v1/logout',{}, {},'test')
             with self.assertRaises(PermissionError):api.handle('GET','/v1/me',{}, {},'test')
     def test_expired_client_session_is_cleared_on_401(self):
