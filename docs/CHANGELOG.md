@@ -4,6 +4,7 @@ Every release has its notes on [GitHub](https://github.com/GonzaCass/deck-librar
 
 | Version | Date | Title |
 | --- | --- | --- |
+| [1.4.1](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.1) | 2026-10-28 | Tools tab, window-only pages, DeckLibrary folder, controller options and covers in Verified |
 | [1.4.0](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.0) | 2026-10-28 | Steam Deck-sized interface with Black and Light themes, verified fixes, game requests and Switch NSP/XCI conversion |
 | [1.3.5](https://github.com/GonzaCass/deck-library/releases/tag/v1.3.5) | 2026-10-27 | Repository/version-specific gameplay badges, port variant comparison and Quiver identity detection |
 | [1.3.4](https://github.com/GonzaCass/deck-library/releases/tag/v1.3.4) | 2026-10-27 | Non-blocking game error notices, saved diagnostics and a link back to the game |
