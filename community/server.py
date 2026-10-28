@@ -45,7 +45,7 @@ class API:
             db.execute('CREATE TABLE IF NOT EXISTS bug_reports(id TEXT PRIMARY KEY, body TEXT NOT NULL, created REAL NOT NULL)')
             db.execute("CREATE TABLE IF NOT EXISTS game_requests(id TEXT PRIMARY KEY, login TEXT NOT NULL DEFAULT '', title TEXT NOT NULL, platform TEXT NOT NULL, details TEXT NOT NULL, state TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created REAL NOT NULL, updated REAL NOT NULL)")
             db.execute('BEGIN IMMEDIATE')
-            for table,column,definition in [('devices','provider',"TEXT NOT NULL DEFAULT 'github'"),('feedback','rating','INTEGER'),('feedback','author',"TEXT NOT NULL DEFAULT ''")]:
+            for table,column,definition in [('devices','provider',"TEXT NOT NULL DEFAULT 'github'"),('feedback','rating','INTEGER'),('feedback','author',"TEXT NOT NULL DEFAULT ''"),('game_requests','uid',"TEXT NOT NULL DEFAULT ''")]:
                 if column not in {r['name'] for r in db.execute('PRAGMA table_info('+table+')')}:db.execute('ALTER TABLE '+table+' ADD COLUMN '+column+' '+definition)
     @contextlib.contextmanager
     def db(self):
@@ -113,15 +113,15 @@ class API:
             if len(title)<2:raise ValueError('Indicar el nombre del juego.')
             if not platform:raise ValueError('Indicar la plataforma.')
             if re.search(r'magnet:|\.(nsp|xci|nsz|xcz|iso|rom|pkg|zip|7z|rar)\b|https?://',title+' '+platform+' '+details,re.I):raise ValueError('No se aceptan enlaces ni archivos de juegos. Describir el juego y qué falla, sin adjuntar nada.')
-            try:login=self.session(token)['login']
-            except PermissionError:login=''
+            try:user=self.session(token)
+            except PermissionError:user={'uid':'','login':''}
             identifier=secrets.token_hex(4)
-            with self.db() as db:db.execute('INSERT INTO game_requests VALUES(?,?,?,?,?,?,?,?,?)',(identifier,login,title,platform,details,'new','',now,now))
+            with self.db() as db:db.execute('INSERT INTO game_requests(id,login,title,platform,details,state,note,created,updated,uid) VALUES(?,?,?,?,?,?,?,?,?,?)',(identifier,user['login'],title,platform,details,'new','',now,now,user['uid']))
             self.notify(identifier,title,platform)
             return {'id':identifier,'received':True}
         if method=='GET' and path=='/v1/me/requests':
             user=self.session(token)
-            with self.db() as db:rows=db.execute('SELECT id,title,platform,state,note,created FROM game_requests WHERE login=? ORDER BY created DESC LIMIT 50',(user['login'],)).fetchall()
+            with self.db() as db:rows=db.execute('SELECT id,title,platform,state,note,created FROM game_requests WHERE uid=? AND uid!=\'\' ORDER BY created DESC LIMIT 50',(user['uid'],)).fetchall()
             return {'requests':[dict(r) for r in rows]}
         if path.startswith('/v1/admin/'):
             # Not an administrator: the route does not exist.

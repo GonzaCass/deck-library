@@ -71,6 +71,16 @@ class DeckUITests(unittest.TestCase):
         self.w.settings_page();self.w.resize(840,640);self.settle();position=self.w.version_label.translate_coordinates(self.w,0,0)
         self.assertGreaterEqual(position[0],0);self.assertLessEqual(position[0]+self.w.version_label.get_allocated_width(),840)
 
+    def test_owner_requests_tool_refreshes_after_login_and_disappears_after_logout(self):
+        from unittest.mock import Mock
+        self.w.preferences['owner_mode']=False;self.w.tools_page();self.settle()
+        def received():return any(c.get_accessible().get_name()=='Ver' for c in self.w.control_targets(self.w.tools_box))
+        self.assertFalse(received())
+        with patch.object(self.w,'signed_in',return_value=True),patch.object(self.w,'community_client',return_value=Mock(me=lambda:{'admin':True})):
+            self.w.check_owner_mode();self.settle();self.assertTrue(self.w.preferences['owner_mode']);self.assertTrue(received())
+        with patch.object(self.w,'signed_in',return_value=False):self.w.check_owner_mode();self.settle()
+        self.assertFalse(self.w.preferences['owner_mode']);self.assertFalse(received())
+
     def test_gaming_mode_can_install_an_app_update_and_requests_only_reopening_the_app(self):
         from deck_library import gui_updates,updates,__version__
         self.w.preferences['auto_update']=False;self.w.update_state={'app':{'version':'99.0.0','archive':'https://example.com/app','checksum':'https://example.com/checksum','name':'test'}}

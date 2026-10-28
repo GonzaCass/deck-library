@@ -20,6 +20,26 @@ class GameRequestTests(unittest.TestCase):
     def test_an_anonymous_or_expired_session_still_sends_the_request_without_an_author(self):
         self.ask();self.ask(token='unknown-session')
         with self.api.db() as db:self.assertEqual([r['login'] for r in db.execute('SELECT login FROM game_requests')],['',''])
+    def test_request_ownership_uses_identity_even_when_two_providers_share_a_login(self):
+        with self.api.db() as db:db.execute('INSERT INTO tokens VALUES(?,?,?,?)',(digest('same-name'),'987','Player',time.time()+100))
+        identifier=self.ask(token='player-session')['id']
+        self.assertEqual(self.api.handle('GET','/v1/me/requests',{}, {},'same-name')['requests'],[])
+        rows=self.api.handle('GET','/v1/me/requests',{}, {},'player-session')['requests'];self.assertEqual([r['id'] for r in rows],[identifier])
+        with self.api.db() as db:db.execute('UPDATE tokens SET login=? WHERE hash=?',('Renamed',digest('player-session')))
+        self.assertEqual([r['id'] for r in self.api.handle('GET','/v1/me/requests',{}, {},'player-session')['requests']],[identifier])
+    def test_legacy_requests_remain_admin_visible_without_guessing_their_owner(self):
+        import sqlite3
+        path=pathlib.Path(self.temp.name)/'legacy.db'
+        with sqlite3.connect(path) as db:
+            db.execute("CREATE TABLE game_requests(id TEXT PRIMARY KEY,login TEXT,title TEXT,platform TEXT,details TEXT,state TEXT,note TEXT,created REAL,updated REAL)")
+            db.execute('INSERT INTO game_requests VALUES(?,?,?,?,?,?,?,?,?)',('1234abcd','Player','Legacy request','Switch','','new','',1,1))
+        api=API(path,client_id='test')
+        with api.db() as db:
+            db.execute('INSERT INTO tokens VALUES(?,?,?,?)',(digest('player'),'oidc:issuer:player','Player',time.time()+100))
+            db.execute('INSERT INTO tokens VALUES(?,?,?,?)',(digest('admin'),'oidc:issuer:admin','Admin',time.time()+100))
+        api.admins={'admin'}
+        self.assertEqual(api.handle('GET','/v1/me/requests',{}, {},'player')['requests'],[])
+        rows=api.handle('GET','/v1/admin/requests',{}, {},'admin')['requests'];self.assertEqual([r['id'] for r in rows],['1234abcd'])
     def test_game_files_links_and_empty_fields_are_rejected(self):
         for kwargs in ({'title':'x'},{'platform':''},{'details':'bajar de https://sitio.example/juego'},{'title':'juego.nsp'},{'details':'magnet:?xt=urn:btih:abc'},{'platform':'Switch .xci'}):
             with self.assertRaises(ValueError):self.ask(**kwargs)

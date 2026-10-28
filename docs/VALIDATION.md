@@ -1,5 +1,14 @@
 # Validación
 
+## 1.4.3 — Account identity and owner tools
+
+- Baseline 1.4.2: core discovery ran 1,028 tests with 126 environment/UI skips; all 124 GTK checks passed. Final changes: core discovery ran 1,031 tests with 127 skips, and all 125 GTK checks passed. Regressions first reproduced same-alias request exposure and a stale owner-tools page, then passed after the fixes.
+- Game-request ownership now uses the authenticated UID rather than the display login. Coverage includes different providers sharing a login, a renamed account retaining its requests and migration of legacy rows without assigning ownership from an alias. Legacy records remain administrator-visible. No historical authenticated requests existed in the validated deployment.
+- A real owner account completed Keycloak login/device authorization and received administrator access. One isolated new account registered through the public form, received the application-specific verification email, verified it and completed device authorization. The first message was temporarily deferred by the mail relay; a targeted retry delivered it. Delivery to unrelated external mail providers was not tested.
+- Live HTTPS checks covered public profile publication, a second account's rating/comment, anonymous visibility, rejection of self-ratings, private game requests, admin-only listing/state changes, owner status visibility, private diagnostics and logout revocation. Test data and the isolated identity/mailbox are removed after validation; an explicitly requested demonstration request remains separate.
+- Deployment checks covered resolved Compose configuration versus running environment, administrator configuration, reverse-proxy client attribution, a private SQLite/source/environment backup, healthy container status and preserved database contents. Notification webhooks remain optional and were not enabled without a destination.
+
+
 ## 1.3.5 — Gameplay evidence by port variant
 
 - Unit coverage distinguishes an exact repository/version report from newer releases, other prereleases, unknown versions and other repositories. Reviewed recipes, Linux metadata, successful installation flags, package hashes and high catalog scores cannot grant gameplay validation. Known issues are limited to explicitly recorded revisions; untested BLACK variants remain unvalidated without a recommended winner.
