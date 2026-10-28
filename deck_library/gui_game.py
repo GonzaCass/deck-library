@@ -180,6 +180,10 @@ class GameMixin:
         info.pack_start(name, False, False, 0)
         actions = Gtk.Box(spacing=10)
         needs_setup=entry.metadata.get('configured') is False and bool(entry.metadata.get('port_repository'))
+        if entry.metadata.get('port_repository'):
+            from .ports import records
+            managed=records(self.store).get(entry.metadata['port_repository'])
+            if managed and managed.get('setup'):needs_setup=not managed.get('configured')
         def primary_action(control):
             if needs_setup:
                 from . import ports

@@ -13,6 +13,7 @@ class CommunityMixin:
         box=dialog.get_content_area();box.set_border_width(0);box.set_spacing(8)
         client=Client(self.store,self.preferences.get('community_url','https://presets.jokerlan.xyz'))
         alive=[True];busy=[False];selected=[None];auth_return=[None];reviewed=[None]
+        feedback_first=[mode=='feedback']
         tabs=Gtk.Box(spacing=6);box.pack_start(tabs,False,False,0)
         stack=Gtk.Stack();stack.set_homogeneous(False);stack.set_vexpand(True);stack.connect('notify::visible-child',self.refresh_layout)
         stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if motion.page_transitions() else Gtk.StackTransitionType.NONE);stack.set_transition_duration(120 if motion.page_transitions() else 0)
@@ -84,7 +85,7 @@ class CommunityMixin:
                 if content:label=text(content,'muted',100);label.set_selectable(True);settings.pack_start(label,False,False,0)
             runtime=p.get('runtime')
             if runtime:settings.pack_start(text('Entorno: '+runtime['kind']+' '+runtime.get('version','')+'\n'+runtime.get('launch_options',''),'muted',100),False,False,0)
-            settings.show_all();show_comments([]);stack.set_visible_child_name('feedback' if mode=='feedback' and profile_id else 'profile')
+            settings.show_all();show_comments([]);stack.set_visible_child_name('feedback' if feedback_first[0] and profile_id else 'profile');feedback_first[0]=False
             target=rating if stack.get_visible_child_name()=='feedback' else detail_back
             GLib.idle_add(lambda:(target.grab_focus(),self.mark_controller_focus(self,target),False)[-1])
             if value.get('status')=='pending':status.set_text('Pendiente de revisión.');return

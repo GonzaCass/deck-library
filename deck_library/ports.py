@@ -458,6 +458,9 @@ def records(store):
     for repo,record in data.items():
         if not isinstance(record,dict):continue
         recipe=RECIPES.get(repo.lower(),{})
+        if recipe.get('setup')=='switch_launcher' and not record.get('setup'):
+            from .switch_port import prepared
+            record.update(setup=recipe['setup'],original_data=dict(recipe['original_data']),source_note=recipe['source_note'],configured=prepared(record))
         if (recipe.get('original_data') or {}).get('extract_iso') or (recipe.get('original_data') or {}).get('iso_destination'):
             record.update(original_data=dict(recipe['original_data']),source_note=recipe['source_note'])
     return data

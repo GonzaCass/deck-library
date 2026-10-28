@@ -31,3 +31,13 @@ class SwitchPortFlowTests(unittest.TestCase):
         import platform
         if platform.system()!='Linux' or platform.machine().lower() not in ('x86_64','amd64'):self.skipTest('Linux x86-64 bundle')
         path=sx.bundled_tool();self.assertTrue(path);self.assertTrue(os.access(path,os.X_OK));self.assertTrue(sx.is_nstool(path))
+
+    def test_existing_savage_wind_installs_gain_the_wizard_without_resetting_a_prepared_game(self):
+        repository='ReviveDX/SavageWindRecomp'
+        old={'folder':'savage','runtime':'linux','setup':'','configured':False}
+        atomic_json(self.store.root/'ports.json',{repository:old})
+        with patch.object(switch_port,'prepared',return_value=False):
+            record=ports.records(self.store)[repository];self.assertEqual(record['setup'],'switch_launcher');self.assertFalse(record['configured'])
+        with patch.object(switch_port,'prepared',return_value=True):self.assertTrue(ports.records(self.store)[repository]['configured'])
+        import json
+        self.assertEqual(json.loads((self.store.root/'ports.json').read_text())[repository],old)

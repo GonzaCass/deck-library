@@ -96,6 +96,15 @@ class DeckUITests(unittest.TestCase):
             self.assertTrue(self.w.port_inputs(item));confirm.assert_not_called();pick.assert_called_once_with('Elegir carpeta con exefs y romfs',folder=True)
         self.assertEqual(ports.records(self.store)[item['repository']]['inputs']['original_data'],str(dump));self.assertEqual(self.w.inline_workflows,[])
 
+    def test_a_previously_installed_switch_port_uses_the_same_preparation_wizard(self):
+        from deck_library import ports,switch_port
+        from deck_library.models import Entry,atomic_json
+        repository='ReviveDX/SavageWindRecomp'
+        entry=Entry('Savage Wind',['/bin/true'],kind='port',metadata={'port_repository':repository,'configured':True})
+        atomic_json(self.store.root/'ports.json',{repository:{'repository':repository,'folder':'savage','runtime':'linux','setup':'','configured':False}})
+        with patch.object(switch_port,'prepared',return_value=False),patch.object(self.w,'configure_port') as configure:
+            self.w.select_game(entry);self.settle();self.assertEqual(self.w.game_play_button.get_label(),'Preparar');self.w.game_play_button.clicked();configure.assert_called_once()
+
     def test_admin_text_reply_creates_a_visible_notice_and_opening_it_marks_only_that_reply_read(self):
         import time
         from gi.repository import Gtk
@@ -125,6 +134,35 @@ class DeckUITests(unittest.TestCase):
     def test_completed_installs_are_not_offered_as_updates(self):
         self.w.start_transfer('example/port');self.w.finish_transfer('example/port');self.w.update_state={'catalog':[],'ports':[]};self.w.updates_page();self.settle()
         self.assertFalse(self.w.pending_updates());self.assertFalse(self.w.transfer_views.get('example/port'))
+
+    def test_a_bundled_profile_can_be_rated_directly_then_returns_to_its_details(self):
+        from gi.repository import Gtk,GLib
+        from deck_library import presets
+        from deck_library.community import Client
+        profile=presets.recommended(self.w.entries[0],self.store)[0]
+        row={'id':'test-profile','preset':profile,'author':'Deck Library','rating':4.0,'ratings':1}
+        original=self.inline.run;seen=[]
+        def walk(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from walk(child)
+        def run(page):
+            def check():
+                try:
+                    stack=next(w for w in walk(page) if isinstance(w,Gtk.Stack));self.assertEqual(stack.get_visible_child_name(),'feedback')
+                    next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Enviar valoración').clicked()
+                    def finish():
+                        try:self.assertEqual(stack.get_visible_child_name(),'profile');seen.append(True)
+                        finally:page.response(Gtk.ResponseType.CLOSE)
+                        return False
+                    GLib.timeout_add(350,finish)
+                except Exception:page.response(Gtk.ResponseType.CLOSE);raise
+                return False
+            GLib.timeout_add(250,check);return original(page)
+        Client(self.store,'https://presets.jokerlan.xyz').remember({'token':'local-test-token','login':'Player'})
+        with patch.object(Client,'me',return_value={'login':'Player','admin':False}),patch.object(Client,'search',return_value=[row]),patch.object(Client,'comments',return_value=[]),patch.object(Client,'rate',return_value={'ok':True}) as rate,patch.object(self.inline,'run',run):
+            self.w.community_dialog(self.w.entries[0],profile['id'],mode='feedback');rate.assert_called_once_with(row,5,'')
+        self.assertEqual(seen,[True])
 
     def test_gaming_mode_can_install_an_app_update_and_requests_only_reopening_the_app(self):
         from deck_library import gui_updates,updates,__version__

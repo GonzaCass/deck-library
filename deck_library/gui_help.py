@@ -12,7 +12,7 @@ GUIDE=[
  ('4. Elegir un perfil','Abrir un juego → Perfiles. Elegir uno no cambia nada hasta Aplicar; Deshacer vuelve atrás. Aplicar y jugar hace las dos cosas.'),
  ('5. Jugar desde Steam','Agregar a Steam crea el acceso con su carátula. Aparece cuando Steam se cierra y se vuelve a abrir.'),
  ('6. Ver qué está probado','Verificados muestra los juegos comprobados en una Steam Deck y el arreglo de cada uno. No es una certificación de Valve.'),
- ('7. Pedir un juego','En Verificados, Pedir un juego. No se envía ni se acepta ningún archivo del juego.'),
+ ('7. Consultas y soporte','Ayuda → Reportar un problema o hacer una solicitud. Con una cuenta se reciben avisos de respuesta dentro de la app.'),
  ('8. Usar el mando','A selecciona, B vuelve, LB y RB cambian de pestaña, X abre el teclado, Y abre las opciones del juego, Menú abre los filtros y la palanca derecha desplaza.'),
 ]
 
