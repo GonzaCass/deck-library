@@ -165,7 +165,9 @@ Bayonetta 2 conserva configuración, caché y partidas al actualizar. El juego g
 
 ## Eliminación de ports
 
-En la ficha del juego, **Archivos y Steam → Eliminar completamente** muestra las rutas que se van a borrar y pide confirmación. La misma acción está disponible en la ficha del catálogo para ports administrados por Deck Library. Elimina la instalación, el entorno privado de Proton, las copias anteriores identificadas y los registros y respaldos propios de ese juego. Las partidas y configuraciones dentro de esas rutas también se eliminan; los originales y otros datos externos se conservan.
+El botón rojo **Eliminar**, en la cabecera del juego, ofrece dos opciones. **Solo de la biblioteca** oculta el juego sin tocar archivos, partidas ni su acceso de Steam; se recupera en **Herramientas → Juegos ocultos** y no reaparece al volver a detectar juegos. **Juego y datos** muestra las rutas que se van a borrar y pide una segunda confirmación. Las partidas y configuraciones dentro de esas rutas también se eliminan; los originales y otros datos externos se conservan.
+
+Para ports administrados por Deck Library se incluyen la instalación, el entorno privado de Proton, las copias anteriores identificadas y los registros y respaldos propios del juego. La acción **Eliminar completamente** sigue disponible en la ficha del catálogo. También se admite eliminar una carpeta exclusiva de port dentro de las rutas configuradas, una instancia verificada de Prism Launcher o los archivos de una ROM local. Los datos compartidos del emulador, NAND y partidas fuera de las rutas indicadas se conservan. Las instalaciones sin una carpeta verificable y los formatos que requieren varios archivos, como listas M3U, se gestionan desde su lanzador; siempre se pueden quitar solo de la biblioteca.
 
 La eliminación se bloquea si el juego está abierto, si cambió la instalación o si una ruta apunta fuera de las carpetas administradas. El acceso directo, sus imágenes y controles se quitan de Steam al cerrar el cliente. **Desinstalar** conserva su comportamiento anterior: mueve la instalación a una carpeta recuperable.
 

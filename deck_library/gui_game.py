@@ -203,6 +203,8 @@ class GameMixin:
         favourite = self.is_favorite(entry)
         self.game_favorite_button = ActionButton('Favorito' if favourite else 'Marcar favorito', 'star-fill' if favourite else 'star', lambda _: self.toggle_favorite(entry), 'amber')
         actions.pack_start(self.game_favorite_button, False, False, 0)
+        self.game_delete_button=styled(ActionButton('Eliminar','undo',lambda _:self.remove_game_dialog(entry),'danger'),'game-delete')
+        actions.pack_start(self.game_delete_button,False,False,0)
         compact_menu=self.game_menu(entry,compact=True)
         compact_menu.set_tooltip_text('Más opciones del juego')
         actions.pack_start(compact_menu,False,False,0)
@@ -724,8 +726,6 @@ class GameMixin:
             record=ports.records(self.store).get(entry.metadata['port_repository'])
             if record:
                 self.iso_cleanup_button(body,ports.clean(record),record)
-                if entry.metadata['port_repository'].casefold()!='genrythefox0/project-2099':
-                    body.pack_start(ActionButton('Eliminar completamente','undo',lambda _:self.delete_port_permanently(record),'danger'),False,False,0)
         for caption,value in [('Archivo del juego',entry.source or entry.command[0]),('Comando de inicio',' '.join(entry.command))]:
             panel=self.card(body,caption)
             value=text(value,'muted',100)

@@ -85,6 +85,8 @@ This addresses common launch-environment problems; a damaged/misconfigured Flatp
 
 ### Remove Steam shortcuts
 
+The red **Delete** button at the top of a game offers **Library entry only** (keeps files, saves and the Steam shortcut) or **Game and data** (shows exact paths and requires another confirmation before permanent deletion). Restore hidden games from **Tools → Hidden games**. Detection keeps them hidden. Full removal supports managed ports, exclusive port folders in configured roots, verified Prism instances and local ROM files. Shared emulator data, external originals and saves outside the previewed paths are kept. Unverified installations and multi-file playlist formats must be deleted through their launcher.
+
 **Remove from Steam** is on each game page and in the selection bar. It deletes the shortcut from `shortcuts.vdf`, moves its grid images to `grid/.deck-library-backups`, forgets its controller layouts and renumbers the remaining shortcuts. Games, files and saves are not touched, and a timestamped backup of `shortcuts.vdf` is written first. Like additions, removals are queued while Steam is open and applied once it is closed. Shortcuts that disappear from Steam are also dropped from the library on the next scan.
 
 ### Controller layouts (DualSense and others)

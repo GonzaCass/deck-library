@@ -16,7 +16,8 @@ class ToolboxMixin:
         tools=[('Convertir un juego de Switch','Convierte un XCI o NSP propio (y su actualización) en la carpeta exefs y romfs que piden algunos ports.','Convertir','folder',lambda _:self.switch_convert_page()),
                ('Extraer una ISO de Xbox o Xbox 360','Extrae el contenido de una ISO de Xbox o Xbox 360 a una carpeta, verificándolo.','Extraer','folder',lambda _:self.iso_extract_page()),
                ('ROMs y ports instalados','Gestionar la copia de consola de un juego que ya tiene un port.','Gestionar ROMs','folder',lambda _:self.originals_dialog()),
-               ('Duplicados y conflictos','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page())]
+               ('Duplicados y conflictos','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),
+               ('Juegos ocultos','Restaurar juegos quitados de la biblioteca sin borrar sus archivos.','Juegos ocultos','library',self.hidden_games_dialog)]
         if not motion.gaming_mode():tools.append(('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam))
         actions=Gtk.Box(spacing=8)
         for title,description,caption,icon,action in tools:
