@@ -45,10 +45,13 @@ class API:
             db.execute('CREATE TABLE IF NOT EXISTS bug_reports(id TEXT PRIMARY KEY, body TEXT NOT NULL, created REAL NOT NULL)')
             db.execute("CREATE TABLE IF NOT EXISTS game_requests(id TEXT PRIMARY KEY, login TEXT NOT NULL DEFAULT '', title TEXT NOT NULL, platform TEXT NOT NULL, details TEXT NOT NULL, state TEXT NOT NULL, note TEXT NOT NULL DEFAULT '', created REAL NOT NULL, updated REAL NOT NULL)")
             db.execute('BEGIN IMMEDIATE')
-            for table,column,definition in [('devices','provider',"TEXT NOT NULL DEFAULT 'github'"),('feedback','rating','INTEGER'),('feedback','author',"TEXT NOT NULL DEFAULT ''"),('game_requests','uid',"TEXT NOT NULL DEFAULT ''"),('game_requests','category',"TEXT NOT NULL DEFAULT 'emulated'"),('game_requests','repository',"TEXT NOT NULL DEFAULT ''"),('game_requests','seen','REAL NOT NULL DEFAULT 0')]:
+            for table,column,definition in [('devices','provider',"TEXT NOT NULL DEFAULT 'github'"),('feedback','rating','INTEGER'),('feedback','author',"TEXT NOT NULL DEFAULT ''"),('game_requests','uid',"TEXT NOT NULL DEFAULT ''"),('game_requests','category',"TEXT NOT NULL DEFAULT 'emulated'"),('game_requests','repository',"TEXT NOT NULL DEFAULT ''"),('game_requests','seen','REAL NOT NULL DEFAULT 0'),('game_requests','report_id',"TEXT NOT NULL DEFAULT ''")]:
                 if column not in {r['name'] for r in db.execute('PRAGMA table_info('+table+')')}:db.execute('ALTER TABLE '+table+' ADD COLUMN '+column+' '+definition)
             db.execute('CREATE TABLE IF NOT EXISTS request_replies(id INTEGER PRIMARY KEY AUTOINCREMENT, request TEXT NOT NULL, note TEXT NOT NULL, state TEXT NOT NULL, created REAL NOT NULL)')
             db.execute('CREATE INDEX IF NOT EXISTS request_replies_request ON request_replies(request,id)')
+            db.execute("CREATE UNIQUE INDEX IF NOT EXISTS request_report ON game_requests(report_id) WHERE report_id!=''")
+            from .requests import backfill_reports
+            backfill_reports(db)
     @contextlib.contextmanager
     def db(self):
         with contextlib.closing(sqlite3.connect(self.path,timeout=10)) as connection:
@@ -102,13 +105,18 @@ class API:
         if method=='GET' and path=='/health':
             from deck_library import __version__
             from deck_library.presets import REGISTRY
-            return {'ok':True,'schema_version':1,'version':__version__,'profile_adapters':list(REGISTRY),'profile_instructions':True,'login_available':bool(self.client_id or self.oidc),'review_required':self.review_required,'bug_reports':True,'game_requests':True,'request_replies':True}
+            return {'ok':True,'schema_version':1,'version':__version__,'profile_adapters':list(REGISTRY),'profile_instructions':True,'login_available':bool(self.client_id or self.oidc),'review_required':self.review_required,'bug_reports':True,'game_requests':True,'request_replies':True,'report_tracking':True}
         if method=='POST' and path=='/v1/bug-reports':
             from deck_library.bug_report import validate_report,sanitize
             self.rate('report:'+remote,5,3600);report=validate_report(sanitize(body))
             identifier=secrets.token_hex(8)
-            with self.db() as db:db.execute('INSERT INTO bug_reports VALUES(?,?,?)',(identifier,json.dumps(report,ensure_ascii=False),now))
-            return {'id':identifier,'received':True}
+            user=self.session(token) if token else None
+            from .requests import link_report
+            with self.db() as db:
+                db.execute('INSERT INTO bug_reports VALUES(?,?,?)',(identifier,json.dumps(report,ensure_ascii=False),now))
+                request_id=link_report(db,identifier,report,now,user)
+            self.notify(request_id,report['title'],'Deck Library')
+            return {'id':identifier,'request_id':request_id,'received':True}
         if method=='POST' and path=='/v1/requests':
             from .requests import create
             return create(self,body,token,remote)
@@ -126,6 +134,10 @@ class API:
                 state=query.get('state',[''])[0]
                 with self.db() as db:rows=db.execute("SELECT * FROM game_requests WHERE (?='' OR state=?) ORDER BY created DESC LIMIT 200",(state,state)).fetchall()
                 return {'requests':[dict(r) for r in rows]}
+            diagnostic_match=re.fullmatch(r'/v1/admin/requests/([0-9a-f]{8})/diagnostic',path)
+            if method=='GET' and diagnostic_match:
+                from .requests import diagnostic
+                return diagnostic(self,diagnostic_match[1])
             match=re.fullmatch(r'/v1/admin/requests/([0-9a-f]{8})',path)
             if method=='POST' and match:
                 from .requests import reply

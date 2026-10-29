@@ -105,6 +105,31 @@ class GameRequestTests(unittest.TestCase):
         self.assertEqual(mine()['requests'][0]['note'],'Try the new Vulkan profile')
         for bad in ('tomorrow',-1,time.time()+999999):
             with self.assertRaises(ValueError):self.api.handle('POST','/v1/me/requests/'+identifier+'/read',{}, {'updated':bad},'player-session')
+
+    def test_signed_in_problem_reports_share_the_private_inbox_and_reply_notifications(self):
+        from deck_library.bug_report import collect
+        from deck_library.models import Store
+        value=collect(Store(pathlib.Path(self.temp.name)/'empty'));value.update(title='Startup problem',description='Open the app and it fails to load.')
+        result=self.api.handle('POST','/v1/bug-reports',{},value,'player-session');identifier=result['request_id']
+        mine=self.api.handle('GET','/v1/me/requests',{}, {},'player-session')['requests']
+        self.assertEqual([(r['id'],r['category'],r['report_id']) for r in mine],[(identifier,'report',result['id'])])
+        self.assertEqual(self.api.handle('GET','/v1/me/requests',{}, {},'owner-session')['requests'],[])
+        route='/v1/admin/requests/'+identifier+'/diagnostic'
+        for token in ('','player-session','github-session'):
+            with self.assertRaises(FileNotFoundError):self.api.handle('GET',route,{}, {},token)
+        self.assertEqual(self.api.handle('GET',route,{}, {},'owner-session')['report']['title'],'Startup problem')
+        self.api.handle('POST','/v1/admin/requests/'+identifier,{}, {'note':'Please try the current update.'},'owner-session')
+        self.assertEqual(self.api.handle('GET','/v1/me/requests',{}, {},'player-session')['unread'],1)
+
+    def test_historical_reports_migrate_once_without_assigning_them_to_any_account(self):
+        report_id='0123456789abcdef'
+        with self.api.db() as db:db.execute('INSERT INTO bug_reports VALUES(?,?,?)',(report_id,json.dumps({'title':'Old anonymous report','description':'Original report'}),1))
+        API(self.api.path,client_id='public-test');API(self.api.path,client_id='public-test')
+        with self.api.db() as db:
+            rows=db.execute('SELECT * FROM game_requests WHERE report_id=?',(report_id,)).fetchall()
+            self.assertEqual(len(rows),1);self.assertEqual(rows[0]['uid'],'');self.assertEqual(rows[0]['login'],'');self.assertEqual(rows[0]['created'],1)
+        self.assertEqual(self.api.handle('GET','/v1/me/requests',{}, {},'player-session')['requests'],[])
+        self.assertTrue(any(r['report_id']==report_id for r in self.api.handle('GET','/v1/admin/requests',{}, {},'owner-session')['requests']))
     def test_the_owner_notification_carries_only_the_game_and_platform_and_never_blocks_the_request(self):
         self.api.notify_url='https://ntfy.example/deck-library'
         with patch('urllib.request.urlopen') as opened:

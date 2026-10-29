@@ -17,7 +17,7 @@ class OriginalsMixin:
             if not matches:rows.pack_start(text('No se encontraron ROMs asociadas a ports instalados.','muted'),False,False,0)
             for original,ports in matches:
                 panel=self.card(rows,original.name);panel.pack_start(text('Port: '+', '.join(p.name for p in ports),'meta'),False,False,0);path=text(original.source,'muted',80);path.set_selectable(True);panel.pack_start(path,False,False,0);panel.pack_start(text('Se muestra por separado en la biblioteca.' if original.id in separate else 'Agrupada con el port; no aparece como juego duplicado.','meta'),False,False,0)
-                actions=Gtk.FlowBox();actions.set_selection_mode(Gtk.SelectionMode.NONE);actions.set_min_children_per_line(1);actions.set_max_children_per_line(3);actions.set_column_spacing(8);actions.set_row_spacing(8);panel.pack_start(actions,False,False,0)
+                actions=Gtk.FlowBox();actions.set_selection_mode(Gtk.SelectionMode.NONE);actions.set_min_children_per_line(1);actions.set_max_children_per_line(3);actions.set_column_spacing(8);actions.set_row_spacing(8);panel.pack_start(actions,False,False,0);panel.reorder_child(actions,1)
                 def hide(_,o=original):
                     selected=set(self.preferences.get('unlinked_originals',[]))
                     selected.remove(o.id) if o.id in selected else selected.add(o.id)

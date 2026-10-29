@@ -36,7 +36,7 @@ class AccountPane(Gtk.Box):
         self.external=ActionButton('Continuar en el navegador','community',lambda _:self.open_external(),'quiet');self.fallback.pack_start(self.external,False,False,0)
         self.code=text('','meta',70);self.code.set_selectable(True);self.fallback.pack_start(self.code,False,False,0)
         self.status=text('','status',85);self.pack_start(self.status,False,False,0)
-        self.cancel_button=ActionButton('Cancelar inicio de sesión','back',lambda _:self.cancel(),'quiet');self.cancel_button.show_all();self.cancel_button.set_no_show_all(True);self.pack_start(self.cancel_button,False,False,0)
+        self.cancel_button=ActionButton('Cancelar inicio de sesión','back',lambda _:self.cancel(),'quiet');self.cancel_button.show_all();self.cancel_button.set_no_show_all(True);self.pack_start(self.cancel_button,False,False,0);self.reorder_child(self.cancel_button,2)
         self.connect('destroy',lambda *_:self.close());self.show_all();self.refresh();self.stack.set_visible_child_name('intro');self.cancel_button.hide()
         if self.client.session().get('token'):self.validate()
 

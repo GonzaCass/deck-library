@@ -71,15 +71,77 @@ class DeckUITests(unittest.TestCase):
         self.w.settings_page();self.w.resize(840,640);self.settle();position=self.w.version_label.translate_coordinates(self.w,0,0)
         self.assertGreaterEqual(position[0],0);self.assertLessEqual(position[0]+self.w.version_label.get_allocated_width(),840)
 
-    def test_owner_requests_tool_refreshes_after_login_and_disappears_after_logout(self):
+    def test_home_inbox_appears_after_verified_admin_login_and_disappears_after_logout(self):
         from unittest.mock import Mock
-        self.w.preferences['owner_mode']=False;self.w.tools_page();self.settle()
-        def received():return any(c.get_accessible().get_name()=='Ver' for c in self.w.control_targets(self.w.tools_box))
+        self.w.preferences['owner_mode']=False;self.w.home_page();self.settle()
+        def received():return any(c.get_accessible().get_name()=='Bandeja de entrada' for c in self.w.control_targets(self.w.pages.get_visible_child()))
         self.assertFalse(received())
-        with patch.object(self.w,'signed_in',return_value=True),patch.object(self.w,'community_client',return_value=Mock(me=lambda:{'admin':True})):
+        client=Mock();client.session.return_value={'token':'test-owner','login':'Owner'};client.me.return_value={'admin':True}
+        with patch.object(self.w,'signed_in',return_value=True),patch.object(self.w,'community_client',return_value=client):
             self.w.check_owner_mode();self.settle();self.assertTrue(self.w.preferences['owner_mode']);self.assertTrue(received())
         with patch.object(self.w,'signed_in',return_value=False):self.w.check_owner_mode();self.settle()
         self.assertFalse(self.w.preferences['owner_mode']);self.assertFalse(received())
+
+    def test_home_has_one_support_entry_no_tools_or_verified_link_and_pinned_storage(self):
+        from gi.repository import Gtk
+        from deck_library.models import Entry
+        self.w.entries=[Entry('Port '+str(i),['/bin/true',str(i)],kind='port') for i in range(18)]
+        def walk(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from walk(child)
+        for width,height in ((1280,800),(840,640)):
+            self.w.resize(width,height);self.w.home_page();self.settle()
+            shell=self.w.pages.get_visible_child();captions=[w.get_label() for w in walk(shell) if isinstance(w,Gtk.Button)]
+            self.assertEqual(captions.count('Solicitudes y reportes'),1)
+            for removed in ('Verificados','Ver biblioteca','Ayuda','Instalaciones y carpetas','Duplicados y conflictos','Ver actualizaciones'):self.assertNotIn(removed,captions)
+            support=self.w.home_support_button;before=support.translate_coordinates(self.w,0,0)
+            scroll=self.w.home_box.get_ancestor(Gtk.ScrolledWindow);adjustment=scroll.get_vadjustment();self.assertGreater(adjustment.get_upper(),adjustment.get_page_size())
+            adjustment.set_value(adjustment.get_upper()-adjustment.get_page_size());self.settle()
+            self.assertEqual(support.translate_coordinates(self.w,0,0),before);self.assertTrue(support.get_mapped());self.assertLess(before[1]+support.get_allocated_height(),height/2)
+            free=next(w for w in walk(shell) if isinstance(w,Gtk.Label) and 'GiB libres' in w.get_text());self.assertLess(free.translate_coordinates(self.w,0,0)[1],before[1]);self.assertLessEqual(self.w.get_size().width,width)
+
+    def test_inline_commands_stay_above_long_forms_and_support_combines_inbox_and_creation(self):
+        from gi.repository import Gtk
+        page=self.w.support_page();self.settle()
+        captions=[w.get_label() for w in self.w.control_targets(page) if isinstance(w,Gtk.Button)]
+        self.assertIn('Nueva solicitud',captions);self.assertIn('Reportar un problema',captions);self.assertNotIn('Mis solicitudes y respuestas',captions)
+        self.assertLess(page.actions.translate_coordinates(self.w,0,0)[1],page.scroll.translate_coordinates(self.w,0,0)[1]);page.destroy()
+        page=self.w.request_game_page();page.get_content_area().pack_start(Gtk.Label(label='Long form\n'*120),False,False,0);page.get_content_area().show_all();self.settle()
+        send=next(w for w in self.w.control_targets(page) if isinstance(w,Gtk.Button) and w.get_label()=='Enviar solicitud');before=send.translate_coordinates(self.w,0,0)
+        adjustment=page.scroll.get_vadjustment();adjustment.set_value(adjustment.get_upper()-adjustment.get_page_size());self.settle()
+        self.assertEqual(send.translate_coordinates(self.w,0,0),before);self.assertLess(before[1]+send.get_allocated_height(),page.scroll.translate_coordinates(self.w,0,0)[1]+1)
+        page.destroy()
+
+    def test_the_profile_apply_and_import_actions_are_fixed_above_the_scroll_area(self):
+        from gi.repository import Gtk
+        self.w.select_game(self.w.entries[0]);self.settle()
+        scroll=self.w.profile_card_box.get_ancestor(Gtk.ScrolledWindow);content_y=scroll.translate_coordinates(self.w,0,0)[1]
+        for control in (self.w.profile_apply,self.w.profile_apply_play,self.w.profile_rate):
+            self.assertLess(control.translate_coordinates(self.w,0,0)[1],content_y);self.assertTrue(control.get_mapped())
+
+    def test_sending_a_problem_report_opens_the_same_personal_inbox(self):
+        import time
+        from gi.repository import Gtk
+        from community.server import API,digest
+        api=API(self.store.root/'reports.sqlite3',client_id='test')
+        with api.db() as db:db.execute('INSERT INTO tokens VALUES(?,?,?,?)',(digest('player'),'oidc:test:player','Player',time.time()+300))
+        class Client:
+            def session(_):return {'token':'player','login':'Player'}
+            def request(_,path,body=None):return api.handle('GET' if body is None else 'POST',path,{},body or {},'player')
+        def walk(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from walk(child)
+        with patch.object(self.w,'signed_in',return_value=True),patch.object(self.w,'community_client',return_value=Client()),patch.object(self.w,'confirm',return_value=True):
+            self.w.bug_report_page();self.settle();page=self.w.inline_workflows[-1]
+            next(w for w in walk(page.get_content_area()) if isinstance(w,Gtk.Entry)).set_text('Example startup error')
+            next(w for w in walk(page.get_content_area()) if isinstance(w,Gtk.TextView)).get_buffer().set_text('The library does not load after opening it.')
+            next(w for w in self.w.control_targets(page) if w.get_accessible().get_name()=='Preparar reporte').clicked();self.settle()
+            next(w for w in self.w.control_targets(page) if w.get_accessible().get_name()=='Enviar diagnóstico').clicked();self.settle();self.settle()
+            rows=api.handle('GET','/v1/me/requests',{}, {},'player')['requests'];self.assertEqual(len(rows),1);self.assertEqual(rows[0]['category'],'report')
+            next(w for w in self.w.control_targets(page) if w.get_accessible().get_name()=='Ver mis reportes').clicked();self.settle()
+            hub=self.w.inline_workflows[-1];self.assertTrue(any(isinstance(w,Gtk.Label) and w.get_text()=='Example startup error' for w in walk(hub)));hub.destroy()
 
     def test_switch_install_asks_directly_and_accepts_an_extracted_folder_without_keys(self):
         from gi.repository import Gtk,GLib
@@ -566,7 +628,7 @@ class DeckUITests(unittest.TestCase):
             captions=[w.get_text() for w in widgets(self.w.validated_box) if isinstance(w,Gtk.Label)]
             self.assertIn('Naruto: Rise of a Ninja',captions);self.assertIn('Mario Kart Wii',captions)
             self.w.bug_report_page(self.w.entries[0]);self.settle()
-            page=self.w.inline_workflows[-1];controls=[w for w in widgets(page.get_content_area()) if isinstance(w,Gtk.Button)]
+            page=self.w.inline_workflows[-1];controls=[w for w in widgets(page) if isinstance(w,Gtk.Button)]
             send=next(w for w in controls if w.get_label()=='Enviar diagnóstico');self.assertFalse(send.get_sensitive())
             entry=next(w for w in widgets(page.get_content_area()) if isinstance(w,Gtk.Entry));entry.set_text('Test problem')
             editors=[w for w in widgets(page.get_content_area()) if isinstance(w,Gtk.TextView)];editors[0].get_buffer().set_text('Open a game; expected play, actual error')
@@ -578,7 +640,7 @@ class DeckUITests(unittest.TestCase):
     def test_guide_link_opens_validated_tab_and_restores_navigation(self):
         self.w.help_page();self.settle()
         self.assertEqual(self.w.pages.get_visible_child_name(),'help');self.assertFalse(self.w.inline_workflows)
-        next(c for c in self.w.control_targets(self.w.help_box) if c.get_accessible().get_name()=='Verificados').clicked();self.settle()
+        self.w.nav_buttons['Verificados'].clicked();self.settle()
         self.assertFalse(self.w.inline_workflows);self.assertEqual(self.w.pages.get_visible_child_name(),'validated')
         self.assertTrue(all(c.get_sensitive() for c in self.w.navigation_controls))
 
@@ -698,7 +760,7 @@ class DeckUITests(unittest.TestCase):
             if isinstance(widget,Gtk.Label):yield widget.get_text()
             if isinstance(widget,Gtk.Container):
                 for child in widget.get_children():yield from labels(child)
-        self.w.validated_page();self.settle();texts=list(labels(self.w.validated_box))
+        self.w.validated_page();self.settle();texts=list(labels(self.w.pages.get_visible_child()))
         for expected in ('Grand Theft Auto IV','Spider-Man: Shattered Dimensions','Arreglo','Reportar un problema o hacer una solicitud','Lo aplica Deck Library','Guía manual'):self.assertIn(expected,texts)
 
     def test_a_game_request_explains_that_no_files_are_sent_and_shows_the_reference_number(self):
@@ -710,7 +772,7 @@ class DeckUITests(unittest.TestCase):
         with patch('deck_library.community.Client.request',return_value={'id':'abcd1234','received':True}) as request:
             page=self.w.request_game_page();self.settle();everything=list(walk(page.get_content_area()))
             texts=[w.get_text() for w in everything if isinstance(w,Gtk.Label)];self.assertIn('No adjuntar archivos ni enlaces de descarga de juegos.',texts)
-            entry=next(w for w in everything if isinstance(w,Gtk.Entry));send=next(w for w in everything if hasattr(w,'get_label') and not isinstance(w,Gtk.Label) and w.get_label()=='Enviar solicitud')
+            entry=next(w for w in everything if isinstance(w,Gtk.Entry));send=next(w for w in walk(page) if hasattr(w,'get_label') and not isinstance(w,Gtk.Label) and w.get_label()=='Enviar solicitud')
             send.emit('clicked');self.settle();request.assert_not_called();entry.set_text('Mi juego')
             next(w for w in everything if isinstance(w,Gtk.ComboBoxText) and w.get_accessible().get_name()=='Tipo de solicitud').set_active_id('emulated')
             next(w for w in everything if isinstance(w,Gtk.TextView)).get_buffer().set_text('No responde el mando')
@@ -1119,7 +1181,7 @@ class DeckUITests(unittest.TestCase):
                     if last[0]=='publish':
                         tab=next((c for c in self.w.control_targets(dialog) if c.get_accessible().get_name()=='Compartir mis ajustes'),None)
                         if tab:tab.grab_focus()
-                        adjustment=page.get_vadjustment()
+                        adjustment=page.get_children()[-1].get_vadjustment()
                         before=adjustment.get_value();self.w.controller_action('scroll_down')
                         scroll_checks.append((tab is not None,adjustment.get_upper()>adjustment.get_page_size(),adjustment.get_value()>before))
                 name=next(names,None)
@@ -1614,7 +1676,7 @@ class DeckUITests(unittest.TestCase):
         atomic_json(self.store.root/'launch-notice.json',value);self.w.poll_sync();self.settle()
         self.assertIn(entry.name,self.w.launch_notice_label.get_text())
         self.w.help_page();self.settle()
-        next(c for c in self.w.control_targets(self.w.help_box) if c.get_accessible().get_name()=='Último error de un juego').clicked();self.settle()
+        next(c for c in self.w.control_targets(self.w.pages.get_visible_child()) if c.get_accessible().get_name()=='Último error de un juego').clicked();self.settle()
         self.assertEqual(len(self.w.inline_workflows),1);details=self.w.inline_workflows[-1]
         next(c for c in self.w.control_targets(details) if c.get_accessible().get_name()=='Abrir juego en mi biblioteca').clicked();self.settle()
         self.assertFalse(self.w.inline_workflows);self.assertEqual(self.w.selected.id,entry.id)

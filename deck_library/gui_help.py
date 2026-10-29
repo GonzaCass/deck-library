@@ -30,9 +30,9 @@ class HelpMixin:
         for title,description in GUIDE:
             panel=self.card(box,title);panel.pack_start(text(description,'muted',95),False,False,0)
         actions=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);box.pack_start(actions,False,False,0)
-        actions.pack_start(ActionButton('Verificados','check',lambda _:self.validated_page(),'steam'),False,False,0)
         actions.pack_start(ActionButton('Reportar un problema o hacer una solicitud','file',lambda _:self.support_page(),'violet'),False,False,0)
         if (self.store.root/'last-launch-error.json').is_file():actions.pack_start(ActionButton('Último error de un juego','file',lambda _:self.launch_error_page(),'quiet'),False,False,0)
+        self.pin_page_header(box,head,actions)
         box.show_all();self.pages.set_visible_child_name('help');self.refresh_layout()
         GLib.idle_add(lambda:(box.get_ancestor(Gtk.ScrolledWindow).get_vadjustment().set_value(0),False)[1])
 
@@ -86,11 +86,12 @@ class HelpMixin:
             def open_game(_,entry=installed):
                 self.select_game(entry)
             if installed:
-                control=ActionButton('Abrir juego en mi biblioteca','library',open_game,'steam-outline');panel.pack_start(control,False,False,0);self.validated_targets[installed.id]=control
+                control=ActionButton('Abrir juego en mi biblioteca','library',open_game,'steam-outline');panel.pack_start(control,False,False,0);panel.reorder_child(control,1);self.validated_targets[installed.id]=control
             elif game['repository']:
                 from . import ports
                 item=next((v for v in self.catalog_entries() if v['repository'].casefold()==game['repository'].casefold()),None)
-                if item:panel.pack_start(ActionButton('Ver port y requisitos','controller',lambda _,item=item:self.port_details(item),'steam-outline'),False,False,0)
+                if item:
+                    action=ActionButton('Ver port y requisitos','controller',lambda _,item=item:self.port_details(item),'steam-outline');panel.pack_start(action,False,False,0);panel.reorder_child(action,1)
             if game['profile_id']:
                 from . import presets
                 profile=next((p for p in presets.catalog(self.store) if p['id']==game['profile_id']),None)
@@ -103,6 +104,7 @@ class HelpMixin:
                 shown=query in (game['name']+' '+game['program']+' '+game['fix']).casefold();panel.set_visible(shown);count+=shown
             empty.set_visible(not count)
         search.connect('search-changed',filter_games);body.show_all();filter_games(None)
+        self.pin_page_header(body,*body.get_children()[:3])
         body.get_ancestor(Gtk.ScrolledWindow).show();self.pages.set_visible_child_name('validated');self.refresh_layout()
         attempts=[0]
         def focus():
@@ -147,21 +149,21 @@ class HelpMixin:
         def send(_):
             value=state['report']
             if not value:status.set_text('Preparar y revisar el reporte antes de enviarlo.');return
-            if not self.confirm('Enviar diagnóstico','Se enviará el reporte que figura en la vista previa al servicio de Deck Library. No se publica en GitHub ni incluye una cuenta personal.','Enviar reporte'):return
+            if not self.confirm('Enviar diagnóstico','Se enviará el reporte que figura en la vista previa al servicio de Deck Library. No se publica en GitHub. Si hay una sesión iniciada, se vincula a esa cuenta para consultar respuestas.','Enviar reporte'):return
             send_button.set_sensitive(False);status.set_text('Enviando reporte…')
             def done(result,error):
                 if not state['alive']:return False
                 send_button.set_sensitive(True)
                 if error:status.set_text(error)
-                else:state['reference']=result['id'];status.set_text('Reporte recibido: '+result['id']);self.toast('Reporte recibido')
+                else:send_button.set_sensitive(False);state['reference']=result['id'];status.set_text('Reporte recibido: '+result['id']);self.toast('Reporte recibido');page.get_action_area().pack_start(ActionButton('Ver mis reportes','community',lambda _:(page.destroy(),self.support_page()),'cyan'),False,False,0)
                 return False
             def work():
                 from .community import Client
-                try:result=Client(self.store,self.preferences.get('community_url','https://presets.jokerlan.xyz')).request('/v1/bug-reports',value,token='');GLib.idle_add(done,result,None)
+                try:result=self.community_client().request('/v1/bug-reports',value);GLib.idle_add(done,result,None)
                 except Exception as error:GLib.idle_add(done,None,str(error))
             threading.Thread(target=work,daemon=True).start()
         from .gui import wrap_row
-        actions=wrap_row();body.pack_start(actions,False,False,0)
+        actions=page.get_action_area()
         for caption,icon,callback in [('Preparar reporte','search',review),('Guardar ZIP','download',export),('Reportar en GitHub','file',github)]:actions.pack_start(ActionButton(caption,icon,callback,'steam-outline'),False,False,0)
         send_button=ActionButton('Enviar diagnóstico','upload',send,'violet');send_button.set_sensitive(False);actions.pack_start(send_button,False,False,0)
         def changed(*_):state['report']=None;send_button.set_sensitive(False)

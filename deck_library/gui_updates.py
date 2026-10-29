@@ -145,8 +145,8 @@ class UpdatesMixin:
         info=state.get('app')
         if info:
             card=self.card(box,'Deck Library '+info['version']);card.pack_start(label(info.get('notes') or 'No hay notas disponibles para esta versión.','muted'),False,False,0)
-            if getattr(self,'update_installed',None):card.pack_start(button('Cerrar y abrir de nuevo desde Steam' if motion.gaming_mode() else 'Volver a abrir para usar la versión instalada',lambda _:self.restart_app(),True),False,False,0)
-            elif info.get('archive') and info.get('checksum'):card.pack_start(button('Actualizar Deck Library',lambda _:self.install_app_update(),True),False,False,0)
+            if getattr(self,'update_installed',None):head.pack_end(button('Cerrar y abrir de nuevo desde Steam' if motion.gaming_mode() else 'Volver a abrir para usar la versión instalada',lambda _:self.restart_app(),True),False,False,0)
+            elif info.get('archive') and info.get('checksum'):head.pack_end(button('Actualizar Deck Library',lambda _:self.install_app_update(),True),False,False,0)
         items=[item for item in self.pending_updates() if item[0] in ('port','catalog','wii')];seen=set();unique=[]
         for item in items:
             key=(item[2].get('repository') or item[2]['name']).lower()
@@ -202,6 +202,7 @@ class UpdatesMixin:
             def changed(widget,key=key):self.preferences[key]=widget.get_active();save_settings(self.preferences,self.store)
             check.connect('toggled',changed);settings_box.pack_start(check,False,False,0)
         for error in state.get('errors') or []:box.pack_start(label('No se pudo consultar '+error,'status'),False,False,0)
+        self.pin_page_header(box,head)
         box.show_all();self.pages.set_visible_child_name('updates')
 
     def run_next_auto_port(self):

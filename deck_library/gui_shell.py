@@ -22,9 +22,10 @@ class ShellMixin:
         root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.add(root);self.build_navigation(root)
         overlay=Gtk.Overlay();root.pack_start(overlay,True,True,0);self.pages=PageStack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);self.inline_workflows=[];self.workflow_stack=Gtk.Stack();self.workflow_stack.set_homogeneous(False);self.workflow_stack.connect('notify::visible-child',self.refresh_layout);self.workflow_stack.add_named(self.pages,'main');overlay.add(self.workflow_stack);self.toast_widget=motion.Toast();overlay.add_overlay(self.toast_widget)
         self.build_library_page();self.home_box=self.scrolled_page('home');self.validated_box=self.scrolled_page('validated');self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.detail.set_border_width(20);self.pages.add_named(self.detail,'detail');self.settings_box=self.scrolled_page('settings');self.updates_box=self.scrolled_page('updates');self.catalog_box=self.scrolled_page('catalog');self.add_box=self.scrolled_page('add');self.pending_box=self.scrolled_page('pending');self.tools_box=self.scrolled_page('tools');self.help_box=self.scrolled_page('help')
-        self.wizard_box=Gtk.Stack();self.wizard_box.set_homogeneous(False);self.wizard_box.connect('notify::visible-child',self.refresh_layout);wizard_scroll=self.new_scroll();wizard_scroll.add(self.wizard_box);self.pages.add_named(wizard_scroll,'welcome')
+        self.wizard_actions=Gtk.Box(spacing=8);self.wizard_actions.set_border_width(12);wizard_shell=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);wizard_shell.pack_start(self.wizard_actions,False,False,0)
+        self.wizard_box=Gtk.Stack();self.wizard_box.set_homogeneous(False);self.wizard_box.connect('notify::visible-child',self.refresh_layout);wizard_scroll=self.new_scroll();wizard_scroll.add(self.wizard_box);wizard_shell.pack_start(wizard_scroll,True,True,0);self.pages.add_named(wizard_shell,'welcome')
         footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);footer.set_margin_start(24);footer.set_margin_end(24);footer.set_margin_bottom(8);root.pack_end(footer,False,False,0)
-        self.build_pending_banner(footer)
+        self.build_pending_banner(footer);footer.remove(self.pending_bar);root.pack_start(self.pending_bar,False,False,0);root.reorder_child(self.pending_bar,4)
         self.artwork_bar=Gtk.Box(spacing=8);self.artwork_bar.set_no_show_all(True);self.artwork_spinner=Gtk.Spinner();self.artwork_label=label('','meta');self.artwork_bar.pack_start(self.artwork_spinner,False,False,0);self.artwork_bar.pack_start(self.artwork_label,True,True,0);footer.pack_start(self.artwork_bar,False,False,0)
         from .controller_hints import ControllerHints
         self.controller_hint=ControllerHints();self.controller_hint.hide();self.controller_hint.set_no_show_all(True);footer.pack_start(self.controller_hint,False,False,0)
@@ -131,7 +132,19 @@ class ShellMixin:
         """Hide the notice until its text changes (another update, or a different state)."""
         self.banner_dismissed=self.banner_text.get_text();self.update_banner.hide()
     def scrolled_page(self,name):
-        scroll=self.new_scroll();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);box.set_border_width(14);box.set_margin_end(4);scroll.add(box);self.pages.add_named(scroll,name);return box
+        shell=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        header=self.new_scroll();header.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);header.set_no_show_all(True)
+        slot=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);slot.set_border_width(12);header.add(slot);shell.pack_start(header,False,False,0)
+        scroll=self.new_scroll();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);box.set_border_width(14);box.set_margin_end(4);scroll.add(box);shell.pack_start(scroll,True,True,0)
+        box.page_header=slot;box.page_header_scroll=header;self.pages.add_named(shell,name);return box
+
+    def pin_page_header(self,box,*widgets):
+        """Keep page actions above the scrollable content, including at compact widths."""
+        for widget in widgets:
+            parent=widget.get_parent()
+            if parent:parent.remove(widget)
+            box.page_header.pack_start(widget,False,False,0)
+        box.page_header_scroll.set_no_show_all(False);box.page_header_scroll.show_all();box.page_header_scroll.set_no_show_all(True)
     def card(self,parent,title=None):
         from .gui import label
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);box.get_style_context().add_class('card')
@@ -174,7 +187,7 @@ class ShellMixin:
         if current in self.accounts:self.accounts.remove(current);self.accounts.insert(0,current)
         for i,path in enumerate(self.accounts):self.account.append_text('Cuenta actual' if path==current else 'Cuenta Steam '+str(i+1))
         if not self.accounts:self.account.append_text('Steam sin sesión')
-        self.account.set_active(0);self.selection_bar.pack_start(self.account,False,False,0);self.add_button=button('Agregar a Steam',lambda _:self.add_to_steam(),True);self.remove_button=button('Quitar de Steam',lambda _:self.remove_from_steam(),tone='danger');self.selection_bar.pack_end(self.add_button,False,False,0);self.selection_bar.pack_end(self.remove_button,False,False,0);page.pack_end(self.selection_bar,False,False,0)
+        self.account.set_active(0);self.selection_bar.pack_start(self.account,False,False,0);self.add_button=button('Agregar a Steam',lambda _:self.add_to_steam(),True);self.remove_button=button('Quitar de Steam',lambda _:self.remove_from_steam(),tone='danger');self.selection_bar.pack_end(self.add_button,False,False,0);self.selection_bar.pack_end(self.remove_button,False,False,0);page.pack_start(self.selection_bar,False,False,0);page.reorder_child(self.selection_bar,2)
     def poster_grid(self):
         grid=Gtk.FlowBox();grid.get_style_context().add_class('game-grid');grid.set_selection_mode(Gtk.SelectionMode.NONE);grid.set_min_children_per_line(1);grid.set_max_children_per_line(9);grid.set_column_spacing(16);grid.set_row_spacing(20);grid.set_homogeneous(True);grid.set_valign(Gtk.Align.START);return grid
     def apply_motion(self):
@@ -301,13 +314,15 @@ class ShellMixin:
         groups=[('General',[('Carátulas y apariencia','Proveedor de imágenes, tema, tamaño de la interfaz, idioma y animaciones.','Configurar','image',lambda _:self.appearance_dialog())]),
                 ('Biblioteca',[('Instalaciones y carpetas','Emuladores y carpetas de juegos.','Elegir carpetas','folder',lambda _:self.installation_dialog())]),
                 ('Mantenimiento',[('Configuración inicial','Volver a detectar instalaciones.','Iniciar asistente','plus',lambda _:self.start_wizard())])]
+        actions=Gtk.Box(spacing=8)
         for heading,rows in groups:
             self.settings_box.pack_start(label(heading,'section-title'),False,False,0)
             for title,description,caption,icon,action in rows:
-                row=Gtk.Box(spacing=16);row.get_style_context().add_class('settings-row');texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.pack_start(label(title,'title'),False,False,0);texts.pack_start(label(description,'muted'),False,False,0);row.pack_start(texts,True,True,0);row.pack_end(ActionButton(caption,icon,action,'quiet'),False,False,0);self.settings_box.pack_start(row,False,False,0)
+                row=Gtk.Box(spacing=16);row.get_style_context().add_class('settings-row');texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.pack_start(label(title,'title'),False,False,0);texts.pack_start(label(description,'muted'),False,False,0);row.pack_start(texts,True,True,0);actions.pack_start(ActionButton(title,icon,action,'cyan'),False,False,0);self.settings_box.pack_start(row,False,False,0)
         self.settings_box.pack_start(label('Convertir juegos de Switch, extraer ISO, agregar Deck Library a Steam y revisar duplicados está en Herramientas.','meta'),False,False,0)
         if self.version_label.get_parent() is not None:self.version_label.get_parent().remove(self.version_label)
         self.settings_box.pack_start(self.version_label,False,False,0)
+        self.pin_page_header(self.settings_box,self.settings_box.get_children()[0],actions)
         self.settings_box.show_all();self.pages.set_visible_child_name('settings')
     def appearance_dialog(self):
         from .gui import label,button
@@ -359,7 +374,7 @@ class ShellMixin:
         if not rows:self.pending_box.pack_start(label('No hay cambios pendientes.','muted'),False,False,0)
         else:
             self.pending_box.pack_start(label('Steam guarda estos cambios cuando se cierra.','title'),False,False,0)
-            self.pending_box.pack_start(label('Para verlos en el modo Juego: cerrar Deck Library y reiniciar Steam desde su menú de encendido.' if motion.gaming_mode() else 'Se aplican solos al cerrar Steam, o ahora con el botón de abajo.','muted'),False,False,0)
+            self.pending_box.pack_start(label('Para verlos en el modo Juego: cerrar Deck Library y reiniciar Steam desde su menú de encendido.' if motion.gaming_mode() else 'Se aplican solos al cerrar Steam, o ahora con el botón de arriba.','muted'),False,False,0)
             if not motion.gaming_mode():
                 def apply_now(_):
                     from .service import apply_closing_steam
@@ -375,4 +390,8 @@ class ShellMixin:
                 try:cancel_pending(self.store);self.refresh_pending();self.pending_details();self.toast('Cambios descartados')
                 except Exception as error:self.message('No se pudo descartar',str(error))
             self.pending_box.pack_start(button('Descartar estos cambios',cancel,tone='danger'),False,False,0)
+        controls=[c for c in self.pending_box.get_children() if isinstance(c,Gtk.Button)]
+        actions=Gtk.Box(spacing=8)
+        for control in controls:self.pending_box.remove(control);actions.pack_start(control,False,False,0)
+        self.pin_page_header(self.pending_box,self.pending_box.get_children()[0],actions)
         self.pending_box.show_all();self.pages.set_visible_child_name('pending')

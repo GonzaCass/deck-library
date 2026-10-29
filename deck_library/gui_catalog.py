@@ -65,6 +65,7 @@ class CatalogMixin:
             for cell in picker.get_cells():cell.set_property('ellipsize',Pango.EllipsizeMode.END);cell.set_property('max-width-chars',18)
         status_row=Gtk.Box(spacing=12);self.catalog_status=label('Cargando catálogo…','status');self.catalog_status.set_line_wrap(False);self.catalog_status.set_ellipsize(Pango.EllipsizeMode.END);self.catalog_status.set_width_chars(1);status_row.pack_start(self.catalog_status,True,True,0)
         self.catalog_guide_button=button('Guía de compatibilidad',self.compatibility_guide);status_row.pack_end(self.catalog_guide_button,False,False,0);status_row.pack_end(button('Verificados',lambda _:self.validated_page()),False,False,0);box.pack_start(status_row,False,False,0)
+        self.pin_page_header(box,head,tools,status_row)
         self.catalog_rows=Gtk.FlowBox();self.catalog_rows.set_selection_mode(Gtk.SelectionMode.NONE);self.catalog_rows.set_min_children_per_line(1);self.catalog_rows.set_max_children_per_line(4);self.catalog_rows.set_homogeneous(True);self.catalog_rows.set_column_spacing(14);self.catalog_rows.set_row_spacing(16);box.pack_start(self.catalog_rows,False,False,0)
         self.catalog_more_box=Gtk.Box();self.catalog_more_box.set_halign(Gtk.Align.CENTER);box.pack_start(self.catalog_more_box,False,False,0)
         box.show_all();self.pages.set_visible_child_name('catalog');self.load_catalog(False)
@@ -299,7 +300,7 @@ class CatalogMixin:
         threading.Thread(target=package_info,daemon=True).start()
         repository=label(item['repository'],'muted');repository.set_selectable(True);box.pack_start(repository,False,False,0)
         if ports.valid_repository(item['repository']) and not item.get('web'):
-            box.pack_start(button('Abrir proyecto en GitHub',lambda _:subprocess.Popen(['xdg-open','https://github.com/'+item['repository']],start_new_session=True)),False,False,0)
+            page.get_action_area().pack_start(button('Abrir proyecto en GitHub',lambda _:subprocess.Popen(['xdg-open','https://github.com/'+item['repository']],start_new_session=True)),False,False,0)
         installed=ports.records(self.store);record=installed.get(item['repository']) or self.catalog_installation(item,installed)
         updates={u['repository'] for u in (getattr(self,'update_state',None) or {}).get('catalog') or []}
         if record and record.get('external'):
@@ -322,7 +323,7 @@ class CatalogMixin:
             def delete_port(_):
                 page.response(Gtk.ResponseType.CLOSE)
                 GLib.idle_add(lambda:(self.delete_port_permanently(item),False)[1])
-            box.pack_start(button('Eliminar completamente',delete_port,tone='danger'),False,False,0)
+            page.get_action_area().pack_start(button('Eliminar completamente',delete_port,tone='danger'),False,False,0)
         self.transfer_row(box,item['repository']);page.show_all();artwork();page.run();page.destroy()
 
     def prepare_shaders(self):
@@ -560,7 +561,7 @@ class CatalogMixin:
             if record['original_data'].get('iso'):body.pack_start(button('Elegir ISO de Xbox 360' if record['original_data'].get('kind') in ('xbox360-dante','xbox360') else 'Elegir ISO de Xbox',original_data),False,False,0)
         for key,caption in (('rom','Elegir ROM'),('disc','Elegir disco'),('bios','Elegir BIOS'),('wiiu','Elegir imagen de Wii U')):
             if record.get(key):body.pack_start(button(caption,lambda w,k=key:select(w,k)),False,False,0)
-        body.pack_start(button('Volver a detectar',lambda _:refresh()),False,False,0)
+        page.get_action_area().pack_start(button('Volver a detectar',lambda _:refresh()),False,False,0)
         refresh();page.show_all();accepted=page.run()==Gtk.ResponseType.OK;page.destroy();return accepted
 
     def configure_port(self,item,automatic=False):

@@ -4,6 +4,32 @@ import re,secrets,time
 CATEGORIES=('port','emulated','native','minecraft')
 STATES=('new','investigating','fixed','declined')
 
+def link_report(db,identifier,report,created,user=None):
+    """Reports use the same private inbox and reply history as support requests."""
+    user=user or {'uid':'','login':''}
+    existing=db.execute('SELECT id FROM game_requests WHERE report_id=?',(identifier,)).fetchone()
+    if existing:return existing['id']
+    request_id=secrets.token_hex(4)
+    while db.execute('SELECT 1 FROM game_requests WHERE id=?',(request_id,)).fetchone():request_id=secrets.token_hex(4)
+    title=str(report.get('title') or 'Reporte de problema')[:120]
+    db.execute('INSERT INTO game_requests(id,login,title,platform,details,state,note,created,updated,uid,category,repository,report_id) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)',
+               (request_id,user['login'],title,'Deck Library',str(report.get('description',''))[:2000],'new','',created,created,user['uid'],'report','',identifier))
+    return request_id
+
+def backfill_reports(db):
+    import json
+    rows=db.execute("SELECT id,body,created FROM bug_reports WHERE NOT EXISTS (SELECT 1 FROM game_requests WHERE report_id=bug_reports.id)").fetchall()
+    for row in rows:
+        try:value=json.loads(row['body'])
+        except (ValueError,TypeError):continue
+        if isinstance(value,dict):link_report(db,row['id'],value,row['created'])
+
+def diagnostic(api,identifier):
+    import json
+    with api.db() as db:row=db.execute('SELECT b.body FROM bug_reports b JOIN game_requests r ON r.report_id=b.id WHERE r.id=?',(identifier,)).fetchone()
+    if row is None:raise FileNotFoundError('No hay un diagnóstico adjunto.')
+    return {'report':json.loads(row['body'])}
+
 def fields(body):
     title=' '.join(str(body.get('title','')).split())[:120]
     platform=' '.join(str(body.get('platform','')).split())[:60]
@@ -37,7 +63,7 @@ def create(api,body,token,remote):
 def mine(api,token):
     user=api.session(token)
     with api.db() as db:
-        rows=db.execute("SELECT id,title,platform,state,note,created,updated,category,repository,seen FROM game_requests WHERE uid=? AND uid!='' ORDER BY updated DESC LIMIT 100",(user['uid'],)).fetchall()
+        rows=db.execute("SELECT id,title,platform,state,note,created,updated,category,repository,report_id,seen FROM game_requests WHERE uid=? AND uid!='' ORDER BY updated DESC LIMIT 100",(user['uid'],)).fetchall()
         result=[]
         for row in rows:
             value=dict(row);seen=value.pop('seen')

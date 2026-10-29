@@ -29,7 +29,7 @@ class EditorMixin:
                 else:
                     is_float=type(rule[0]) is float;widget=Gtk.SpinButton.new_with_range(rule[0],rule[1],0.5 if is_float else 1);widget.set_digits(1 if is_float else 0);widget.set_value(initial if initial is not None else rule[0]);widget.connect('value-changed',lambda w,i=ident:changed(i));read=(lambda w:float(w.get_value())) if is_float else (lambda w:int(w.get_value()))
                 row.pack_end(widget,False,False,0);card.pack_start(row,False,False,0);controls[ident]=(widget,read,initial)
-        status=label('Solo se guardan las opciones modificadas.','status');box.pack_start(status,False,False,0);actions=Gtk.Box(spacing=10);actions.get_style_context().add_class('apply-dock');box.pack_start(actions,False,False,0)
+        status=label('Solo se guardan las opciones modificadas.','status');box.pack_start(status,False,False,0);actions=Gtk.Box(spacing=10);actions.get_style_context().add_class('apply-dock');box.pack_start(actions,False,False,0);box.reorder_child(actions,1)
         def save(_):
             changes={}
             for (section,key),(widget,read,initial) in controls.items():

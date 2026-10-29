@@ -4,6 +4,17 @@ import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib,GObject,Pango
 
+class InlineActions(Gtk.Box):
+    """Show commands added after an asynchronous operation, as well as initial ones."""
+    def __init__(self,owner):super().__init__(spacing=8);self.owner=owner
+    def register(self,child):
+        if getattr(child,'_action_owner',None) is not self.owner:
+            child._action_owner=self.owner;child.connect('notify::visible',lambda *_:self.owner._refresh_actions())
+        if self.owner._mounted:child.show_all();self.owner._refresh_actions()
+    def pack_start(self,child,*args):super().pack_start(child,*args);self.register(child)
+    def pack_end(self,child,*args):super().pack_end(child,*args);self.register(child)
+    def add(self,child):super().add(child);self.register(child)
+
 class InlineDialog(Gtk.Box):
     __gsignals__={'response':(GObject.SignalFlags.RUN_LAST,None,(int,))}
 
@@ -18,11 +29,13 @@ class InlineDialog(Gtk.Box):
         heading=Gtk.Label(label=title,xalign=0);heading.set_line_wrap(True);heading.get_style_context().add_class('inline-page-heading');head.pack_start(heading,True,True,0);self.pack_start(head,False,False,0)
         self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
         self.scroll=self.owner.new_scroll();self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC);self.scroll.set_overlay_scrolling(False);self.scroll.set_vexpand(True);self.scroll.add(self.content);self.pack_start(self.scroll,True,True,0)
-        self.actions=Gtk.ButtonBox(orientation=Gtk.Orientation.HORIZONTAL);self.actions.set_layout(Gtk.ButtonBoxStyle.END);self.actions.set_spacing(10);self.pack_end(self.actions,False,False,0)
+        self.actions=InlineActions(self);self.actions_scroll=self.owner.new_scroll();self.actions_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);self.actions_scroll.set_no_show_all(True);self.actions_scroll.add(self.actions);self.pack_start(self.actions_scroll,False,False,0);self.reorder_child(self.actions_scroll,1)
         self.connect('destroy',self._destroyed)
 
     def get_content_area(self):return self.content
     def get_action_area(self):return self.actions
+    def _refresh_actions(self):
+        if self._mounted:self.actions_scroll.set_visible(any(c.get_visible() for c in self.actions.get_children()))
     def set_default_size(self,width,height):self._default_size=(width,height)
     def get_default_size(self):return self._default_size
     def get_size(self):return self.owner.get_size()
@@ -31,7 +44,7 @@ class InlineDialog(Gtk.Box):
     def add_button(self,text,response):
         button=Gtk.Button(label=text);button.connect('clicked',lambda _:self.response(response));self.actions.add(button);self._buttons[response]=button
         if response in (Gtk.ResponseType.OK,Gtk.ResponseType.ACCEPT):button.get_style_context().add_class('primary')
-        # A page that only closes does so with the arrow at the top left; the bottom button would be a second way to do the same.
+        # A page that only closes already has its back arrow.
         if response==Gtk.ResponseType.CLOSE and text in ('Volver','Cerrar','Volver al catálogo'):button.set_no_show_all(True);button.hide()
         return button
     def add_buttons(self,*pairs):
@@ -48,16 +61,20 @@ class InlineDialog(Gtk.Box):
         if self._loop and self._loop.is_running():self._loop.quit()
     def _mount(self):
         if self._mounted:return
+        # Commands belong in the fixed header; field controls remain beside their values.
+        for child in list(self.content.get_children()):
+            commands=isinstance(child,Gtk.Button) or (type(child) is Gtk.Box and child.get_children() and all(isinstance(c,Gtk.Button) for c in child.get_children()))
+            if commands:self.content.remove(child);self.actions.pack_start(child,False,False,0)
         self._mounted=True;owner=self.owner;self._previous_focus=owner.get_focus();self._previous=owner.workflow_stack.get_visible_child()
         owner.inline_workflows.append(self);owner.workflow_stack.add(self);owner.workflow_stack.show();owner.workflow_stack.set_visible_child(self)
         for control in owner.navigation_controls:control.set_sensitive(False)
         from .interactions import manual_text_input
         manual_text_input(self)
-        Gtk.Box.show_all(self);owner.workflow_stack.set_visible_child(self)
+        Gtk.Box.show_all(self);self.actions.show_all();self._refresh_actions();owner.workflow_stack.set_visible_child(self)
         GLib.idle_add(self._focus_first)
     def _focus_first(self):
         if self._closed:return False
-        targets=self.owner.control_targets(self)
+        targets=self.owner.control_targets(self.content) or self.owner.control_targets(self)
         if targets:
             targets[0].grab_focus();self.owner.mark_controller_focus(self.owner,targets[0])
         return False

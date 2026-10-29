@@ -1,5 +1,14 @@
 # Validación
 
+## 1.4.5 — Home, top actions and report tracking
+
+- Local discovery ran 1,049 tests with 136 environment/UI skips. All 134 GTK checks passed; focused checks also covered the last duplicate-action cleanup.
+
+- Home checks cover one support entry, removal of duplicate destination buttons and the tools block, free space in the header, and commands remaining at the same position after scrolling at 1280×800 and 840×640. The administrator inbox appears after session verification and disappears on logout.
+- Interface coverage checks top actions in long forms and profile pages, direct report submission into the personal inbox, controller navigation and restoration of the configured initial page. Commands inserted after an asynchronous result become visible in the fixed action strip. No game was launched or reconfigured for these interface checks.
+- Live HTTPS checks covered a signed-in report entering only its account inbox, administrator-only diagnosis retrieval, redaction, a text/status reply, unread notification and acknowledgment. All temporary reports, request rows, replies and the validation session were removed. The existing demonstration request was preserved. Deployment kept a private source/environment/SQLite backup and a healthy API.
+- Request tests cover authenticated report ownership, private administrator-only diagnosis retrieval, reply notifications and idempotent migration of historical anonymous reports without guessing their identity. Database and environment backups are required before deployment; the service preserves existing requests and diagnostics.
+
 ## 1.4.4 — Setup, profiles and support replies
 
 - Final local runs: 1,043 discovered tests with 132 environment/UI skips; the 128-check GTK suite and the two new direct-rating/existing-install checks passed during development. A controller regression found during layout review was corrected by restoring focus after the validated page finished mapping.

@@ -11,13 +11,23 @@ class HomeMixin:
         from .artwork import find_cover
         box=self.home_box;scroll=box.get_ancestor(Gtk.ScrolledWindow)
         refreshing=self.pages.get_visible_child_name()=='home';position=scroll.get_vadjustment().get_value() if refreshing else 0
-        focus=self.get_focus();focused_id=getattr(focus,'home_game_id',None)
+        focus=self.get_focus();focused_id=getattr(focus,'home_game_id',None);focus_token=self.control_focus_token() if refreshing else None
         returning=self.pages.get_visible_child_name()=='detail' and getattr(self,'detail_origin','library')=='home'
         restore_id=getattr(self,'home_focus_id',None) if returning else focused_id
         self.reset_page(box)
-        header=Gtk.Box(spacing=12);header.pack_start(text('Inicio','hero'),True,True,0)
-        header.pack_end(ActionButton('Verificados','check',lambda _:self.validated_page(),'steam-outline'),False,False,0)
-        header.pack_end(ActionButton('Actualizar biblioteca','refresh',self.rescan_library,'quiet'),False,False,0);box.pack_start(header,False,False,0)
+        header=Gtk.Box(spacing=10);header.pack_start(text('Inicio','hero'),True,True,0)
+        storage=styled(Gtk.Box(spacing=8),'home-storage')
+        try:
+            drive=shutil.disk_usage(pathlib.Path.home());free=drive.free/(1024**3)
+            storage.pack_start(Icon('folder',18),False,False,0);storage.pack_start(text(f'{free:.1f} GiB libres','meta'),False,False,0);storage.set_tooltip_text('Espacio disponible en la unidad de la carpeta personal')
+        except OSError:storage.pack_start(text('Espacio no disponible','meta'),False,False,0)
+        header.pack_end(storage,False,False,0)
+        actions=Gtk.Box(spacing=8)
+        self.home_support_button=ActionButton('Solicitudes y reportes','community',lambda _:self.support_page(),'violet');actions.pack_start(self.home_support_button,False,False,0)
+        if self.owner_verified():
+            actions.pack_start(ActionButton('Bandeja de entrada','upload',lambda _:self.owner_requests_page(),'cyan'),False,False,0)
+        actions.pack_start(ActionButton('Actualizar biblioteca','refresh',self.rescan_library,'steam-outline'),False,False,0)
+        self.pin_page_header(box,header,actions)
         entries=self.shown_entries()[0];ports=[e for e in entries if entry_type(e)=='port' and not (pathlib.Path(e.cwd)/'deck_library/gui_shell.py').is_file()];platforms={e.platform for e in entries if e.platform};waiting=len(self.pending_updates())
         counts=Gtk.Box(spacing=12,homogeneous=True);self.home_counts={}
         for caption,value,icon in [('Juegos',len(entries),'library'),('Ports instalados',len(ports),'controller'),('Plataformas',len(platforms),'monitor'),('Actualizaciones',waiting,'download')]:
@@ -31,7 +41,7 @@ class HomeMixin:
         if recent:
             recent_head=styled(Gtk.Box(spacing=12),'section-row');recent_head.pack_start(text('Continuar jugando','section-title'),True,True,0);box.pack_start(recent_head,False,False,0)
             recent_grid=new_grid();box.pack_start(recent_grid,False,False,0)
-        heading=styled(Gtk.Box(spacing=12),'section-row');heading.pack_start(text('Ports instalados','section-title'),True,True,0);heading.pack_end(ActionButton('Ver biblioteca','library',lambda _:self.open_library(),'quiet'),False,False,0);box.pack_start(heading,False,False,0)
+        heading=styled(Gtk.Box(spacing=12),'section-row');heading.pack_start(text('Ports instalados','section-title'),True,True,0);box.pack_start(heading,False,False,0)
         grid=new_grid();self.home_port_grid=grid;box.pack_start(grid,False,False,0)
         featured=ports
         def add_tile(target,entry):
@@ -44,15 +54,6 @@ class HomeMixin:
         for entry in sorted(featured,key=lambda e:e.name.casefold()):add_tile(grid,entry)
         if not featured:
             grid.add(ActionButton('Abrir catálogo de ports','plus',lambda _:self.catalog_page(),'quiet'))
-        tools=Gtk.Box(spacing=14,homogeneous=True);box.pack_start(tools,False,False,0)
-        storage=styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=9),'card');storage.pack_start(text('Almacenamiento','section-title'),False,False,0)
-        try:
-            drive=shutil.disk_usage(pathlib.Path.home());free=drive.free/(1024**3);storage.pack_start(text(f'{free:.1f} GiB libres','title'),False,False,0);bar=Gtk.ProgressBar();bar.set_fraction((drive.total-drive.free)/drive.total);storage.pack_start(bar,False,False,0);storage.pack_start(text('Unidad de la carpeta personal','meta'),False,False,0)
-        except OSError:storage.pack_start(text('No se pudo consultar el espacio disponible.','meta'),False,False,0)
-        tools.pack_start(storage,True,True,0)
-        actions=styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8),'card');actions.pack_start(text('Herramientas','section-title'),False,False,0)
-        actions.pack_start(ActionButton('Ayuda','file',self.help_page,'quiet'),False,False,0);actions.pack_start(ActionButton('Reportar un problema','file',lambda _:self.bug_report_page(),'quiet'),False,False,0)
-        actions.pack_start(ActionButton('Instalaciones y carpetas','folder',lambda _:self.installation_dialog(),'quiet'),False,False,0);actions.pack_start(ActionButton('Duplicados y conflictos','search',lambda _:self.conflicts_page(),'quiet'),False,False,0);actions.pack_start(ActionButton('Ver actualizaciones','download',lambda _:self.updates_page(),'quiet'),False,False,0);tools.pack_start(actions,True,True,0)
         box.show_all();scroll=box.get_ancestor(Gtk.ScrolledWindow)
         if scroll:scroll.show_all()
         self.pages.set_visible_child_name('home');self.refresh_layout()
@@ -62,6 +63,7 @@ class HomeMixin:
             if target:
                 target.grab_focus();self.mark_controller_focus(self,target)
                 if returning:self.reveal_focus(target)
+            elif refreshing:self.restore_control_focus(focus_token)
             if not returning:scroll.get_vadjustment().set_value(position)
             return False
         GLib.idle_add(restore)

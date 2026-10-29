@@ -397,7 +397,7 @@ class GameMixin:
             ('Buscar en la comunidad','community',lambda _:self.community_dialog(entry),'violet'),
             ('Importar archivo','download',lambda _:self.import_game_profile(entry),'steam-outline')]:
             actions.pack_start(ActionButton(caption,icon,action,tone),False,False,0)
-        content.pack_start(actions,False,False,0)
+        toolbar=self.new_scroll();toolbar.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);toolbar.add(actions);parent.pack_start(toolbar,False,False,0);parent.reorder_child(toolbar,0)
         profiles = presets.recommended(entry, self.store)
         best = presets.best_for(entry, self.store) or next((p['id'] for p in profiles[:3] if presets.is_bundled(p) and p['tested']['status']=='user-confirmed'),next((p['id'] for p in profiles[:3] if presets.is_bundled(p) and p['tested']['status']=='boot-tested'),''))
         self.profile_selection = None
@@ -436,9 +436,9 @@ class GameMixin:
         dock.pack_end(self.profile_apply_play,False,False,0)
         dock.pack_end(self.profile_apply,False,False,0)
         dock.pack_end(self.profile_restore,False,False,0)
-        parent.pack_end(dock,False,False,0)
+        parent.pack_start(dock,False,False,0);parent.reorder_child(dock,0)
         self.profile_rate=ActionButton('Valorar este perfil','community',lambda _:self.community_dialog(entry,self.profile_selection['id'],mode='feedback') if self.profile_selection else None,'violet-outline')
-        self.profile_feedback.pack_end(self.profile_rate,False,False,0)
+        actions.pack_start(self.profile_rate,False,False,0)
         self.profile_apply.set_tooltip_text('Guarda los ajustes y un respaldo. No abre el juego.')
         self.profile_apply_play.set_tooltip_text('Guarda los ajustes y abre el juego en un paso.')
         self.profile_dock = dock
@@ -532,7 +532,6 @@ class GameMixin:
 
         if not profiles:self.profile_rate.hide();self.profile_rate.set_no_show_all(True)
         community_head=Gtk.Box(spacing=8);community_head.pack_start(text('Ajustes de la comunidad','section-title'),True,True,0)
-        community_head.pack_end(ActionButton('Ver perfiles y valoraciones','community',lambda _:self.community_dialog(entry),'violet-outline'),False,False,0)
         content.pack_start(community_head,False,False,0)
         self.community_profile_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);content.pack_start(self.community_profile_box,False,False,0)
         self.community_profile_box.pack_start(text('Consultar perfiles, valoraciones y comentarios.','muted'),False,False,0)
@@ -549,7 +548,7 @@ class GameMixin:
             panel=getattr(self,'community_profile_box',None)
             if panel:
                 self.reset_page(panel)
-                if error:panel.pack_start(text('No se pudo consultar la comunidad. Ver todos permite reintentar.','muted'),False,False,0)
+                if error:panel.pack_start(text('No se pudo consultar la comunidad. Usar Buscar en la comunidad para reintentar.','muted'),False,False,0)
                 elif not values:panel.pack_start(text('Todavía no hay perfiles publicados para este juego.','muted'),False,False,0)
                 shown=[v for v in values if not presets.is_packaged(v,self.store)]
                 if values and not shown:panel.pack_start(text('Todavía no hay perfiles publicados para este juego.','muted'),False,False,0)
@@ -735,12 +734,12 @@ class GameMixin:
         actions=Gtk.Box(spacing=10)
         actions.pack_start(ActionButton('Editar acceso directo','file',lambda _:self.manual(entry)),False,False,0)
         actions.pack_start(ActionButton('Diagnóstico','search',lambda _:self.check(entry)),False,False,0)
-        body.pack_start(actions,False,False,0)
+        body.pack_start(actions,False,False,0);body.reorder_child(actions,0)
         if self.in_steam(entry):
             row=Gtk.Box(spacing=10)
             row.pack_start(ActionButton('Carátulas de Steam','image',lambda _:self.steam_art_dialog(entry),'steam-outline'),False,False,0)
             row.pack_start(ActionButton('Quitar acceso directo de Steam','undo',lambda _:self.remove_from_steam([entry]),'danger'),False,False,0)
-            body.pack_start(row,False,False,0)
+            body.pack_start(row,False,False,0);body.reorder_child(row,1)
 
     def build_game_content(self, entry, body):
         body.pack_start(TaskButton('Administrar contenido','Juego base, actualizaciones, DLC y mods','folder',lambda _:self.content_dialog(entry),'cyan'),False,False,0)
