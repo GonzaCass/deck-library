@@ -78,7 +78,6 @@ class HelpMixin:
             how={'automatic':('Lo aplica Deck Library','green'),'profile':('Perfil incluido','blue'),'manual':('Guía manual','yellow')}[game['fix_how']]
             panel.pack_start(badge_row([('Gameplay confirmado','green'),how]),False,False,0)
             panel.pack_start(text(game['program']+' · '+game['version'],'meta',85),False,False,0)
-            panel.pack_start(text('Steam Deck OLED' if game['hardware']=='steam-deck-oled' else 'Steam Deck LCD','meta'),False,False,0)
             panel.pack_start(text(game['result'],'muted',95),False,False,0)
             panel.pack_start(text('Arreglo','title'),False,False,0);panel.pack_start(text(game['fix'],'muted',95),False,False,0)
             details=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);details.pack_start(text('Limitaciones','title'),False,False,0);details.pack_start(text(game['limitations'],'muted',95),False,False,0);details.pack_start(text('Evidencia','title'),False,False,0);details.pack_start(text(game['fix_evidence'],'muted',95),False,False,0);details.pack_start(text('Fecha del registro: '+game['date'],'meta'),False,False,0)
