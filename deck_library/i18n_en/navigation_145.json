@@ -1,0 +1,21 @@
+{
+  "Se enviará el reporte que figura en la vista previa al servicio de Deck Library. No se publica en GitHub. Si hay una sesión iniciada, se vincula a esa cuenta para consultar respuestas.": "The previewed report will be sent to Deck Library. It is not published on GitHub. If signed in, it is linked to that account to track replies.",
+  "Ver mis reportes": "View my reports",
+  "Solicitudes y reportes": "Requests and reports",
+  "Espacio disponible en la unidad de la carpeta personal": "Free space on the home folder drive",
+  "Bandeja de entrada": "Inbox",
+  "Espacio no disponible": "Space unavailable",
+  "Se aplican solos al cerrar Steam, o ahora con el botón de arriba.": "Applied automatically when Steam closes, or now using the button above.",
+  "Reporte de problema": "Problem report",
+  "Nueva solicitud": "New request",
+  "Cargando diagnóstico…": "Loading diagnostics…",
+  "Mis solicitudes y reportes": "My requests and reports",
+  "Iniciar sesión para gestionar las solicitudes y los reportes enviados.": "Sign in to manage your requests and reports.",
+  "Diagnóstico enviado con este reporte.": "Diagnostics attached to this report.",
+  "Convertir Switch": "Convert Switch game",
+  "Extraer ISO": "Extract ISO",
+  "ROMs asociadas": "Linked ROMs",
+  "Conflictos": "Conflicts",
+  "No hay un diagnóstico adjunto.": "No diagnostics are attached.",
+  "No se pudo consultar la comunidad. Usar Buscar en la comunidad para reintentar.": "Could not load the community. Use Browse community to try again."
+}

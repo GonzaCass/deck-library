@@ -5,7 +5,7 @@ from .inline_pages import InlineDialog
 from .ui_components import ActionButton,badge,text
 
 PLATFORMS=('Switch','PlayStation','Xbox','Wii / Wii U','PC (Windows)','Otra')
-CATEGORIES={'port':'Port','emulated':'Juego emulado','native':'Juego nativo','minecraft':'Instancia de Minecraft'}
+CATEGORIES={'report':'Reporte de problema','port':'Port','emulated':'Juego emulado','native':'Juego nativo','minecraft':'Instancia de Minecraft'}
 STATES={'new':('Recibida','neutral'),'investigating':('En estudio','blue'),'fixed':('Resuelta','green'),'declined':('No se pudo','orange')}
 
 def contents(view):
@@ -18,15 +18,21 @@ class SupportMixin:
 
     def support_page(self,entry=None):
         if entry is not None and not hasattr(entry,'metadata'):entry=None
-        page=InlineDialog(title='Reportar un problema o hacer una solicitud',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
-        body=page.get_content_area();body.set_spacing(10)
+        page=InlineDialog(title='Solicitudes y reportes',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
+        body=page.get_content_area();body.set_spacing(10);actions=page.get_action_area()
         def choose(action):page.destroy();action()
-        for caption,description,icon,tone,action in [
-            ('Reportar un problema','Errores de Deck Library. Permite revisar y adjuntar un diagnóstico.','file','amber',lambda:self.bug_report_page(entry)),
-            ('Hacer una solicitud','Pedir soporte o ajustes para un juego, port o instancia de Minecraft.','plus','violet',lambda:self.request_game_page(entry=entry)),
-            ('Mis solicitudes y respuestas','Consultar el seguimiento y las respuestas recibidas.','community','cyan',self.my_requests_page)]:
-            body.pack_start(ActionButton(caption,icon,lambda _,a=action:choose(a),tone),False,False,0);body.pack_start(text(description,'muted',80),False,False,0)
-        page.connect('response',lambda *_:page.destroy());page._mount();return page
+        actions.pack_start(ActionButton('Nueva solicitud','plus',lambda _:choose(lambda:self.request_game_page(entry=entry)),'violet'),False,False,0)
+        actions.pack_start(ActionButton('Reportar un problema','file',lambda _:choose(lambda:self.bug_report_page(entry)),'amber'),False,False,0)
+        actions.pack_start(ActionButton('Actualizar','refresh',lambda _:self.refresh_my_requests(listing),'cyan'),False,False,0)
+        if not self.signed_in():
+            body.pack_start(text('Iniciar sesión para gestionar las solicitudes y los reportes enviados.','muted',85),False,False,0)
+            def sign_in(_):
+                self.open_request_account()
+                if self.signed_in():page.destroy();self.support_page(entry)
+            actions.pack_start(ActionButton('Iniciar sesión','community',sign_in,'steam'),False,False,0)
+        body.pack_start(text('Mis solicitudes y reportes','section-title'),False,False,0)
+        listing=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);body.pack_start(listing,False,False,0)
+        page.connect('response',lambda *_:page.destroy());page._mount();self.refresh_my_requests(listing);return page
 
     def open_request_account(self):
         from .gui_account import account_dialog
@@ -36,7 +42,8 @@ class SupportMixin:
         page=InlineDialog(title='Hacer una solicitud',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
         body=page.get_content_area();body.set_spacing(8)
         category=Gtk.ComboBoxText();category.get_accessible().set_name('Tipo de solicitud')
-        for key,name in CATEGORIES.items():category.append(key,name)
+        for key,name in CATEGORIES.items():
+            if key!='report':category.append(key,name)
         initial=('port' if entry.kind=='port' else 'minecraft' if entry.platform=='Minecraft' else 'emulated' if entry.kind=='emulated' else 'native') if entry else 'port'
         category.set_active_id(initial);body.pack_start(text('Tipo de solicitud','title'),False,False,0);body.pack_start(category,False,False,0)
         title=Gtk.Entry();title.set_max_length(120);title.set_placeholder_text('Nombre del juego o de la instancia');body.pack_start(text('Nombre del juego o de la instancia','title'),False,False,0);body.pack_start(title,False,False,0)
@@ -73,13 +80,13 @@ class SupportMixin:
                 if error:status.set_text(str(error))
                 else:
                     self.toast('Solicitud enviada');status.set_text(f"Solicitud recibida. Número: {result['id']}");send_button.set_sensitive(False)
-                    body.pack_start(ActionButton('Ver mis solicitudes','community',lambda _:(page.destroy(),self.my_requests_page()),'cyan'),False,False,0);body.show_all();changed()
+                    page.get_action_area().pack_start(ActionButton('Ver mis solicitudes','community',lambda _:(page.destroy(),self.my_requests_page()),'cyan'),False,False,0);body.show_all();changed()
                 return False
             def work():
                 try:GLib.idle_add(done,self.community_client().request('/v1/requests',value),None)
                 except Exception as error:GLib.idle_add(done,None,error)
             threading.Thread(target=work,daemon=True).start()
-        send_button=ActionButton('Enviar solicitud','upload',send,'violet');body.pack_start(send_button,False,False,0);body.pack_start(status,False,False,0)
+        send_button=ActionButton('Enviar solicitud','upload',send,'violet');page.get_action_area().pack_start(send_button,False,False,0);body.pack_start(status,False,False,0)
         page.connect('destroy',lambda *_:state.update(alive=False));page.connect('response',lambda *_:page.destroy());changed();page._mount();return page
 
     def build_request_notification(self,root):
@@ -112,13 +119,7 @@ class SupportMixin:
         threading.Thread(target=work,daemon=True).start();return True
 
     def my_requests_page(self,*_):
-        page=InlineDialog(title='Mis solicitudes y respuestas',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
-        body=page.get_content_area();body.set_spacing(10);listing=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
-        if not self.signed_in():
-            body.pack_start(text('Iniciar sesión para ver las solicitudes y sus respuestas.','muted',85),False,False,0)
-            body.pack_start(ActionButton('Iniciar sesión','community',lambda _:(self.open_request_account(),self.refresh_my_requests(listing)),'cyan'),False,False,0)
-        body.pack_start(listing,False,False,0);body.pack_start(ActionButton('Actualizar','refresh',lambda _:self.refresh_my_requests(listing),'cyan'),False,False,0)
-        page.connect('response',lambda *_:page.destroy());page._mount();self.refresh_my_requests(listing);return page
+        return self.support_page()
 
     def refresh_my_requests(self,box):
         if not self.signed_in():return
@@ -150,9 +151,9 @@ class SupportMixin:
         threading.Thread(target=work,daemon=True).start()
 
     def owner_requests_page(self,*_):
-        page=InlineDialog(title='Solicitudes recibidas',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
+        page=InlineDialog(title='Bandeja de entrada',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
         body=page.get_content_area();body.set_spacing(10);status=text('Cargando…','status',85);body.pack_start(status,False,False,0)
-        body.pack_start(ActionButton('Actualizar','refresh',lambda _:load(),'cyan'),False,False,0)
+        page.get_action_area().pack_start(ActionButton('Actualizar','refresh',lambda _:load(),'cyan'),False,False,0)
         listing=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);body.pack_start(listing,False,False,0);state={'alive':True,'busy':False}
         def paint(rows,error):
             state['busy']=False
@@ -163,14 +164,16 @@ class SupportMixin:
                 card=self.card(listing,row['title']);caption,tone=STATES.get(row['state'],STATES['new']);card.pack_start(badge(caption,tone,20),False,False,0)
                 card.pack_start(text(CATEGORIES.get(row.get('category'),'Juego emulado')+' · '+row['platform'],'meta',85),False,False,0)
                 if row.get('repository'):card.pack_start(Gtk.LinkButton.new_with_label(row['repository'],'Repositorio del port'),False,False,0)
-                if row['details']:card.pack_start(text(row['details'],'muted',85),False,False,0)
                 card.pack_start(text('Número '+row['id']+(' · de '+row['login'] if row['login'] else ' · sin cuenta'),'meta',85),False,False,0)
                 if row.get('note'):card.pack_start(text('Última respuesta: '+row['note'],'muted',85),False,False,0)
                 response=Gtk.TextView();response.set_wrap_mode(Gtk.WrapMode.WORD_CHAR);response.get_accessible().set_name('Respuesta a '+row['title']);scroll=self.new_scroll();scroll.set_size_request(-1,85);scroll.add(response)
                 card.pack_start(text('Respuesta al usuario','title'),False,False,0);card.pack_start(scroll,False,False,0);actions=Gtk.Box(spacing=8);card.pack_start(actions,False,False,0)
                 actions.pack_start(ActionButton('Enviar respuesta','upload',lambda _,r=row,v=response:change(r,r['state'],contents(v)),'violet'),False,False,0)
+                if row.get('report_id'):actions.pack_start(ActionButton('Ver diagnóstico','file',lambda _,r=row:self.request_diagnostic_page(r),'steam'),False,False,0)
                 for key,(caption,_) in STATES.items():
                     if key!=row['state']:actions.pack_start(ActionButton(caption,'check',lambda _,r=row,k=key,v=response:change(r,k,contents(v)),{'new':'cyan','investigating':'steam','fixed':'play','declined':'amber'}[key]),False,False,0)
+                card.reorder_child(actions,2)
+                if row['details']:card.pack_start(text(row['details'],'muted',85),False,False,0)
             listing.show_all();self.refresh_layout();return False
         def load():
             def work():
@@ -186,3 +189,18 @@ class SupportMixin:
                 except Exception as error:GLib.idle_add(paint,[],error)
             threading.Thread(target=work,daemon=True).start()
         page.connect('destroy',lambda *_:state.update(alive=False));page.connect('response',lambda *_:page.destroy());page._mount();load();return page
+
+    def request_diagnostic_page(self,row):
+        import json
+        page=InlineDialog(title='Diagnóstico · '+row['title'],transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
+        status=text('Cargando diagnóstico…','status',85);body=page.get_content_area();body.pack_start(status,False,False,0)
+        view=Gtk.TextView();view.set_editable(False);view.set_wrap_mode(Gtk.WrapMode.WORD_CHAR);body.pack_start(view,True,True,0)
+        def done(value,error):
+            if page._closed:return False
+            status.set_text(str(error) if error else 'Diagnóstico enviado con este reporte.')
+            if value:view.get_buffer().set_text(json.dumps(value['report'],ensure_ascii=False,indent=2))
+            return False
+        def work():
+            try:GLib.idle_add(done,self.community_client().request('/v1/admin/requests/'+row['id']+'/diagnostic'),None)
+            except Exception as error:GLib.idle_add(done,None,error)
+        page.connect('response',lambda *_:page.destroy());page._mount();threading.Thread(target=work,daemon=True).start();return page

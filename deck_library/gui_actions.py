@@ -12,6 +12,9 @@ from .gui import label,button,Banner
 class ActionsMixin:
     def reset_page(self,box):
         for child in box.get_children():box.remove(child)
+        if hasattr(box,'page_header'):
+            for child in box.page_header.get_children():box.page_header.remove(child)
+            box.page_header_scroll.hide()
     def toast(self,text):self.toast_widget.show_text(text)
     def build_launch_notice(self,root):
         from .ui_components import ActionButton

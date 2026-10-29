@@ -19,7 +19,8 @@ class CommunityMixin:
         stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if motion.page_transitions() else Gtk.StackTransitionType.NONE);stack.set_transition_duration(120 if motion.page_transitions() else 0)
         box.pack_start(stack,True,True,0)
         def add_page(widget,name):
-            scroll=self.new_scroll();scroll.set_vexpand(True);scroll.add(widget);stack.add_named(scroll,name)
+            shell=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);widget.action_bar=Gtk.Box(spacing=8);header=self.new_scroll();widget.action_scroll=header;header.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);header.add(widget.action_bar);shell.pack_start(header,False,False,0)
+            scroll=self.new_scroll();scroll.set_vexpand(True);scroll.add(widget);shell.pack_start(scroll,True,True,0);stack.add_named(shell,name)
         status=text('','status',100);box.pack_end(status,False,False,0)
         browse=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);add_page(browse,'browse')
         browse_top=Gtk.Box(spacing=8);browse_top.pack_start(text('Perfiles del juego','section-title'),True,True,0);account=text('','meta');browse_top.pack_end(account,False,False,0);browse.pack_start(browse_top,False,False,0)
@@ -31,11 +32,11 @@ class CommunityMixin:
         detail.pack_start(text('Ajustes e instrucciones','section-title'),False,False,0)
         settings=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);detail.pack_start(settings,False,False,0)
         comment_page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);add_page(comment_page,'comments')
-        comment_page.pack_start(ActionButton('Volver al perfil','back',lambda _:stack.set_visible_child_name('profile'),'quiet'),False,False,0)
+        comment_page.action_bar.pack_start(ActionButton('Volver al perfil','back',lambda _:stack.set_visible_child_name('profile'),'quiet'),False,False,0)
         comment_page.pack_start(text('Comentarios','section-title'),False,False,0)
         comments=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);comment_page.pack_start(comments,False,False,0)
         feedback=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);add_page(feedback,'feedback')
-        feedback.pack_start(ActionButton('Volver al perfil','back',lambda _:stack.set_visible_child_name('profile'),'quiet'),False,False,0)
+        feedback.action_bar.pack_start(ActionButton('Volver al perfil','back',lambda _:stack.set_visible_child_name('profile'),'quiet'),False,False,0)
         feedback.pack_start(text('Valorar el perfil · 1 a 5 estrellas','section-title'),False,False,0)
         feedback.pack_start(text('Hace falta una cuenta. Se puede actualizar la valoración y añadir un comentario; no se puede valorar un perfil propio.','muted',85),False,False,0)
         rating=Gtk.ComboBoxText()
@@ -176,9 +177,11 @@ class CommunityMixin:
             return False
         dialog.account_controller=controller
         for caption,page,icon in [('Perfiles','browse','community'),('Compartir mis ajustes','publish','upload'),('Mi cuenta','account','controller')]:tabs.pack_start(ActionButton(caption,icon,lambda _,p=page:stack.set_visible_child_name(p),'quiet'),False,False,0)
-        tools=Gtk.Box(spacing=8);browse.pack_start(tools,False,False,0);tools.pack_start(ActionButton('Actualizar','refresh',search,'quiet'),False,False,0);tools.pack_start(ActionButton('Mis aportes','upload',lambda w:search(w,True),'quiet'),False,False,0)
-        detail_actions=Gtk.Box(spacing=8);detail.pack_start(detail_actions,False,False,0);detail.reorder_child(detail_actions,2);detail_actions.pack_start(ActionButton('Usar este perfil','download',download,'violet'),False,False,0);detail_actions.pack_start(ActionButton('Comentarios','community',lambda _:stack.set_visible_child_name('comments'),'quiet'),False,False,0);detail_actions.pack_start(ActionButton('Valorar este perfil','community',lambda _:stack.set_visible_child_name('feedback'),'quiet'),False,False,0)
-        feedback.pack_start(ActionButton('Enviar valoración','community',rate,'violet'),False,False,0)
+        tools=browse.action_bar;tools.pack_start(ActionButton('Actualizar','refresh',search,'quiet'),False,False,0);tools.pack_start(ActionButton('Mis aportes','upload',lambda w:search(w,True),'quiet'),False,False,0)
+        detail_actions=detail.action_bar;detail.remove(detail_back);detail_actions.pack_start(detail_back,False,False,0);detail_actions.pack_start(ActionButton('Usar este perfil','download',download,'violet'),False,False,0);detail_actions.pack_start(ActionButton('Comentarios','community',lambda _:stack.set_visible_child_name('comments'),'quiet'),False,False,0);detail_actions.pack_start(ActionButton('Valorar este perfil','community',lambda _:stack.set_visible_child_name('feedback'),'quiet'),False,False,0)
+        feedback.action_bar.pack_start(ActionButton('Enviar valoración','community',rate,'violet'),False,False,0)
+        publish_page.remove(publication);publish_page.action_bar.pack_start(publication,False,False,0)
+        account_page.action_scroll.set_no_show_all(True);account_page.action_scroll.hide()
         refresh_account();dialog.show_all();stack.set_visible_child_name(mode);search(None);dialog.run();alive[0]=False;account_page.close();dialog.destroy()
         if self.selected and self.selected.id==e.id:self.show_detail(e)
 

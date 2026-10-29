@@ -78,7 +78,7 @@ class ExperienceMixin:
             item=label(f'{index+1}  {title}','pill' if index==self.wizard_step else 'muted');progress.pack_start(item,True,True,0)
         box.pack_start(progress,False,False,0)
         body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=16);body.set_hexpand(True);body.set_vexpand(True);box.pack_start(body,True,True,8)
-        footer=Gtk.Box(spacing=12);box.pack_end(footer,False,False,0)
+        self.reset_page(self.wizard_actions);footer=self.wizard_actions
         if self.wizard_step==0:
             body.pack_start(label('Configuración inicial','welcome-title'),False,False,12)
             body.pack_start(label('Detectar instalaciones, configurar carátulas y preparar accesos directos a Steam.','subtitle'),False,False,0)
@@ -92,7 +92,7 @@ class ExperienceMixin:
             body.pack_start(label('Marcar los juegos que se agregarán a Steam. Si falta alguno, agregar su carpeta.','subtitle'),False,False,0)
             self.wizard_report_label=label('Buscando EmuDeck, emuladores, ports y Prism…','pill');body.pack_start(self.wizard_report_label,False,False,0)
             scroll=self.new_scroll();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.wizard_results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);scroll.add(self.wizard_results);body.pack_start(scroll,True,True,0)
-            controls=Gtk.Box(spacing=10);controls.pack_start(button('Agregar carpeta',lambda _:self.wizard_folder()),False,False,0);controls.pack_start(button('Rutas y emuladores',lambda _:self.installation_dialog()),False,False,0);body.pack_start(controls,False,False,0)
+            controls=Gtk.Box(spacing=10);controls.pack_start(button('Agregar carpeta',lambda _:self.wizard_folder()),False,False,0);controls.pack_start(button('Rutas y emuladores',lambda _:self.installation_dialog()),False,False,0);footer.pack_start(controls,False,False,0)
             footer.pack_start(button('Atrás',lambda _:self.wizard_back()),False,False,0)
             self.wizard_continue=button('Continuar',lambda _:self.wizard_next(),True);footer.pack_end(self.wizard_continue,False,False,0);self.wizard_continue.set_sensitive(self.wizard_found is not None)
             if self.wizard_found is not None:self.wizard_detection_ready(self.wizard_found)
@@ -107,10 +107,9 @@ class ExperienceMixin:
             body.pack_start(label(f'{len(self.entries)} juegos encontrados · {len(self.checked)} seleccionados para Steam','subtitle'),False,False,0)
             body.pack_start(label('Cada carátula abre la ficha del juego: jugar, aplicar ajustes o agregarlo a Steam.','title'),False,False,16)
             body.pack_start(label('Para agregar varios a la vez, activar «Seleccionar». Los accesos directos se guardan cuando Steam se cierra. Una cuenta solo hace falta para publicar o comentar ajustes.','muted'),False,False,0)
-            body.pack_start(button('Ver la guía de uso',self.help_page),False,False,0)
-            body.pack_start(button('Verificados',lambda _:self.validated_page()),False,False,0)
+            footer.pack_start(button('Ver la guía de uso',self.help_page),False,False,0)
             footer.pack_start(button('Atrás',lambda _:self.wizard_back()),False,False,0);footer.pack_end(button('Abrir biblioteca',lambda _:self.leave_wizard(True),True),False,False,0)
-        box.show_all();stack.set_visible_child(box)
+        self.wizard_actions.show_all();box.show_all();stack.set_visible_child(box)
         def remove_previous():
             for child in stack.get_children():
                 if child is not stack.get_visible_child():stack.remove(child)
@@ -222,7 +221,7 @@ class ExperienceMixin:
             threading.Thread(target=work,daemon=True).start()
         search_button=button('Buscar en línea',lookup,True);row.pack_start(search_button,False,False,0);query.connect('activate',lookup)
         def local(_):self.choose_cover(e);self.show_detail(e);dialog.response(Gtk.ResponseType.CLOSE)
-        box.pack_start(button('Elegir imagen local',local),False,False,0)
+        dialog.get_action_area().pack_start(button('Elegir imagen local',local),False,False,0)
         if e.metadata.get('artwork',{}).get('page'):box.pack_start(Gtk.LinkButton.new_with_label(e.metadata['artwork']['page'],'Ver origen de la carátula actual'),False,False,0)
         self.fit_dialog(dialog);dialog.show_all();lookup(None);dialog.run();alive['value']=False;dialog.destroy()
     def steam_art_dialog(self,e):
@@ -300,7 +299,7 @@ class ExperienceMixin:
                 if not present[slot] and slot not in chosen:load_slot(slot,int(gid),True)
             status.set_text('Eligiendo automáticamente lo que falta…')
         bottom.pack_start(button('Completar lo que falta',complete),False,False,0)
-        save=button('Guardar en Steam',lambda _:commit(),True);bottom.pack_end(save,False,False,0);box.pack_start(bottom,False,False,0)
+        save=button('Guardar en Steam',lambda _:commit(),True);bottom.pack_end(save,False,False,0);dialog.get_action_area().pack_start(bottom,False,False,0)
         def commit():
             items=[{'appid':appid,'slot':s,'file':f} for s,f in chosen.items()]
             self.store.save(self.entries);dialog.response(Gtk.ResponseType.CLOSE)

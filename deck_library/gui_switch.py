@@ -107,7 +107,7 @@ class SwitchMixin:
                     result=sx.Job(converter,keys,progress=lambda line:GLib.idle_add(set_status,line),cancel=cancel).convert(game,root,update or None,minimum);GLib.idle_add(finish,result,None)
                 except Exception as error:GLib.idle_add(finish,None,error)
             threading.Thread(target=work,daemon=True).start()
-        actions=Gtk.Box(spacing=10);body.pack_start(actions,False,False,0)
+        actions=page.get_action_area()
         convert=ActionButton('Convertir','play',run_convert,'play');actions.pack_start(convert,False,False,0)
         cancel_button=ActionButton('Cancelar','undo',lambda _:state['cancel'].set() if state['cancel'] else None,'danger');cancel_button.set_no_show_all(True);actions.pack_start(cancel_button,False,False,0)
         def closing(*_):

@@ -171,7 +171,7 @@ class ToolsMixin:
             rows.pack_start(label('Mods ('+str(len(inventory['mods']))+') · '+('activados para este acceso directo' if e.mods else 'desactivados para comparar'),'title'),False,False,0)
             for item in inventory['mods']:rows.pack_start(label(item['name']),False,False,0)
             rows.show_all();status.set_text('Los archivos originales y las partidas se conservan. Eden debe estar cerrado para instalar.')
-        controls=Gtk.FlowBox();controls.set_selection_mode(Gtk.SelectionMode.NONE);controls.set_max_children_per_line(2);controls.set_min_children_per_line(1);box.pack_start(controls,False,False,0)
+        controls=dialog.get_action_area()
         def choose_nsp(_):
             path=self.pick_file('Elegir actualización o DLC (NSP)')
             if path:self.install_content_job([path],status,fill,e)
@@ -232,7 +232,7 @@ class ToolsMixin:
                 item=next(v[1] for v in shortcuts.values() if get(v[1],'appid')==e.metadata.get('steam_appid') or get(v[1],'appname')==e.name);appid=get(item,'appid');subprocess.Popen(['steam','steam://controllerconfig/'+str(appid)])
                 self.set_status('Controles abiertos en Steam.')
             except (OSError,ValueError,StopIteration):self.message('Instancia sin acceso directo','Guardar primero su acceso directo en Steam para abrir la configuración de controles.')
-        box.pack_start(button('Abrir controles en Steam',open_,True),False,False,0);self.fit_dialog(dialog);dialog.show_all();dialog.run();dialog.destroy()
+        dialog.get_action_area().pack_start(button('Abrir controles en Steam',open_,True),False,False,0);self.fit_dialog(dialog);dialog.show_all();dialog.run();dialog.destroy()
     def setup_wii_dialog(self):
         from .gui import label,button,wrap_row
         from .setup_wii import install,check_image
@@ -255,7 +255,7 @@ class ToolsMixin:
                 except Exception as error:GLib.idle_add(status.set_text,str(error)+'\nRegistro local: '+str(self.store.root/'wii-setup/install.log'))
                 finally:busy[0]=False;GLib.idle_add(start_button.set_sensitive,True);GLib.idle_add(stop.set_sensitive,False)
             threading.Thread(target=work,daemon=True).start()
-        actions=Gtk.Box(spacing=10);start_button=button('Preparar y optimizar',start,True);stop=button('Cancelar proceso',lambda _:cancel.set());stop.set_sensitive(False);actions.pack_start(start_button,False,False,0);actions.pack_start(stop,False,False,0);box.pack_start(actions,False,False,0)
+        actions=Gtk.Box(spacing=10);start_button=button('Preparar y optimizar',start,True);stop=button('Cancelar proceso',lambda _:cancel.set());stop.set_sensitive(False);actions.pack_start(start_button,False,False,0);actions.pack_start(stop,False,False,0);dialog.get_action_area().pack_start(actions,False,False,0)
         self.fit_dialog(dialog);dialog.show_all();dialog.run()
         if busy[0]:cancel.set()
         dialog.destroy()
@@ -298,5 +298,5 @@ class ToolsMixin:
                     GLib.idle_add(done,entry,None)
                 except Exception as error:GLib.idle_add(done,None,str(error))
             threading.Thread(target=work,daemon=True).start()
-        start=button('Instalar',begin,True);box.pack_start(start,False,False,0)
+        start=button('Instalar',begin,True);dialog.get_action_area().pack_start(start,False,False,0)
         dialog.connect('delete-event',lambda *_:busy[0]);self.fit_dialog(dialog);dialog.show_all();dialog.run();dialog.destroy()
