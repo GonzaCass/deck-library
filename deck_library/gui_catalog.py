@@ -50,7 +50,7 @@ class CatalogMixin:
         if self.compact_screen():intro.set_line_wrap(False);intro.set_ellipsize(Pango.EllipsizeMode.END);intro.set_max_width_chars(60)
         titles.pack_start(intro,False,False,0)
         head.pack_start(titles,True,True,0);actions=Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL if self.compact_screen() else Gtk.Orientation.VERTICAL,spacing=8);actions.set_valign(Gtk.Align.CENTER)
-        actions.pack_start(button('Agregar repositorio',lambda _:self.add_repository_dialog()),False,False,0);actions.pack_start(button('Actualizar listas',lambda _:self.load_catalog(True)),False,False,0)
+        actions.pack_start(button('Agregar repositorio',lambda _:self.add_repository_dialog()),False,False,0)
         head.pack_end(actions,False,False,0);box.pack_start(head,False,False,0)
         tools=Gtk.Box(spacing=10);self.catalog_search=Gtk.SearchEntry();self.catalog_search.set_placeholder_text('Buscar ports · X: teclado');self.bind_search_keyboard(self.catalog_search);self.catalog_search.connect('search-changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_search,True,True,0)
         self.catalog_category=Gtk.ComboBoxText();self.catalog_category.get_accessible().set_name('Categoría de ports');self.catalog_category.append('','Todas las categorías');self.catalog_category.set_active_id('');self.catalog_category.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_category,False,False,0)
@@ -92,6 +92,8 @@ class CatalogMixin:
         self.catalog_limit=getattr(self,'catalog_limit',CATALOG_PAGE)+CATALOG_PAGE;self.fill_catalog()
 
     def load_catalog(self,force):
+        if getattr(self,'catalog_load_busy',False):return
+        self.catalog_load_busy=True
         self.catalog_status.set_text('Cargando catálogo…');extra=list(self.preferences.get('catalog_sources',[]))
         def work():
             try:apps=ports.catalog(self.store,force,extra=extra)
@@ -100,10 +102,15 @@ class CatalogMixin:
         threading.Thread(target=work,daemon=True).start()
 
     def catalog_loaded(self,apps,error):
+        self.catalog_load_busy=False
+        if self.ui_closed:return False
         if apps is None:
             # Recommended and own entries remain usable without the remote lists.
-            self.catalog_apps=ports.merged([],self.preferences);self.fill_catalog();self.catalog_status.set_text('No se pudieron cargar las listas remotas: '+error);return False
-        self.catalog_apps=apps;self.fill_catalog();return False
+            if not getattr(self,'catalog_apps',None):self.catalog_apps=ports.merged([],self.preferences);self.fill_catalog()
+            self.catalog_status.set_text('No se pudieron cargar las listas remotas: '+error);return False
+        if apps!=getattr(self,'catalog_apps',None):self.catalog_apps=apps;self.fill_catalog()
+        else:self.catalog_status.set_text('')
+        return False
 
     def catalog_entries(self):return ports.merged(getattr(self,'catalog_apps',[]),self.preferences)
 

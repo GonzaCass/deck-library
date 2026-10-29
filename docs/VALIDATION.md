@@ -1,5 +1,12 @@
 # Validación
 
+## 1.4.7 — Live data, consistent game pages and Shattered Dimensions
+
+- Local discovery ran 1,081 tests with 146 environment/UI skips. All 144 GTK checks passed; focused checks after the optional-language change covered the fix action, secondary menu, administrator draft preservation and the Proton selector. The final game/files navigation alias is checked separately.
+- Library refresh checks cover unchanged widgets and selection, merging newly detected games without overwriting newer saved options, deferral during editing and automatic timer cleanup. Inbox refresh preserves unfinished replies. Standard navigation, one Community action and the scrollable secondary menu are exercised with controller navigation at Deck and compact sizes. Background discovery does not rerun port tuning.
+- The Shattered Dimensions recipe is tested with temporary 32-bit executable/prefix fixtures for fixed dependency arguments, backups, retained saves/shortcut/Proton, repeat application, optional registry language import, mismatched shortcuts/Proton, running games, symlinks, installation/registry failure and timeout. The default audio-only action preserves existing language values and never imports language settings.
+- The recipe was also executed against the existing local Steam prefix with Proton 10 and both dependencies already installed: the optional Spanish import completed and verified successfully; a subsequent default audio-only run left user.reg byte-for-byte unchanged. The registry/local-file backups were retained. No game was launched, and this is not a new gameplay or clean-install dependency-download test. Existing gameplay evidence remains dated separately. No API/database migration is required.
+
 ## 1.4.6 — Game removal choices
 
 - Local discovery ran 1,063 tests with 138 environment/UI skips. All 136 GTK checks passed; three focused removal checks passed again after the final library-target revalidation change. Layout checks cover 1280×800 and 840×640.

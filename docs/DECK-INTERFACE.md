@@ -1,4 +1,14 @@
-# Interfaz y modo Juego (0.19.5)
+# Interfaz y modo Juego
+
+## Vista actual (1.4.7)
+
+Todas las fichas usan **Ajustes**, **Controles** y **Juego y archivos**, con un único botón **Comunidad**. La cabecera mantiene Jugar, Steam, Eliminar y Más opciones. El desplegable agrupa edición avanzada, creación/importación/exportación de perfiles, valoración, restauración del perfil anterior, favoritos, carátulas y ayuda. La versión de Proton se consulta o cambia en Juego y archivos, según quién administre el acceso.
+
+La biblioteca vuelve a detectar instalaciones en segundo plano cada 45 segundos; no repite ajustes de ports ni sustituye un formulario abierto. Las bandejas de solicitudes y los listados comunitarios abiertos se consultan cada 20 segundos, conservando borradores y evitando reconstruir resultados iguales. No hay botones de recarga manual en esas vistas. El catálogo de ports y la búsqueda de versiones de Deck Library usan una caché de 15 minutos; las versiones de ports se consultan por hora. La instalación de versiones nuevas sigue las opciones de actualización configuradas.
+
+Shattered Dimensions ofrece un botón de preparación de audio. El idioma se conserva por defecto; cambiarlo es una opción explícita. Ver [requisitos y alcance del arreglo](SPIDER-MAN-SHATTERED-DIMENSIONS.md). Las pruebas de interfaz usan pantallas virtuales a 1280×800 y 840×640; no equivalen a una nueva sesión física de juego.
+
+## Referencia histórica: 0.19.5
 
 - Navegación superior: Biblioteca, Ports, Actualizaciones y Ajustes. Biblioteca a ancho completo, carátulas verticales, lista con miniaturas y agrupación por plataforma. No hay barra lateral.
 - La ficha abre una vista de juego con carátula y fondo derivado de esa imagen, **Jugar** en verde y Steam en azul. **Ajustes del juego** ofrece tarjetas seleccionables con objetivo, valores legibles y estado de prueba declarado por su autor. Seleccionar no modifica archivos. **Ver cambios** despliega la lista de diferencias; **Aplicar ajustes** y **Deshacer** permanecen en una barra fija. Las pestañas Ajustes, Controles, Contenido o Archivos y Steam, y Avanzados permanecen visibles. Comunidad tiene un botón propio en esa barra.

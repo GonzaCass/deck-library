@@ -113,12 +113,110 @@ class DeckUITests(unittest.TestCase):
         self.assertEqual(send.translate_coordinates(self.w,0,0),before);self.assertLess(before[1]+send.get_allocated_height(),page.scroll.translate_coordinates(self.w,0,0)[1]+1)
         page.destroy()
 
-    def test_the_profile_apply_and_import_actions_are_fixed_above_the_scroll_area(self):
+    def test_profile_apply_stays_fixed_and_secondary_actions_move_to_the_game_menu(self):
         from gi.repository import Gtk
         self.w.select_game(self.w.entries[0]);self.settle()
         scroll=self.w.profile_card_box.get_ancestor(Gtk.ScrolledWindow);content_y=scroll.translate_coordinates(self.w,0,0)[1]
-        for control in (self.w.profile_apply,self.w.profile_apply_play,self.w.profile_rate):
+        for control in (self.w.profile_apply,self.w.profile_apply_play):
             self.assertLess(control.translate_coordinates(self.w,0,0)[1],content_y);self.assertTrue(control.get_mapped())
+        menu=self.w.game_header_secondary;menu.set_active(True);self.settle()
+        self.assertTrue(self.w.profile_rate.get_mapped());self.assertTrue(self.w.profile_restore.get_mapped())
+        menu.set_active(False)
+
+    def test_game_navigation_is_identical_for_emulated_ports_windows_and_minecraft(self):
+        from deck_library.models import Entry
+        from gi.repository import Gtk
+        entries=[self.w.entries[0],Entry('Native',['/bin/true']),Entry('Windows',['/bin/true'],kind='steam',platform='Windows'),Entry('Instance',['/bin/true'],kind='minecraft',platform='Minecraft')]
+        for entry in entries:
+            self.w.entries=[entry];self.w.select_game(entry);self.settle()
+            self.assertEqual(list(self.w.game_section_controls),['profiles','controls','content'])
+            self.assertEqual([c.get_label() for c in self.w.game_section_controls.values()],['Ajustes','Controles','Juego y archivos'])
+            buttons=[c for c in self.w.control_targets(self.w.detail) if isinstance(c,Gtk.Button)]
+            self.assertEqual(sum(c.get_label()=='Comunidad' for c in buttons),1)
+            self.assertNotIn('Buscar en la comunidad',[c.get_label() for c in buttons])
+            self.w.game_section_controls['content'].clicked();self.settle();self.assertEqual(self.w.game_tab,'content')
+            self.w.controller_action('back');self.settle();self.assertEqual(self.w.game_tab,'profiles')
+        entry=Entry('Windows',['/bin/true'],kind='steam',platform='Windows',metadata={'steam_appid':123})
+        self.w.entries=[entry];self.w.select_game(entry);self.w.game_steam_button.clicked();self.settle()
+        self.assertEqual(self.w.game_tab,'content');self.assertTrue(self.w.game_section_controls['content'].get_style_context().has_class('active'))
+        self.w.open_game_section('files');self.assertEqual(self.w.game_tab,'content');self.assertIsNone(self.w.game_pages.get_child_by_name('files'))
+
+    def test_automatic_refresh_is_quiet_and_defers_library_work_while_editing(self):
+        import time
+        self.w.preferences['check_updates']=True;self.w.catalog_ready=True;self.w.live_catalog_checked=time.monotonic()-1000
+        with patch.object(self.w,'discover') as discover,patch.object(self.w,'check_updates') as updates,patch.object(self.w,'load_catalog') as catalog:
+            self.assertTrue(self.w.live_refresh());discover.assert_called_once_with(quiet=True);updates.assert_called_once();catalog.assert_called_once_with(False)
+            discover.reset_mock();catalog.reset_mock();self.w.editor_dirty=True;self.w.live_catalog_checked=0
+            self.assertTrue(self.w.live_refresh());discover.assert_not_called();catalog.assert_not_called()
+        self.w.editor_dirty=False
+
+    def test_unchanged_background_discovery_preserves_game_selection_and_widgets(self):
+        from deck_library.models import Entry
+        self.w.select_game(self.w.entries[0]);self.settle();card=self.w.profile_cards[0];selection=self.w.profile_selection
+        copies=[Entry.from_dict(e.to_dict()) for e in self.w.entries]
+        self.w.discovery_quiet=True;self.w.discover_busy=True
+        with patch.object(self.w,'show_detail') as detail,patch.object(self.w,'render') as render,patch.object(self.w,'set_status') as status:
+            self.w.discovered(copies);detail.assert_not_called();render.assert_not_called();status.assert_not_called()
+        self.assertIs(self.w.profile_cards[0],card);self.assertIs(self.w.profile_selection,selection);self.assertFalse(self.w.discover_busy)
+
+    def test_inline_refresh_timer_is_removed_when_its_page_closes(self):
+        from gi.repository import GLib
+        page=self.w.support_page();self.settle()
+        with patch.object(self.w,'signed_in',return_value=False):
+            identifier=self.w.watch_page(page,lambda:None)
+        self.assertIsNotNone(GLib.MainContext.default().find_source_by_id(identifier))
+        page.destroy();self.settle();self.assertIsNone(GLib.MainContext.default().find_source_by_id(identifier));self.assertNotIn(identifier,self.w.ui_sources)
+
+    def test_background_inventory_keeps_newer_saved_options_and_defers_during_a_form(self):
+        from deck_library.models import Entry
+        old=Entry.from_dict(self.w.entries[0].to_dict());saved=Entry.from_dict(old.to_dict());saved.metadata['personal_setting']='latest';self.store.save([saved])
+        self.w.discovery_quiet=True
+        with patch('deck_library.steam_inventory.merge_steam',side_effect=lambda entries:entries),patch.object(self.w,'discovered'):
+            self.w.discovery_snapshot_ready([old]);self.assertEqual(self.store.load()[0].metadata['personal_setting'],'latest')
+        self.w.editor_dirty=True
+        with patch.object(self.store,'merge') as merge:self.w.discovery_snapshot_ready([old]);merge.assert_not_called()
+        self.w.editor_dirty=False
+
+    def test_admin_inbox_refresh_preserves_a_reply_draft_and_then_loads_new_rows(self):
+        from unittest.mock import Mock
+        from gi.repository import Gtk
+        client=Mock();client.session.return_value={'token':'admin-fixture','login':'Owner'}
+        row={'id':'1234abcd','title':'Example','state':'new','platform':'Windows','category':'port','login':'Player','details':'Details'}
+        client.request.return_value={'requests':[row]};watch={}
+        def track(page,callback,interval=20,ready=None):watch.update(callback=callback,ready=ready)
+        with patch.object(self.w,'community_client',return_value=client),patch.object(self.w,'watch_page',side_effect=track):
+            page=self.w.owner_requests_page();self.settle()
+            response=next(c for c in self.w.control_targets(page) if isinstance(c,Gtk.TextView));response.get_buffer().set_text('Draft reply')
+            self.assertFalse(watch['ready']());before=client.request.call_count
+            client.request.return_value={'requests':[{**row,'note':'New note','updated':2}]};watch['callback']();self.settle()
+            self.assertEqual(client.request.call_count,before);self.assertEqual(response.get_buffer().get_text(response.get_buffer().get_start_iter(),response.get_buffer().get_end_iter(),True),'Draft reply')
+            response.get_buffer().set_text('');self.assertTrue(watch['ready']());watch['callback']();self.settle();self.assertGreater(client.request.call_count,before)
+            self.assertIsNone(response.get_parent());page.destroy()
+
+    def test_manual_reload_buttons_are_absent_from_library_home_support_and_updates(self):
+        from gi.repository import Gtk
+        def captions(root):return [c.get_label() for c in self.w.control_targets(root) if isinstance(c,Gtk.Button)]
+        self.w.open_library();self.settle();self.assertNotIn('Actualizar biblioteca',captions(self.w.pages.get_visible_child()))
+        self.w.home_page();self.settle();self.assertNotIn('Actualizar biblioteca',captions(self.w.pages.get_visible_child()))
+        page=self.w.support_page();self.settle();self.assertNotIn('Actualizar',captions(page));page.destroy()
+        self.w.updates_page();self.settle();self.assertNotIn('Buscar actualizaciones',captions(self.w.pages.get_visible_child()))
+
+    def test_shattered_fix_is_a_single_action_and_reports_completion_inside_the_app(self):
+        from deck_library.models import Entry
+        from deck_library import shattered
+        import time
+        entry=Entry('Spider-Man Shattered Dimensions',['/bin/true'],kind='steam',platform='Windows');self.w.entries=[entry]
+        with patch.object(shattered,'inspect',side_effect=ValueError('Setup required')):
+            self.w.select_game(entry);self.settle()
+        actions=[c for c in self.w.control_targets(self.w.detail) if c.get_accessible().get_name()=='Aplicar arreglo'];self.assertEqual(len(actions),1)
+        result={'backup':str(pathlib.Path(self.temp.name)/'backup')}
+        with patch.object(shattered,'apply',return_value=result) as apply:
+            actions[0].clicked();deadline=time.monotonic()+2
+            while self.w.profile_job and time.monotonic()<deadline:self.settle()
+            self.assertFalse(self.w.profile_job);apply.assert_called_once();self.assertEqual(apply.call_args.args[2],'keep');page=self.w.inline_workflows[-1]
+            self.assertTrue(any(c.get_accessible().get_name()=='Volver al juego' for c in self.w.control_targets(page)))
+            with patch.object(shattered,'inspect',side_effect=ValueError('Setup required')):self.w.controller_action('back');self.settle()
+            self.assertFalse(self.w.inline_workflows)
 
     def test_sending_a_problem_report_opens_the_same_personal_inbox(self):
         import time
@@ -441,7 +539,8 @@ class DeckUITests(unittest.TestCase):
         self.assertLess(self.w.game_header.get_allocated_height(),100)
         scroll=self.w.profile_cards[0].get_ancestor(Gtk.ScrolledWindow)
         self.assertGreater(scroll.get_allocated_width(),1180,'Presets must use the space previously occupied by the sidebar.')
-        for section in ('controls','content','options','profiles'):
+        self.assertNotIn('options',self.w.game_section_controls)
+        for section in ('controls','content','profiles'):
             control=self.w.game_section_controls[section];control.emit('clicked');self.settle()
             self.assertEqual(self.w.game_tab,section)
             self.assertTrue(control.get_style_context().has_class('active'))
@@ -677,7 +776,7 @@ class DeckUITests(unittest.TestCase):
         tools={'Proton 11.0':root/'Proton 11.0/proton','Proton 9.0 (Beta)':root/'Proton 9.0 (Beta)/proton'}
         with patch.object(proton_tools,'installed',return_value=tools),patch.object(proton_selection,'default_tool',return_value=tools['Proton 11.0']),patch.object(proton_selection,'busy',return_value=False):
             for width,height in ((1280,800),(840,640)):
-                self.w.resize(width,height);self.w.select_game(entry);self.settle()
+                self.w.resize(width,height);self.w.select_game(entry);self.w.open_game_section('content');self.settle()
                 self.assertEqual(len(self.w.profile_cards),3)
                 self.assertEqual(self.w.proton_combo.get_active_id(),'')
                 self.w.proton_combo.set_active_id('Proton 9.0 (Beta)');self.assertTrue(self.w.proton_save_button.get_sensitive())
@@ -761,7 +860,7 @@ class DeckUITests(unittest.TestCase):
             if isinstance(widget,Gtk.Container):
                 for child in widget.get_children():yield from labels(child)
         self.w.validated_page();self.settle();texts=list(labels(self.w.pages.get_visible_child()))
-        for expected in ('Grand Theft Auto IV','Spider-Man: Shattered Dimensions','Arreglo','Reportar un problema o hacer una solicitud','Lo aplica Deck Library','Guía manual'):self.assertIn(expected,texts)
+        for expected in ('Grand Theft Auto IV','Spider-Man: Shattered Dimensions','Arreglo','Reportar un problema o hacer una solicitud','Lo aplica Deck Library'):self.assertIn(expected,texts)
 
     def test_a_game_request_explains_that_no_files_are_sent_and_shows_the_reference_number(self):
         from gi.repository import Gtk

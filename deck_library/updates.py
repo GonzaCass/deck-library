@@ -11,8 +11,8 @@ REPO='GonzaCass/deck-library'
 CATALOG_URL='https://raw.githubusercontent.com/GonzaCass/deck-library/main/presets/catalog.json'
 PROJECT2099_REPO='GenryTheFox0/Project-2099'
 HANDLED_HERE='patchzyy/wiicompiled'  # updated by wiiupdate.py, so Quiver's report is not repeated
-INTERVAL=6*3600
-APP_INTERVAL=3600
+INTERVAL=3600
+APP_INTERVAL=15*60
 JSON_LIMIT=2*1024*1024
 DOWNLOAD_LIMIT=64*1024*1024
 

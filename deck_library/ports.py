@@ -13,7 +13,7 @@ from .presets import ps1_serial
 INDEX='https://raw.githubusercontent.com/tgeorgiadis/quiver-community-app-catalog/main/index.json'
 GHL_LIST='https://raw.githubusercontent.com/SirDiabo/GHLAppList/main/apps.json'
 SOURCE_NAMES={INDEX:'Quiver',GHL_LIST:'GithubLauncher'}
-CACHE_SECONDS=6*3600
+CACHE_SECONDS=15*60
 MAX_DOWNLOAD=2*1024**3
 REPOSITORY=re.compile(r'[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}')
 FOLDER=re.compile(r'[A-Za-z0-9][A-Za-z0-9 ._()-]{0,79}')

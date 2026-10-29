@@ -91,8 +91,10 @@ class CommunityMixin:
             GLib.idle_add(lambda:(target.grab_focus(),self.mark_controller_focus(self,target),False)[-1])
             if value.get('status')=='pending':status.set_text('Pendiente de revisión.');return
             run(lambda:client.comments(value),lambda result:show_comments(result) if selected[0] is value else None)
-        state={'mine':False}
+        state={'mine':False,'values':None}
         def found(values):
+            if values==state['values']:return
+            state['values']=values
             self.reset_page(rows);everything=values
             if not values:rows.add(text('No hay perfiles para este juego. Se pueden compartir perfiles propios.','muted',95))
             for value in values:
@@ -177,11 +179,12 @@ class CommunityMixin:
             return False
         dialog.account_controller=controller
         for caption,page,icon in [('Perfiles','browse','community'),('Compartir mis ajustes','publish','upload'),('Mi cuenta','account','controller')]:tabs.pack_start(ActionButton(caption,icon,lambda _,p=page:stack.set_visible_child_name(p),'quiet'),False,False,0)
-        tools=browse.action_bar;tools.pack_start(ActionButton('Actualizar','refresh',search,'quiet'),False,False,0);tools.pack_start(ActionButton('Mis aportes','upload',lambda w:search(w,True),'quiet'),False,False,0)
+        tools=browse.action_bar;tools.pack_start(ActionButton('Mis aportes','upload',lambda w:search(w,True),'quiet'),False,False,0)
         detail_actions=detail.action_bar;detail.remove(detail_back);detail_actions.pack_start(detail_back,False,False,0);detail_actions.pack_start(ActionButton('Usar este perfil','download',download,'violet'),False,False,0);detail_actions.pack_start(ActionButton('Comentarios','community',lambda _:stack.set_visible_child_name('comments'),'quiet'),False,False,0);detail_actions.pack_start(ActionButton('Valorar este perfil','community',lambda _:stack.set_visible_child_name('feedback'),'quiet'),False,False,0)
         feedback.action_bar.pack_start(ActionButton('Enviar valoración','community',rate,'violet'),False,False,0)
         publish_page.remove(publication);publish_page.action_bar.pack_start(publication,False,False,0)
         account_page.action_scroll.set_no_show_all(True);account_page.action_scroll.hide()
+        self.watch_page(dialog,lambda:search(None,state['mine']),ready=lambda:stack.get_visible_child_name()=='browse' and not busy[0])
         refresh_account();dialog.show_all();stack.set_visible_child_name(mode);search(None);dialog.run();alive[0]=False;account_page.close();dialog.destroy()
         if self.selected and self.selected.id==e.id:self.show_detail(e)
 

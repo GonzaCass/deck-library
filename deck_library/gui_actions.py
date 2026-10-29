@@ -97,32 +97,50 @@ class ActionsMixin:
             try:backup=eden_controls.apply(self.preferences.get('eden_config') or None);self.toast('Mando de la Deck actualizado en Eden')
             except Exception as error:self.message('No se pudo actualizar el mando',str(error))
         else:self.preferences['eden_controls_declined']=state;save_settings(self.preferences,self.store)
-    def discover(self):
+    def discover(self,quiet=False):
         if self.discover_busy:return False
-        self.discover_busy=True;self.set_status('Buscando juegos e instalaciones…');preferences=dict(self.preferences)
+        self.discover_busy=True;self.discovery_quiet=quiet
+        if not quiet:self.set_status('Buscando juegos e instalaciones…')
+        preferences=dict(self.preferences)
         def work():
             try:
+                if quiet:
+                    inventory=scan(preferences=preferences)
+                    GLib.idle_add(self.discovery_snapshot_ready,inventory);return
                 found=report(preferences=preferences);from .steam_inventory import merge_steam
                 from . import ports
                 ports.maintain(self.store)
                 merged=self.store.merge(scan(preferences=preferences),overwrite=False);entries=merge_steam(merged);self.store.save(entries);GLib.idle_add(self.discovered,entries,found)
             except Exception as error:GLib.idle_add(self.discovery_failed,str(error))
         threading.Thread(target=work,daemon=True).start();return False
+    def discovery_snapshot_ready(self,inventory):
+        # Merge with the latest library on the UI thread, so a scan cannot write
+        # an old snapshot over edits saved while it was running.
+        if self.ui_closed or self.inline_workflows or getattr(self,'editor_dirty',False) or getattr(self,'port_busy',False) or getattr(self,'profile_job',False):
+            self.discover_busy=False;return False
+        try:
+            from .steam_inventory import merge_steam
+            entries=merge_steam(self.store.merge(inventory,overwrite=False));self.store.save(entries)
+        except Exception as error:return self.discovery_failed(str(error))
+        return self.discovered(entries)
     def discovery_failed(self,text):
-        if getattr(self,'explicit_rescan',False):self.explicit_rescan=False;self.rescan_button.set_sensitive(True);self.rescan_button.set_label('Actualizar biblioteca')
-        self.discover_busy=False;self.set_status('La búsqueda no se completó: '+text)
+        self.discover_busy=False
+        if not getattr(self,'discovery_quiet',False):self.set_status('La búsqueda no se completó: '+text)
         if self.pages.get_visible_child_name()=='welcome' and self.wizard_step==1:self.wizard_report_label.set_text('La búsqueda falló. Revisar las rutas y repetirla.');self.wizard_continue.set_sensitive(True)
         return False
     def discovered(self,entries,found=None):
-        if getattr(self,'explicit_rescan',False):self.explicit_rescan=False;self.rescan_button.set_sensitive(True);self.rescan_button.set_label('Actualizar biblioteca');self.toast('Biblioteca actualizada')
-        self.discover_busy=False;self.entries=entries
+        quiet=getattr(self,'discovery_quiet',False);self.discovery_quiet=False
+        changed=[e.to_dict() for e in entries]!=[e.to_dict() for e in self.entries]
+        self.discover_busy=False
+        if quiet and not changed:return False
+        self.entries=entries
         if self.selected:self.selected=next((e for e in entries if e.id==self.selected.id),None)
         self.checked&={e.id for e in entries}
         self.refresh_platforms();self.library_dirty=True
         if self.pages.get_visible_child_name()=='library':self.render()
         elif self.pages.get_visible_child_name()=='home':self.home_page()
-        self.set_status(f'{len(entries)} juegos encontrados.');self.wizard_detection_ready(found or report(preferences=self.preferences))
-        if self.pages.get_visible_child_name()=='detail':
+        if not quiet:self.set_status(f'{len(entries)} juegos encontrados.');self.wizard_detection_ready(found or report(preferences=self.preferences))
+        if self.pages.get_visible_child_name()=='detail' and not self.inline_workflows:
             if self.selected:self.show_detail(self.selected)
             else:self.pages.set_visible_child_name('library')
         if self.pages.get_visible_child_name()!='welcome':self.fetch_covers()
