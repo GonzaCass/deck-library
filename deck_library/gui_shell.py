@@ -193,10 +193,14 @@ class ShellMixin:
     def apply_motion(self):
         enabled=self.preferences.get('animations',True);Gtk.Settings.get_default().set_property('gtk-enable-animations',enabled)
         for stack in (self.library_stack,self.wizard_box):stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if enabled and motion.page_transitions() else Gtk.StackTransitionType.NONE);stack.set_transition_duration(150 if enabled and motion.page_transitions() else 0)
-    def shown_entries(self):return visible_entries([e for e in self.entries if e.id not in self.preferences.get('hidden_originals',[])],association_exclusions=self.preferences.get('unlinked_originals',[]))
+    def shown_entries(self):
+        from .game_removal import library_entries
+        return library_entries(self.entries,self.preferences)
     def visible(self):
         text=self.search.get_text().casefold();entries,_=self.shown_entries()
-        if self.type_filter=='emulator':entries=visible_entries([e for e in self.entries if e.id not in self.preferences.get('hidden_originals',[])],prefer_ports=False)[0]
+        if self.type_filter=='emulator':
+            from .game_removal import library_entries
+            entries=library_entries(self.entries,self.preferences,prefer_ports=False)[0]
         from .originals import associations
         linked=associations(self.entries,self.preferences.get('unlinked_originals',[]))
         return sorted([e for e in entries if text in (e.name+' '+e.platform).casefold() and (self.platform_filter=='all' or self.platform_filter==e.platform or any(o.platform==self.platform_filter for o in linked.get(e.id,[]))) and (self.type_filter=='all' or self.type_filter==entry_type(e))],key=self.sort_key())

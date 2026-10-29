@@ -68,15 +68,37 @@ def plan(repository,store=None,root=None):
         target=safe_path(store.root/relative,store.root)
         if target.exists():paths.append(target)
     paths=list(dict.fromkeys(paths))
+    for other in store.load():
+        if other.id in ids:continue
+        for reference in [other.source,other.cwd,other.metadata.get('original_source',''),*other.command]:
+            if reference and pathlib.Path(reference).is_absolute() and any(pathlib.Path(reference).resolve().is_relative_to(p.resolve()) for p in paths):
+                raise ValueError('Otro juego utiliza esta carpeta o archivo. No se permite borrar datos compartidos.')
     signature=[(str(p),p.stat().st_dev,p.stat().st_ino) for p in paths]
     return {'repository':repository,'name':record.get('name',repository),'paths':paths,'ids':ids,'entries':entries,'signature':signature}
 
 
 def execute(repository,store=None,root=None,expected=None,start_worker=True):
-    from . import ports,service,updates
+    from . import ports,updates
     store=store or Store();root=pathlib.Path(root or ports.ports_root());value=plan(repository,store,root)
     if expected is not None and value['signature']!=expected['signature']:raise ValueError('La instalación cambió. Revisar nuevamente los archivos antes de eliminar.')
     if in_use(value['paths']):raise ValueError('Cerrar el juego y su lanzador antes de eliminarlo.')
+    steam_result=prepare_steam(value,store,start_worker=start_worker)
+    for path in value['paths']:
+        boundary=root if path.is_relative_to(root) else store.root
+        safe_path(path,boundary)
+        if path.is_dir():shutil.rmtree(path)
+        else:path.unlink(missing_ok=True)
+    records=ports.records(store);records.pop(repository,None);atomic_json(store.root/'ports.json',records)
+    store.save([e for e in store.load() if e.id not in value['ids'] and e.metadata.get('port_repository','').casefold()!=repository.casefold()])
+    state=updates.cached(store)
+    for key in ('ports','catalog'):state[key]=[row for row in state.get(key) or [] if row.get('repository','').casefold()!=repository.casefold()]
+    atomic_json(updates.cache_path(store),state)
+    return {**value,'steam':steam_result}
+
+
+def prepare_steam(value,store,start_worker=True):
+    """Cancel additions and queue shortcut removal before any game files are deleted."""
+    from . import service
     steam={}
     for entry in value['entries']:
         if entry.metadata.get('steam_account') and entry.metadata.get('steam_appid'):steam.setdefault(entry.metadata['steam_account'],[]).append(entry.metadata['steam_appid'])
@@ -94,14 +116,4 @@ def execute(repository,store=None,root=None,expected=None,start_worker=True):
             else:pending.unlink()
     steam_result={'state':'idle','count':0}
     for account,ids in steam.items():steam_result=service.queue_removals(ids,pathlib.Path(account),store,start_worker=start_worker)
-    for path in value['paths']:
-        boundary=root if path.is_relative_to(root) else store.root
-        safe_path(path,boundary)
-        if path.is_dir():shutil.rmtree(path)
-        else:path.unlink(missing_ok=True)
-    records=ports.records(store);records.pop(repository,None);atomic_json(store.root/'ports.json',records)
-    store.save([e for e in store.load() if e.id not in value['ids'] and e.metadata.get('port_repository','').casefold()!=repository.casefold()])
-    state=updates.cached(store)
-    for key in ('ports','catalog'):state[key]=[row for row in state.get(key) or [] if row.get('repository','').casefold()!=repository.casefold()]
-    atomic_json(updates.cache_path(store),state)
-    return {**value,'steam':steam_result}
+    return steam_result

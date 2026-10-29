@@ -80,6 +80,9 @@ button.cyan { background:#1c2c32; border-color:#354f59; }
 button.cyan label { color:#b0dce5; }
 button.danger { background:transparent; border-color:#6d4140; }
 button.danger label { color:#ffb6ad; }
+button.game-delete { background:#942e2e; border-color:#b74444; color:rgb(255,255,255); }
+button.game-delete label { color:rgb(255,255,255); }
+button.game-delete:hover { background:#aa3535; }
 button.action { min-height:32px; padding:7px 14px; }
 button.action.play,button.action.game-section { min-height:34px; }
 button.breadcrumb { padding:4px 8px; min-height:32px; }
@@ -195,6 +198,7 @@ BRAND={
 }
 # The stylesheet above is written for the black theme. The light theme swaps each colour for its counterpart.
 LIGHT={
+    '#942e2e':'#942e2e','#aa3535':'#aa3535','#b74444':'#b74444',
     '#08090b':'#f3f5f9','#121417':'#ffffff','#1c2025':'#e8ecf4','#f1f3f5':'#161a20','#b6bec9':'#4b5563','#343b45':'#c6cedb',
     '#29323d':'#dfe5f0','#66717e':'#8e9aab','#79828d':'#7b8696','#616b78':'#9aa5b5','#46515e':'#b5bfce','#c8d0da':'#3a4452','#20262e':'#e6ebf3',
     '#040506':'#eef1f7','#292e36':'#c6cedb','#c4ccd6':'#3f4958','#ffffff':'#0f1318','#20262d':'#e3e9f3',

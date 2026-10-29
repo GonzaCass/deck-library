@@ -1,5 +1,11 @@
 # Validación
 
+## 1.4.6 — Game removal choices
+
+- Local discovery ran 1,063 tests with 138 environment/UI skips. All 136 GTK checks passed; three focused removal checks passed again after the final library-target revalidation change. Layout checks cover 1280×800 and 840×640.
+- Temporary-file tests cover library-only hiding surviving rediscovery, restoration, retained Steam launch entries, port/ROM associations, managed receipts, private runtime cleanup, local ROMs, verified Prism instances and preservation of external originals and shared emulator data. Unknown roots, shared directories, symbolic links, running games, changed installation targets and a failed Steam queue block deletion.
+- Interface checks cover the visible red Delete button, cancellation, both removal choices, the exact-path preview and restoring hidden games. Visual inspection used an isolated virtual display. No user game was deleted, started or reconfigured, and no new gameplay validation was performed. This change does not require an API/database migration.
+
 ## 1.4.5 — Home, top actions and report tracking
 
 - Local discovery ran 1,049 tests with 136 environment/UI skips. All 134 GTK checks passed; focused checks also covered the last duplicate-action cleanup.

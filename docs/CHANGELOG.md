@@ -4,6 +4,7 @@ Every release has its notes on [GitHub](https://github.com/GonzaCass/deck-librar
 
 | Version | Date | Title |
 | --- | --- | --- |
+| [1.4.6](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.6) | 2026-10-28 | Visible game removal, reversible library hiding and explicit file deletion previews |
 | [1.4.5](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.5) | 2026-10-28 | Home support inboxes, fixed top actions and account-owned problem reports |
 | [1.4.4](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.4) | 2026-10-28 | Direct Switch file setup, visible profile ratings and private support replies with unread notifications |
 | [1.4.3](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.3) | 2026-10-28 | Identity-scoped game requests and immediate owner-tools refresh after sign-in |

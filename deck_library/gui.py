@@ -147,8 +147,9 @@ from .gui_originals import OriginalsMixin
 from .gui_home import HomeMixin
 from .gui_help import HelpMixin
 from .gui_variants import VariantsMixin
+from .gui_removal import RemovalMixin
 
-class Window(ToolboxMixin,RequestsMixin,SwitchMixin,VariantsMixin,HelpMixin,HomeMixin,OriginalsMixin,InputMixin,ProgressMixin,GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,ActionsMixin,CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
+class Window(RemovalMixin,ToolboxMixin,RequestsMixin,SwitchMixin,VariantsMixin,HelpMixin,HomeMixin,OriginalsMixin,InputMixin,ProgressMixin,GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,ActionsMixin,CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self,title='Deck Library');self.init_shell()
 

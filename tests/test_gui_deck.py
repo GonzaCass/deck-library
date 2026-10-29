@@ -1366,7 +1366,7 @@ class DeckUITests(unittest.TestCase):
         page.file_filter.set_active_id('all');self.assertIn('notes.txt',{row.path.name for row in page.files.get_children()})
         page.response(Gtk.ResponseType.CANCEL);page.destroy();self.assertFalse(self.w.inline_workflows)
 
-    def test_permanent_removal_is_visible_in_game_files_and_cancellation_preserves_the_port(self):
+    def test_permanent_removal_has_a_visible_red_header_button_and_cancellation_preserves_the_port(self):
         from gi.repository import Gtk
         from deck_library import ports
         from deck_library.models import Entry,atomic_json
@@ -1378,16 +1378,44 @@ class DeckUITests(unittest.TestCase):
             yield widget
             if isinstance(widget,Gtk.Container):
                 for child in widget.get_children():yield from widgets(child)
-        button=next(w for w in widgets(self.w.detail) if isinstance(w,Gtk.Button) and w.get_label()=='Eliminar completamente')
-        self.assertTrue(button.get_mapped())
+        button=self.w.game_delete_button
+        self.assertTrue(button.get_mapped());self.assertEqual(button.get_label(),'Eliminar');self.assertTrue(button.get_style_context().has_class('danger'))
+        button.clicked();self.settle();page=self.w.inline_workflows[-1]
+        choices=[w for w in widgets(page) if isinstance(w,Gtk.Button) and (w.get_accessible().get_name() or '').startswith('Juego y datos ·')]
+        self.assertEqual(len(choices),1)
         with patch.object(ports,'ports_root',return_value=root),patch.object(self.w,'confirm',return_value=False) as confirm:
-            button.clicked();confirm.assert_called_once();self.assertIn('partidas',confirm.call_args.args[1]);self.assertTrue(confirm.call_args.kwargs['danger']);self.assertTrue(folder.is_dir())
+            choices[0].clicked();confirm.assert_called_once();self.assertIn('partidas',confirm.call_args.args[1]);self.assertIn(str(folder),confirm.call_args.args[1]);self.assertTrue(confirm.call_args.kwargs['danger']);self.assertTrue(folder.is_dir())
         with patch.object(ports,'ports_root',return_value=root),patch.object(self.w,'confirm',return_value=True):
-            button.clicked()
+            self.w.delete_game_data(entry)
             import time
             deadline=time.monotonic()+3
             while self.w.port_busy and time.monotonic()<deadline:self.settle()
         self.assertFalse(self.w.port_busy);self.assertFalse(folder.exists());self.assertFalse(self.store.load());self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertFalse(self.w.inline_workflows)
+
+    def test_library_only_removal_can_be_cancelled_hidden_and_restored_without_deleting_data(self):
+        from gi.repository import Gtk
+        from deck_library.installations import settings
+        entry=self.w.entries[0];self.w.select_game(entry);self.settle()
+        self.w.game_delete_button.clicked();self.settle();self.w.controller_action('back');self.settle()
+        self.assertFalse(self.w.inline_workflows);self.assertEqual(self.w.shown_entries()[0],[entry])
+        self.w.game_delete_button.clicked();self.settle();page=self.w.inline_workflows[-1]
+        choice=next(c for c in self.w.control_targets(page) if (c.get_accessible().get_name() or '').startswith('Solo de la biblioteca ·'))
+        choice.clicked();self.settle()
+        self.assertFalse(self.w.inline_workflows);self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertEqual(self.w.shown_entries()[0],[])
+        self.assertEqual(self.store.load(),[entry]);self.assertIn(entry.id,settings(self.store)['hidden_entries'])
+        self.w.hidden_games_dialog();self.settle();page=self.w.inline_workflows[-1]
+        restore=next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Restaurar');restore.clicked();self.settle()
+        self.assertEqual(self.w.shown_entries()[0],[entry]);self.assertNotIn(entry.id,settings(self.store)['hidden_entries'])
+        page.destroy()
+
+    def test_delete_button_fits_deck_and_compact_screens_without_wrapping(self):
+        entry=self.w.entries[0]
+        for width,height in ((1280,800),(840,640)):
+            self.w.resize(width,height);self.w.select_game(entry);self.settle()
+            button=self.w.game_delete_button;self.assertTrue(button.get_mapped());self.assertFalse(button.caption.get_line_wrap())
+            x,y=button.translate_coordinates(self.w,0,0)
+            self.assertGreaterEqual(x,0);self.assertLessEqual(x+button.get_allocated_width(),width)
+            self.assertLessEqual(self.w.get_size().width,width)
 
     def test_an_unreviewed_port_asks_once_before_installing(self):
         from deck_library import ports
