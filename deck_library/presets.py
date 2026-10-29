@@ -63,6 +63,8 @@ def current_version(entry):
     return entry.metadata.get('build') or entry.metadata.get('emulator_version')
 
 def public_game_id(entry):
+    from .shattered import matches as shattered_matches
+    if shattered_matches(entry):return 'spiderman-shattered-dimensions'
     if adapter_for(entry)=='narutorise':return '555307E5'
     if entry.platform=='Switch':return switch_id(entry)
     if adapter_for(entry)=='prism':return 'minecraft-java'

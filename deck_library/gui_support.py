@@ -23,7 +23,6 @@ class SupportMixin:
         def choose(action):page.destroy();action()
         actions.pack_start(ActionButton('Nueva solicitud','plus',lambda _:choose(lambda:self.request_game_page(entry=entry)),'violet'),False,False,0)
         actions.pack_start(ActionButton('Reportar un problema','file',lambda _:choose(lambda:self.bug_report_page(entry)),'amber'),False,False,0)
-        actions.pack_start(ActionButton('Actualizar','refresh',lambda _:self.refresh_my_requests(listing),'cyan'),False,False,0)
         if not self.signed_in():
             body.pack_start(text('Iniciar sesión para gestionar las solicitudes y los reportes enviados.','muted',85),False,False,0)
             def sign_in(_):
@@ -32,7 +31,8 @@ class SupportMixin:
             actions.pack_start(ActionButton('Iniciar sesión','community',sign_in,'steam'),False,False,0)
         body.pack_start(text('Mis solicitudes y reportes','section-title'),False,False,0)
         listing=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);body.pack_start(listing,False,False,0)
-        page.connect('response',lambda *_:page.destroy());page._mount();self.refresh_my_requests(listing);return page
+        page.connect('response',lambda *_:page.destroy());page._mount();self.refresh_my_requests(listing)
+        self.watch_page(page,lambda:self.refresh_my_requests(listing));return page
 
     def open_request_account(self):
         from .gui_account import account_dialog
@@ -122,10 +122,18 @@ class SupportMixin:
         return self.support_page()
 
     def refresh_my_requests(self,box):
-        if not self.signed_in():return
+        current=self.community_client().session().get('token')
+        if getattr(box,'request_session',current)!=current:
+            self.reset_page(box);box.request_rows=None
+        box.request_session=current
+        if not self.signed_in() or getattr(box,'request_refresh_busy',False):return
+        box.request_refresh_busy=True
         client=self.community_client();session=client.session().get('token')
         def paint(rows,error):
+            box.request_refresh_busy=False
             if self.ui_closed or box.get_parent() is None or not box.get_mapped() or self.community_client().session().get('token')!=session:return False
+            if not error and getattr(box,'request_rows',None)==rows:return False
+            box.request_rows=rows if not error else None
             self.reset_page(box)
             if error:box.pack_start(text(str(error),'status',85),False,False,0)
             elif not rows:box.pack_start(text('Todavía no hay solicitudes de esta cuenta.','muted',85),False,False,0)
@@ -153,12 +161,15 @@ class SupportMixin:
     def owner_requests_page(self,*_):
         page=InlineDialog(title='Bandeja de entrada',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
         body=page.get_content_area();body.set_spacing(10);status=text('Cargando…','status',85);body.pack_start(status,False,False,0)
-        page.get_action_area().pack_start(ActionButton('Actualizar','refresh',lambda _:load(),'cyan'),False,False,0)
-        listing=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);body.pack_start(listing,False,False,0);state={'alive':True,'busy':False}
+        listing=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);body.pack_start(listing,False,False,0);state={'alive':True,'busy':False,'loading':False,'drafts':[],'rows':None}
+        session=self.community_client().session().get('token')
+        def draft_exists():return any(contents(view) for view in state['drafts'])
         def paint(rows,error):
-            state['busy']=False
-            if not state['alive']:return False
+            state['loading']=False;state['busy']=False
+            if not state['alive'] or self.community_client().session().get('token')!=session:return False
             if error:status.set_text(str(error));return False
+            if draft_exists() or rows==state['rows']:return False
+            state['rows']=rows;state['drafts']=[]
             self.reset_page(listing);status.set_text(f'{len(rows)} solicitudes.' if rows else 'No hay solicitudes todavía.')
             for row in rows:
                 card=self.card(listing,row['title']);caption,tone=STATES.get(row['state'],STATES['new']);card.pack_start(badge(caption,tone,20),False,False,0)
@@ -167,6 +178,7 @@ class SupportMixin:
                 card.pack_start(text('Número '+row['id']+(' · de '+row['login'] if row['login'] else ' · sin cuenta'),'meta',85),False,False,0)
                 if row.get('note'):card.pack_start(text('Última respuesta: '+row['note'],'muted',85),False,False,0)
                 response=Gtk.TextView();response.set_wrap_mode(Gtk.WrapMode.WORD_CHAR);response.get_accessible().set_name('Respuesta a '+row['title']);scroll=self.new_scroll();scroll.set_size_request(-1,85);scroll.add(response)
+                state['drafts'].append(response)
                 card.pack_start(text('Respuesta al usuario','title'),False,False,0);card.pack_start(scroll,False,False,0);actions=Gtk.Box(spacing=8);card.pack_start(actions,False,False,0)
                 actions.pack_start(ActionButton('Enviar respuesta','upload',lambda _,r=row,v=response:change(r,r['state'],contents(v)),'violet'),False,False,0)
                 if row.get('report_id'):actions.pack_start(ActionButton('Ver diagnóstico','file',lambda _,r=row:self.request_diagnostic_page(r),'steam'),False,False,0)
@@ -176,6 +188,9 @@ class SupportMixin:
                 if row['details']:card.pack_start(text(row['details'],'muted',85),False,False,0)
             listing.show_all();self.refresh_layout();return False
         def load():
+            if not state['alive'] or state['loading'] or draft_exists():return
+            if self.community_client().session().get('token')!=session:page.destroy();return
+            state['loading']=True
             def work():
                 try:GLib.idle_add(paint,self.community_client().request('/v1/admin/requests').get('requests',[]),None)
                 except Exception as error:GLib.idle_add(paint,[],error)
@@ -185,10 +200,15 @@ class SupportMixin:
             if new_state==row['state'] and not note:status.set_text('Escribir una respuesta o cambiar el estado.');return
             state['busy']=True;status.set_text('Enviando respuesta…')
             def work():
-                try:self.community_client().request('/v1/admin/requests/'+row['id'],{'state':new_state,'note':note});GLib.idle_add(lambda:(self.toast('Respuesta enviada'),load(),False)[-1])
+                try:
+                    self.community_client().request('/v1/admin/requests/'+row['id'],{'state':new_state,'note':note})
+                    def sent():
+                        if not state['alive']:return False
+                        state['drafts']=[];state['rows']=None;self.toast('Respuesta enviada');load();return False
+                    GLib.idle_add(sent)
                 except Exception as error:GLib.idle_add(paint,[],error)
             threading.Thread(target=work,daemon=True).start()
-        page.connect('destroy',lambda *_:state.update(alive=False));page.connect('response',lambda *_:page.destroy());page._mount();load();return page
+        page.connect('destroy',lambda *_:state.update(alive=False));page.connect('response',lambda *_:page.destroy());page._mount();load();self.watch_page(page,load,ready=lambda:not state['busy'] and not draft_exists());return page
 
     def request_diagnostic_page(self,row):
         import json

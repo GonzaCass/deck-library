@@ -44,7 +44,6 @@ class GameMixin:
         breadcrumb.pack_start(text('/', 'meta'), False, False, 0)
         self.game_location = text('Juego', 'meta')
         breadcrumb.pack_start(self.game_location, True, True, 0)
-        breadcrumb.pack_end(self.game_menu(entry), False, False, 0)
         self.detail.pack_start(breadcrumb, False, False, 0)
         self.game_breadcrumb=breadcrumb
         self.detail.pack_start(self.game_hero(entry), False, False, 0)
@@ -81,10 +80,7 @@ class GameMixin:
     def build_game_navigation(self,entry):
         tabs=Gtk.Box(spacing=8);styled(tabs,'game-tabs')
         self.game_section_controls={}
-        sections=[('profiles','Perfiles','sliders','violet-outline'),('controls','Controles','controller','cyan')]
-        sections.append(('content','Contenido','folder','steam') if entry.platform=='Switch' else ('files','Archivos y Steam','folder','steam'))
-        if presets.adapter_for(entry) in ('eden','duckstation','dolphin','prism','pcsx2','azahar','ppsspp'):
-            sections.append(('options','Avanzados','monitor','amber'))
+        sections=[('profiles','Ajustes','sliders','violet-outline'),('controls','Controles','controller','cyan'),('content','Juego y archivos','folder','steam')]
         for section,caption,icon,tone in sections:
             control=ActionButton(caption,icon,lambda _,s=section:self.open_game_section(s),tone)
             styled(control,'game-section');control.section_id=section
@@ -116,15 +112,19 @@ class GameMixin:
         popover = Gtk.Popover.new(menu)
         options = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=4)
         options.set_border_width(10)
-        popover.add(options)
+        scroll=self.new_scroll();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC)
+        scroll.set_min_content_width(320);scroll.set_max_content_height(380);scroll.set_propagate_natural_height(True);scroll.add(options);popover.add(scroll)
         rows = []
         adapter = presets.adapter_for(entry)
         if adapter in ('duckstation', 'dolphin', 'eden', 'prism','pcsx2','azahar','ppsspp'):
             rows.append(('Editar ajustes manualmente', 'sliders', lambda: self.open_game_section('options')))
         if adapter in presets.REGISTRY:
             rows.extend([
+                ('Crear mis ajustes', 'upload', lambda: self.community_dialog(entry,mode='publish')),
                 ('Importar ajustes de un archivo', 'download', lambda: self.import_game_profile(entry)),
                 ('Exportar mis ajustes', 'upload', lambda: self.export_game_profile(entry)),
+                ('Valorar este perfil','star',lambda:self.community_dialog(entry,self.profile_selection['id'],mode='feedback') if self.profile_selection else None),
+                ('Restaurar perfil anterior','undo',lambda:self.restore_game_profile(entry)),
             ])
         from .originals import pairs
         if any(entry.id==o.id or any(entry.id==p.id for p in ports) for o,ports in pairs(self.entries)):
@@ -132,7 +132,7 @@ class GameMixin:
         rows.extend([
             ('Quitar de favoritos' if self.is_favorite(entry) else 'Marcar como favorito', 'star', lambda: self.toggle_favorite(entry)),
             ('Cambiar carátula', 'image', lambda: self.artwork_dialog(entry)),
-            ('Archivos y acceso directo de Steam', 'folder', lambda: self.open_game_section('files')),
+            ('Reportar un problema o hacer una solicitud','file',lambda:self.support_page(entry)),
             ('Diagnosticar un problema', 'search', lambda: self.check(entry)),
         ])
         for caption, icon, callback in rows:
@@ -140,9 +140,11 @@ class GameMixin:
                 popover.popdown()
                 action()
             action = ActionButton(caption, icon, activate)
+            if caption=='Valorar este perfil':self.profile_rate=action;action.set_sensitive(False)
+            if caption=='Restaurar perfil anterior':self.profile_restore=action;action.set_sensitive((self.store.root/'applied-presets'/(entry.id+'.json')).exists())
             action.body.set_halign(Gtk.Align.START)
             options.pack_start(action, False, False, 0)
-        options.show_all()
+        scroll.show_all()
         menu.set_popover(popover)
         return menu
 
@@ -198,11 +200,6 @@ class GameMixin:
         self.game_steam_entry=entry
         self.refresh_game_steam()
         actions.pack_start(steam, False, False, 0)
-        artwork = ActionButton('Carátula', 'image', lambda _: self.artwork_dialog(entry),'cyan')
-        actions.pack_start(artwork, False, False, 0)
-        favourite = self.is_favorite(entry)
-        self.game_favorite_button = ActionButton('Favorito' if favourite else 'Marcar favorito', 'star-fill' if favourite else 'star', lambda _: self.toggle_favorite(entry), 'amber')
-        actions.pack_start(self.game_favorite_button, False, False, 0)
         self.game_delete_button=styled(ActionButton('Eliminar','undo',lambda _:self.remove_game_dialog(entry),'danger'),'game-delete')
         actions.pack_start(self.game_delete_button,False,False,0)
         compact_menu=self.game_menu(entry,compact=True)
@@ -212,7 +209,7 @@ class GameMixin:
         hero.pack_start(info, True, True, 0)
         self.game_header = hero
         self.game_hero_parts = (cover_button,platform,info,name,actions)
-        self.game_header_secondary=(artwork,compact_menu)
+        self.game_header_secondary=compact_menu
         return hero
 
     def update_game_size(self,*_):
@@ -226,14 +223,13 @@ class GameMixin:
             self.profile_card_box.set_orientation(Gtk.Orientation.VERTICAL if narrow else Gtk.Orientation.HORIZONTAL)
             self.profile_card_box.set_homogeneous(not narrow)
         cover,platform,info,name,actions = self.game_hero_parts
-        artwork,compact_menu=self.game_header_secondary
-        for widget in (platform,artwork,self.game_favorite_button,self.game_breadcrumb):
+        compact_menu=self.game_header_secondary
+        for widget in (platform,self.game_breadcrumb):
             widget.set_no_show_all(compact)
             widget.set_visible(not compact)
         cover.get_child().set_size_request(*((44,66) if compact else (96,144)));cover.set_no_show_all(False);cover.show()
-        for widget in (self.compact_game_back,compact_menu):
-            widget.set_no_show_all(not compact)
-            widget.set_visible(compact)
+        self.compact_game_back.set_no_show_all(not compact);self.compact_game_back.set_visible(compact)
+        compact_menu.show()
         name.set_line_wrap(not compact);name.set_lines(1 if compact else 2);name.set_width_chars(1 if compact else -1)
         info.set_orientation(Gtk.Orientation.HORIZONTAL if compact else Gtk.Orientation.VERTICAL)
         info.set_child_packing(name,compact,True,0,Gtk.PackType.START)
@@ -259,7 +255,7 @@ class GameMixin:
         return entry.id in self.pending_game_ids()
 
     def activate_game_steam(self, entry):
-        if self.in_steam(entry) or entry.metadata.get('steam_store'):self.open_game_section('files')
+        if self.in_steam(entry) or entry.metadata.get('steam_store'):self.open_game_section('content')
         elif self.game_steam_pending(entry):self.pending_details()
         else:self.single_steam(entry)
 
@@ -309,9 +305,9 @@ class GameMixin:
         adapter = presets.adapter_for(entry)
         if entry.metadata.get('gtaiv_root'):
             content.pack_start(TaskButton('Mejoras para GTA IV', 'FusionFix y DXVK', 'sliders', lambda _: self.gtaiv_dialog(entry)), False, False, 0)
-        self.build_proton_selector(entry,content,compact=True)
         self.build_game_variant_notice(entry,content)
         self.build_broken_bond_repair(entry,content)
+        self.build_shattered_fix(entry,content)
         if adapter in presets.REGISTRY:
             self.build_profile_picker(entry, content, parent)
         else:
@@ -332,7 +328,8 @@ class GameMixin:
         else:panel.pack_start(text('La versión compatible corrige la pantalla negra. Conserva el acceso directo de Steam, los originales y las partidas.','muted',85),False,False,0)
         panel.pack_start(text('Cierres por shaders: hasta 6 reintentos. Las pausas en cinemáticas siguen pendientes.','meta',85),False,False,0)
         caption='Restablecer ajuste recomendado' if state=='applied' else 'Aplicar ajuste para Steam Deck' if state=='settings' else 'Corregir pantalla negra'
-        panel.pack_start(ActionButton(caption,'sliders',lambda _:self.repair_broken_bond(entry),'violet'),False,False,0)
+        action=ActionButton(caption,'sliders',lambda _:self.repair_broken_bond(entry),'violet');action.set_halign(Gtk.Align.START)
+        panel.pack_start(action,False,False,0);panel.reorder_child(action,1)
 
     def repair_broken_bond(self,entry):
         import threading
@@ -393,13 +390,6 @@ class GameMixin:
 
     def build_profile_picker(self, entry, content, parent):
         self.community_profile_box=None
-        actions=Gtk.Box(spacing=8)
-        for caption,icon,action,tone in [
-            ('Crear mis ajustes','upload',lambda _:self.community_dialog(entry,mode='publish'),'cyan'),
-            ('Buscar en la comunidad','community',lambda _:self.community_dialog(entry),'violet'),
-            ('Importar archivo','download',lambda _:self.import_game_profile(entry),'steam-outline')]:
-            actions.pack_start(ActionButton(caption,icon,action,tone),False,False,0)
-        toolbar=self.new_scroll();toolbar.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);toolbar.add(actions);parent.pack_start(toolbar,False,False,0);parent.reorder_child(toolbar,0)
         profiles = presets.recommended(entry, self.store)
         best = presets.best_for(entry, self.store) or next((p['id'] for p in profiles[:3] if presets.is_bundled(p) and p['tested']['status']=='user-confirmed'),next((p['id'] for p in profiles[:3] if presets.is_bundled(p) and p['tested']['status']=='boot-tested'),''))
         self.profile_selection = None
@@ -428,8 +418,7 @@ class GameMixin:
         dock_words.pack_start(self.profile_dock_title,False,False,0)
         dock_words.pack_start(self.profile_dock_note,False,False,0)
         dock.pack_start(dock_words,True,True,0)
-        self.profile_restore = ActionButton('Deshacer','undo',lambda _:self.restore_game_profile(entry))
-        self.profile_restore.set_tooltip_text('Restaurar la configuración anterior al último ajuste')
+        self.profile_restore.set_tooltip_text('Restaurar la configuración anterior al último perfil aplicado')
         self.profile_restore.set_sensitive((self.store.root/'applied-presets'/(entry.id+'.json')).exists())
         self.profile_apply = ActionButton('Aplicar ajustes','sliders',lambda _:self.apply_game_profile(entry),'cyan')
         self.profile_apply.set_sensitive(False)
@@ -437,16 +426,14 @@ class GameMixin:
         self.profile_apply_play.set_sensitive(False)
         dock.pack_end(self.profile_apply_play,False,False,0)
         dock.pack_end(self.profile_apply,False,False,0)
-        dock.pack_end(self.profile_restore,False,False,0)
         parent.pack_start(dock,False,False,0);parent.reorder_child(dock,0)
-        self.profile_rate=ActionButton('Valorar este perfil','community',lambda _:self.community_dialog(entry,self.profile_selection['id'],mode='feedback') if self.profile_selection else None,'violet-outline')
-        actions.pack_start(self.profile_rate,False,False,0)
         self.profile_apply.set_tooltip_text('Guarda los ajustes y un respaldo. No abre el juego.')
         self.profile_apply_play.set_tooltip_text('Guarda los ajustes y abre el juego en un paso.')
         self.profile_dock = dock
 
         def choose(profile):
             self.profile_selection = profile
+            self.profile_rate.set_sensitive(True)
             self.profile_choice[entry.id] = profile['id']
             for card in self.profile_cards:
                 active = card.profile_id == profile['id']
@@ -549,8 +536,10 @@ class GameMixin:
             if self.ui_closed or not self.selected or self.selected.id!=entry.id:return False
             panel=getattr(self,'community_profile_box',None)
             if panel:
+                if getattr(panel,'community_result',None)==(values,error):return False
+                panel.community_result=(values,error)
                 self.reset_page(panel)
-                if error:panel.pack_start(text('No se pudo consultar la comunidad. Usar Buscar en la comunidad para reintentar.','muted'),False,False,0)
+                if error:panel.pack_start(text('No se pudo consultar la comunidad. Se volverá a intentar automáticamente.','muted'),False,False,0)
                 elif not values:panel.pack_start(text('Todavía no hay perfiles publicados para este juego.','muted'),False,False,0)
                 shown=[v for v in values if not presets.is_packaged(v,self.store)]
                 if values and not shown:panel.pack_start(text('Todavía no hay perfiles publicados para este juego.','muted'),False,False,0)
@@ -639,12 +628,13 @@ class GameMixin:
             self.profile_status.set_text('No se pudo restaurar: '+str(error))
 
     def open_game_section(self, section, animate=True):
+        if section=='files':section='content'
         entry = self.selected
         if section != 'options' and not self.discard_game_edits():return
         if not self.game_pages.get_child_by_name(section):
             page = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
             self.game_pages.add_named(page,section)
-            titles = {'options':'Editar ajustes','controls':'Controles e idioma','files':'Archivos y acceso directo','content':'Contenido del juego'}
+            titles = {'options':'Editar ajustes','controls':'Controles e idioma','files':'Archivos y acceso directo','content':'Juego y archivos'}
             heading = Gtk.Box(spacing=12)
             page.back_control = ActionButton('Volver al juego','back',lambda _:self.open_game_section('profiles'))
             heading.pack_start(page.back_control,False,False,0)
@@ -663,7 +653,7 @@ class GameMixin:
         self.game_pages.set_visible_child_name(section)
         self.game_tab = section
         self.update_game_navigation()
-        self.game_location.set_text({'profiles':'Juego','options':'Ajustes manuales','controls':'Controles e idioma','files':'Archivos y acceso directo','content':'Contenido del juego'}.get(section,'Juego'))
+        self.game_location.set_text({'profiles':'Juego','options':'Ajustes manuales','controls':'Controles e idioma','files':'Archivos y acceso directo','content':'Juego y archivos'}.get(section,'Juego'))
         self.game_back.set_label(('Verificados' if getattr(self,'detail_origin','library')=='validated' else 'Biblioteca') if section=='profiles' else 'Juego')
         if animate:
             page=self.game_pages.get_child_by_name(section)
@@ -719,7 +709,6 @@ class GameMixin:
         self.proton_combo=combo;self.proton_save_button=control
 
     def build_game_files(self, entry, body):
-        body.pack_start(ActionButton('Reportar un problema o hacer una solicitud','file',lambda _:self.support_page(entry),'violet'),False,False,0)
         self.build_proton_selector(entry,body)
         if entry.metadata.get('port_repository'):
             from . import ports
@@ -742,6 +731,7 @@ class GameMixin:
             body.pack_start(row,False,False,0);body.reorder_child(row,1)
 
     def build_game_content(self, entry, body):
+        if entry.platform!='Switch':self.build_game_files(entry,body);return
         body.pack_start(TaskButton('Administrar contenido','Juego base, actualizaciones, DLC y mods','folder',lambda _:self.content_dialog(entry),'cyan'),False,False,0)
         panel=self.card(body,'Mods')
         row=Gtk.Box(spacing=14)
@@ -751,3 +741,4 @@ class GameMixin:
         toggle.connect('notify::active',lambda w,_:self.set_mods(w,entry))
         row.pack_end(toggle,False,False,0)
         panel.pack_start(row,False,False,0)
+        self.build_game_files(entry,body)

@@ -44,6 +44,7 @@ class ShellMixin:
         path=self.store.root/'last-sync.json';self.last_sync_seen=path.stat().st_mtime if path.exists() else 0;self.ui_sources.append(GLib.timeout_add_seconds(3,self.poll_sync));self.refresh_pending()
         self.start_gamepad();GLib.timeout_add_seconds(12,self.top_up_library_art)
         self.ui_sources.append(GLib.timeout_add_seconds(45,self.poll_request_replies))
+        self.start_live_refresh()
     def compact_screen(self):
         screen=Gdk.Screen.get_default()
         return bool(screen) and screen.get_height()<=900 and screen.get_width()<=1400
@@ -158,7 +159,7 @@ class ShellMixin:
     def build_library_page(self):
         from .gui import label,button
         page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);page.set_border_width(14);self.pages.add_named(page,'library')
-        head=Gtk.Box(spacing=12);head.pack_start(label('Biblioteca','hero'),False,False,0);self.library_count=label('','meta');self.library_count.get_style_context().add_class('library-count');head.pack_start(self.library_count,True,True,0);self.rescan_button=button('Actualizar biblioteca',self.rescan_library);self.rescan_button.set_valign(Gtk.Align.CENTER);head.pack_end(self.rescan_button,False,False,0);page.pack_start(head,False,False,0)
+        head=Gtk.Box(spacing=12);head.pack_start(label('Biblioteca','hero'),False,False,0);self.library_count=label('','meta');self.library_count.get_style_context().add_class('library-count');head.pack_start(self.library_count,True,True,0);page.pack_start(head,False,False,0)
         toolbar=Gtk.Box(spacing=10);toolbar.get_style_context().add_class('page-toolbar');self.search=Gtk.SearchEntry();self.search.set_placeholder_text('Buscar juegos · X: teclado');self.bind_search_keyboard(self.search);self.search.set_width_chars(16);self.search.set_hexpand(True);self.search.connect('search-changed',lambda _:self.render());toolbar.pack_start(self.search,True,True,0);self.filter_toggle=button('Vista y filtros',self.toggle_library_filters);toolbar.pack_end(self.filter_toggle,False,False,0);page.pack_start(toolbar,False,False,0)
         filters=Gtk.Box(spacing=8);self.platform_picker=Gtk.ComboBoxText();self.platform_picker.get_accessible().set_name('Plataforma');self.platform_picker.append('all','Todas las plataformas');self.platform_picker.set_active_id('all');self.platform_picker.connect('changed',self.filter_changed);filters.pack_start(self.platform_picker,False,False,0)
         self.type_picker=Gtk.ComboBoxText();self.type_picker.get_accessible().set_name('Tipo de juego');self.type_picker.append('all','Todos los tipos')
@@ -179,7 +180,7 @@ class ShellMixin:
         self.empty_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.empty_box.set_halign(Gtk.Align.CENTER);self.empty_box.set_valign(Gtk.Align.CENTER);self.empty_box.pack_start(label('Todavía no hay juegos','hero'),False,False,0)
         intro=label('Deck Library junta en un solo lugar los juegos de emuladores y los ports: versiones para PC de juegos de consola, que se instalan desde el catálogo.','muted');intro.set_max_width_chars(60);intro.set_justify(Gtk.Justification.CENTER);self.empty_box.pack_start(intro,False,False,0)
         from .ui_components import ActionButton
-        for caption,icon,action,tone in (('Buscar juegos instalados','refresh',lambda _:self.discover(),'play'),('Instalar un port del catálogo','controller',lambda _:self.catalog_page(),'neutral'),('Elegir carpetas de juegos','folder',lambda _:self.installation_dialog(),'neutral')):
+        for caption,icon,action,tone in (('Instalar un port del catálogo','controller',lambda _:self.catalog_page(),'neutral'),('Elegir carpetas de juegos','folder',lambda _:self.installation_dialog(),'neutral')):
             row=ActionButton(caption,icon,action,tone);row.set_halign(Gtk.Align.CENTER);self.empty_box.pack_start(row,False,False,0)
         empty_scroll=self.new_scroll();empty_scroll.add(self.empty_box);self.library_stack.add_named(empty_scroll,'empty')
         self.selection_bar=Gtk.Box(spacing=8);self.selection_bar.get_style_context().add_class('selection-bar');self.selection_bar.set_no_show_all(True);self.selection_label=label('');self.selection_bar.pack_start(self.selection_label,True,True,0);self.selection_bar.pack_start(button('Seleccionar visibles',lambda _:self.select_visible()),False,False,0)
@@ -244,7 +245,7 @@ class ShellMixin:
         if getattr(self,'animate_next',False):self.animate_next=False;motion.stagger(self.new_tiles,rise=0)
     def rescan_library(self,*_):
         if self.discover_busy:self.toast('La búsqueda sigue en curso');return
-        self.explicit_rescan=True;self.rescan_button.set_label('Buscando…');self.rescan_button.set_sensitive(False);self.toast('Buscando juegos instalados');self.discover()
+        self.discover()
 
     def toggle_library_filters(self,*_):
         opening=not self.filter_scroll.get_visible()

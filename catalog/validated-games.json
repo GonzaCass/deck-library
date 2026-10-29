@@ -115,9 +115,9 @@
       "date": "2026-10-01",
       "profile_id": "",
       "result": "El usuario confirmó que funciona con audio, voces y controles integrados.",
-      "limitations": "Es una configuración observada en una sola instalación y necesita una segunda prueba antes de ofrecerse como arreglo automático. No se documenta una asignación de botones individuales.",
-      "fix": "Proton 10.0 y las dependencias legacy de DirectX (d3dx9_43 y XACT) instaladas en el prefijo del acceso, con el idioma español en el registro. Deck Library todavía no lo aplica solo: hay una guía paso a paso.",
-      "fix_how": "manual",
+      "limitations": "La experiencia de juego corresponde a una sola instalación. El procedimiento automático se verifica por separado; no es una nueva prueba de jugabilidad ni incluye una asignación de botones individuales.",
+      "fix": "Botón Aplicar arreglo en la ficha del juego: instala d3dx9_43 y XACT en su prefijo existente de Steam, respalda el registro y permite configurar el idioma. Requiere Proton 10.0 seleccionado y un primer inicio completado.",
+      "fix_how": "automatic",
       "fix_evidence": "Confirmación de experiencia del usuario en una Steam Deck OLED."
     }
   ]

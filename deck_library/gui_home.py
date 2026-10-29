@@ -26,7 +26,6 @@ class HomeMixin:
         self.home_support_button=ActionButton('Solicitudes y reportes','community',lambda _:self.support_page(),'violet');actions.pack_start(self.home_support_button,False,False,0)
         if self.owner_verified():
             actions.pack_start(ActionButton('Bandeja de entrada','upload',lambda _:self.owner_requests_page(),'cyan'),False,False,0)
-        actions.pack_start(ActionButton('Actualizar biblioteca','refresh',self.rescan_library,'steam-outline'),False,False,0)
         self.pin_page_header(box,header,actions)
         entries=self.shown_entries()[0];ports=[e for e in entries if entry_type(e)=='port' and not (pathlib.Path(e.cwd)/'deck_library/gui_shell.py').is_file()];platforms={e.platform for e in entries if e.platform};waiting=len(self.pending_updates())
         counts=Gtk.Box(spacing=12,homogeneous=True);self.home_counts={}

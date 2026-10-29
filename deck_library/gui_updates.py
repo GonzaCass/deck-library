@@ -29,6 +29,7 @@ class UpdatesMixin:
         threading.Thread(target=work,daemon=True).start();return False
 
     def updates_ready(self,state,manual):
+        if self.ui_closed:return False
         self.update_busy=False;self.app_update_ready(state)
         if self.preferences.get('auto_update_ports'):
             self.auto_port_queue=[('catalog',p) for p in state.get('catalog') or []]+([('project2099',state['project2099'])] if state.get('project2099') else [])
@@ -38,8 +39,9 @@ class UpdatesMixin:
     def app_update_ready(self,state):
         if self.ui_closed:return False
         state=updates.reconcile_ports(state,self.store)
+        changed=state!=getattr(self,'update_state',None)
         self.app_check_busy=False;self.update_state=state;self.refresh_update_badges()
-        if self.pages.get_visible_child_name()=='updates':self.updates_page()
+        if changed and self.pages.get_visible_child_name()=='updates' and not self.inline_workflows:self.updates_page()
         if state.get('app') and self.preferences.get('auto_update') and not getattr(self,'update_installed',None):self.install_app_update(automatic=True)
         return False
 
@@ -139,7 +141,7 @@ class UpdatesMixin:
         from .gui import label,button,wrap_row,Poster
         from .artwork import find_cover,normalized
         box=self.updates_box;self.reset_page(box);state=getattr(self,'update_state',None) or updates.cached(self.store)
-        head=Gtk.Box(spacing=14);head.pack_start(label('Actualizaciones','hero'),True,True,0);head.pack_end(button('Buscar actualizaciones',lambda _:self.check_updates(True),True),False,False,0);box.pack_start(head,False,False,0)
+        head=Gtk.Box(spacing=14);head.pack_start(label('Actualizaciones','hero'),True,True,0);box.pack_start(head,False,False,0)
         checked=state.get('checked');box.pack_start(label('Última búsqueda: '+(datetime.datetime.fromtimestamp(checked).strftime('%d/%m/%Y %H:%M') if checked else 'sin revisar'),'meta'),False,False,0)
         box.pack_start(label('Versión en uso: '+__version__,'meta'),False,False,0)
         info=state.get('app')
