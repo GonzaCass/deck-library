@@ -1,5 +1,12 @@
 # Validación
 
+## 1.4.9 — Existing installations and folder recovery
+
+- Core discovery: 1,105 tests, with 150 environment/UI skips. All 148 GTK checks passed; after the final recovery and fixture-isolation changes, 11 focused GUI checks passed again. The location workflows were inspected at 1280×800 and 840×640 on an isolated virtual display, including controller back navigation. This is UI validation, not a new physical Gaming Mode or gameplay test.
+- Twenty temporary-filesystem tests cover unique and ambiguous receipt discovery, manually linked ports, folders with spaces, disconnected media, Windows prefixes and per-game Proton preferences, multi-game bundle identities, custom launch arguments, relocated originals, updates at the new location, explicit reinstall into the default location and preservation of external installations. Library IDs, Steam metadata and artwork survive relinking without a new Steam queue operation.
+- Savage Wind checks cover selecting prepared Linux or Windows data outside the ports directory, passing the corresponding data-root path, avoiding another original-file/key request and refusing to fall back silently when a selected data directory disappears. Detection checks the expected files; Savage Wind remains responsible for accepting the compiled build. No existing game data, saves or game files were moved or deleted, and no game was launched for this change.
+- Port-location state remains local. No community API or database migration is required. External installations without a Deck Library receipt are referenced rather than automatically updated or deleted; their explicit reinstall creates a separate managed copy.
+
 ## 1.4.7 — Live data, consistent game pages and Shattered Dimensions
 
 - Local discovery ran 1,081 tests with 146 environment/UI skips. All 144 GTK checks passed; focused checks after the optional-language change covered the fix action, secondary menu, administrator draft preservation and the Proton selector. The final game/files navigation alias is checked separately.

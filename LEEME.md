@@ -60,7 +60,7 @@ Para agregar un juego, abrir su carátula y elegir **Agregar a Steam**. Después
 
 ## 🔄 ¿Ya está instalado?
 
-Abrir Deck Library en **modo Escritorio → Actualizaciones → Buscar actualizaciones**. La actualización automática de la app está activada por defecto en modo Escritorio; volver a abrirla después de instalar. También se puede ejecutar el instalador nuevo: conserva la biblioteca, los perfiles y la configuración.
+Abrir Deck Library en **modo Escritorio**. Las actualizaciones se comprueban automáticamente; **Actualizaciones** muestra su estado. La instalación automática de la app está activada por defecto en modo Escritorio; volver a abrirla después de instalar. También se puede ejecutar el instalador nuevo: conserva la biblioteca, los perfiles y la configuración.
 
 El icono de la app y del escritorio se actualiza con la instalación. El arte oficial antiguo de Steam se renueva automáticamente; las imágenes personalizadas y las elecciones manuales pendientes se conservan. Los cambios de Steam se guardan al cerrar Steam, con respaldo.
 

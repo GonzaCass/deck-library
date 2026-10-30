@@ -5,7 +5,9 @@ from .models import Store
 
 def command_for(folder,store=None,preferred=None):
     store=store or Store();folder=pathlib.Path(folder).resolve()
-    record=json.loads((folder/'.deck-library-port.json').read_text())
+    from .port_locations import record_at
+    record=record_at(folder,store)
+    if not record:raise ValueError('No se encuentra el registro del port. Volver a elegir su carpeta desde Deck Library.')
     exe=(folder/record['executable']).resolve()
     if not exe.is_relative_to(folder) or not exe.is_file() or exe.suffix.lower()!='.exe':raise ValueError('No se encuentra el ejecutable Windows del port.')
     from .ports import port_id
@@ -31,8 +33,9 @@ def shader_pending(folder):
         return value if re.fullmatch(rb'vs=[0-9a-f]{16} ps=[0-9a-f]{16} w=[0-9a-f,]+',value,re.I) else b''
     except OSError:return b''
 
-def run(command,env,folder):
-    folder=pathlib.Path(folder);record=json.loads((folder/'.deck-library-port.json').read_text())
+def run(command,env,folder,store=None):
+    from .port_locations import record_at
+    folder=pathlib.Path(folder);record=record_at(folder,store) or {}
     supported=record['repository'].casefold()=='auremana666/naruto-the-broken-bond-pc-port'
     seen=set()
     for attempt in range(7):
@@ -55,6 +58,6 @@ def run(command,env,folder):
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('folder');parser.add_argument('--proton');parser.add_argument('--data-dir');args=parser.parse_args()
     command,env=command_for(args.folder,Store(args.data_dir),preferred=args.proton)
-    return run(command,env,args.folder)
+    return run(command,env,args.folder,Store(args.data_dir))
 
 if __name__=='__main__':sys.exit(main())

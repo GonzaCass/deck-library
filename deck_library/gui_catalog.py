@@ -326,6 +326,10 @@ class CatalogMixin:
         else:
             def install(_):page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.install_port(item,False),False)[1])
             primary_action[0]=button('Instalar',install,True);page.get_action_area().pack_start(primary_action[0],False,False,0)
+        if item.get('package_role') not in ('source-only','build-tool') and item['repository'].casefold()!='genrythefox0/project-2099':
+            def locate(_):
+                page.destroy();GLib.idle_add(lambda:(self.port_location_page(item),False)[1])
+            page.get_action_area().pack_start(button('Carpetas del juego' if record else 'Usar instalación existente',locate,tone='cyan'),False,False,0)
         if installed.get(item['repository']) and item['repository'].casefold()!='genrythefox0/project-2099':
             def delete_port(_):
                 page.response(Gtk.ResponseType.CLOSE)
@@ -425,11 +429,11 @@ class CatalogMixin:
         return None
 
     def open_installed_port(self,record):
-        entry=ports.entry_for(ports.ports_root()/record['folder'])
+        entry=ports.entry_for(ports.folder_for(record),record)
         if entry:self.play(entry)
-        else:self.message('Port no disponible','No se encontró el ejecutable instalado. Volver a detectar o reinstalar el port.')
+        else:self.port_location_page(ports.clean(record))
 
-    def install_port(self,item,replace,runtime='auto'):
+    def install_port(self,item,replace,runtime='auto',location_chosen=False,reinstall_missing=False):
         from . import buildenv
         item=ports.clean(item)
         if getattr(self,'port_busy',False):self.set_status('Ya hay una instalación en curso.');return
@@ -438,6 +442,7 @@ class CatalogMixin:
             else:self.project2099_dialog()
             return
         if item.get('package_role') in ('source-only','build-tool'):self.message('Requiere compilación',item.get('source_note','El proyecto solo publica código fuente.'));return
+        if not replace and not location_chosen:return self.port_install_choice(item,runtime)
         proof=self.port_variant_index().assess(item)
         if proof['state']=='issue' and not self.confirm('Problema conocido en esta versión',proof['issue'],'Instalar igualmente'):return
         if not ports.is_reviewed(item) and not self.preferences.get('unreviewed_acknowledged'):
@@ -454,7 +459,7 @@ class CatalogMixin:
         def work():
             try:
                 if needs_sdk:buildenv.install(lambda text:GLib.idle_add(self.set_status,'SDK de KDE: '+text))
-                record=ports.install(item,self.store,progress=progress,transfer=progress,replace=replace,cancel=cancel,runtime=runtime);GLib.idle_add(self.port_installed,item,record)
+                record=ports.install(item,self.store,progress=progress,transfer=progress,replace=replace,cancel=cancel,runtime=runtime,**({'reinstall_missing':True} if reinstall_missing else {}));GLib.idle_add(self.port_installed,item,record)
             except Exception as error:GLib.idle_add(self.port_failed,item,str(error))
         threading.Thread(target=work,daemon=True).start()
 
@@ -531,8 +536,11 @@ class CatalogMixin:
             chosen=[False]
             def selected(folder):
                 ports.set_input(item['repository'],'original_data',folder,self.store);chosen[0]=True
+            def prepared(folder):
+                from .switch_port import set_data
+                set_data(item['repository'],folder,self.store);chosen[0]=True
             from .gui_switch import minimum_for
-            page=self.switch_convert_page(on_done=selected,minimum=minimum_for(item['repository']))
+            page=self.switch_convert_page(on_done=selected,minimum=minimum_for(item['repository']),on_prepared=prepared if item['repository'].casefold()=='revivedx/savagewindrecomp' else None)
             page.run();page.destroy();return chosen[0]
         page=InlineDialog(title='Preparar '+item['name'],transient_for=self);page.add_button('Más tarde',Gtk.ResponseType.CANCEL);ready=page.add_button('Preparar',Gtk.ResponseType.OK)
         body=page.get_content_area();summary=label('','muted');body.pack_start(summary,False,False,0)
@@ -577,6 +585,10 @@ class CatalogMixin:
         record=ports.records(self.store).get(item['repository'])
         if not record or not record.get('setup'):return
         if getattr(self,'port_busy',False):self.set_status('Ya hay una tarea en curso.');return
+        from .port_locations import executable_in
+        if record.get('executable') and not executable_in(ports.folder_for(record),record):
+            entry=next((e for e in self.entries if e.metadata.get('port_repository','').casefold()==item['repository'].casefold()),None)
+            self.port_location_page(item,entry=entry);return
         games=[(e.name,e.source) for e in self.entries if e.source]
         lines=ports.requirements(record,games)
         missing=[text for ok,text in lines if ok is not True]
@@ -610,7 +622,7 @@ class CatalogMixin:
         if notes.get(record.get('setup')):self.message(item['name']+' listo',notes[record['setup']]+' Se puede agregar a Steam desde la biblioteca.')
         if self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
         from .iso_import import details
-        if record.get('configured') and details(ports.ports_root()/record['folder']):
+        if record.get('configured') and details(ports.folder_for(record)):
             self.iso_cleanup_active=item['repository'];GLib.idle_add(lambda:(self.iso_cleanup_page(item),False)[1])
         else:self.port_setup_finished(item)
         return False
@@ -623,7 +635,7 @@ class CatalogMixin:
                 workflow.response(Gtk.ResponseType.CLOSE);workflow.destroy()
         record=ports.records(self.store).get(item['repository'])
         if record:
-            self.store.merge(ports.entries_for(ports.ports_root()/record['folder']),overwrite=False)
+            self.store.merge(ports.entries_for(ports.folder_for(record),record),overwrite=False)
             self.entries=self.store.load();self.library_dirty=True;self.refresh_platforms()
         self.open_library()
         GLib.idle_add(lambda:(self.focus_library(ports.port_id(item['repository'])),False)[1])
@@ -632,12 +644,12 @@ class CatalogMixin:
     def iso_cleanup_button(self,body,item,record):
         from .iso_import import details
         from .gui import button
-        if record.get('configured') and details(ports.ports_root()/record['folder']):body.pack_start(button('Liberar espacio de la ISO',lambda _:self.iso_cleanup_page(item)),False,False,0)
+        if record.get('configured') and details(ports.folder_for(record)):body.pack_start(button('Liberar espacio de la ISO',lambda _:self.iso_cleanup_page(item)),False,False,0)
 
     def iso_cleanup_page(self,item):
         from .iso_import import details,remove_source
         from .gui import label,button
-        record=ports.records(self.store).get(item['repository']);folder=ports.ports_root()/record['folder'] if record else None
+        record=ports.records(self.store).get(item['repository']);folder=ports.folder_for(record) if record else None
         info=details(folder) if folder else None
         if not info:self.port_setup_finished(item);return
         self.iso_cleanup_active=item['repository']
