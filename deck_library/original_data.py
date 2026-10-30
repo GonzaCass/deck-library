@@ -36,15 +36,15 @@ def validate(path,spec):
 
 def find_source(record,games=(),home=None):
     """Find reviewed extracted originals by identity, never by a similar game name."""
-    from .ports import ports_root
+    from .ports import folder_for
     spec=record['original_data'];selected=(record.get('inputs') or {}).get('original_data')
     # An explicit invalid choice stays visible as an error; do not silently replace it.
     if selected and pathlib.Path(selected).exists():return str(validate(selected,spec))
-    home=pathlib.Path(home or pathlib.Path.home());existing=ports_root(home)/record.get('folder','')/spec['destination']
+    home=pathlib.Path(home or pathlib.Path.home());existing=folder_for(record,home)/spec['destination']
     if (spec.get('iso_only') or spec.get('iso_destination')) and record.get('configured_with'):
         name=record.get('configured_with','')
         if name and pathlib.Path(name).name==name:
-            iso_folder=ports_root(home)/record.get('folder','')/spec.get('iso_destination',spec['destination'])
+            iso_folder=folder_for(record,home)/spec.get('iso_destination',spec['destination'])
             try:return str(validate(iso_folder/name,spec))
             except (OSError,ValueError):pass
     try:return str(validate(existing,spec))

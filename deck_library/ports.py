@@ -28,6 +28,10 @@ def ports_root(home=None):
     from . import layout
     return layout.ports_folder(home)
 
+def folder_for(record,home=None,root=None):
+    from .port_locations import folder_for as locate
+    return locate(record,home,root)
+
 SETUP_KIT='Kit de instalación: requiere el disco y la BIOS propios y compila el juego en el primer inicio. En la Deck corre dentro del SDK de KDE de Flatpak, que la app instala una vez (sin root).'
 WEB_HOSTS=('dl.openpete.com','ctr.cmzi.uk','codeload.github.com')
 ZELDA3_COMMIT='45a149d8b4bb8098f53d1009f76e76e7d8b79bbf'
@@ -168,6 +172,9 @@ def requirements(item,games,home=None):
     otherwise by Redump-style name, in which case ok is None (only a name check was possible).
     """
     lines=[];inputs=item.get('inputs') or {};games=[*games,*[(pathlib.Path(p).name,p) for k,p in inputs.items() if k in ('disc','wiiu') and p]]
+    if item.get('repository','').casefold()=='revivedx/savagewindrecomp':
+        from .switch_port import prepared,data_root
+        if prepared(item,home):return [(True,'Juego compilado encontrado: '+str(data_root(item,home))) ]
     if item.get('original_data'):
         from .original_data import validate,find_source
         try:
@@ -486,6 +493,7 @@ def set_input(repository,key,path,store=None):
     if key=='disc' and not find_disc(spec,[(path.name,str(path))]):raise ValueError('El disco no tiene el serial requerido: '+spec['serial']+'. Elegir un CUE, BIN o ISO compatible.')
     if key=='wiiu' and not find_wiiu_image(spec,[(path.name,str(path))]):raise ValueError('Elegir la imagen WUD, WUX o WUA de '+spec['name']+'.')
     record['inputs']={**record.get('inputs',{}),key:str(path)}
+    if key=='original_data' and repository.casefold()=='revivedx/savagewindrecomp':record.pop('game_data_dir',None)
     atomic_json(store.root/'ports.json',saved)
     return record
 
@@ -627,13 +635,23 @@ def find_executable(folder,repository=''):
         if match:return match[0]
     return ''
 
-def install(item,store=None,root=None,progress=print,get=fetch_json,replace=False,web=None,runner=None,transfer=None,cancel=None,runtime='auto'):
+def install(item,store=None,root=None,progress=print,get=fetch_json,replace=False,web=None,runner=None,transfer=None,cancel=None,runtime='auto',reinstall_missing=False):
     """Install or update one catalog port. Returns the stored record."""
     from . import port_packages
     check_cancel(cancel);requested_runtime=runtime;runtime='linux'
     store=store or Store();root=pathlib.Path(root or ports_root());item=clean(item)
     if item is None:raise ValueError('Entrada de catálogo inválida.')
     previous=records(store).get(item['repository'],{})
+    external_previous=previous.get('external_install')
+    custom_destination=folder_for(previous) if replace and previous.get('install_path') and not external_previous else None
+    if external_previous and (root/previous['folder']).exists():raise ValueError('Ya existe una carpeta de destino. Elegir esa instalación o cambiar su nombre antes de reinstalar; no se sobrescribió.')
+    if custom_destination:
+        from .port_removal import owns
+        if not custom_destination.is_dir() or not owns(custom_destination,item['repository']):
+            if not reinstall_missing:raise ValueError('No se encuentra el port. Conectar la microSD o elegir su ubicación antes de actualizar.')
+            if (root/previous['folder']).exists():raise ValueError('Ya existe una carpeta de destino. Elegir esa instalación o cambiar su nombre antes de reinstalar; no se sobrescribió.')
+            custom_destination=None
+        else:root=custom_destination.parent
     if replace and previous.get('folder'):
         if not isinstance(previous['folder'],str) or not FOLDER.fullmatch(previous['folder']):raise ValueError('La carpeta registrada del port no es válida.')
         item={**item,'folder':previous['folder']}
@@ -651,7 +669,7 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
             from .project2099 import proton_path
             proton_path() # Validate the runtime before changing an existing installation.
         tag=str(release.get('tag_name',''))
-    destination=root/item['folder']
+    destination=custom_destination or root/item['folder']
     if destination.exists() and not replace:raise ValueError('La carpeta '+item['folder']+' ya existe en '+str(root)+'.')
     if destination.is_symlink():raise ValueError('La carpeta de destino es un enlace simbólico.')
     root.mkdir(parents=True,exist_ok=True)
@@ -696,6 +714,8 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
             # The AppImage is unpacked once: its compiler needs the SDK's headers, and the module it builds is kept next to the unpacked files.
             progress('Desempaquetando OpenPete');(runner or subprocess.run)([str(staging/archive.name),'--appimage-extract'],cwd=str(staging),capture_output=True,timeout=300,check=True)
             (staging/archive.name).unlink();executable=staging/'squashfs-root/AppRun';kit=True
+        elif runtime=='linux' and archive.name.lower().endswith('.appimage') and not item.get('multi_appimage'):
+            executable=staging/archive.name
         elif declared:
             executable=(staging/declared).resolve()
             if not executable.is_relative_to(staging.resolve()):raise ValueError('La ruta del ejecutable sale del paquete.')
@@ -712,6 +732,8 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
         record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'runtime':runtime,'game_title':item.get('game_title') or item['cover_title'],'original_platform':platform_for(item['list']),'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'preparation':item.get('preparation',''),'source_note':item.get('source_note',''),'original_data':item.get('original_data'),'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
         if item['repository'].lower()=='revivedx/savagewindrecomp' and runtime=='linux':record['args']=['--appimage-extract-and-run']
         if previous.get('inputs'):record['inputs']=dict(previous['inputs'])
+        record['install_path']=str(destination.resolve())
+        if previous.get('game_data_dir'):record['game_data_dir']=previous['game_data_dir']
         if isinstance(previous.get('entry_id'),str) and re.fullmatch(r'[a-f0-9]{20}',previous['entry_id']):record['entry_id']=previous['entry_id']
         if previous.get('steam_deck_fix'):record['steam_deck_fix']=previous['steam_deck_fix']
         if item['setup']=='original_data' and previous.get('configured_with'):record['configured_with']=previous['configured_with']
@@ -737,12 +759,17 @@ def uninstall(repository,store=None,root=None):
     store=store or Store();root=pathlib.Path(root or ports_root());saved=records(store);record=saved.get(repository)
     if not record:raise ValueError('Este port no fue instalado por Deck Library.')
     if repository.lower()=='genrythefox0/project-2099':raise ValueError('Project 2099 se administra desde su propio instalador.')
-    folder=root/record.get('folder','')
+    if record.get('external_install'):raise ValueError('Esta carpeta está vinculada y se conserva. Quitar el juego de la biblioteca para dejar de mostrarlo.')
+    if not record.get('folder') or not FOLDER.fullmatch(record['folder']):raise ValueError('La carpeta del port está fuera de la carpeta administrada; no se modificó.')
+    folder=folder_for(record,root=root)
+    if record.get('install_path'):root=folder.parent
     if not record.get('folder') or not FOLDER.fullmatch(record['folder']) or folder.parent.resolve()!=root.resolve():raise ValueError('La carpeta del port está fuera de ~/ports; no se modificó.')
     if folder.is_symlink():raise ValueError('La carpeta del port es un enlace simbólico; no se modificó.')
     ids=[e.id for e in entries_for(folder)] if folder.is_dir() else [port_id(repository)]
     destination=None
     if folder.is_dir():
+        from .port_removal import owns
+        if record.get('install_path') and not owns(folder,repository):raise ValueError('No se pudo comprobar que esta carpeta pertenece al port.')
         destination=root/REMOVED/(record['folder']+'-'+time.strftime('%Y%m%dT%H%M%S'));destination.parent.mkdir(parents=True,exist_ok=True);folder.rename(destination)
     saved.pop(repository,None);atomic_json(store.root/'ports.json',saved)
     kept=[e for e in store.load() if e.id not in ids and e.metadata.get('port_repository')!=repository];store.save(kept)
@@ -753,6 +780,7 @@ def installed_updates(store,get=fetch_json):
     from .updates import is_newer
     result=[]
     for repo,record in records(store).items():
+        if record.get('external_install'):continue
         if record.get('web'):
             try:resolved=resolve_web({'kind':record['web']})
             except (OSError,ValueError):continue
@@ -769,7 +797,7 @@ def port_id(repository):
     import hashlib
     return hashlib.sha256(('port:'+repository.lower()).encode()).hexdigest()[:20]
 
-def entry_for(folder):
+def entry_for(folder,record=None):
     """Library entry for a port installed by this module, or None.
 
     A setup kit that has already been generated and compiled starts its built game directly
@@ -778,10 +806,10 @@ def entry_for(folder):
     from .models import Entry
     from . import buildenv
     folder=pathlib.Path(folder)
-    try:record=json.loads((folder/'.deck-library-port.json').read_text())
+    try:record=record if record is not None else json.loads((folder/'.deck-library-port.json').read_text())
     except (OSError,ValueError):return None
     exe=folder/record.get('executable','') if record.get('executable') else None
-    if not exe or not exe.is_file():return None
+    if not exe or not exe.is_file() or not exe.resolve().is_relative_to(folder.resolve()):return None
     args=list(record.get('args') or []);cwd=str(folder);built=folder/'build'/exe.name
     if record.get('sandbox') and built.is_file():
         # The built game's own launcher adopts the BIOS on first run and stores it in bios.cfg; only then can it boot directly.
@@ -800,12 +828,12 @@ def entry_for(folder):
     return Entry(record.get('name',folder.name),command,'port','Windows' if record.get('runtime')=='proton' else 'Linux',str(exe),cwd,id=identity,metadata={'port_repository':record['repository'],**({'game_title':title} if title else {}),'original_platform':record.get('original_platform') or next((platform_for(b.get('category','')) for b in BUILTIN if b['repository']==record['repository']),''),'configured':bool(record.get('configured')) if record.get('setup') else True,'port_tag':record.get('tag',''),**({'sandbox':'flatpak-kde-sdk'} if record.get('sandbox') else {}),**({'built':True} if built.is_file() and record.get('sandbox') else {}),**({'configured':True} if record.get('configured') else {})})
 
 
-def entries_for(folder):
+def entries_for(folder,record=None):
     """Every library entry of an installed port: one, or one per game when the release ships several."""
     import copy
-    folder=pathlib.Path(folder);primary=entry_for(folder)
+    folder=pathlib.Path(folder);primary=entry_for(folder,record)
     if primary is None:return []
-    try:record=json.loads((folder/'.deck-library-port.json').read_text())
+    try:record=record if record is not None else json.loads((folder/'.deck-library-port.json').read_text())
     except (OSError,ValueError):return [primary]
     games=record.get('games') or []
     if len(games)<2:return [primary]
@@ -1226,11 +1254,12 @@ def maintain(store=None,home=None):
     """Idempotent fixes for ports installed by earlier versions. Returns what was changed."""
     store=store or Store();root=ports_root(home);changed=[]
     for record in records(store).values():
-        if record.get('setup')=='kit' and (root/record['folder']).is_dir():changed+=ensure_controller_default(root/record['folder'])+ensure_overlay_compiler(root/record['folder'])+enhance_kit(root/record['folder'])
+        folder=folder_for(record,home)
+        if not record.get('external_install') and record.get('setup')=='kit' and folder.is_dir():changed+=ensure_controller_default(folder)+ensure_overlay_compiler(folder)+enhance_kit(folder)
     saved=records(store)
     for repository,record in saved.items():
-        folder=root/record.get('folder','')
-        if record.get('setup') in ('rom','wwhd','kit') and folder.is_dir():
+        folder=folder_for(record,home)
+        if not record.get('external_install') and record.get('setup') in ('rom','wwhd','kit') and folder.is_dir():
             done=tune_port(record,folder)
             if done:
                 changed+=done;atomic_json(store.root/'ports.json',{**records(store),repository:record})
@@ -1252,7 +1281,7 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None,c
     if not record or not record.get('setup'):raise ValueError('Este port no necesita configuración.')
     inputs=record.get('inputs') or {}
     games=[*games,*[(pathlib.Path(p).name,p) for k,p in inputs.items() if k in ('disc','wiiu') and p]]
-    folder=ports_root(home)/record['folder']
+    folder=folder_for(record,home)
     if not folder.is_dir():raise ValueError('La carpeta del port ya no existe: '+str(folder))
     problems=[text for ok,text in requirements(record,games,home) if ok is False]
     if problems:raise ValueError('Faltan requisitos:\n'+'\n'.join(problems))
@@ -1260,6 +1289,11 @@ def configure(repository,store=None,games=(),progress=print,home=None,run=None,c
     if record.get('disc') and not disc:raise ValueError('No se encontró el disco '+record['disc']['serial']+' en un formato legible (BIN, ISO o CUE).')
     kind=record['setup'];executable=folder/record['executable']
     if kind=='switch_launcher':
+        from .switch_port import prepared
+        if prepared(record,home):
+            record['configured']=True
+            saved=records(store);saved[repository]=record;atomic_json(store.root/'ports.json',saved)
+            return record
         from .original_data import validate,find_source
         source=validate(find_source(record,games,home),record['original_data'])
         record.update(configured=True,configured_with=source.name,inputs={**inputs,'original_data':str(source)})

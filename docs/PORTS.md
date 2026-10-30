@@ -2,6 +2,16 @@
 
 [Auditoría de instalaciones (751 entradas, 26/10/2026)](PORT-INSTALLATION-AUDIT.md) · [Resultados por repositorio](../catalog/installation-audit.json)
 
+## Vincular instalaciones y recuperar carpetas (1.4.9)
+
+**Catálogo → Instalar** permite descargar el port o **Usar instalación existente**. En la ficha del juego, **Juego y archivos → Carpetas del juego** permite elegir de nuevo la carpeta del ejecutable y acceder al asistente de archivos originales del adaptador. Los ports agregados manualmente también pueden volver a vincular su ejecutable; reinstalar desde la app requiere conocer el repositorio o tener una integración propia.
+
+Si un port administrado se movió, se busca primero su registro en `ports`, `DeckLibrary/ports` y las carpetas configuradas. Una coincidencia única del mismo repositorio permite recuperar la ubicación. Varias coincidencias requieren elegir: el nombre del juego no acredita que sea el mismo port. Una microSD desconectada no elimina el registro ni hace que una actualización escriba en una carpeta vacía. **Reinstalar port** es una acción explícita y puede volver a descargar una copia en la carpeta principal si la anterior ya no está disponible.
+
+Se conserva el identificador de biblioteca y de los accesos administrados por Deck Library, la portada y la preferencia de Proton. Vincular no mueve archivos. Las instalaciones externas sin registro propio de Deck Library se referencian; no se borran ni se actualizan automáticamente. Reinstalarlas crea una copia administrada y conserva la externa. Las instalaciones administradas con registro verificado pueden seguir actualizándose en su ubicación nueva, con respaldo de la anterior.
+
+**Savage Wind:** los originales `exefs/main` + `romfs` pueden estar en cualquier carpeta seleccionada. **Usar juego ya compilado** acepta la carpeta de datos que contiene `extracted/exefs/main`, `extracted/romfs.bin` y `extracted/swgame.so` (Linux) o `swgame.dll` (Windows), y también permite seleccionar su subcarpeta `extracted`. Esa ruta se comunica al port mediante `SAVAGEWIND_DATA_ROOT`: también determina la ubicación de partidas y ajustes. Se comprueba la estructura y el sistema del módulo; el propio port comprueba su versión de compilación. No se vuelve a pedir NSP/XCI ni claves cuando esos datos ya están preparados. Si se movieron, se muestra un aviso para volver a ubicarlos, sin crear otro directorio de partidas silenciosamente. El comportamiento de las rutas procede de [`runtime/paths.c`](https://github.com/Revivedx/SavageWindRecomp/blob/860f3722225a262bda78d049bf272e084efdc839/runtime/paths.c) del port.
+
 ## Extraer la ISO y liberar espacio (1.2.6)
 
 En **Naruto: Rise of a Ninja** y **The Broken Bond de jorjbarbosa**, elegir **Configurar → Elegir ISO de Xbox 360 → Preparar**. También se acepta una carpeta ya extraída. Funciona sobre instalaciones anteriores de Deck Library sin reinstalar el port.

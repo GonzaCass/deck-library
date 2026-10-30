@@ -15,10 +15,72 @@ class DeckUITests(unittest.TestCase):
         self.patches=[patch.object(gui_shell,'Store',return_value=self.store),patch.object(gui_shell,'settings',return_value={**DEFAULTS,'onboarding_complete':True,'start_page':'library','check_updates':False,'artwork_provider':'off','animations':False,'community_ratings':False,'eden_config':str(pathlib.Path(self.temp.name)/'eden')}),patch.object(gui.Window,'discover',return_value=False),patch.object(gui.Window,'load_catalog',return_value=None),patch.object(gui_shell,'find_accounts',return_value=[]),patch.object(gui_shell,'active_account',return_value=None)]
         from deck_library import eden_controls
         self.patches.append(patch.object(eden_controls,'status',return_value='ok'))
+        from deck_library import port_locations
+        self.patches.append(patch.object(port_locations,'candidates',return_value=[]))
         for p in self.patches:p.start()
         from gi.repository import Gtk,Gdk
         provider=Gtk.CssProvider();provider.load_from_data(gui.CSS);Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.w=gui.Window();self.w.resize(1280,760);self.w.show_all();self.settle()
+    def test_missing_port_offers_inline_location_recovery_and_back_without_launching(self):
+        from deck_library import ports
+        from deck_library.models import Entry,atomic_json
+        from gi.repository import Gtk
+        folder=pathlib.Path(self.temp.name)/'lost'
+        record={'repository':'owner/Game','name':'Game','folder':'Game','executable':'game.AppImage','runtime':'linux','install_path':str(folder)}
+        atomic_json(self.store.root/'ports.json',{'owner/Game':record})
+        entry=Entry('Game',[str(folder/'game.AppImage')],source=str(folder/'game.AppImage'),metadata={'port_repository':'owner/Game'})
+        self.w.entries=[entry];self.store.save([entry]);self.w.select_game(entry);self.settle()
+        targets=self.w.control_targets(self.w.detail)
+        locate=next(c for c in targets if c.get_accessible().get_name()=='Buscar carpeta');self.assertTrue(locate.get_mapped())
+        with patch('deck_library.gui_actions.subprocess.Popen') as popen:
+            self.w.play(entry);self.settle();popen.assert_not_called()
+        page=self.w.inline_workflows[-1]
+        labels=[c.get_accessible().get_name() for c in self.w.control_targets(page)]
+        self.assertIn('Elegir carpeta del port',labels);self.assertIn('Reinstalar port',labels)
+        self.w.controller_action('back');self.settle();self.assertFalse(self.w.inline_workflows)
+
+    def test_port_install_choice_can_reuse_an_existing_folder_without_a_download(self):
+        from deck_library import ports
+        from gi.repository import Gtk
+        item=ports.clean({'repository':'owner/Game','name':'Game'})
+        with patch.object(ports,'install') as install:
+            self.w.install_port(item,False);self.settle()
+            page=self.w.inline_workflows[-1]
+            controls=self.w.control_targets(page);reuse=next(c for c in controls if c.get_accessible().get_name()=='Usar instalación existente')
+            reuse.clicked();self.settle();install.assert_not_called()
+        page=self.w.inline_workflows[-1]
+        target=pathlib.Path(self.temp.name)/'External Game';target.mkdir();exe=target/'game.AppImage';exe.write_bytes(b'ELF');exe.chmod(0o755)
+        with patch.object(self.w,'pick_file',return_value=str(target)):
+            next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Elegir carpeta del port').clicked();self.settle()
+        self.assertEqual(ports.records(self.store)[item['repository']]['install_path'],str(target))
+        self.assertFalse((target/'.deck-library-port.json').exists());page.destroy();self.settle()
+        self.assertTrue(any(e.source==str(exe) for e in self.w.entries))
+
+    def test_install_choice_download_continues_the_actual_installation(self):
+        from deck_library import ports
+        item=ports.clean({'repository':'owner/Game','name':'Game'})
+        page=self.w.port_install_choice(item)
+        with patch.object(self.w,'install_port') as install:
+            next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Descargar port').clicked();self.settle()
+        install.assert_called_once_with(item,False,runtime='auto',location_chosen=True);self.assertFalse(self.w.inline_workflows)
+
+    def test_switch_wizard_reuses_a_compiled_game_in_a_different_folder_without_keys(self):
+        from deck_library import ports,switch_port,switch_extract
+        from deck_library.models import atomic_json
+        from gi.repository import GLib
+        item=ports.clean({'repository':switch_port.REPOSITORY})
+        atomic_json(self.store.root/'ports.json',{item['repository']:{**item,'runtime':'linux','inputs':{}}})
+        target=pathlib.Path(self.temp.name)/'SD Card/Compiled'
+        for name in ('exefs/main','romfs.bin','swgame.so'):
+            file=target/'extracted'/name;file.parent.mkdir(parents=True,exist_ok=True);file.write_bytes(b'fixture')
+        def choose():
+            page=self.w.inline_workflows[-1]
+            next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Usar juego ya compilado').clicked();return False
+        GLib.timeout_add(180,choose)
+        with patch.object(self.w,'pick_file',return_value=str(target)),patch.object(switch_extract,'find_keys',return_value=[]):
+            self.assertTrue(self.w.port_inputs(item))
+        self.assertEqual(ports.records(self.store)[item['repository']]['game_data_dir'],str(target));self.assertFalse(self.w.inline_workflows)
+
     def test_offer_deck_controls_asks_once_and_applies_or_remembers_refusal(self):
         from deck_library import eden_controls
         entry=self.w.entries[0]
@@ -642,7 +704,7 @@ class DeckUITests(unittest.TestCase):
             self.assertLessEqual(y+self.w.profile_apply.get_allocated_height(),760)
         for section in ('controls','files','content','options','profiles'):
             self.w.open_game_section(section);self.settle()
-            self.assertEqual(self.w.game_pages.get_visible_child_name(),section)
+            self.assertEqual(self.w.game_pages.get_visible_child_name(),'content' if section=='files' else section)
             self.assertLessEqual(self.w.get_size().width,1280)
             self.assertLessEqual(self.w.get_size().height,760)
 
@@ -938,8 +1000,9 @@ class DeckUITests(unittest.TestCase):
         from deck_library.models import atomic_json
         item=ports.clean({'repository':'K0NL/B2recomp'})
         record={**item,'configured':False,'executable':'B2recomp'}
+        folder=pathlib.Path(self.temp.name)/'B2';folder.mkdir();(folder/'B2recomp').touch();record['install_path']=str(folder)
         with patch.object(ports,'install',return_value=record) as install,patch.object(self.w,'port_installed',return_value=False) as installed:
-            self.w.install_port(item,False)
+            self.w.install_port(item,False,location_chosen=True)
             until=time.monotonic()+3
             while not installed.called and time.monotonic()<until:self.settle()
             installed.assert_called_once();self.assertIsInstance(install.call_args.kwargs['cancel'],threading.Event)
@@ -960,7 +1023,8 @@ class DeckUITests(unittest.TestCase):
         from test_dante_savage import xex
         from gi.repository import Gtk,GLib
         item=ports.clean({'repository':'florinp93/hells-gate-recomp','name':'Dante’s Inferno'})
-        record={**item,'executable':'dantes_inferno.exe','tag':'test'};atomic_json(self.store.root/'ports.json',{item['repository']:record})
+        folder=pathlib.Path(self.temp.name)/'Dante';folder.mkdir();(folder/'dantes_inferno.exe').write_bytes(b'MZfixture')
+        record={**item,'executable':'dantes_inferno.exe','tag':'test','install_path':str(folder)};atomic_json(self.store.root/'ports.json',{item['repository']:record})
         original=pathlib.Path(self.temp.name)/'own-dump';original.mkdir();xex(original/'default.xex')
         run_original=self.inline.run;seen=[];errors=[]
         def run(page):
@@ -1102,6 +1166,8 @@ class DeckUITests(unittest.TestCase):
                         if isinstance(widget,Gtk.Container):
                             for child in widget.get_children():yield from headings(child)
                     title=next(child.get_text() for child in headings(page) if isinstance(child,Gtk.Label) and child.get_style_context().has_class('inline-page-heading'))
+                    if title.startswith('Instalar '):
+                        next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Descargar port').clicked();return False
                     if title.startswith('Preparar '):
                         seen.append('original');next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Elegir ISO de Xbox 360').clicked()
                         self.assertTrue(page._buttons[Gtk.ResponseType.OK].get_sensitive());page.response(Gtk.ResponseType.OK);return False
@@ -1120,7 +1186,7 @@ class DeckUITests(unittest.TestCase):
             GLib.timeout_add(100,act)
         with patch.object(ports,'ports_root',return_value=root/'ports'),patch.object(ports,'release_for',return_value=release),patch.object(ports,'download',side_effect=lambda _,target,**kw:target.write_bytes(payload.getvalue())),patch.object(project2099,'proton_path',return_value=pathlib.Path('/fake/proton')),patch.object(self.w,'pick_file',return_value=str(iso)),patch.object(self.w,'confirm',return_value=True),patch.object(self.inline,'_mount',mount):
             self.w.install_port(item,False);deadline=time.monotonic()+5
-            while ('cleanup' not in seen or self.w.port_busy or self.w.inline_workflows) and time.monotonic()<deadline:self.settle()
+            while ('cleanup' not in seen or getattr(self.w,'port_busy',False) or self.w.inline_workflows) and time.monotonic()<deadline:self.settle()
         self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertFalse(self.w.inline_workflows);self.assertTrue(all(c.get_sensitive() for c in self.w.navigation_controls))
         self.assertEqual(errors,[]);self.assertEqual(seen,['original','cleanup']);self.assertEqual(iso.exists(),not delete)
         record=ports.records(self.store)[item['repository']];self.assertTrue(record['configured'])
@@ -1432,7 +1498,7 @@ class DeckUITests(unittest.TestCase):
         from deck_library import ports,broken_bond
         item=ports.clean({'repository':broken_bond.ORIGINAL,'release_version':'v0.1.0-beta'})
         with patch.object(self.w,'confirm',return_value=False) as confirm,patch.object(ports,'install') as install:
-            self.w.install_port(item,False);install.assert_not_called();self.assertEqual(confirm.call_args.args[0],'Problema conocido en esta versión')
+            self.w.install_port(item,False,location_chosen=True);install.assert_not_called();self.assertEqual(confirm.call_args.args[0],'Problema conocido en esta versión')
 
     def test_old_broken_bond_offers_the_black_screen_repair_in_the_game_overview(self):
         from gi.repository import Gtk
@@ -1520,15 +1586,15 @@ class DeckUITests(unittest.TestCase):
         from deck_library import ports
         item=ports.clean({'repository':'someone/else','name':'Else','category':'PC'})
         with patch.object(ports,'install',side_effect=ValueError('stop')) as install,patch.object(self.w,'confirm',return_value=False) as confirm,patch.object(self.w,'port_failed'):
-            self.w.install_port(item,False);confirm.assert_called_once();install.assert_not_called();self.assertFalse(self.w.preferences.get('unreviewed_acknowledged'))
+            self.w.install_port(item,False,location_chosen=True);confirm.assert_called_once();install.assert_not_called();self.assertFalse(self.w.preferences.get('unreviewed_acknowledged'))
         import time
         with patch.object(ports,'install',side_effect=ValueError('stop')) as install,patch.object(self.w,'confirm',return_value=True) as confirm,patch.object(self.w,'port_failed') as failed:
-            self.w.install_port(item,False);until=time.monotonic()+3
+            self.w.install_port(item,False,location_chosen=True);until=time.monotonic()+3
             while not failed.called and time.monotonic()<until:self.settle()
             confirm.assert_called_once();self.assertTrue(self.w.preferences.get('unreviewed_acknowledged'))
         self.w.port_busy=False;self.w.port_jobs.clear()
         with patch.object(ports,'install',side_effect=ValueError('stop')),patch.object(self.w,'confirm') as confirm,patch.object(self.w,'port_failed') as failed:
-            self.w.install_port(item,False);until=time.monotonic()+3
+            self.w.install_port(item,False,location_chosen=True);until=time.monotonic()+3
             while not failed.called and time.monotonic()<until:self.settle()
             confirm.assert_not_called()
         self.w.port_busy=False;self.w.port_jobs.clear()

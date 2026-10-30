@@ -13,7 +13,7 @@ SWITCH_MINIMUM={'revivedx/savagewindrecomp':{'label':'1.9.0','version':1114112}}
 def minimum_for(repository):return SWITCH_MINIMUM.get(str(repository).lower())
 
 class SwitchMixin:
-    def switch_convert_page(self,*_,on_done=None,minimum=None):
+    def switch_convert_page(self,*_,on_done=None,minimum=None,on_prepared=None):
         """The conversion page. `on_done(folder)` is called with the converted folder, so a port's setup can use it right away.
         `minimum` ({'label','version'}) is the update the port needs: it asks for the base game and the update when they are separate files."""
         from .ports import Cancelled
@@ -32,6 +32,16 @@ class SwitchMixin:
                 page.destroy()
             else:status.set_text('Carpeta lista: '+str(folder));self.toast('Carpeta de juego seleccionada')
         body.pack_start(ActionButton('Usar carpeta ya extraída','folder',choose_folder,'cyan'),False,False,0)
+        if on_prepared:
+            def choose_prepared(_):
+                if state['busy']:return
+                path=self.pick_file('Elegir carpeta del juego compilado',folder=True)
+                if not path:return
+                try:on_prepared(path)
+                except (OSError,ValueError) as error:status.set_text(str(error));return
+                page.destroy()
+            body.pack_start(ActionButton('Usar juego ya compilado','folder',choose_prepared,'steam'),False,False,0)
+            body.pack_start(text('Savage Wind usará esa carpeta para los datos compilados, las partidas y los ajustes. No se mueven archivos.','meta',85),False,False,0)
         body.pack_start(text('O convertir un archivo XCI/NSP','section-title'),False,False,0)
         if minimum:body.pack_start(text(f"Este port necesita el juego con la actualización {minimum['label']} o posterior. Si el archivo del juego no la incluye, elegir también el archivo de la actualización: se combinan al convertir.",'title',95),False,False,0)
         body.pack_start(text('Hace falta el prod.keys de la consola propia. Solo se lee en este equipo: no se copia ni se envía a ningún sitio.','meta',95),False,False,0)

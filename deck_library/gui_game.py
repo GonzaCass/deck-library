@@ -20,6 +20,12 @@ class GameMixin:
 
     def show_detail(self, entry):
         opening = self.detail_game_id != entry.id
+        if opening and entry.kind=='port':
+            from .port_locations import recover
+            try:
+                fresh=recover(entry,self.store)
+                if fresh is not entry:entry=fresh;self.entries=self.store.load()
+            except (OSError,ValueError):pass
         focus_token=self.control_focus_token() if not opening and self.pages.get_visible_child_name()=='detail' else None
         if opening:
             self.game_tab = 'profiles'
@@ -48,6 +54,14 @@ class GameMixin:
         self.game_breadcrumb=breadcrumb
         self.detail.pack_start(self.game_hero(entry), False, False, 0)
         self.build_game_navigation(entry)
+        if entry.kind=='port':
+            from .port_locations import problem
+            missing=problem(entry,self.store)
+            if missing:
+                notice=Gtk.Box(spacing=10)
+                notice.pack_start(text(missing,'status',75),True,True,0)
+                notice.pack_end(ActionButton('Buscar carpeta','folder',lambda _:self.port_location_page(entry=entry),'amber'),False,False,0)
+                self.detail.pack_start(notice,False,False,0)
         self.game_pages = Gtk.Stack()
         self.game_pages.connect('notify::visible-child',self.refresh_layout)
         self.game_pages.set_homogeneous(False)
@@ -722,6 +736,7 @@ class GameMixin:
             panel.pack_start(value,False,False,0)
         actions=Gtk.Box(spacing=10)
         actions.pack_start(ActionButton('Editar acceso directo','file',lambda _:self.manual(entry)),False,False,0)
+        if entry.kind=='port':actions.pack_start(ActionButton('Carpetas del juego','folder',lambda _:self.port_location_page(entry=entry),'cyan'),False,False,0)
         actions.pack_start(ActionButton('Diagnóstico','search',lambda _:self.check(entry)),False,False,0)
         body.pack_start(actions,False,False,0);body.reorder_child(actions,0)
         if self.in_steam(entry):

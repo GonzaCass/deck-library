@@ -46,11 +46,14 @@ def plan(repository,store=None,root=None):
     from . import ports
     store=store or Store();root=pathlib.Path(root or ports.ports_root());records=ports.records(store);record=records.get(repository)
     if not record:raise ValueError('Este port no fue instalado por Deck Library.')
+    if record.get('external_install'):raise ValueError('Esta instalación está vinculada desde otra carpeta. Se puede quitar de la biblioteca; sus archivos se gestionan desde el lanzador original.')
     if repository.casefold()=='genrythefox0/project-2099':raise ValueError('Project 2099 se administra desde su propio instalador.')
     name=record.get('folder','')
     if not isinstance(name,str) or not ports.FOLDER.fullmatch(name):raise ValueError('La carpeta registrada del port no es válida.')
     if any(key!=repository and value.get('folder')==name for key,value in records.items()):raise ValueError('La carpeta está compartida con otro port; no se modificó.')
-    folder=safe_path(root/name,root);paths=[]
+    folder=ports.folder_for(record,root=root)
+    if record.get('install_path'):root=folder.parent
+    folder=safe_path(folder,root);paths=[]
     if folder.exists():
         if not folder.is_dir() or not owns(folder,repository):raise ValueError('No se pudo comprobar que esta carpeta pertenece al port.')
         paths.append(folder)
@@ -74,7 +77,7 @@ def plan(repository,store=None,root=None):
             if reference and pathlib.Path(reference).is_absolute() and any(pathlib.Path(reference).resolve().is_relative_to(p.resolve()) for p in paths):
                 raise ValueError('Otro juego utiliza esta carpeta o archivo. No se permite borrar datos compartidos.')
     signature=[(str(p),p.stat().st_dev,p.stat().st_ino) for p in paths]
-    return {'repository':repository,'name':record.get('name',repository),'paths':paths,'ids':ids,'entries':entries,'signature':signature}
+    return {'repository':repository,'name':record.get('name',repository),'paths':paths,'ids':ids,'entries':entries,'signature':signature,'ports_root':root}
 
 
 def execute(repository,store=None,root=None,expected=None,start_worker=True):
@@ -84,7 +87,7 @@ def execute(repository,store=None,root=None,expected=None,start_worker=True):
     if in_use(value['paths']):raise ValueError('Cerrar el juego y su lanzador antes de eliminarlo.')
     steam_result=prepare_steam(value,store,start_worker=start_worker)
     for path in value['paths']:
-        boundary=root if path.is_relative_to(root) else store.root
+        boundary=value['ports_root'] if path.is_relative_to(value['ports_root']) else store.root
         safe_path(path,boundary)
         if path.is_dir():shutil.rmtree(path)
         else:path.unlink(missing_ok=True)

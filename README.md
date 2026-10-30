@@ -60,7 +60,7 @@ To add a game instead, open its cover and choose **Add to Steam**. Each game can
 
 ## 🔄 Already installed?
 
-Open Deck Library in **Desktop Mode → Updates → Check for updates**. Automatic app updates are enabled by default in Desktop Mode; reopen the app after installation. Re-running the latest installer is also supported and keeps the library, profiles and settings.
+Open Deck Library in **Desktop Mode**. Update checks run automatically; **Updates** shows their status. Automatic app installation is enabled by default in Desktop Mode; reopen the app after installation. Re-running the latest installer is also supported and keeps the library, profiles and settings.
 
 The app and desktop icon update with the installation. Previous official Steam artwork is refreshed automatically; custom images and pending manual choices stay intact. Steam changes are saved when Steam closes, with backups.
 

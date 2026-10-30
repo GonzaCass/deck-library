@@ -51,7 +51,9 @@ def repair(entry,store=None,root=None,progress=print,cancel=None,get=None):
     if not record or not status(entry,store):raise ValueError('Este juego no admite esta reparación.')
     proton_tools.resolve('Proton 11.0')
     if not isinstance(record.get('folder'),str) or not ports.FOLDER.fullmatch(record['folder']):raise ValueError('La carpeta registrada del port no es válida.')
-    folder=safe_path(root/record['folder'],root)
+    folder=ports.folder_for(record,root=root)
+    if record.get('install_path'):root=folder.parent
+    folder=safe_path(folder,root)
     from .port_removal import owns
     if not owns(folder,repo):raise ValueError('No se pudo comprobar que esta carpeta pertenece al port.')
     if in_use([folder]):raise ValueError('Cerrar Broken Bond antes de aplicar la reparación.')
@@ -65,7 +67,7 @@ def repair(entry,store=None,root=None,progress=print,cancel=None,get=None):
         with tempfile.TemporaryDirectory(prefix='.deck-library-fix-',dir=root) as temporary:
             temporary=pathlib.Path(temporary);staging_store=Store(temporary/'state')
             prepared=ports.install(item,staging_store,temporary/'packages',get=lambda _:release,progress=progress,transfer=progress,runtime='proton',cancel=cancel)
-            staging=temporary/'packages'/prepared['folder'];prepared.update(entry_id=entry.id,configured=True,configured_with=record.get('configured_with','default.xex'),inputs={'original_data':str(target/'game')})
+            staging=temporary/'packages'/prepared['folder'];prepared.update(install_path=str(target),entry_id=entry.id,configured=True,configured_with=record.get('configured_with','default.xex'),inputs={'original_data':str(target/'game')})
             if (folder/'user').is_dir():shutil.copytree(folder/'user',staging/'hdd',dirs_exist_ok=True,symlinks=True)
             defaults(staging,prepared)
             manifest=folder/'.deck-library-iso-import.json'

@@ -190,6 +190,9 @@ class ActionsMixin:
     def set_mods(self,toggle,e):
         e.mods=toggle.get_active();self.store.save(self.entries);self.set_status('Perfil guardado. Se aplica en la próxima ejecución del juego.')
     def play(self,e):
+        if e.kind=='port':
+            e=self.recover_port_location(e)
+            if not e:return
         if e.kind=='steam' or e.metadata.get('steam_override') or self.in_steam(e):
             from .steam_inventory import game_uri
             uri='steam://run/'+str(e.metadata['steam_appid']) if e.metadata.get('steam_store') else game_uri(e.metadata['steam_appid'])

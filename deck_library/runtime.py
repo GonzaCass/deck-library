@@ -18,6 +18,9 @@ def clean_environment(env=None):
 def diagnostics(entry,store=None):
     store=store or Store(); issues=[]
     from .proton_selection import mode
+    from .port_locations import problem
+    location_problem=problem(entry,store)
+    if location_problem:issues.append(location_problem)
     executable=entry.command[0]
     if not (pathlib.Path(executable).is_file() or shutil.which(executable)):issues.append('No se encuentra el programa seleccionado.')
     elif pathlib.Path(executable).is_file() and not os.access(executable,os.X_OK) and mode(entry)!='exe':issues.append('El programa no tiene permiso de ejecución.')
@@ -89,7 +92,14 @@ def show_error(message,store=None,entry=None):
     except OSError:pass
 
 def launch(entry,store=None,notify=True):
-    store=store or Store(); issues,_=diagnostics(entry,store)
+    store=store or Store()
+    try:
+        from .port_locations import recover
+        entry=recover(entry,store)
+    except (OSError,ValueError) as error:
+        if notify:show_error(str(error),store,entry)
+        return 1
+    issues,_=diagnostics(entry,store)
     # Old error logs inform the diagnostic panel, but do not prevent trying a repaired launch.
     blocking=[i for i in issues if i.startswith(('No se encuentra','El programa no tiene','Un ejecutable Windows','Falta el entorno'))]
     if blocking:
@@ -99,7 +109,7 @@ def launch(entry,store=None,notify=True):
         env=prepare_eden_profile(entry,store,clean_environment())
         from .switch_port import launch_environment
         env=launch_environment(entry,env,store)
-    except (OSError,configparser.Error,RuntimeError) as error:
+    except (OSError,ValueError,configparser.Error,RuntimeError) as error:
         if notify:show_error('No se pudo preparar '+entry.name+'.\n'+str(error),store,entry)
         return 1
     folder=store.root/'logs'; folder.mkdir(parents=True,exist_ok=True,mode=0o700)
