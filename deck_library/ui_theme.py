@@ -1,4 +1,4 @@
-"""TodoJuegos-inspired surfaces and local typography, shared by the native interface."""
+"""Console surfaces and local typography, shared by the native interface."""
 import ctypes,ctypes.util,pathlib,re
 
 def load_fonts():
@@ -28,13 +28,14 @@ TEMPLATE='''
 @define-color accent_b_hover @ACCENT_B_HOVER@;
 @define-color on_accent @ON_ACCENT@;
 @define-color line #343b45;
-window,dialog { background:@bg; color:@text; font-family:"Manrope ExtraLight","Noto Sans",Sans; font-size:16px; }
+@define-color ambience @AMBIENCE@;
+window,dialog { background:@bg; color:@text; font-family:"Noto Sans",Sans; font-size:16px; }
 label { color:@text; }
 label.meta,label.status,label.muted,label.subtitle { color:@dim; font-weight:400; }
 label.meta,label.status { font-size:16px; }
 label.library-count { font-size:15px; }
 label.original-required { color:#f1ce90; font-size:16px; font-weight:700; }
-label.tag,button label.tag { font-size:15px; font-weight:600; border:1px solid #46515e; border-radius:6px; padding:2px 6px; color:#c8d0da; background:#20262e; }
+label.tag,button label.tag { font-size:15px; font-weight:600; border:1px solid #46515e; border-radius:4px; padding:2px 6px; color:#c8d0da; background:#20262e; }
 flowbox.tag-row > flowboxchild { padding:0; }
 label.tag-green,button label.tag-green { color:#a4e9be; background:#182e24; border-color:#365e48; }
 label.tag-blue,button label.tag-blue { color:#b6d7ff; background:#1d2c41; border-color:#3b5475; }
@@ -48,9 +49,9 @@ label.title,label.section-title { font-size:18px; font-weight:700; }
 label.brand { font-family:"Space Grotesk Light",Sans; font-size:21px; font-weight:700; }
 label.eyebrow,label.rail-heading { color:@dim; font-size:15px; font-weight:600; }
 label.pill,label.platform-chip { color:@dim; font-size:15px; font-weight:600; }
-label.platform-chip { background:@raised; border:1px solid @line; border-radius:6px; padding:3px 8px; }
+label.platform-chip { background:@raised; border:1px solid @line; border-radius:4px; padding:3px 8px; }
 .app-header { background:#040506; border-bottom:1px solid #292e36; padding:5px 12px; }
-button { background:@surface; color:@text; border:1px solid @line; border-radius:9px; padding:7px 14px; min-height:32px; background-image:none; box-shadow:none; text-shadow:none; transition:background 150ms ease-out,border-color 150ms ease-out; }
+button { background:@surface; color:@text; border:1px solid @line; border-radius:8px; padding:7px 14px; min-height:32px; background-image:none; box-shadow:none; text-shadow:none; transition:background 180ms ease-out,border-color 180ms ease-out; }
 button label { color:@text; font-size:15px; font-weight:600; }
 button:hover { background:@raised; border-color:#66717e; }
 button:active { background:#29323d; }
@@ -63,11 +64,11 @@ button.play { min-height:36px; }
 button.flat,button.quiet,button.nav,button.game-menu,button.breadcrumb { background:transparent; border-color:transparent; }
 button.quiet:hover,button.nav:hover,button.game-menu:hover { background:@raised; border-color:transparent; }
 button.quiet.active { background:#29323d; border-bottom:2px solid @accent; }
-button.nav { padding:7px 9px; border-radius:8px; min-height:30px; }
+button.nav { padding:7px 9px; border-radius:6px; min-height:30px; }
 button.nav label { color:#c4ccd6; font-size:15px; }
 button.nav.active { background:#29323d; border-bottom:2px solid @accent; }
 button.nav.active label { color:#ffffff; }
-button.nav label.badge,button.nav.active label.badge { background:@accent_b; color:@on_accent; font-size:15px; font-weight:800; border-radius:5px; padding:2px 6px; min-width:14px; min-height:16px; }
+button.nav label.badge,button.nav.active label.badge { background:@accent_b; color:@on_accent; font-size:15px; font-weight:800; border-radius:4px; padding:2px 6px; min-width:14px; min-height:16px; }
 button.steam { background:#243449; border-color:#405979; }
 button.steam label { color:#c4ddff; }
 button.steam-outline,button.steam-add { background:transparent; border-color:@line; }
@@ -92,16 +93,16 @@ entry,combobox button,spinbutton { background:@surface; color:@text; border:1px 
 entry:focus { border-color:@accent; }
 combobox button label { font-size:16px; }
 list,viewport,scrolledwindow { background:transparent; }
-list row { padding:6px; border-radius:10px; border:1px solid transparent; }
+list row { padding:6px; border-radius:8px; border:1px solid transparent; }
 list row:hover { background:@surface; }
 list row:selected,list row:focus,list row.game-focused { background:#29323d; border:2px solid @accent; outline:0; }
-.card,.surface-panel,.preset-detail,.selection-bar { background:@surface; border:1px solid @line; border-radius:12px; padding:14px; }
+.card,.surface-panel,.preset-detail,.selection-bar { background:@surface; border:1px solid @line; border-radius:10px; padding:14px; }
 .settings-row { padding:14px 4px; border-bottom:1px solid @line; }
-.banner { background:@surface; border:1px solid @line; border-left:3px solid @accent; border-radius:9px; padding:8px 12px; }
-.library-game { padding:0; border:2px solid transparent; border-radius:11px; transition:background 150ms ease-out,border-color 150ms ease-out; }
+.banner { background:@surface; border:1px solid @line; border-left:3px solid @accent; border-radius:8px; padding:8px 12px; }
+.library-game { padding:0; border:2px solid transparent; border-radius:10px; transition:background 180ms ease-out,border-color 180ms ease-out; }
 .library-game.game-focused { background:#20262d; border-color:@accent; }
 .library-game.game-focused .cover-title { color:@text; }
-button.poster { padding:0; border:0; border-radius:10px; background:@surface; }
+button.poster { padding:0; border:0; border-radius:8px; background:@surface; }
 button.poster:hover,button.poster.selected { border-color:@accent; }
 button.poster:focus { outline:2px solid @accent; outline-offset:0; }
 .game-card-info { padding:8px 5px 7px; }
@@ -109,18 +110,18 @@ button.poster:focus { outline:2px solid @accent; outline-offset:0; }
 .game-card-info label.platform-caption { color:@dim; font-size:15px; }
 .game-card-info label.card-state { color:#9bdfb8; font-size:15px; }
 .page-toolbar { padding:4px 0 8px; }
-.port-card { background:@surface; border:1px solid @line; border-radius:12px; padding:0; }
-button.catalog-open { padding:0; background:transparent; border:0; border-radius:11px; }
+.port-card { background:@surface; border:1px solid @line; border-radius:10px; padding:0; }
+button.catalog-open { padding:0; background:transparent; border:0; border-radius:8px; }
 button.catalog-open:hover { background:@raised; }
 .port-card-content { padding:11px 12px; }
 .port-card-content label.title { font-size:17px; font-weight:700; }
 .port-card-actions { padding:0 12px 12px; }
 .port-card label.os-badge { color:#c4ddff; font-size:15px; }
 .port-card label.install-state { color:#9bdfb8; font-size:15px; }
-.summary-card { padding:14px 16px; background:@surface; border:1px solid @line; border-radius:12px; }
+.summary-card { padding:14px 16px; background:@surface; border:1px solid @line; border-radius:10px; }
 .summary-card label.summary-count { font-family:"Space Grotesk Light",Sans; font-size:30px; font-weight:700; }
 .summary-card label.meta { font-size:16px; }
-button.summary-game { padding:0; background:@surface; border:1px solid @line; border-radius:12px; }
+button.summary-game { padding:0; background:@surface; border:1px solid @line; border-radius:8px; }
 button.summary-game:hover { border-color:#66717e; background:@raised; }
 button.summary-game label.title { font-size:17px; }
 .section-row { padding:4px 0; }
@@ -130,8 +131,8 @@ button.game-section.amber { background:#30291d; border-color:#59472c; }
 button.game-section.active { background:#29323d; border-color:@accent; }
 label.game-title { font-size:28px; }
 .compact label.game-title { font-size:25px; }
-button.hero-cover { padding:0; border:0; border-radius:10px; }
-button.profile-card { background:@surface; border:1px solid @line; border-radius:11px; padding:10px; }
+button.hero-cover { padding:0; border:0; border-radius:8px; }
+button.profile-card { background:@surface; border:1px solid @line; border-radius:8px; padding:10px; }
 button.profile-card:hover { background:@raised; border-color:#79828d; }
 button.profile-card.chosen { background:@accent_bg; border-color:@accent; }
 button.profile-card label { font-weight:400; }
@@ -145,17 +146,17 @@ label.rating { color:#f1ce90; font-size:16px; }
 button.disclosure { padding:7px 8px; min-height:32px; background:transparent; border-color:transparent; }
 button.disclosure label { color:@accent_soft; font-size:16px; }
 .request-notice { background:@surface; border-left:4px solid @accent_b; padding:8px 14px; }
-.apply-dock { background:@surface; border:1px solid @line; border-radius:11px; padding:10px 12px; }
+.apply-dock { background:@surface; border:1px solid @line; border-radius:8px; padding:10px 12px; }
 label.dock-title { font-size:16px; font-weight:700; }
 button.applied { background:#1d3529; border-color:#3a674d; }
 button.applied label { color:#9bdfb8; }
 button.applied:disabled { opacity:1; }
-button.task { padding:10px 12px; border-radius:10px; }
+button.task { padding:10px 12px; border-radius:8px; }
 button.task label.task-title { font-size:17px; font-weight:700; }
 button.task label.meta { font-size:16px; font-weight:400; }
 button.task.amber { background:#221e17; border-color:#4b402c; }
 button.task.cyan { background:#152127; border-color:#2f454e; }
-check { min-width:24px; min-height:24px; border:1px solid #79828d; border-radius:5px; background:@surface; }
+check { min-width:24px; min-height:24px; border:1px solid #79828d; border-radius:4px; background:@surface; }
 check:checked { background:@accent_b; color:@on_accent; }
 switch { background:@line; border-radius:12px; }
 switch:checked { background:#9bdfb8; }
@@ -170,14 +171,14 @@ progressbar.conversion-progress text { color: @text; font-size:15px; }
 progressbar.conversion-progress trough { min-height:8px; }
 progressbar trough { background:#29323d; min-height:5px; border-radius:5px; }
 progressbar progress { background-color:@accent_b; background-image:linear-gradient(90deg,@accent_a,@accent_b); border-radius:5px; }
-.toast { background:#1c2025; border:1px solid #526c59; border-radius:12px; padding:12px 16px; }
+.toast { background:#1c2025; border:1px solid #526c59; border-radius:8px; padding:12px 16px; }
 label.toast-text { color:#d5f1df; font-size:17px; font-weight:600; }
 .toast.error { border-color:#9e5a54; }
 .toast.error label.toast-text { color:#ffb6ad; }
 popover,menu { background:@surface; color:@text; border:1px solid @line; border-radius:10px; padding:5px; }
 popover button,menuitem { padding:7px 10px; }
 menuitem:hover,menuitem:selected,menuitem:selected label { background:#29323d; color:@text; }
-.controller-focus,button.controller-focus,button.action.controller-focus,button.action.play.controller-focus,button.task.controller-focus,button.profile-card.controller-focus,button.poster.controller-focus,entry.controller-focus,switch.controller-focus,scale.controller-focus { outline:2px solid @focus_ring; outline-offset:2px; box-shadow:inset 0 0 0 1px @accent; }
+.controller-focus,button.controller-focus,entry.controller-focus,switch.controller-focus,scale.controller-focus { outline:2px solid @focus_ring; outline-offset:2px; box-shadow:none; }
 combobox.controller-focus button { outline:2px solid @focus_ring; outline-offset:-2px; background:#29323d; }
 label.control-glyph { background:#1c2025; border:1px solid #616b78; border-radius:6px; padding:3px 6px; color:#f1f3f5; font-size:15px; font-weight:700; }
 label.control-stick { border-radius:14px; min-width:16px; padding:3px 5px; }
@@ -190,6 +191,153 @@ label.control-caption { color:@dim; font-size:15px; }
 .deck-density label.hero { font-size:25px; }
 .deck-density .inline-page-heading { font-size:23px; }
 .community-profile-row { min-height:48px; padding:9px 12px; }
+
+/* Console shell: quiet surfaces, understated navigation and artwork as the hierarchy. */
+.app-header { background:@bg; border-bottom:0; padding:6px 14px; }
+.deck-density .app-header { padding:6px 14px; }
+.deck-density .app-header button.console-round { min-height:20px; min-width:20px; padding:8px; }
+button.nav { border-radius:6px; padding:7px 17px; min-height:30px; }
+button.nav.active { background:transparent; border:1px solid transparent; border-bottom:2px solid @text; }
+button.nav.active label { color:@text; }
+button.nav.active label.badge { color:@on_accent; }
+button.console-round { min-width:24px; min-height:24px; padding:12px; border-radius:8px; background:@raised; border:1px solid transparent; }
+button.console-round:hover,button.console-round.active { background:@accent_bg; border-color:@accent; }
+.shell-menu button.nav { border-radius:6px; }
+button.shell-menu label.badge { background:@accent_b; color:@on_accent; font-size:15px; font-weight:800; border-radius:4px; padding:2px 6px; }
+label.console-title { font-family:"Noto Sans",Sans; font-size:48px; font-weight:800; letter-spacing:-1px; }
+.deck-density label.console-title { font-size:46px; }
+label.console-eyebrow { color:@accent_soft; font-size:14px; font-weight:700; letter-spacing:1.4px; }
+.console-home .tag { border:0; border-radius:8px; padding:5px 12px; font-size:13px; }
+button.console-play,button.action.play { color:@bg; border-radius:8px; min-height:34px; padding:10px 24px; background-image:none; background:@text; border:1px solid @text; }
+button.console-play drawingarea,button.action.play drawingarea { color:@bg; }
+button.console-play label,button.action.play label { color:@bg; font-size:19px; font-weight:800; }
+button.console-play:hover,button.action.play:hover { background-image:none; background:@dim; border-color:@dim; }
+button.console-play { min-width:110px; }
+button.console-card { padding:3px; border:2px solid transparent; border-radius:8px; background:transparent; }
+button.console-card.featured { border-color:@dim; }
+button.console-card:hover,button.console-card:focus,button.console-card.controller-focus { border-color:@text; outline:0; box-shadow:0 0 0 1px @text; }
+button.console-all { border:2px dashed @line; border-radius:8px; background:transparent; }
+button.console-all:hover { background:@surface; border-color:@dim; }
+.console-utility { padding-top:12px; }
+.summary-card { background:transparent; border:1px solid @line; border-radius:10px; }
+.library-game { border-radius:10px; padding:3px; }
+.library-game.game-focused { background:transparent; border-color:@text; }
+button.poster { border-radius:8px; background:transparent; }
+.game-card-info { padding:8px 6px; }
+.game-card-info label.platform-caption { font-size:13px; }
+.card,.surface-panel,.preset-detail,.port-card { border-radius:10px; }
+button.profile-card { border-radius:8px; }
+.game-tabs { border-bottom:0; }
+button.game-section { border-radius:8px; }
+label.control-glyph { border-radius:20px; min-width:17px; min-height:17px; padding:3px; }
+.hint-activate label.control-glyph { background:#9bdfb8; border-color:#9bdfb8; color:#08090b; }
+.hint-options label.control-glyph { background:#f5df9a; border-color:#f5df9a; color:#08090b; }
+.hint-search label.control-glyph { background:#b6d7ff; border-color:#b6d7ff; color:#08090b; }
+.hint-back label.control-glyph { background:#ffb8b2; border-color:#ffb8b2; color:#08090b; }
+
+/* Shared controls follow the home screen's neutral hierarchy. */
+* { outline-color:@focus_ring; }
+button { border-radius:8px; background:@raised; border-color:transparent; padding:8px 16px; }
+button:hover { background:@surface; border-color:@dim; }
+button:focus { outline:2px solid @focus_ring; outline-offset:2px; }
+button.primary,button.play,button.violet { background-image:none; background:@text; color:@bg; border-color:@text; }
+button.primary label,button.play label,button.violet label,
+button.primary drawingarea,button.play drawingarea,button.violet drawingarea { color:@bg; }
+button.primary:hover,button.play:hover,button.violet:hover { background-image:none; background:@dim; border-color:@dim; }
+button.steam,button.steam-outline,button.steam-add,button.violet-outline,button.cyan,button.amber,
+button.task.cyan,button.task.amber,button.game-section.steam,button.game-section.amber {
+    background:@raised; color:@text; border-color:transparent;
+}
+button.steam label,button.steam-outline label,button.steam-add label,button.violet-outline label,
+button.cyan label,button.amber label { color:@text; }
+button.steam:hover,button.cyan:hover,button.amber:hover,button.violet-outline:hover { background:@surface; border-color:@dim; }
+button.action { padding:8px 16px; }
+button.quiet,button.flat,button.game-menu,button.breadcrumb { background:transparent; border-color:transparent; }
+button.quiet:hover,button.game-menu:hover,button.breadcrumb:hover { background:@raised; }
+button.danger,button.game-delete { background:transparent; border-color:transparent; color:#ffb6ad; }
+button.danger label,button.game-delete label { color:#ffb6ad; }
+button.danger:hover,button.game-delete:hover { background:#352225; border-color:#704147; }
+button.game-section { border:1px solid transparent; background:@raised; padding:8px 18px; }
+button.game-section.active,button.quiet.active { background:@text; color:@bg; border:1px solid @text; }
+button.game-section.active label,button.game-section.active drawingarea,button.quiet.active label { color:@bg; }
+button.profile-card { background:@surface; border:1px solid @line; border-radius:8px; padding:14px; }
+button.profile-card.chosen { background:@raised; border-color:@text; }
+.deck-density button.profile-card { padding:12px; }
+.apply-dock { background:transparent; border:0; border-bottom:1px solid @line; border-radius:0; padding:10px 0 16px; }
+.game-workspace .apply-dock { padding:4px 0 8px; }
+.game-workspace .apply-dock button.action,button.game-section-back,.game-tabs button.action { min-height:30px; padding:6px 16px; }
+.game-workspace .apply-dock button.play { min-height:34px; }
+.card,.surface-panel,.preset-detail,.change-details,.port-card { background:@surface; border-color:alpha(@line,.65); border-radius:10px; }
+.console-page { background-image:linear-gradient(145deg,alpha(@ambience,.38),alpha(@bg,0) 42%); }
+label.hero,label.welcome-title,.inline-page-heading { font-family:"Noto Sans",Sans; font-size:34px; font-weight:800; letter-spacing:-.7px; }
+.deck-density label.hero,.deck-density .inline-page-heading { font-size:30px; }
+.page-heading { padding:4px 2px; }
+entry,combobox button,spinbutton { border-radius:8px; border-color:alpha(@line,.8); background:@surface; padding:8px 14px; }
+entry { padding:5px 12px; }
+.appearance-field combobox button { padding:5px 12px; }
+spinbutton { padding:0; min-height:0; }
+spinbutton entry { border:0; background:transparent; padding:5px 10px; min-height:32px; }
+spinbutton button { border:0; border-radius:0; padding:5px 10px; min-width:24px; min-height:32px; }
+.manual-options .card { padding:10px; }
+entry:focus,combobox:focus button { border-color:@text; }
+combobox { outline:0; }
+combobox:focus button { outline:2px solid @focus_ring; outline-offset:1px; }
+check { border-radius:4px; }
+switch { border:1px solid @line; border-radius:20px; }
+switch slider { background:@text; border-radius:20px; min-width:22px; min-height:22px; }
+switch:checked { background:@ambience; }
+.settings-row { padding:8px 4px; }
+button.preference-row { background:@surface; border:1px solid alpha(@line,.5); border-radius:8px; padding:10px 14px; }
+button.preference-row:hover { background:@raised; border-color:@dim; }
+button.preference-row label.preference-title { font-size:16px; font-weight:700; }
+button.preference-row label.meta { font-size:14px; font-weight:400; color:@dim; }
+button.preference-row label.preference-action { font-size:14px; font-weight:600; color:@dim; }
+.preference-icon { background:@raised; border-radius:8px; padding:8px; }
+.appearance-group { background:@surface; border:1px solid alpha(@line,.5); border-radius:10px; padding:12px; }
+.appearance-field { padding:4px 0; }
+label.tag,button label.tag,label.platform-chip { border-radius:4px; }
+expander { background:@surface; border:1px solid alpha(@line,.5); border-radius:8px; padding:16px; }
+expander:focus { outline:2px solid @focus_ring; outline-offset:1px; }
+popover,menu { background:@surface; border-radius:10px; padding:8px; }
+popover button,menuitem { border-radius:8px; padding:8px 14px; }
+.banner,.toast { border-radius:10px; }
+.console-home button.console-play { background:@text; color:@bg; border-color:@text; min-height:34px; padding:10px 24px; }
+.console-home button.console-play:hover { background:@dim; border-color:@dim; }
+.console-home button.console-round { background:@raised; border-color:transparent; min-width:24px; min-height:24px; padding:12px; }
+.app-header button.console-round { background:@raised; border-color:transparent; }
+
+/* Local tabs sit below the page heading and keep their selected state distinct from focus. */
+.game-workspace label.game-title { font-size:24px; }
+label.metadata-line { font-size:14px; font-weight:500; color:@dim; }
+.game-workspace button.action,.game-workspace .apply-dock button.action,
+.game-workspace .game-actions button,.port-workspace button { min-height:30px; padding:6px 12px; font-size:15px; }
+.game-workspace button.action label,.game-workspace .game-actions button label { font-size:15px; }
+.game-workspace .game-actions button.play { background:@accent_a; border-color:@accent_a; color:@on_accent; }
+.game-workspace .game-actions button.play:hover { background:@accent_a_hover; border-color:@accent_a_hover; }
+.game-workspace .game-actions button.play label,.game-workspace .game-actions button.play drawingarea { color:@on_accent; }
+.game-workspace .game-actions button.steam { background:@raised; border-color:@line; }
+.game-workspace .game-actions button.game-menu { background:@raised; border-color:@line; }
+.game-workspace .card,.port-workspace .card { padding:12px; }
+.game-workspace .card button.action { background:@raised; border-color:@line; }
+.game-workspace .card label.meta,.port-workspace label.meta { font-size:14px; }
+.port-workspace .inline-page-heading { font-size:26px; }
+.game-options-popover { padding:6px; }
+.game-options-popover button.game-option { padding:6px 8px; min-height:30px; }
+.game-options-popover button.game-option label { font-size:15px; font-weight:500; }
+.game-options-popover button.game-option:hover { background:@raised; }
+.subtab-bar { border-bottom:1px solid @line; padding-bottom:0; }
+.game-metadata label.tag { font-size:13px; padding:2px 6px; }
+button.section-tab { background:transparent; border:0; border-bottom:2px solid transparent; border-radius:0; padding:6px 12px; min-height:32px; box-shadow:none; }
+button.section-tab label { color:@dim; font-weight:600; }
+button.section-tab:hover { background:alpha(@raised,.55); }
+button.section-tab.active { background:transparent; border-bottom-color:@text; }
+button.section-tab.active label { color:@text; }
+/* Mouse clicks keep the selected state but do not leave a keyboard focus frame. */
+.pointer-input button:focus,.pointer-input button.controller-focus,.pointer-input button.poster:focus,
+.pointer-input entry.controller-focus,.pointer-input switch.controller-focus,.pointer-input scale.controller-focus,
+.pointer-input combobox.controller-focus button,.pointer-input combobox:focus button,.pointer-input expander:focus {
+    outline:0; box-shadow:none;
+}
 '''
 
 SCALES={'normal':1.0,'large':1.15,'xlarge':1.3}
@@ -197,8 +345,8 @@ THEMES=('dark','light')
 
 # Brand colours come from the logo gradient (blue 4780cd to violet 6152b6). Text on the gradient is always white.
 BRAND={
-    'dark':{'ACCENT':'#8aa8f5','ACCENT_SOFT':'#b7c9fb','ACCENT_BG':'#1a2136','ACCENT_A':'#3f6fb8','ACCENT_B':'#5a49ad','ACCENT_A_HOVER':'#4373c1','ACCENT_B_HOVER':'#6e5cc6','ON_ACCENT':'#ffffff','FOCUS_RING':'#ffffff'},
-    'light':{'ACCENT':'#3b5bc0','ACCENT_SOFT':'#34469a','ACCENT_BG':'#e3e9fb','ACCENT_A':'#3f6fb8','ACCENT_B':'#5a49ad','ACCENT_A_HOVER':'#3563aa','ACCENT_B_HOVER':'#4e3e9c','ON_ACCENT':'#ffffff','FOCUS_RING':'#161a20'},
+    'dark':{'ACCENT':'#8aa8f5','ACCENT_SOFT':'#b7c9fb','ACCENT_BG':'#1a2136','ACCENT_A':'#3f6fb8','ACCENT_B':'#5a49ad','ACCENT_A_HOVER':'#4373c1','ACCENT_B_HOVER':'#6e5cc6','ON_ACCENT':'#ffffff','FOCUS_RING':'#ffffff','AMBIENCE':'#123c35'},
+    'light':{'ACCENT':'#3b5bc0','ACCENT_SOFT':'#34469a','ACCENT_BG':'#e3e9fb','ACCENT_A':'#3f6fb8','ACCENT_B':'#5a49ad','ACCENT_A_HOVER':'#3563aa','ACCENT_B_HOVER':'#4e3e9c','ON_ACCENT':'#ffffff','FOCUS_RING':'#161a20','AMBIENCE':'#d8ece7'},
 }
 # The stylesheet above is written for the black theme. The light theme swaps each colour for its counterpart.
 LIGHT={
@@ -216,7 +364,7 @@ LIGHT={
     '#526c59':'#8cc3a2','#d5f1df':'#14532d',
 }
 # Colours painted with cairo, outside the stylesheet.
-DRAWN={'dark':{'backdrop':(0.071,0.078,0.090),'image':(.11,.125,.145)},'light':{'backdrop':(0.925,0.941,0.969),'image':(.86,.89,.94)}}
+DRAWN={'dark':{'backdrop':(0.071,0.078,0.090),'image':(.11,.125,.145),'canvas':(.031,.035,.043),'console':(.13,.39,.34)},'light':{'backdrop':(0.925,0.941,0.969),'image':(.86,.89,.94),'canvas':(.953,.961,.976),'console':(.60,.81,.75)}}
 ACTIVE='dark'
 
 def set_theme(name):

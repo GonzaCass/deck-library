@@ -52,19 +52,15 @@ def button(text,callback,primary=False,tone=None):
     return widget
 
 class PageStack(Gtk.Stack):
-    """Stack that slides between the library and a game's page and cross-fades between the other pages."""
-    ORDER={'library':0,'detail':1}
+    """Fade allocated pages without snapshotting a changing GTK layout."""
     def set_visible_child_name(self,name):
-        current=self.get_visible_child_name();old=self.ORDER.get(current,0);new=self.ORDER.get(name,0)
+        current=self.get_visible_child_name()
         child=self.get_child_by_name(name)
         if child is not None:child.show()
-        if not motion.page_transitions():self.set_transition_type(Gtk.StackTransitionType.NONE);self.set_transition_duration(0)
-        else:
-            self.set_transition_duration(140)
-            self.set_transition_type(Gtk.StackTransitionType.CROSSFADE)
+        self.set_transition_type(Gtk.StackTransitionType.NONE);self.set_transition_duration(0)
         super().set_visible_child_name(name)
-        if self.get_transition_type()==Gtk.StackTransitionType.NONE:
-            GLib.idle_add(self.allocate_visible_page)
+        GLib.idle_add(self.allocate_visible_page)
+        if current!=name and child is not None:motion.enter_page(child)
 
     def allocate_visible_page(self):
         child=self.get_visible_child()
@@ -110,8 +106,11 @@ class Poster(Gtk.DrawingArea):
     def draw_poster(self,widget,cr):
         import cairo
         w=widget.get_allocated_width();h=widget.get_allocated_height()
-        palettes={'Switch':(.20,.14,.24),'WiiCompiled':(.11,.24,.30),'Wii':(.11,.24,.30),'Minecraft':(.14,.24,.18)}
-        color=palettes.get(self.entry.platform,(.15,.18,.25));cr.set_source_rgb(*color);cr.paint()
+        radius=8;cr.new_path()
+        for x,y,a,b in [(w-radius,radius,-1.5708,0),(w-radius,h-radius,0,1.5708),(radius,h-radius,1.5708,3.1416),(radius,radius,3.1416,4.7124)]:cr.arc(x,y,radius,a,b)
+        cr.close_path();cr.clip()
+        palettes={'Switch':(.10,.48,.40),'WiiCompiled':(.08,.60,.56),'Wii':(.08,.60,.56),'PS2':(.70,.23,.15),'Minecraft':(.22,.46,.28),'Linux':(.32,.39,.60),'Windows':(.47,.52,.55)}
+        color=palettes.get(self.entry.platform,(.31,.35,.53));cr.set_source_rgb(*color);cr.paint()
         if self.pixbuf:
             pw=self.pixbuf.get_width();ph=self.pixbuf.get_height();scale=max(w/pw,h/ph);cr.save();cr.rectangle(0,0,w,h);cr.clip();cr.translate((w-pw*scale)/2,(h-ph*scale)/2);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,self.pixbuf,0,0);cr.get_source().set_extend(cairo.EXTEND_PAD);cr.paint();cr.restore()
         else:
@@ -119,20 +118,21 @@ class Poster(Gtk.DrawingArea):
             if w<100:
                 layout=self.create_pango_layout(self.entry.name.strip()[:1].upper() or '?');layout.set_font_description(Pango.FontDescription('Sans Bold '+str(max(10,int(w/2.4)))));tw,th=layout.get_pixel_size();cr.set_source_rgb(.93,.95,.98);cr.move_to((w-tw)/2,(h-th)/2);PangoCairo.show_layout(cr,layout);return False
             cr.set_source_rgba(1,1,1,.06)
-            for offset in range(-int(h),int(w),38):cr.move_to(offset,0);cr.line_to(offset+h,h)
+            for offset in range(-int(h),int(w),38):cr.move_to(offset+h*.5,0);cr.line_to(offset,h)
             cr.set_line_width(14);cr.stroke()
-            layout=self.create_pango_layout(self.entry.name);layout.set_width(int((w-30)*Pango.SCALE));layout.set_wrap(Pango.WrapMode.WORD_CHAR);layout.set_alignment(Pango.Alignment.CENTER);layout.set_font_description(Pango.FontDescription('Sans Bold '+str(max(7,min(19,int(w/8))))));_,th=layout.get_pixel_size();cr.set_source_rgb(.93,.95,.98);cr.move_to(15,(h-th)/2);PangoCairo.show_layout(cr,layout)
-            cr.set_source_rgba(0,0,0,.3);cr.rectangle(0,h-30,w,30);cr.fill();layout=self.create_pango_layout(self.entry.platform.upper());layout.set_font_description(Pango.FontDescription('Sans Bold 9'));tw,_=layout.get_pixel_size();cr.set_source_rgb(.8,.86,.95);cr.move_to((w-tw)/2,h-23);PangoCairo.show_layout(cr,layout)
+            if not self.overlay:
+                layout=self.create_pango_layout(self.entry.name);layout.set_width(int((w-30)*Pango.SCALE));layout.set_wrap(Pango.WrapMode.WORD_CHAR);layout.set_alignment(Pango.Alignment.CENTER);layout.set_font_description(Pango.FontDescription('Sans Bold '+str(max(7,min(19,int(w/8))))));_,th=layout.get_pixel_size();cr.set_source_rgb(.93,.95,.98);cr.move_to(15,(h-th)/2);PangoCairo.show_layout(cr,layout)
+                cr.set_source_rgba(0,0,0,.3);cr.rectangle(0,h-30,w,30);cr.fill();layout=self.create_pango_layout(self.entry.platform.upper());layout.set_font_description(Pango.FontDescription('Sans Bold 9'));tw,_=layout.get_pixel_size();cr.set_source_rgb(.8,.86,.95);cr.move_to((w-tw)/2,h-23);PangoCairo.show_layout(cr,layout)
         if self.overlay:self.draw_overlay(widget,cr,w,h)
         return False
     def draw_overlay(self,widget,cr,w,h):
         """Bottom gradient with the game's name and platform, and a small badge for shortcuts already in Steam."""
         import cairo
         from gi.repository import PangoCairo
-        shade=cairo.LinearGradient(0,h*0.58,0,h);shade.add_color_stop_rgba(0,0.04,0.05,0.09,0);shade.add_color_stop_rgba(1,0.04,0.05,0.09,0.94);cr.set_source(shade);cr.rectangle(0,h*0.58,w,h*0.42);cr.fill()
+        shade=cairo.LinearGradient(0,0,0,h);shade.add_color_stop_rgba(0,0.025,0.035,0.04,.08);shade.add_color_stop_rgba(.45,0.025,0.035,0.04,.12);shade.add_color_stop_rgba(1,0.025,0.035,0.04,.94);cr.set_source(shade);cr.paint()
         layout=self.create_pango_layout(self.entry.name);layout.set_font_description(Pango.FontDescription('Sans Bold 11'));layout.set_width(int((w-24)*Pango.SCALE));layout.set_ellipsize(Pango.EllipsizeMode.END);layout.set_height(-2)
-        cr.set_source_rgba(1,1,1,.97);cr.move_to(12,h-70);PangoCairo.show_layout(cr,layout)
-        sub=self.create_pango_layout(self.entry.platform.upper());sub.set_font_description(Pango.FontDescription('Sans Bold 8'));cr.set_source_rgba(.62,.72,1,.95);cr.move_to(12,h-24);PangoCairo.show_layout(cr,sub)
+        _,th=layout.get_pixel_size();cr.set_source_rgba(1,1,1,.97);cr.move_to(12,h-th-16);PangoCairo.show_layout(cr,layout)
+        sub=self.create_pango_layout(self.entry.platform.upper());sub.set_font_description(Pango.FontDescription('Sans Bold 8'));tw,th=sub.get_pixel_size();cr.set_source_rgba(.02,.03,.04,.78);cr.rectangle(10,10,tw+14,th+8);cr.fill();cr.set_source_rgba(.9,.94,1,1);cr.move_to(17,14);PangoCairo.show_layout(cr,sub)
         if self.steam:
             cr.set_source_rgba(0.04,0.05,0.09,.78);cr.arc(w-22,22,13,0,6.2832);cr.fill();cr.set_source_rgba(.62,.72,1,1);cr.set_line_width(2.4);cr.move_to(w-28,22);cr.line_to(w-23,27);cr.line_to(w-15,17);cr.stroke()
 

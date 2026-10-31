@@ -18,10 +18,20 @@ def gaming_mode():
 
 def page_transitions():
     # Gamescope can snapshot a GTK Stack while its new scrolled child still needs
-    # allocation. Switch pages directly there; button/card motion remains available.
+    # allocation. Switch directly there, then fade the already allocated page.
     return enabled() and not gaming_mode()
 
 def ease_out(t):return 1-(1-t)**3
+
+def enter_page(widget, duration=200):
+    """Fade an allocated page without taking a Gtk.Stack snapshot in Gamescope."""
+    def enter():
+        if not widget.get_mapped():return False
+        root=widget.get_toplevel()
+        root.queue_resize();root.check_resize()
+        fade_in(widget,duration=duration)
+        return False
+    GLib.idle_add(enter)
 
 def fade_in(widget,duration=260,delay=0,rise=0):
     """Animate opacity 0 -> 1 (and an optional upward slide through the top margin) on the widget's frame clock."""

@@ -22,11 +22,12 @@ class InlineDialog(Gtk.Box):
         super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         self.owner=transient_for.owner if isinstance(transient_for,InlineDialog) else transient_for
         self._loop=None;self._answer=None;self._mounted=False;self._closed=False;self._deletable=True;self._buttons={};self._default_size=(640,480)
-        self.set_border_width(12);self.set_hexpand(True);self.set_vexpand(True)
+        self.set_border_width(16);self.set_hexpand(True);self.set_vexpand(True);self.get_style_context().add_class('console-page')
         from .ui_components import Icon
         head=Gtk.Box(spacing=10);self.back_button=Gtk.Button();self.back_button.add(Icon('back',20));self.back_button.get_style_context().add_class('quiet');self.back_button.set_can_focus(False);self.back_button.set_valign(Gtk.Align.CENTER)
         self.back_button.set_tooltip_text('Volver');self.back_button.get_accessible().set_name('Volver');self.back_button.connect('clicked',lambda _:self.cancel());head.pack_start(self.back_button,False,False,0)
         heading=Gtk.Label(label=title,xalign=0);heading.set_line_wrap(True);heading.get_style_context().add_class('inline-page-heading');head.pack_start(heading,True,True,0);self.pack_start(head,False,False,0)
+        self.heading=heading;self.header=head
         self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
         self.scroll=self.owner.new_scroll();self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC);self.scroll.set_overlay_scrolling(False);self.scroll.set_vexpand(True);self.scroll.add(self.content);self.pack_start(self.scroll,True,True,0)
         self.actions=InlineActions(self);self.actions_scroll=self.owner.new_scroll();self.actions_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);self.actions_scroll.set_no_show_all(True);self.actions_scroll.add(self.actions);self.pack_start(self.actions_scroll,False,False,0);self.reorder_child(self.actions_scroll,1)
@@ -34,6 +35,21 @@ class InlineDialog(Gtk.Box):
 
     def get_content_area(self):return self.content
     def get_action_area(self):return self.actions
+    def set_sections(self,sections):
+        """Replace the single scroller, keeping the first section as the main content."""
+        from .ui_components import SectionTabs
+        self.content.get_parent().remove(self.content)
+        self.remove(self.scroll);self.scroll.destroy()
+        self.section_tabs=SectionTabs()
+        for name,caption,body in sections:self.section_tabs.add_page(name,caption,body)
+        self.scroll=self.section_tabs.scrolls[sections[0][0]]
+        self.pack_start(self.section_tabs,True,True,0)
+    def compact_header(self):
+        """Keep short primary commands beside the title instead of reserving a row."""
+        self.heading.set_width_chars(1)
+        self.remove(self.actions_scroll);self.header.pack_end(self.actions_scroll,False,False,0)
+        self.actions_scroll.set_min_content_width(150);self.actions_scroll.set_max_content_width(380);self.actions_scroll.set_propagate_natural_width(True)
+        self.actions_scroll.set_valign(Gtk.Align.CENTER)
     def _refresh_actions(self):
         if self._mounted:self.actions_scroll.set_visible(any(c.get_visible() for c in self.actions.get_children()))
     def set_default_size(self,width,height):self._default_size=(width,height)
@@ -72,9 +88,13 @@ class InlineDialog(Gtk.Box):
         manual_text_input(self)
         Gtk.Box.show_all(self);self.actions.show_all();self._refresh_actions();owner.workflow_stack.set_visible_child(self)
         GLib.idle_add(self._focus_first)
+        from . import motion
+        motion.enter_page(self)
     def _focus_first(self):
         if self._closed:return False
         targets=self.owner.control_targets(self.content) or self.owner.control_targets(self)
+        preferred=getattr(self,'preferred_focus',None)
+        if preferred is not None and self.owner.control_is_shown(preferred):targets=[preferred]+targets
         if targets:
             targets[0].grab_focus();self.owner.mark_controller_focus(self.owner,targets[0])
         return False
@@ -94,7 +114,10 @@ class InlineDialog(Gtk.Box):
             if page._previous is self:page._previous=self._previous;page._previous_focus=self._previous_focus
         if self.get_parent() is owner.workflow_stack:owner.workflow_stack.remove(self)
         previous=self._previous
-        if visible and previous and previous.get_parent() is owner.workflow_stack:owner.workflow_stack.set_visible_child(previous)
+        if visible and previous and previous.get_parent() is owner.workflow_stack:
+            owner.workflow_stack.set_visible_child(previous)
+            from . import motion
+            motion.enter_page(previous)
         for control in owner.navigation_controls:control.set_sensitive(not owner.inline_workflows)
         if not visible:return
         focus=self._previous_focus

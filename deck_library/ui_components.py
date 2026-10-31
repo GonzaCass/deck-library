@@ -2,7 +2,7 @@
 import math
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango
+from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango, Atk
 from . import motion
 
 class PortImage(Gtk.Image):
@@ -12,7 +12,9 @@ class PortImage(Gtk.Image):
     def do_get_preferred_width(self):return (0,260)
     def do_get_preferred_height(self):return (148,148)
     def do_draw(self,cr):
-        width,height=self.get_allocated_width(),self.get_allocated_height();cr.save();cr.rectangle(0,0,width,height);cr.clip()
+        width,height=self.get_allocated_width(),self.get_allocated_height();radius=8;cr.save();cr.new_path()
+        for x,y,a,b in [(width-radius,radius,-math.pi/2,0),(width-radius,height-radius,0,math.pi/2),(radius,height-radius,math.pi/2,math.pi),(radius,radius,math.pi,math.pi*1.5)]:cr.arc(x,y,radius,a,b)
+        cr.close_path();cr.clip()
         from . import ui_theme
         cr.set_source_rgb(*ui_theme.drawn('image'));cr.paint()
         pix=self.get_pixbuf() if self.get_storage_type()==Gtk.ImageType.PIXBUF else None
@@ -42,18 +44,64 @@ def text(value, style=None, limit=None):
 def badge(value, tone='neutral', limit=32):
     widget=styled(text(value),'tag','tag-'+tone)
     widget.set_line_wrap(False);widget.set_ellipsize(Pango.EllipsizeMode.END)
-    widget.set_max_width_chars(limit);widget.set_halign(Gtk.Align.START)
+    widget.set_max_width_chars(limit);widget.set_halign(Gtk.Align.START);widget.set_valign(Gtk.Align.CENTER)
     widget.set_tooltip_text(value)
     return widget
 
 
-def badge_row(values,per_line=12):
+def badge_row(values,per_line=12,compact=False):
+    if compact:
+        row=styled(Gtk.Box(spacing=6),'game-metadata');row.set_valign(Gtk.Align.CENTER)
+        for value,tone in values:row.pack_start(badge(value,tone),False,False,0)
+        return row
     row=styled(Gtk.FlowBox(),'tag-row');row.set_selection_mode(Gtk.SelectionMode.NONE);row.set_can_focus(False)
     row.set_min_children_per_line(1);row.set_max_children_per_line(per_line)
     row.set_column_spacing(6);row.set_row_spacing(5)
+    row.set_valign(Gtk.Align.CENTER);row.set_homogeneous(False)
     for value,tone in values:
         row.add(badge(value,tone));row.get_children()[-1].set_can_focus(False)
     return row
+
+def metadata_line(values):
+    """Short facts read as one line rather than competing status badges."""
+    line=text(' · '.join(dict.fromkeys(value for value in values if value)),'metadata-line')
+    line.set_line_wrap(False);line.set_width_chars(1);line.set_ellipsize(Pango.EllipsizeMode.END)
+    return line
+
+def section_tab(caption,callback):
+    control=styled(Gtk.Button(label=caption),'section-tab')
+    control.get_accessible().set_role(Atk.Role.PAGE_TAB)
+    control.connect('clicked',callback)
+    return control
+
+def select_tab(control,active):
+    style=control.get_style_context()
+    style.add_class('active') if active else style.remove_class('active')
+    control.get_accessible().set_description('Sección actual' if active else 'Abrir sección')
+    control.get_accessible().notify_state_change(Atk.StateType.SELECTED,active)
+
+class SectionTabs(Gtk.Box):
+    """Fixed local navigation with an independent scroll position for each section."""
+    def __init__(self):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=10)
+        self.buttons={};self.scrolls={}
+        self.bar=styled(Gtk.Box(spacing=12),'subtab-bar');self.bar.get_accessible().set_role(Atk.Role.PAGE_TAB_LIST)
+        nav=Gtk.ScrolledWindow();nav.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);nav.add(self.bar)
+        self.pack_start(nav,False,False,0)
+        self.stack=Gtk.Stack();self.stack.set_homogeneous(False);self.stack.set_transition_type(Gtk.StackTransitionType.NONE)
+        self.pack_start(self.stack,True,True,0)
+    def add_page(self,name,caption,child):
+        scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);scroll.set_overlay_scrolling(False);scroll.add(child)
+        scroll.show_all();self.stack.add_named(scroll,name);self.scrolls[name]=scroll
+        control=section_tab(caption,lambda _:self.select(name));self.buttons[name]=control;self.bar.pack_start(control,False,False,0)
+        self.select(self.stack.get_visible_child_name() or name)
+    def select(self,name):
+        previous=self.stack.get_visible_child_name();self.stack.set_visible_child_name(name)
+        for key,control in self.buttons.items():select_tab(control,key==name)
+        if previous!=name:motion.enter_page(self.stack.get_visible_child())
+    def cycle(self,step):
+        names=list(self.buttons);current=self.stack.get_visible_child_name();name=names[(names.index(current)+step)%len(names)]
+        self.select(name);self.buttons[name].grab_focus()
 
 
 class Icon(Gtk.DrawingArea):
@@ -176,12 +224,14 @@ class ActionButton(Gtk.Button):
         super().__init__()
         styled(self, 'action', tone)
         self.set_halign(Gtk.Align.START)
+        self.set_valign(Gtk.Align.CENTER)
         self.body = Gtk.Box(spacing=8)
         self.body.set_halign(Gtk.Align.CENTER)
         self.icon = Icon(icon)
         self.caption = text(caption)
         self.caption.set_line_wrap(False)
         self.caption.set_single_line_mode(True)
+        if not caption:self.caption.set_no_show_all(True);self.caption.hide()
         self.body.pack_start(self.icon, False, False, 0)
         self.body.pack_start(self.caption, False, False, 0)
         self.add(self.body)
@@ -198,6 +248,7 @@ class ActionButton(Gtk.Button):
 
     def set_label(self, value):
         self.caption.set_text(value)
+        self.caption.set_no_show_all(not bool(value));self.caption.set_visible(bool(value))
         self.get_accessible().set_name(value)
 
     def set_icon(self, name):
@@ -224,10 +275,28 @@ class TaskButton(Gtk.Button):
         self.connect('leave-notify-event',lambda *_:self.icon.hover(False))
 
 
+class SettingsRow(Gtk.Button):
+    """One focus target keeps a setting, its explanation and its action together."""
+    def __init__(self,title,description,caption,icon,callback):
+        super().__init__();styled(self,'preference-row')
+        row=Gtk.Box(spacing=12);row.set_valign(Gtk.Align.CENTER)
+        emblem=styled(Gtk.Box(),'preference-icon');emblem.set_valign(Gtk.Align.CENTER)
+        emblem.pack_start(Icon(icon,20),False,False,0);row.pack_start(emblem,False,False,0)
+        words=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2);words.set_hexpand(True)
+        self.title=text(title,'preference-title');self.description=text(description,'meta')
+        for widget in (self.title,self.description):widget.set_width_chars(1)
+        words.pack_start(self.title,False,False,0);words.pack_start(self.description,False,False,0)
+        row.pack_start(words,True,True,0)
+        action=text(caption,'preference-action');action.set_valign(Gtk.Align.CENTER);action.set_max_width_chars(18)
+        row.pack_start(action,False,False,0);row.pack_end(Icon('chevron',18),False,False,0)
+        self.add(row);self.get_accessible().set_name(title);self.get_accessible().set_description(description)
+        self.connect('clicked',callback)
+
+
 class Reveal(Gtk.Box):
     """A labelled disclosure that can be focused and used with keyboard or Steam Input."""
     def __init__(self, caption, child):
-        super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=8)
+        super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=0)
         self.control = ActionButton(caption,'chevron')
         styled(self.control,'disclosure')
         self.control.body.set_halign(Gtk.Align.START)
@@ -246,17 +315,18 @@ class Reveal(Gtk.Box):
 
 
 class GameBackdrop(Gtk.DrawingArea):
-    """Flat workspace surface, independent of the cover artwork."""
+    """Carry the home screen's quiet artwork and ambient colour into a game."""
     def __init__(self, path):
         super().__init__()
+        from .gui_console import ConsoleBackdrop
+        self.backdrop=ConsoleBackdrop();self.backdrop.set_cover(path)
         self.connect('draw',self.draw_backdrop)
 
     def draw_backdrop(self,widget,cr):
-        # Keep the workspace on the same flat charcoal surface as its controls.
-        w,h=widget.get_allocated_width(),widget.get_allocated_height();radius=12
+        w,h=widget.get_allocated_width(),widget.get_allocated_height();radius=10
         cr.save();cr.new_path()
         for x,y,a,b in [(w-radius,radius,-math.pi/2,0),(w-radius,h-radius,0,math.pi/2),(radius,h-radius,math.pi/2,math.pi),(radius,radius,math.pi,math.pi*1.5)]:cr.arc(x,y,radius,a,b)
-        cr.close_path();cr.clip();from . import ui_theme;cr.set_source_rgb(*ui_theme.drawn('backdrop'));cr.paint();cr.restore()
+        cr.close_path();cr.clip();self.backdrop.paint(widget,cr);cr.restore()
         return False
 
 def tooltip_when_cut(widget,value):

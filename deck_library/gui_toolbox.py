@@ -4,7 +4,7 @@ from gi.repository import Gtk,GLib,Pango
 from .inline_pages import InlineDialog
 from .installations import save_settings
 from . import layout
-from .ui_components import ActionButton,text
+from .ui_components import ActionButton,SettingsRow,text
 
 class ToolboxMixin:
     def tools_page(self,*_):
@@ -19,11 +19,9 @@ class ToolboxMixin:
                ('Duplicados y conflictos','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),
                ('Juegos ocultos','Restaurar juegos quitados de la biblioteca sin borrar sus archivos.','Juegos ocultos','library',self.hidden_games_dialog)]
         if not motion.gaming_mode():tools.append(('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam))
-        actions=Gtk.Box(spacing=8)
         for title,description,caption,icon,action in tools:
-            row=Gtk.Box(spacing=16);row.get_style_context().add_class('settings-row');words=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);words.pack_start(label(title,'title'),False,False,0);words.pack_start(label(description,'muted'),False,False,0)
-            row.pack_start(words,True,True,0);actions.pack_start(ActionButton({'Convertir':'Convertir Switch','Extraer':'Extraer ISO','Gestionar ROMs':'ROMs asociadas','Revisar':'Conflictos'}.get(caption,caption),icon,action,'steam' if icon=='steam' else 'cyan'),False,False,0);self.tools_box.pack_start(row,False,False,0)
-        self.pin_page_header(self.tools_box,self.tools_box.get_children()[0],actions)
+            self.tools_box.pack_start(SettingsRow(title,description,caption,icon,action),False,False,0)
+        self.pin_page_header(self.tools_box,self.tools_box.get_children()[0])
         self.tools_box.show_all();self.pages.set_visible_child_name('tools')
 
     def iso_extract_page(self,*_):

@@ -31,7 +31,7 @@ class UpdatesMixin:
     def updates_ready(self,state,manual):
         if self.ui_closed:return False
         self.update_busy=False;self.app_update_ready(state)
-        if self.preferences.get('auto_update_ports'):
+        if self.preferences.get('auto_update_ports') and os.environ.get('DECK_LIBRARY_UI_PREVIEW')!='1':
             self.auto_port_queue=[('catalog',p) for p in state.get('catalog') or []]+([('project2099',state['project2099'])] if state.get('project2099') else [])
             self.run_next_auto_port()
         return False
@@ -42,7 +42,7 @@ class UpdatesMixin:
         changed=state!=getattr(self,'update_state',None)
         self.app_check_busy=False;self.update_state=state;self.refresh_update_badges()
         if changed and self.pages.get_visible_child_name()=='updates' and not self.inline_workflows:self.updates_page()
-        if state.get('app') and self.preferences.get('auto_update') and not getattr(self,'update_installed',None):self.install_app_update(automatic=True)
+        if state.get('app') and self.preferences.get('auto_update') and not getattr(self,'update_installed',None) and os.environ.get('DECK_LIBRARY_UI_PREVIEW')!='1':self.install_app_update(automatic=True)
         return False
 
     def update_catalog_port(self,data):
@@ -79,6 +79,8 @@ class UpdatesMixin:
     def refresh_update_badges(self):
         count=len(self.pending_updates())+(1 if getattr(self,'update_installed',None) else 0);self.banner_text.show()
         self.update_badge.set_text(str(count));self.update_badge.set_visible(count>0)
+        if hasattr(self,'shell_update_badge'):
+            self.shell_update_badge.set_text(str(count));self.shell_update_badge.set_visible(count>0)
         state=getattr(self,'update_state',{}) or {}
         version='v'+__version__
         if getattr(self,'update_installed',None):version+=f' · Reabrir para {self.update_installed}'

@@ -7,7 +7,7 @@ from .inline_pages import InlineDialog
 from . import ports
 from .installations import save_settings
 from .service import queue_removals
-from .ui_components import badge,badge_row
+from .ui_components import badge,badge_row,metadata_line
 
 ART_WIDTH=88
 CATALOG_PAGE=30
@@ -45,8 +45,8 @@ class CatalogMixin:
         self.catalog_ready=True
         box=self.catalog_box;self.reset_page(box)
         head=Gtk.Box(spacing=12);titles=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
-        titles.pack_start(label('Ports','hero'),False,False,0)
-        intro=label('Catálogos públicos, recomendados y repositorios propios. Se instalan en ~/DeckLibrary/ports (o en ~/ports si ya se usaba) desde la última versión publicada en GitHub. La mayoría necesita los archivos del juego original.','subtitle');intro.set_tooltip_text(intro.get_text())
+        titles.pack_start(label('Conseguir juegos','hero'),False,False,0)
+        intro=label('Ports para la biblioteca. Algunos requieren archivos originales.','subtitle');intro.set_tooltip_text(intro.get_text())
         if self.compact_screen():intro.set_line_wrap(False);intro.set_ellipsize(Pango.EllipsizeMode.END);intro.set_max_width_chars(60)
         titles.pack_start(intro,False,False,0)
         head.pack_start(titles,True,True,0);actions=Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL if self.compact_screen() else Gtk.Orientation.VERTICAL,spacing=8);actions.set_valign(Gtk.Align.CENTER)
@@ -210,41 +210,69 @@ class CatalogMixin:
         self.queue_resize();GLib.idle_add(self.check_resize)
 
     def port_details(self,item):
-        from .gui import label,button
+        from .gui import label,button as make_button
         import subprocess
+        def button(*args,**kwargs):
+            control=make_button(*args,**kwargs);control.set_halign(Gtk.Align.START);control.set_valign(Gtk.Align.CENTER);return control
         item=ports.clean(item)
         title=item.get('game_title') or item['name'];page=InlineDialog(title=title,transient_for=self);page.port_repository=item['repository'];page.add_button('Volver al catálogo',Gtk.ResponseType.CLOSE)
-        box=page.get_content_area();hero=Gtk.Box(spacing=20);detail_art=(96,144) if self.compact_screen() else (132,198);image=Gtk.Image.new_from_icon_name('applications-games-symbolic',Gtk.IconSize.DIALOG);image.set_size_request(*detail_art);image.set_valign(Gtk.Align.START);hero.pack_start(image,False,False,0)
+        page.get_style_context().add_class('port-workspace')
+        box=page.get_content_area();box.set_spacing(12);hero=Gtk.Box(spacing=16);detail_art=(88,132) if self.compact_screen() else (96,144);image=Gtk.Image.new_from_icon_name('applications-games-symbolic',Gtk.IconSize.DIALOG);image.set_size_request(*detail_art);image.set_valign(Gtk.Align.START);hero.pack_start(image,False,False,0)
         text=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
         tool='utilit' in item.get('list','').casefold()
-        heading=item.get('game_title') or ('Herramienta para ports' if tool else item['name']);text.pack_start(label(heading,'game-title'),False,False,0)
+        heading=item.get('game_title') or ('Herramienta para ports' if tool else item['name'])
         if heading.casefold()!=item['name'].casefold():text.pack_start(label('Port: '+item['name'],'subtitle'),False,False,0)
         facts=[(item['list'] or 'Plataforma sin especificar','violet'),*system_tags(item)]
         if item['source']:facts.append((item['source'],'neutral'))
-        text.pack_start(badge_row(facts),False,False,0)
-        fit=ports.compatibility(item);text.pack_start(compatibility_badge(fit,True),False,False,0)
-        text.pack_start(label(' '.join(fit['reasons'])+' Estimación a partir de los datos del catálogo; no es una prueba de juego.','muted'),False,False,0)
-        text.pack_start(button('Cómo se calcula',self.compatibility_guide),False,False,0)
-        if item.get('release_version'):text.pack_start(label('Versión disponible: '+item['release_version'],'muted'),False,False,0)
-        if item.get('release_at'):text.pack_start(label('Publicada el '+datetime.datetime.fromtimestamp(item['release_at']).strftime('%d/%m/%Y'),'muted'),False,False,0)
+        text.pack_start(label('Sobre este port','section-title'),False,False,0)
+        text.pack_start(metadata_line([value for value,_ in facts]),False,False,0)
+        summaries={'kit':'La primera ejecución prepara el juego a partir del disco y la BIOS propios.','openpete':'La primera ejecución compila el juego desde el disco original.','ctr':'Port para PC preparado a partir del disco original.','rom':'Port nativo que requiere una ROM original compatible.','zelda3':'Port nativo que requiere una ROM original compatible.','wwhd':'Port nativo que requiere los archivos del disco de Wii U.','project2099':'Recompilación para PC a partir de una copia propia de Xbox 360.'}
+        description=label(item.get('description') or summaries.get(item.get('setup')) or item.get('note') or 'Consultar los requisitos y la compatibilidad antes de instalar.','muted');description.set_lines(3);description.set_ellipsize(Pango.EllipsizeMode.END);text.pack_start(description,False,False,0)
+        fit=ports.compatibility(item)
+        compatibility=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
+        estimate=self.card(compatibility,'Estimación del catálogo');estimate.pack_start(compatibility_badge(fit,True),False,False,0)
+        estimate.pack_start(label(' '.join(fit['reasons'])+' Estimación a partir de los datos del catálogo; no es una prueba de juego.','muted'),False,False,0)
+        estimate.pack_start(button('Cómo se calcula',self.compatibility_guide),False,False,0)
+        version=self.card(compatibility,'Versión y paquete')
+        if item.get('release_version'):version.pack_start(label('Versión disponible: '+item['release_version'],'muted'),False,False,0)
+        if item.get('release_at'):version.pack_start(label('Publicada el '+datetime.datetime.fromtimestamp(item['release_at']).strftime('%d/%m/%Y'),'muted'),False,False,0)
         hero.pack_start(text,True,True,0);box.pack_start(hero,False,False,0)
-        evidence=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);box.pack_start(evidence,False,False,0);variant_index=self.port_variant_index()
+        summary=Gtk.Box(spacing=12);summary.set_homogeneous(True);box.pack_start(summary,False,False,0)
+        original_card=self.card(summary,'Archivos necesarios');original_card.set_hexpand(True);summary.set_child_packing(original_card,True,True,0,Gtk.PackType.START)
+        deck_card=self.card(summary,'Compatibilidad en Deck');deck_card.set_hexpand(True);summary.set_child_packing(deck_card,True,True,0,Gtk.PackType.START)
+        deck_card.pack_start(label(fit_badge(fit,True),'meta'),False,False,0)
+        deck_card.pack_start(label('Estimación del catálogo; no es una prueba de juego.','meta'),False,False,0)
+        evidence=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);compatibility.pack_start(evidence,False,False,0);compatibility.reorder_child(evidence,0);variant_index=self.port_variant_index()
+        variant_status=Gtk.Box();deck_card.pack_start(variant_status,False,False,0);deck_card.reorder_child(variant_status,1)
         def refresh_evidence(tag=None):
             if page._closed:return False
-            self.reset_page(evidence);candidate={**item,**({'release_version':tag} if tag else {})};self.build_port_evidence(evidence,candidate,page,variant_index);evidence.show_all();self.refresh_layout();return False
+            self.reset_page(evidence);candidate={**item,**({'release_version':tag} if tag else {})};self.build_port_evidence(evidence,candidate,page,variant_index)
+            self.reset_page(variant_status);assessment=variant_index.assess(candidate)
+            variant_status.pack_start(self.variant_badge(assessment),False,False,0)
+            variant_status.show_all();evidence.show_all();self.refresh_layout();return False
         refresh_evidence()
-        if item.get('description'):box.pack_start(label(item['description'],'subtitle'),False,False,0)
-        if item.get('note'):box.pack_start(label(item['note'],'muted'),False,False,0)
+        about=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
+        if item.get('description'):about.pack_start(label(item['description'],'muted'),False,False,0)
+        if item.get('note'):about.pack_start(label(item['note'],'muted'),False,False,0)
         from .port_requirements import original_requirement
-        requirement=original_requirement(item);originals=self.card(box,'ROM y versión necesarias');originals.pack_start(label(requirement['label'],'title'),False,False,0);originals.pack_start(label(requirement['details'],'muted'),False,False,0)
-        if requirement['source']:originals.pack_start(Gtk.LinkButton.new_with_label(requirement['source'],'Requisitos del proyecto'),False,False,0)
+        requirement=original_requirement(item);original_card.pack_start(label(requirement['label'],'title'),False,False,0)
+        if item.get('bios'):
+            from .i18n import t
+            original_card.pack_start(label('BIOS: '+t(item['bios']['name']),'meta'),False,False,0)
+        summary_check=label('Comprobando requisitos…','meta');original_card.pack_start(summary_check,False,False,0)
+        original_card.pack_end(button('Ver requisitos',lambda _:page.section_tabs.select('requirements')),False,False,0)
+        deck_card.pack_end(button('Ver compatibilidad',lambda _:page.section_tabs.select('compatibility')),False,False,0)
+        files=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
+        originals=self.card(files,'ROM y versión necesarias');originals.pack_start(label(requirement['label'],'title'),False,False,0);originals.pack_start(label(requirement['details'],'muted'),False,False,0)
+        if requirement['source']:
+            link=Gtk.LinkButton.new_with_label(requirement['source'],'Requisitos del proyecto');link.set_halign(Gtk.Align.START);originals.pack_start(link,False,False,0)
         from .gui_switch import SWITCH_PORTS
         if item['repository'].lower() in SWITCH_PORTS:
             from .ui_components import ActionButton
             from .gui_switch import minimum_for
             def convert(_):page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.switch_convert_page(minimum=minimum_for(item['repository'])),False)[1])
             originals.pack_start(ActionButton('Convertir XCI/NSP a carpeta','folder',convert,'steam-outline'),False,False,0)
-        status=label('Cargando imagen…','meta');box.pack_start(status,False,False,0)
+        status=label('Cargando imagen…','meta');about.pack_start(status,False,False,0)
         def artwork(force=False):
             status.set_text('Cargando imagen…');retry.hide()
             def done(path,error):
@@ -258,12 +286,13 @@ class CatalogMixin:
                 try:GLib.idle_add(done,ports.icon_path(self.store,item,force=force),'')
                 except Exception:GLib.idle_add(done,'','No se pudo descargar la imagen. Se puede volver a intentar.')
             threading.Thread(target=work,daemon=True).start()
-        retry=button('Reintentar imagen',lambda _:artwork(True));retry.get_style_context().add_class('quiet');retry.set_halign(Gtk.Align.START);retry.set_no_show_all(True);retry.hide();box.pack_start(retry,False,False,0)
-        checks=label('Comprobando requisitos…','status');box.pack_start(checks,False,False,0)
-        package=label('Comprobando el paquete de instalación…','meta');box.pack_start(package,False,False,0)
+        retry=button('Reintentar imagen',lambda _:artwork(True));retry.get_style_context().add_class('quiet');retry.set_halign(Gtk.Align.START);retry.set_no_show_all(True);retry.hide();about.pack_start(retry,False,False,0)
+        checks=label('Comprobando requisitos…','status');check_panel=self.card(files,'Comprobación de archivos');check_panel.pack_start(checks,False,False,0)
+        package=label('Comprobando el paquete de instalación…','meta');version.pack_start(package,False,False,0)
         from .port_recipes import preparation
-        _,preparation_text=preparation(item);box.pack_start(label(preparation_text,'muted'),False,False,0)
-        if item.get('source_note'):box.pack_start(label(item['source_note'],'muted'),False,False,0)
+        _,preparation_text=preparation(item);preparation_panel=self.card(files,'Preparación');preparation_panel.pack_start(label(preparation_text,'muted'),False,False,0)
+        if item.get('source_note'):preparation_panel.pack_start(label(item['source_note'],'muted'),False,False,0)
+        options=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         primary_action=[None]
         def proton_install(_):
             page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.install_port(item,bool(ports.records(self.store).get(item['repository'])),runtime='proton'),False)[1])
@@ -273,7 +302,9 @@ class CatalogMixin:
             try:lines=ports.requirements(item,games)
             except Exception:lines=[]
             def show():
-                if not page._closed:checks.set_text('\n'.join(('✓ ' if ok is True else '✗ ' if ok is False else '')+message for ok,message in lines) or ('Herramienta independiente.' if tool else 'Puede necesitar archivos del juego original. Consultar los requisitos del proyecto.'))
+                if not page._closed:
+                    checks.set_text('\n'.join(('✓ ' if ok is True else '✗ ' if ok is False else '')+message for ok,message in lines) or ('Herramienta independiente.' if tool else 'Puede necesitar archivos del juego original. Consultar los requisitos del proyecto.'))
+                    summary_check.set_text('Faltan archivos originales.' if any(ok is False for ok,_ in lines) else 'Revisar los archivos originales.' if any(ok is None for ok,_ in lines) or not lines and not tool else 'Comprobaciones completadas.')
                 return False
             GLib.idle_add(show)
         threading.Thread(target=requirements,daemon=True).start()
@@ -296,7 +327,7 @@ class CatalogMixin:
                         refresh_evidence(release.get('tag_name',''))
                         if proton_plan and (not plan or plan['runtime']!='proton'):proton_button.set_no_show_all(False);proton_button.show_all();proton_button.set_no_show_all(True)
                         if primary_action[0] and plan and plan['runtime']=='proton':primary_action[0].set_label('Instalar con Proton')
-                        if primary_action[0] and not plan:primary_action[0].set_sensitive(False)
+                        if primary_action[0] and not plan:primary_action[0].set_label('Sin paquete compatible');primary_action[0].set_sensitive(False)
                         return False
                     GLib.idle_add(offer)
             except Exception:info='No se pudo comprobar el paquete. Se volverá a consultar al instalar.'
@@ -305,9 +336,9 @@ class CatalogMixin:
                 return False
             GLib.idle_add(show)
         threading.Thread(target=package_info,daemon=True).start()
-        repository=label(item['repository'],'muted');repository.set_selectable(True);box.pack_start(repository,False,False,0)
+        repository=label(item['repository'],'muted');repository.set_selectable(True);about.pack_start(repository,False,False,0)
         if ports.valid_repository(item['repository']) and not item.get('web'):
-            page.get_action_area().pack_start(button('Abrir proyecto en GitHub',lambda _:subprocess.Popen(['xdg-open','https://github.com/'+item['repository']],start_new_session=True)),False,False,0)
+            about.pack_start(button('Abrir proyecto en GitHub',lambda _:subprocess.Popen(['xdg-open','https://github.com/'+item['repository']],start_new_session=True)),False,False,0)
         installed=ports.records(self.store);record=installed.get(item['repository']) or self.catalog_installation(item,installed)
         updates={u['repository'] for u in (getattr(self,'update_state',None) or {}).get('catalog') or []}
         if record and record.get('external'):
@@ -321,7 +352,7 @@ class CatalogMixin:
         elif record:
             box.pack_start(label('Instalado · '+record.get('tag',''),'good'),False,False,0)
             self.iso_cleanup_button(box,item,record)
-            if installed.get(item['repository']) and item['repository']!='GenryTheFox0/Project-2099':page.get_action_area().pack_start(button('Desinstalar',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.uninstall_port(item),False)[1])),tone='danger'),False,False,0)
+            if installed.get(item['repository']) and item['repository']!='GenryTheFox0/Project-2099':options.pack_start(button('Desinstalar',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.uninstall_port(item),False)[1])),tone='danger'),False,False,0)
             if item.get('preparation')=='launcher':page.get_action_area().pack_start(button('Abrir port',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.open_installed_port(record),False)[1]))),False,False,0)
         else:
             def install(_):page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.install_port(item,False),False)[1])
@@ -329,13 +360,19 @@ class CatalogMixin:
         if item.get('package_role') not in ('source-only','build-tool') and item['repository'].casefold()!='genrythefox0/project-2099':
             def locate(_):
                 page.destroy();GLib.idle_add(lambda:(self.port_location_page(item),False)[1])
-            page.get_action_area().pack_start(button('Carpetas del juego' if record else 'Usar instalación existente',locate,tone='cyan'),False,False,0)
+            options.pack_start(button('Carpetas del juego' if record else 'Usar instalación existente',locate,tone='cyan'),False,False,0)
         if installed.get(item['repository']) and item['repository'].casefold()!='genrythefox0/project-2099':
             def delete_port(_):
                 page.response(Gtk.ResponseType.CLOSE)
                 GLib.idle_add(lambda:(self.delete_port_permanently(item),False)[1])
-            page.get_action_area().pack_start(button('Eliminar completamente',delete_port,tone='danger'),False,False,0)
-        self.transfer_row(box,item['repository']);page.show_all();artwork();page.run();page.destroy()
+            options.pack_start(button('Eliminar completamente',delete_port,tone='danger'),False,False,0)
+        management=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
+        if options.get_children():
+            panel=self.card(management,'Instalación y archivos');panel.pack_start(options,False,False,0)
+        project=self.card(management,'Acerca del port');project.pack_start(about,False,False,0)
+        page.preferred_focus=primary_action[0] or next((c for c in reversed(page.actions.get_children()) if c.get_style_context().has_class('primary')),None)
+        page.set_sections([('summary','Resumen',box),('requirements','Requisitos',files),('compatibility','Compatibilidad',compatibility),('manage','Gestión',management)])
+        self.transfer_row(box,item['repository']);page.compact_header();page.show_all();artwork();page.run();page.destroy()
 
     def prepare_shaders(self):
         from . import ports

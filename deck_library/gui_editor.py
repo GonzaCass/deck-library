@@ -10,14 +10,15 @@ class EditorMixin:
         adapter=presets.adapter_for(e)
         try:current=presets.current_values(e,self.preferences.get('eden_config') or None)
         except Exception as error:box.pack_start(label(str(error),'muted'),False,False,0);return
-        scroll=self.new_scroll();page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=16);page.set_margin_end(12);scroll.add(page);box.pack_start(scroll,True,True,0);controls={};touched=set()
+        scroll=self.new_scroll();page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);page.get_style_context().add_class('manual-options');page.set_margin_end(8);scroll.add(page);box.pack_start(scroll,True,True,0);controls={};touched=set()
         def changed(ident):
             touched.add(ident);self.editor_dirty=any(read(widget)!=initial for key,(widget,read,initial) in controls.items() if key in touched)
             status.set_text('Cambios sin guardar.' if self.editor_dirty else 'Sin cambios por guardar.');save_button.set_sensitive(self.editor_dirty)
         for section,options in presets.REGISTRY[adapter].items():
             card=self.card(page,SECTION_LABELS.get(adapter,{}).get(section,section))
+            card.set_spacing(8)
             for key,rule in options.items():
-                title,hint=SETTING_LABELS.get(adapter,{}).get(key,(key,''));initial=current.get(section,{}).get(key);row=Gtk.Box(spacing=16);texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);texts.pack_start(label(title),False,False,0)
+                title,hint=SETTING_LABELS.get(adapter,{}).get(key,(key,''));initial=current.get(section,{}).get(key);row=Gtk.Box(spacing=12);texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2);texts.pack_start(label(title),False,False,0)
                 if hint:texts.pack_start(label(hint,'meta'),False,False,0)
                 row.pack_start(texts,True,True,0);ident=(section,key)
                 if rule is bool:
@@ -29,7 +30,10 @@ class EditorMixin:
                 else:
                     is_float=type(rule[0]) is float;widget=Gtk.SpinButton.new_with_range(rule[0],rule[1],0.5 if is_float else 1);widget.set_digits(1 if is_float else 0);widget.set_value(initial if initial is not None else rule[0]);widget.connect('value-changed',lambda w,i=ident:changed(i));read=(lambda w:float(w.get_value())) if is_float else (lambda w:int(w.get_value()))
                 row.pack_end(widget,False,False,0);card.pack_start(row,False,False,0);controls[ident]=(widget,read,initial)
-        status=label('Solo se guardan las opciones modificadas.','status');box.pack_start(status,False,False,0);actions=Gtk.Box(spacing=10);actions.get_style_context().add_class('apply-dock');box.pack_start(actions,False,False,0);box.reorder_child(actions,1)
+        status=label('Solo se guardan las opciones modificadas.','status');box.pack_start(status,False,False,0);actions=Gtk.Box(spacing=10)
+        if hasattr(box,'back_control'):box.get_children()[0].pack_end(actions,False,False,0)
+        else:
+            actions.get_style_context().add_class('apply-dock');box.pack_start(actions,False,False,0);box.reorder_child(actions,1)
         def save(_):
             changes={}
             for (section,key),(widget,read,initial) in controls.items():

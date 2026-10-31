@@ -1,9 +1,13 @@
 #!/usr/bin/env python3
 """Build a source release from an explicit allowlist; never include private libraries."""
-import hashlib,pathlib,tarfile
+import argparse,hashlib,io,pathlib,tarfile
 ROOT=pathlib.Path(__file__).resolve().parent.parent
 import sys;sys.path.insert(0,str(ROOT))
 from deck_library import __version__ as VERSION
+parser=argparse.ArgumentParser(description=__doc__)
+parser.add_argument('--ui-preview',action='store_true',help='Build a separate UI preview archive under dist.')
+args=parser.parse_args()
+archive_name=f'DeckLibrary-{VERSION}'+('-ui-preview' if args.ui_preview else '')
 files=[ROOT/name for name in ('app.py','AGENTS.md','install.py','launch.sh','Instalar.sh','README.md','LEEME.md','LICENSE','.gitignore','.github/workflows/test.yml','catalog/ports.json','catalog/validated-games.json','catalog/port-variants.json','assets/icon.svg','assets/icon.png','assets/screenshot.png','assets/screenshot-game.png','assets/welcome.png','docs/VALIDATION.md','docs/PRESETS.md','docs/COMMUNITY-PRESETS.md','docs/GTAIV.md','docs/PROJECT2099.md','docs/DMC3-CRIMSON.md','docs/SPIDER-MAN-SHATTERED-DIMENSIONS.md','docs/PORTS.md','tools/build_release.py')]
 for folder in ('deck_library','tests'):
     files.extend(sorted((ROOT/folder).glob('*.py')))
@@ -27,12 +31,18 @@ files.extend([ROOT/'.github/ISSUE_TEMPLATE/bug_report.md',ROOT/'.dockerignore',R
 files.extend(sorted(p for p in (ROOT/'community').iterdir() if p.is_file() and p.name in ('__init__.py','server.py','requests.py','oidc.py','keycloak-client.json','Dockerfile','compose.yaml','.env.example','README.md')))
 files.extend(sorted(p for p in (ROOT/'community/keycloak-theme').rglob('*') if p.is_file() and p.suffix in ('.properties','.css','.png')))
 files.extend(sorted(p for p in (ROOT/'community/keycloak-mail').rglob('*') if p.is_file() and (p.suffix in ('.java','.py','.md') or p.name=='org.keycloak.email.EmailSenderProviderFactory')))
-output=ROOT.parent/f'DeckLibrary-{VERSION}.tar.gz'
+if args.ui_preview:files.extend([ROOT/'Probar-UI.sh',ROOT/'docs/UI-PREVIEW.md',ROOT/'tools/preview_console.py',ROOT/'tools/demo_library.py'])
+output=(ROOT/'dist' if args.ui_preview else ROOT.parent)/f'{archive_name}.tar.gz'
+output.parent.mkdir(parents=True,exist_ok=True)
 with tarfile.open(output,'w:gz') as archive:
     for path in files:
-        info=archive.gettarinfo(str(path),arcname=f'DeckLibrary-{VERSION}/'+str(path.relative_to(ROOT)))
+        info=archive.gettarinfo(str(path),arcname=archive_name+'/'+str(path.relative_to(ROOT)))
         info.uid=info.gid=0;info.uname=info.gname='';info.mtime=0
-        with path.open('rb') as source:archive.addfile(info,source)
+        if path.suffix=='.sh' or path.relative_to(ROOT).as_posix()=='assets/tools/nstool/nstool':info.mode=0o755
+        if path.suffix=='.sh':
+            data=path.read_bytes().replace(b'\r\n',b'\n');info.size=len(data);archive.addfile(info,io.BytesIO(data))
+        else:
+            with path.open('rb') as source:archive.addfile(info,source)
 checksum=hashlib.sha256(output.read_bytes()).hexdigest()
 output.with_suffix(output.suffix+'.sha256').write_text(f'{checksum}  {output.name}\n')
 print(output)
