@@ -6,12 +6,12 @@ Research snapshot: 2026-10-30. This document is a design, not a replacement of t
 
 | Project | Discovery and metadata | Releases and images | What Deck Library already reads |
 | --- | --- | --- | --- |
-| Quiver | Public first-party API at `https://api.quiverlauncher.com/api/v1`, with paginated apps, original games, project details and release status. A separate community repository holds editable JSON lists. | Its client reads project details and release history; release providers support GitHub and GitLab. Library artwork belongs to game/project records. A scheduled workflow generates platform metadata every six hours. | Apps, release status and original-game artwork from the API, plus the older community lists. The current adapter accepts GitHub projects only. |
+| Quiver | Public first-party API at `https://api.quiverlauncher.com/api/v1`, with paginated apps, original games, project details and release status. Its former community JSON repository is archived; new catalog submissions go through quiverlauncher.com/submit. | Its client reads project details and release history; release providers support GitHub and GitLab. Library artwork belongs to game/project records. The archived repository contains a former six-hour metadata workflow; that is not evidence of the current server schedule. | Apps, release status and original-game artwork from the API, plus the older community lists. The current adapter accepts GitHub projects only. |
 | PortIntegration | A `PORTS_DATABASE` JSON literal inside `app.js`. A daily GitHub Actions job searches GitHub by topics and phrases, inspects READMEs/releases and updates suggestions/metadata. | GitHub REST requests, usually through a Cloudflare Worker, with browser caching. Local WebP covers, Wikipedia thumbnails and repository artwork as fallbacks. | JSON literals and the local cover manifest; JavaScript is never executed. |
 
 PortIntegration's discovery has explicit filters: star thresholds, language checks, exclusions for forks, archived repositories, engines and non-games. Its search reads a limited number of results per query. These are discovery heuristics, not proof that a port is complete or runs on Steam Deck. Fork exclusion can hide a useful compatibility variant.
 
-The live adapters returned 798 distinct GitHub project repositories from Quiver and 287 from PortIntegration, with 174 in common: 911 distinct repository links in the union. These counts include projects with different readiness levels; they are not counts of games installable or verified on Deck. Multiple repositories may implement the same game. Remote catalogs and counts change.
+The full source audit found 814 Quiver app entries representing 810 distinct repositories (798 GitHub and 12 GitLab), and 289 PortIntegration entries representing 287 distinct GitHub repositories. With 174 GitHub repositories shared by both, the all-provider union contains 923 distinct repository identities. The earlier 911 count covered GitHub only and excluded the 12 GitLab projects. [The saved coverage baseline](../catalog/source-coverage.json) records all 923 identities and their source membership. These counts include projects with different readiness levels; they are not counts of games installable or verified on Deck. Multiple repositories may implement the same game. Remote catalogs and counts change.
 
 Sources inspected directly:
 
@@ -21,6 +21,14 @@ Sources inspected directly:
 - [PortIntegration database and browser metadata loading](https://github.com/Samuel-SSLabs/Port-Integration/blob/main/app.js)
 - [PortIntegration discovery script](https://github.com/Samuel-SSLabs/Port-Integration/blob/main/scripts/discover-ports.js)
 - [PortIntegration discovery schedule](https://github.com/Samuel-SSLabs/Port-Integration/blob/main/.github/workflows/auto-discover-ports.yml)
+
+The current Quiver launcher calls its own API (with a Convex deployment fallback), not GitHub Search to discover the catalog. Its app and release-status records identify the upstream GitHub/GitLab repositories. New community submissions use the website. No public implementation of the current catalog server's complete ingestion or discovery process was established in this audit; the launcher client and the archived repository do not prove that it automatically scans all GitHub projects.
+
+### Coverage requirement
+
+The independent registry must retain every project identity in the union of both feeds, not merely achieve the same total by adding unrelated entries. Compare normalized provider/repository identities and report missing entries per source. Preserve distinct forks/variants and multi-game relationships; grouping variants in the UI must not discard their identities. The complete snapshot has 810 + 287 − 174 = 923 unique repository identities. There are 814 + 289 = 1,103 raw catalog entries before repository deduplication; a catalog entry is not necessarily a different port or original game. The current runtime Quiver adapter omits GitLab projects; that is an identified migration gap, not coverage already implemented.
+
+Keep an initial imported baseline and persist it. Continue importing new source entries alongside independent discovery if ongoing parity is required. A fresh GitHub keyword search alone cannot guarantee either source's coverage. Upstream version/asset checks can run directly against GitHub/GitLab once repository identities are known, even if a catalog source is temporarily offline. Availability, original-data requirements and Deck verification remain separate from being listed.
 
 The audit reads public source and GET endpoints. Quiver identifies its API as its own service; it is not the GitHub API. Its launcher has an MIT license. No root license file was found for PortIntegration in this snapshot. The proposed implementation uses original code and links to upstream repositories; it does not copy either application's UI, source modules or image bundle.
 
