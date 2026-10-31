@@ -1,0 +1,6658 @@
+{
+  "schema_version": 1,
+  "observed_date": "2026-10-30",
+  "purpose": "Coverage baseline for a future independent catalog; not installation or Steam Deck verification.",
+  "sources": {
+    "quiver": {
+      "url": "https://api.quiverlauncher.com/api/v1/apps",
+      "entry_count": 814,
+      "unique_repository_count": 810,
+      "github_repository_count": 798,
+      "gitlab_repository_count": 12
+    },
+    "portintegration": {
+      "url": "https://github.com/Samuel-SSLabs/Port-Integration/blob/main/app.js",
+      "entry_count": 289,
+      "unique_repository_count": 287
+    }
+  },
+  "shared_github_repository_count": 174,
+  "unique_repository_count": 923,
+  "projects": [
+    {
+      "provider": "github",
+      "repository": "0c0de/splatterhouse-decomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "0herculabs/hl360-forza2",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "0herculabs/hl360-forza3",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "0herculabs/hl360-forza4",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "0x1f9f1/open1560",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "15cyber/marvel-nemesis-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "1nputs/gunstars",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "1nputs/ninety-four",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "1oom-fork/1oom",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "2023perfectdark/perfect-dark-zero-reinstated",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "2ship2harkinian/2ship2harkinian",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "8bitninja64/hangtimerecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "8bitninja64/nflblitz2003-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "8bitninja64/tenchuz-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "96dot/dragon-age-origins-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "999sian/melee-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "999sian/tmc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "abdelmoumendeghbouche/knack_pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "abdelmoumendeghbouche/wipeout_pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "abilliontokens/bustinout-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "abilliontokens/sims1-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "abilliontokens/sims2-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "abilliontokens/urbz-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "afritz1/opentesarena",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "aikatore/recvx-enhanced-port",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ajncsystem/shadowofthecolossus-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "akratch/goldenballoon",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alariq/mc2",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeav/fm4-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/alien-resurrection-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/alone-in-the-dark-the-new-nightmare-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/alundra-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/apocalypse-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/crash-bandicoot-3-warped-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/diablo-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/dino-crisis-2-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/dino-crisis-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/fighting-force-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/final-fantasy-ix-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/final-fantasy-viii-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/mega-man-legends-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/metal-gear-solid-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/parasite-eve-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/resident-evil-3-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/suikoden-ii-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/suikoden-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alexbeavs-ps1-ports/syphon-filter-2-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alistert/openjazz",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "aliveteam/alive_reversing",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "almost-there-games/azimuth",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alondero/aerogauge-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alondero/automobililamborghini-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "alondero/worlddriverchampionship-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "am2r-community-developers/am2rlauncher",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "andreyvelsk/com.mobilerpgpack.phone",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "andyvand/opentyrian2000",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "anishchandra24/juiced2-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "anishchandra24/maddennfl08-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "anishchandra24/nhl2k8-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "apancik/abuse_2025",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "apolinario-coder/skyrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "arcanite24/pinyon-shift",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ares-emulator/ares",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "armagetronad/armagetronad",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "arnaldolima1/gow-ascension-pc",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "artfulrascal8/rage-wars-recompiled",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "arx/arxlibertatis",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "asobicodes/rac-rs",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "astrovm/adventuremods",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "aureliob/banjorecomp-android",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "auremana666/naruto-the-broken-bond-pc-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "awakenchan/lanternengine",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "axylpup/shadps4",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ayozetr/bloodborne_linux",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "baliebox4916/butterscotch",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "baliebox4916/daytona-arcade-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "banjorecomp/banjorecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bc160201983/medievil_2019_pc_port",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bc160201983/uncharted-the-nathan-drake-collection-pc-port",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "beatrixzy/pgr4-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "belmantegu/supermariowonderrecomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bertibertig/amped2-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bertibertig/ssx3-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bibendovsky/bstone",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "birabittoh/eternalsonatareprise",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "birabittoh/nocturnerecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bitsandbreakpoints/d-psx-pc-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bitsandbreakpoints/roll-away-psx-pc-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "blacklabelhq/medievilrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "blacklabelhq/symphonyrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "blacklineinteractive/driveclub-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "blizz127/brave-fencer-musashi-decomp-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "blizz127/parasite-eve-decomp-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "blizz127/xenogears-decomp-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "blocker-3/hwder",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bloodborne-native/bloodborne-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bluddy/rails",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "blue-nebula/base",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bodbdearg/psydoom",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bountyhunterkanden/secondhunt",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "boykopovar/anyps5",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "brawmario/infinite-mario-64-ever",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "brazilianhobbyist/project-re-visited-re3",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "brianblakely/xenogears-ex-machina",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bryanthaboi/gen1recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bryantmh/rush2recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "btfighter/super-mario-world-remastered-plus",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "buyukcaglar/td2",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "bvschaik/julius",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "c7-game/openciv3",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "caiuscodes/goldeneye-007-xbla-pc-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "caiuscodes/perfect-dark-xbla-pc-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "canersaka/yakuza-dead-souls-recompiled",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "capridog/spaceranger",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "carl0srmz/littleplanet",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "carlox33/the-simpsons-hit-and-run-android",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cassnadra/initialdpsponpc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "castlesea/infamous-second-son-pc-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "casualx/chipdx",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cataclysm-tlg/cataclysm-tlg",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cataclysmbn/cataclysm-bn",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "catmidori/gogoackman1recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cdetv/conker-live-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cdlewis/snowboardkids-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cdlewis/snowboardkids2-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cellenseres/sssv_recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cerroverb/futari-linux",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "chasem-dev/sms-android",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "chasem-dev/sms-launcher",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "chasem-dev/sms-pc-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cheviman/segasonic-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "chrissotraidis/bluewake",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "chrissotraidis/kartpad",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "chrissotraidis/sunpad",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "citrongames/dora64",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "citrongames/dora64-3",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "claudio5702/cristalis",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "clergyman0013/arizona-vamp-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cleverraven/cataclysm-dda",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "clickingmaster/ssrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "coccofresco/triaevum",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "codepdbh/psprecomp-vcs-android",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "confetti3/sf4-ember-netplay",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "conker64recomp/conker64-recompiled",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cookingwithsimon/skate1recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cookingwithsimon/skate2recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "coop-deluxe/sm64coopdx",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "corsixth/corsixth",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "craigshaw/fzerorecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "crazyriddler/finesthourremastered",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "crowded-street/3sx",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "crspytopgn/openmcm2",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "crspytopgn/opensgolf",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ctr-tools/ctr-native",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cutarev/sh2-nx",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cxong/cdogs-sdl",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "cybervisi0n/pokeplatinum",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dabdavis/perfect-dark-dabs-mod",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dahsidiabdallah/conkerbfdreloaded",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dalves408/nhlhitzpro-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "danielgomesvieira2000/beetle-adventure-racing-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "danielgomesvieira2000/body-harvest-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "danielgomesvieira2000/burnout3-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "danielgomesvieira2000/hybrid-heaven-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "danielgomesvieira2000/pilotwings-64-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "danielgomesvieira2000/wave-race-64-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "danilopaulinodasilva/kof98recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "danisandoval/fukami",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dankzonestudios/cv64recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dannyowelch/deception-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "darhkfox/busterbustsloose",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "daviddaco1/nconr3decomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dcxdemo/thps2-cumulative-patch",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "deadinside28/bloodborne_pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "derrickgold/ar-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dethrace-labs/dethrace",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "devzer0d4y/megaman64recompiled-mobile",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dhewm/dhewm3",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dialight/flame",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "diasurgical/devilutionx",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "diegodedios/alienrerecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dinosaurplanetrecomp/dino-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "distilledorion-sketch/initial-d-arcade-stage-3-native-sh-4-recompilation-wip-",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "djultra64/blocksphere",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "djultra64/clayfighter64",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "djultra64/fight-night-round-3-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "djultra64/iss2000",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "djultra64/max-spin",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "djultra64/power-dozer",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dkfans/keeperfx",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "doc-haz/infinite-undiscovery-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "domazinus/racewave46",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dorpxp/driftdroid",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dos-ise/settlers-remake",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dougchansan/mk8-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "doukutsu-rs/doukutsu-rs",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "drakenabarion/tombraider_pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "drakolordx7/killzonerecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dreaxer/40winksrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "drizztdourden08/relic-of-the-past",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "drummingbird1/gow-psp-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dubrovskiy-yevhen-stakelogic/gt-2-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dudux42/freedomunbound",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "dyzz/srw64-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "eandis/sdoj-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ed1z19/valkyrierecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "edwin2929/sma3-recomp-android.",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "egerion/open-atomic-bomberman-97",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elasota/aerofoil",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elguslml/piratesatworldsendrecomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elkev118/ghostrecon2-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elliotttate/bombermanrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elliotttate/dkc1recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elliotttate/dkc2recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elliotttate/dkc3recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elliotttate/wave-race-64-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elmasas/lcs-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elprogramadorloco-arch/jim2-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elraro/atomic-bomberman",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elspeththepict/s1forever",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elyosh/opentie",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elyosh/openxvt",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elyosh/openxw",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "elyosh/openxwa",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "endprodukt/cannonball-dx",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "enrique-paulino/dualscreendex",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "enrique363/voldorium",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "erick194/doomiirpg-re",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "erick194/doomrpg-re",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "erick194/wolfensteinrpg-re",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "erreib/pure-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "eukaryot/sonic3air",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "euspring1/blackdefinitivehdpc",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "exok/celeste64",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "expansionpak/moderngekko",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "extremestonegg/cosmic-recompi",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "exult/exult",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fabioap-cpu/tekken3recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "facundosterzerforino/legoland-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "faligame/lost-odyssey-hd-remaster",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fataldecomp/roller",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "felipeprado0/spartanport",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fgsfds/buildlauncher",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fh1-reimagined/forzahorizon1-reimagined",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fishb0nes98/tekken3recompiled",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fizl0/openmx",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fizl0/opentennis",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fleetingheart/ksre",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fliperama86/cvlod_recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "florinp93/hells-gate-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "florinp93/xmd-recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fluffyquack/rexglue-exit",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "flyngmt/acgc-pc-port",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fractalengineer/medal-of-honor-psx-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fragglet/sdl-sopwith",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "frankhun88453/cod3recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "freefrank/lostodysseyrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fulgernet/repop",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "fwgs/xash3d-fwgs",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gabrielnnk/bigodao",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gamboozino/ngbrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gameflorist/dunedynasty",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "geno55/wg3d-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "genrythefox0/project-2099",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "getlostin/ctr-nitrofueled-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "giopixelgh/crash-twinsanity-windows",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gizcesi/opentricky",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gminustwo/minustwo",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gminustwo/primerecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gnome41/dk94-sgb",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gnome41/warioblast-sgb",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gnsb/ufc-3-ps4-port-linux-windows",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "godotengine/godot",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "goliathret/edgeoftimerecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "goodshepherd23/baroque-saturnrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "goodshepherd23/despiria-dreamrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "goodshepherd23/galerians-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "goodshepherd23/hellnight-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "goodshepherd23/jetmoto2-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "granassabre/grandia3-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "grasmanek94/toystory2fix",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "greennaugahyde/zeldawwhdrecompandroid",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "griches/eternaldarknessrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "griches/jamespond2robocodrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "grissyelda/dx-rust",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "grovdata/rodlegacy",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gtteancum/openjam",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gtteancum/sote-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gtteancum/spideyps1recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gtteancum/starwars-renegadesquadron-pc",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gtteancum/timesplitters",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gtteancum/xmen-mutant-academy-2-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "guimaraf/3sxw",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "guimaraf/plusalpha-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gumpolas/tootawersrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "gzh0821/pvzg_site",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hachi23/unicorn_overlord_pc",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "halmylyseas/vandalhearts-pcport",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "harbourmasters/ghostship",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "harbourmasters/lighthouse",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "harbourmasters/paperboat",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "harbourmasters/shipwright",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "harbourmasters/spaghettikart",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "harbourmasters/starship",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "harvestmoon64recomp/harvestmoon64recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hayatog/gr2_pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hayatog/iss_pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hayatog/tlg_pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hedge-dev/unleashedrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "henricj/dunelegacy",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hero88go/melee-unlocked",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "heromachine/breakdown-recompilation",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "heromachine/burnout-recompilation",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "heromachine/tenchu-sa-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hibikifukui22/dead-or-alive-xtreme-2-recompilation",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "himdo/fable-2-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hk21x/pgr1-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hk21x/pgr2-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "holdmysocks/mcla-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "holdmysocks/rusty-mcla",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hollywoodakeem/svr07-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hopeaero/mlbpowerpros2008recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hossez/fifa-world-cup-2014-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "hyant4/knack-ii-pc-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "i2kiselev/fm4-static-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "iandrewjj/enchantedarmsrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ibtr54/driv3r-decompilation",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "icedomega13/strikehdcollection",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "iexplosiverage/dbz-burst-limit-recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "igawa6/dualsouls",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "igoraugustohh/the-order-1886-pc-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ihhub/fheroes2",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "iirg4x/mp6-native-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "inliner495/bblit-remaster",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "insanitybringer/piccuengine",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "interkarma/daggerfall-unity",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "invictus-potens/smt4-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "invinceble55-wq/estacado-the-darkness-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "iron-jay/banjo_tooie_xbla_recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "isledecomp/isle-portable",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "italiankuze/port-ga-gotoku",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "itsbybanshee/wwe2k14-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "izzy2lost/lighthouse",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "izzy2lost/perfect_dark",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "izzy2lost/spaghettikart",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "izzy2lost/starship",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jackandbeans/snap64recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jackgllghr/bigmission-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jackpoison-prog/ringout",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jacoders/openjk",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jakobkhansen/silksongandroid",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "james2doyle/ffta-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jay-day/rmg-k",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jaylikesbunda/crashofthetitans-wiicomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jcsix694/def-jam-vendetta-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jedeyesniv-art/pacman-ce-pc-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jedijosh920/swrots-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jessetbh/vpw2recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jessetbh/vpw64recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jessetbh/wcwnworevengerecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jessetbh/wcwvsnwoworldtourrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jessetbh/wwfnomercyrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jessetbh/wwfwrestlemania2000recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jesustaylo/rumble-roses-xx-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jgrennison/openttd-patches",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jhdev2006/super-mario-bros.-remastered-public",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jhdev2006/super-mario-world-remastered-public",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jillsandwich1998/regh2",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jjmhalew/woodyre",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jkdansereau/goldeneye-pc-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "johnnieb333/oracle-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jonathandc64/ffcceot-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jorge262007/fftarecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jorjbarbosa/broken-bond-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jorjbarbosa/naruto-rise-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "josiahg2502-glitch/brawlrecompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "josiahg2502-glitch/mother3recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "josiahg2502-glitch/newsuperpaperbros",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "josiahg2502-glitch/oogiesrevengerecompiled",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "josiahg2502-glitch/scooby-doo-refrightened",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "josiahg2502-glitch/smash4pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jrickey/battleship",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "juansolo457/fear360-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jumatt/jetsetradiofuture-unleashed",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "junior-jones/adventure-island-ii-nes-static-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jval1972/mars3d",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jval1972/rad-x",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "jval1972/speed",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "k0nl/b2recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "k4zmu2a/spacecadetpinball",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kaikoclanworth1/buffy-chaos-bleeds-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kaikoclanworth1/wwe-svr2011-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kandowontu2/starfox-enhanced",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kandowontu2/urbanrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kawaiibunga/mkvdcu-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "keepvaibin/nebula",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "keriew/augustus",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kevinfoley/herculan",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "khasinski/parasite-eve-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "khasinski/rage-racer-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kirby-letsgo/oracles-decomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kirby1237/parappatherapperrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kiridor123/oceantrirecomp-android",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "klorfmorf/goemon64recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "koenhendriks/ssx3-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kraftmacandchee/mercenaries-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kumapauz/project-reignition",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kuraeow/ultratears",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "kylofon/testdrive-enhanced",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "lab0ulange/stuntman-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "lancommander/tonywasaproskater",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "laytonlostmedia/laytonmotdmpcport",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "leanndroguedes/re3-19feb21",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "legend-of-dragoon-modding/severed-chains",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "leithsilver/mgsm",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "leproide/medievilrecomp-esp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "leproide/medievilrecomp-ita",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "lesca-191204/killzone-shadowfall-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "lethal-guitar/rigelengine",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "lfarroco/ogre-battle-64-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "linkssy2/darkwatchdarkeredition",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "linkssy2/roadrash64recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "linkssy2/urbanchaosriotresponseburneredition",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "linkzenic/2ship2harkinian-android",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "linkzenic/shipwright-ports",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "linkzenic/zelda64recomp-android",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "littlebitua/downpourrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "littlebitua/dprecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "lodilorenzo/cybermage-darklight-re-awakening",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "lordingard/sacredstonesrecomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "loreanxavier/pt-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "lostartefacts/trx",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "luanti-org/luanti",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "lucapazienza/gravityrush_pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "luisxl15/strikers-android-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "m-x-d/heretic2r",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "m1ndcrap/sega-superstars-tennis-rematch",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mabec-games/f-zero-glinux",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "madcatse/mech1989-recoded",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "madelrandel-blip/nfsmw-recompiled",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "madxbio97/sf-pc-port",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mahmoud-mess/tekken6-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mamcjr/lasrecompandroid",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "maniscat2/sm64coopdx",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mapleleafjack/clashofninja-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "marcpique/ratchet-and-clank-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mariopartyrd/partyboard",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "markpremier/evolutionrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "masterspike52/redahm",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "masterspike52/renut",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mateussmeneses/theorder1886-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "matheus2x/ie3ogre-nds-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "matteo842/crashbandicoot-launcher",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "matymeatboy/rekhcom",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mauriciosuporte/superbomberman5snesrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "maxdeadbear/kameorepowered",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "maxdeadbear/naughtybear_restuff",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mchughalex/skate3recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mdomangue26/the-bigs-2-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mechakotik/tails-adventure",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "megaman64recomp/megaman64recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "meteo-dream/mf-community-edition",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mgba-emu/mgba",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mgrz18/sdlpop-android",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "middleducky/hp-cos-xbox-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "middleducky/hp-ps-xbox-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mikompilation/mikupan",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "minimalice92/bloodwake-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mlgprorektm8/rygt",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "moesuito/gt4-staticrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mohamed-moslem-allouch/god-of-war-3-remastered-pc-port-ps4-arabic-translation",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "monscriser/hydrothunderport",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "monscriser/ufc3mons",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "monsterdruide1/odysseydecomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "morerokk/mhgurecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "morsgames/moonchildfe",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mortify7612/rallisportchallenge2-decomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "moshferatu/zombies-ate-my-neighbors-pc-port",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mourix/vcthunder",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mr-finster/stunts-hd",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mr-finster/vf1-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mr-finster/vf2-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mr-finster/vf3-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mrsuss60/bloodborne_pc_windows_port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/apeescaperecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/battlearenatoshindenrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/dragonballzbuusfuryrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/dragonballzlegacyofgokuiirecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/drmarionesrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/emeraldrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/fireredleafgreenrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/legendofzeldanesrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/mariokartsupercircuitrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/mariotennisvirtualboyrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/megamanx2recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/megamanx4recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/megamanx5recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/megamanx6recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/megamanxsnesrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/megamanzerorecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/metroidprimehuntersrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/pokemonstadiumrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/rubysapphirerecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/sonic3andknucklesrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/sonicthehedgehog2recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/supermarioadvance2recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/supermarioadvance4recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/supermariorpgrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/supermarioworldrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/supermetroidrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/tetrisgbrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/tomba2recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/tombarecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/wariowaretwistedrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/yoshinesrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/yoshiscookierecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/zeldaalttpsnesrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mstan/zeroracersvirtualboyrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "murkantor/project-midas",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "mysteriousaeon/rayman3-hd-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "n64hub/f-zero-x-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "n64hub/mario-party-2-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "n64hub/mario-party-3-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "n64hub/mario-party-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "n64hub/perfect-dark-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "n64hub/rush-2049-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "n64hub/super-mario-64-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nakaionyt/shadowofthecolossus-pc-framegen",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nanolathe-gg/nanolathe",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nathanialf/ico-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nautilusbits/mdk-sdl",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nayo186/aloneinthedarkclassicreborn",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nearlytrex/nocturnedecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nebadasswifty/masseffect-nx",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "negroiso/doax3-fortune-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "negroiso/doax3-scarlet-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "neuromancer/wc1-re",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nevercookfirst/dimensionsrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "new-coke/strikers",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nhaar/waddle-forever",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nico-d-eu/re-amped2",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nikolaygorb/goldeneye007reloadedrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nikolaygorb/perfectdarkremasterrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nikolaygorb/perfectdarkzerorecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "njh-1001/finfantacrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "njh-1001/sexyparorecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "njh-1001/wipeout2k97xl",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nlwstein/skullburglar",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nmlgc/ssg",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "noahvl/birdman64",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "noelfb/celeste",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "norain211/doa2u-re",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "norain211/doa3-re",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "norain211/doaxvb-re",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "novapowers0/bloodyroar2recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "novapowers0/dbz-budokai-3-hd-collection",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nsmbu-recomp/nsmbu-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nvdemu/apeescaperecomp-macwindowslinux",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nycolazs/windwakerhd-android-plus",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "nyperyuhgard/ctr-pc-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "oaleex/mojorecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "oaleex/openshao",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "oaleex/shaolinmonksrecomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "obaidr1/hercules-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "odrannnn/metroidprime2port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "odrannnn/metroidprimeport",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ogdanimal/goemon64recomp-android",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ogdanimal/hybridheaven-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ogdanimal/skiesofarcadialegends-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "omegakatana92/battle-arena-toshinden-gb-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "omegakatana92/kirby-pinball-land-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "omegakatana92/super-mario-land-3-wario-land-recomp-",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "omenhachi/geometry-wars-2-pc-plus",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "omf2097/openomf",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "onaga00/projectstonehenge",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "open-annihilation/open-annihilation",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "open-goal/jak-project",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "open-goal/launcher",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "openapoc/openapoc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "opencommunityedition/opence",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "opendriver2/redriver2",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "openfodder/openfodder",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "openfusionproject/openfusionlauncher",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "openloco/openloco",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "openmoh/openmohaa",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "openmw/openmw",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "openport-labs/galaxy-android",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "openportroid/armyoftworecompilation",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "openra/openra",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "openrac/openrac",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "openrct2/openrct2",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "opensc2k/opensc2k",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "opensmash-ultimate/ssbu-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "opents-developers/opents",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "opentyrian/opentyrian",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "opokxeno/xenogears-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "otpr26/dekui-fork",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "otpr26/ocarina-retuned",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "oussama268/shadowofthecolossus-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "overkilllabs3/dc-ps5",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "overkilllabs3/driveclub-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "overkilllabs3/gears-judgement-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "overkilllabs3/sos-ps5",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "overkilllabs3/vice-city-stories-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "pablocpas/opencmr2",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "pallypots/projectoogie",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "parkerallan/doa3-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "patchzyy/wiicompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "patricksmill/sml2-rs",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "paulcombal/mw2-recompiled",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "pauloubirajara/asuras-wrath-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "peanutsofdoom/supermetroidplus",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "peiikai/lasrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "perfect-dark-pc-port/perfect_dark",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "petarov/alleycat.exe",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "petarov/saboteur2",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "peterrichardsongolf/halo-ce-arena-evolved",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "petrishevgeorgii-debug/prototype-pc-slop",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "phoboslab/wipeout-rewrite",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "pigmassacre/neodriftenhanced",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "plinkr/wild9recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "pokamilktea/virtuaracingdeluxeenhanced",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "portingpete/black-2006-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "portingpete/the-darkness-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "potiondweller/azure-dreams-hd-recompilation",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "pprism/terrariaogc",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "pqmarine/underworldrevisited",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "presidentraptor/ace-combat-04-pc-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "previouslevelgames/recharged",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "promethendev/wwe13-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "psxrestore/condemned2recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "puckhead73/nhl-legacy-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "pyrdacor/ambermoon.net",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "pyrdacor/freeserf.net",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "qnfn/driveclub-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "qrrk/catapult",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "qurious-pixel/smas_launcher",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rac-native/rac1-native-game",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rac08241988/demonscrestsnesrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rac08241988/magicalblocks",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "radiatortwo/future_rust_cop",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "radzprower/super-metroid-launcher",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "radzprower/zelda-3-launcher",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rages4calm/earthbound-companion",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rages4calm/lagoonsnesrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rainchus/chameleontwist1-jp-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rainchus/donkey-kong-64-recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rainchus/quest64-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ramichaaben8/fifa_world_cup_2010_pc_port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "raulzrrs/letsgo-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "razzconnect/basara4-native-pc",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "re-rac/rerac-launcher",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "recompport/pandora-tower-pc",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "red-tv141/dc2-ps2recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "redeclipse/base",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "reflectionhle/reflectionhle",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "renanqueiroz/mcla-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "retroportingtoolkit/fzerosnesrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "retroreplay82/legendary-wings-nes-to-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "revivedx/savagewindrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "revosucks/bm64recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "revosucks/bmherorecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "revvv991/uncharted-android",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "riotashley81-jpg/vagrantstory_recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ripleyxlr8/atlantis-native",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "riseio/twipe_00sheven",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rob646464/luigis-mansion-recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "roman215/weltall",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ronniecloud/re-wor",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rotmill/dino-crisis-modern-edition",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rsdkmodding/rsdkv3-decompilation",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rsdkmodding/rsdkv4-decompilation",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "rsdkmodding/sonic-mania-decompilation",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ryu7w7/octr-nitrofueled-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sabishii-bit/gauntlet-dark-legacy-pc-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sal063/ac6_recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sal063/ace-combat-3-static-recompilation",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sal063/ace-combat-5-static-recompilation",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sal063/ace-combat-x-recompilation",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "samioan/rac-j2me-remastered",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sampreeth004/nfs-carbon-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "samsteprojects/legend-of-legaia-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "samuelit0davila/fifa-street-pc-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "santiagovalencia109/wario-land-shake-it-native-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "santiquiroz/gears-of-war-2-pc-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sashexsrb/ssne-native",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "saulob/crackdown-xbox360-recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "saulob/dragons-crown-pro-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "saulob/geometry-wars-retro-evolved-2-recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "saulob/hard-corps-uprising-recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "saulob/marvel-ultimate-alliance-bundle-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "saulob/odin-sphere-leifthrasir-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "saulob/ssf2t-hd-remix-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "schans-arg/ufc4-pc-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sciaschi/cbfd-recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sdlpal/sdlpal",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sdw-community/sheep-dog-n-wolf-rewooled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sergiomanzur/regaiden-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "shadowartist201/tka-pc-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "shagg88/athelas",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "shagg88/cogbox",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "shaneomac1337/wwe-allstars-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "shaunsingh/pgr4-native",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "shihabal3amri/tekken-tag-tournament-2-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "shinyquagsire23/openjkdf2",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "shipa-2/xerenge",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sicksartori/mc3port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "silverwiregames/rechan",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "simon358/ctr-native-android",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sinan-karakaya/dq8-recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sirdankz/undead-neighbor-eaters-droid",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sirhalo23/ridgeracer6-recompilation",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "skynettx/raptor",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "slaveofido/blastcorps-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "slex2jf/stritoraige",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "slickamogus/silent-hill-decomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "slippygetbackhere/looney_tunes_b-ball_recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "slippygetbackhere/strike-gunner-stg-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sm64pc/sm64ex",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "smcgames/paper-mario-recut-deprecated",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "snaity-core/pe2-pc-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "snesrev/smw",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "snesrev/zelda3",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "solarcookies/tip-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "some-scurvy-dog/banjo-tooie-scurvy-dog-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sonicdcer/dnzhrecomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sonicfreak1337/sarecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sonsegajp/kirby-air-ride-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "soyjxck/dod3-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sp00nznet/flow",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sp00nznet/redalert2-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sp00nznet/tokyojungle",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sp00nznet/twistedmetal",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "spacestate1/namco22-decompile",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "spark198rus/black-pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "speedbreakerproject/speedbreaker",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "speedyjustice2/ridge-racer-psp-static-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "spicywonda/castlevania-chronicles-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "spitzdano/aidynrechronicled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "spriteice/jsrf-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ssunnking/open-nectar---pikmin-native-pc-mobile-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ssunnking/zeldawwhdrecompandroid---enhanced",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "stanriders/ks-summersclover",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "startupandhold/3on3arcaderecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "strider973/einhander-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "strider973/street-fighter-ex2-plus-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "strider973/strider-2-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "styd051/doom64-ex-plus-enhanced",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sulphurs16/ac4-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sulphurs16/acfa-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "sunjaycy/goldeneye-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "supermedo/bloodborne_pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "supermedo/prince-of-persia-2-windows",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "supermedo/uncharted_pc",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "supermedo/wet-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "swaymun/ac-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "swfans/syndicatfx",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "swfans/syndwarsfx",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "swordfish90/lemuroid",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "synthwave-pixel/ultima3",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "synthwave-pixel/ultima5",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "taisei-project/taisei",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "takoshero96/silly-reencounter",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tasemulators/bizhawk",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tdrrmk2/uhexen2-tweaked",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "teamgdb/yakumo",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "teamwheelwizard/wheelwizard",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "technicallycomputers/bomberman-fantasy-race-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "technicallycomputers/bomberman-world-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "technicallycomputers/bombermanpartyeditionrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "technicallycomputers/gundamwingendlessduelsnesrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "technicallycomputers/klonoa-door-to-phantomile",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "technicallycomputers/marvel-vs.-capcom-clash-of-super-heroes-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "technicallycomputers/mastersofteraskasirecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "technicallycomputers/metal-slug-x-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "technicallycomputers/rampage---through-time-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "technicallycomputers/star-wars---episode-i---jedi-power-battles-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "technicallycomputers/street-fighter-alpha-3-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "technicallycomputers/twistedmetal4recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/cartoon-network-racing-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/digdug-native",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/earthworm-jim-hd-recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/king-kong-recompiled",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/muppet-racemania-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/outpost-kaloki-x-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/point-blank-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/simpsons-wrestling-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/sms-pc-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/south-park-tenormans-revenge-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/south-park-tower-defense-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/trials-revolution-collection",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tekrantgaming/whopping-recompilation-collection",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tgacquin/mm3d-dekui",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tgp482/007frwl-xberecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tgp482/black-xberecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tgp482/scda-xberecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thatguymcd/dkr-r",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thatguymcd/glover-r",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thatguymcd/rocket-r",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "theassemblyarmada/vanilla-conquer",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "theboy181/drmario64_recomp_plus",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thebradshaw/1080-snowboarding-decomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thebradshaw/topgear-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "theclub654/projectcane",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thedoffman/timesplitters-future-perfect-pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thefixinhixon/ultracombo",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "theforceengine/theforceengine",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thegh0stship/battletanx-global-assault-pc-port",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "them3dium/mareshine",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "themuffinator/openq4",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thenikito/littlebigplanet-3---pc",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "theokyr/project8recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "therunaway5/phase-distorter",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thextech/thextech",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thiagolira/trouble-makers-pc-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thiagordsfx/urban-reign-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thibautbus/top",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "thobbsinteractive/magic-carpet-2-hd",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "timftw21/burnout2-recompilation",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tk22-26/jetforcegemini-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tmcleroy/cps2recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tolotratlt/rival-schools-nekketsu-seishun-nikki-2-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tools81/hotel-mario-static-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tools81/link-faces-of-evil-static-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tools81/mutant-rampage-bodyslam-static-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tools81/nfl-head-coach-09-static-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tools81/zelda-wand-of-gamelon-static-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "toontowngrindworks/grindworks",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "toshredsyousay/rumblerecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "troyedwardsjr/z2rs",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tsapz/skylanderscoreoflight",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tvall43/metal-arms-pc-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "twilitrealm/dusklight",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "tx00100xt/serioussamclassic",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "txukie/xboxrecomp-conker",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ufodriverr/jade-cocoon-bevy-public-v1",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ugatec/grand-prix-circuit-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ultimabear/openchaos",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "unchiga/yu-gi-oh-forbidden-memories-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "unchiga/yugiohforbiddenmemoriesrecomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "undecuple/project-helghast",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "underdecoded/gen2recomped",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "uzdoom/uzdoom",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "valentderah/totk-pc-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "vantageex/infamous-first-light-pc",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "varuuna/comboship",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "vcmi/vcmi",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "vibecodekun/shantaerecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "vibintoast/jetforcegemini-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "victor-takai/rogue-galaxy-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "vidanox/banjotooierecompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "vinceip/fci-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "vitomiguelf/crashott-pc",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "voicedrew11/verdite2",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "voicedrew11/verdite3",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "vyanhursky/defjamffny-recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wargus/war1gus",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wargus/wargus",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "watchmakerers/clockwork",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "whompay/fncreborn",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "whompay/infamousreborn",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "whompay/saintsreborn",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "whylurking/isaacrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wistfulhopes/dbz1",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "witherblitz/nsmb-wii-multiplayer-recompilation",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wivi514/dead_rising_2_case_west_xenon_recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wivi514/dead_rising_2_case_zero_xenon_recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wndwsqrrl/3on3nhl-recomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wooloomooloo2/bloodborne_mac_port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wootbeer/btgarecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wootbeer/btrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wootbeer/bzrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wootbeer/dinotale",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wootbeer/jillandroid",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wootbeer/paxdino",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "wootbeer/snprecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "xander-haj/z3r",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "xander-haj/z3r-launcher",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "xenophobentx/takedawn",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "xgcmodding/platinum",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "xproger/openlara",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "y0oshi/lain-psx-decompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "yash-singh1/wipeout-xl-rewrite",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "yell0wsuit/cuttherope-dx",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "yestermester/thesimpsonsgamerecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ymatrix1/portps5",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "yokimitsuro/khdays-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "youkaicountry/yknytt",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "yozander2009-stack/metroid-dread-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "ysrdevs/goldeneye-metal",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "yughias/obentou",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "yunophilia/blackknightrecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "yuutatsubasa/chaotixrecompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "yuutatsubasa/free-riders-recompiled",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "yyozcan/tobiichi-port",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "z3xox/tenkaichi3decomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zaps166/nfsiise",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zaxaerith/supermarioworld2yoshisislandrecomp",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zdoom/gzdoom",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zelda64recomp/zelda64recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zeldaret/botw",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zeldaret/tmc",
+      "sources": [
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zeldawwhdrecomp/zeldawwhdrecomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zer0ducksgiven/forza-motorsport-2-regpu",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zeranemesis/marioparty4",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zinexda/sonic-r-android",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zolaware/reblue",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zorde23/uncharted_collection_pc",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zorkats/g-diffuser",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zquestclassic/zquestclassic",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "github",
+      "repository": "zumbo06/crash2recomp",
+      "sources": [
+        "quiver",
+        "portintegration"
+      ]
+    },
+    {
+      "provider": "gitlab",
+      "repository": "Dringgstein/Commander-Genius",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "gitlab",
+      "repository": "bighead.0/ladxhd_updated",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "gitlab",
+      "repository": "ethan4love/psx-recomp-port",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "gitlab",
+      "repository": "m210/BuildGDX",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "gitlab",
+      "repository": "pacific-city-recompiled/crackdown-2-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "gitlab",
+      "repository": "pacific-city-recompiled/crackdown-recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "gitlab",
+      "repository": "re-volt/rvgl-launcher",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "gitlab",
+      "repository": "sonicdcer/DNZHRecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "gitlab",
+      "repository": "sonicdcer/ExtremeGRecomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "gitlab",
+      "repository": "sonicdcer/MarioKart64Recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "gitlab",
+      "repository": "sonicdcer/Starfox64Recomp",
+      "sources": [
+        "quiver"
+      ]
+    },
+    {
+      "provider": "gitlab",
+      "repository": "ztpeditor/project-amp",
+      "sources": [
+        "quiver"
+      ]
+    }
+  ]
+}
