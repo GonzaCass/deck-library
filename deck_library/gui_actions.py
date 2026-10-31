@@ -196,6 +196,13 @@ class ActionsMixin:
         if e.kind=='port':
             e=self.recover_port_location(e)
             if not e:return
+        from . import proton_selection,runtime_components
+        bypass=getattr(self,'_dependency_bypass',set())
+        skip=e.id in bypass;bypass.discard(e.id)
+        if not skip and proton_selection.mode(e) in ('port','exe','project2099'):
+            try:value=runtime_components.inspect(e,self.store)
+            except (OSError,ValueError):value={'state':'unknown'}
+            if value['state']=='missing':self.compatibility_page(e);return
         if e.kind=='steam' or e.metadata.get('steam_override') or self.in_steam(e):
             from .steam_inventory import game_uri
             uri='steam://run/'+str(e.metadata['steam_appid']) if e.metadata.get('steam_store') else game_uri(e.metadata['steam_appid'])

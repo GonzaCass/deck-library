@@ -154,7 +154,9 @@ from .gui_port_locations import PortLocationsMixin
 
 from .gui_rom_locations import RomLocationsMixin
 
-class Window(RomLocationsMixin,PortLocationsMixin,ShatteredMixin,RefreshMixin,RemovalMixin,ToolboxMixin,RequestsMixin,SwitchMixin,VariantsMixin,HelpMixin,HomeMixin,OriginalsMixin,InputMixin,ProgressMixin,GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,ActionsMixin,CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
+from .gui_compatibility import CompatibilityMixin
+
+class Window(CompatibilityMixin,RomLocationsMixin,PortLocationsMixin,ShatteredMixin,RefreshMixin,RemovalMixin,ToolboxMixin,RequestsMixin,SwitchMixin,VariantsMixin,HelpMixin,HomeMixin,OriginalsMixin,InputMixin,ProgressMixin,GameMixin,ShellMixin,EditorMixin,CommunityMixin,LibraryToolsMixin,ActionsMixin,CatalogMixin,UpdatesMixin,ExperienceMixin,ToolsMixin,Gtk.Window):
     def __init__(self):
         Gtk.Window.__init__(self,title='Deck Library');self.init_shell()
 

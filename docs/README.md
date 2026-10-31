@@ -5,6 +5,7 @@
 | Topic / Tema | Guide / Guía |
 | --- | --- |
 | Library, controls and Gaming Mode / Biblioteca, controles y modo Juego | [Deck interface](DECK-INTERFACE.md) |
+| Windows components, Proton and fix links / Componentes Windows, Proton y enlaces a fixes | [Compatibility](COMPATIBILITY.md) |
 | Supported ports, originals and setup / Ports, originales y preparación | [Ports](PORTS.md) |
 | Installation audit and remaining integrations / Auditoría de instalaciones e integraciones pendientes | [Port audit](PORT-INSTALLATION-AUDIT.md) |
 | Profile format and importing/exporting settings / Formato e importación de ajustes | [Presets](PRESETS.md) |

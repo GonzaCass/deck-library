@@ -164,6 +164,8 @@ scrollbar slider { background:#616b78; border:2px solid @bg; border-radius:7px; 
 scrollbar.vertical slider { min-width:6px; min-height:36px; }
 scrollbar.horizontal slider { min-height:6px; min-width:36px; }
 textview text { background:@surface; color:@text; }
+.game-compatibility button { min-height:26px; padding:3px 8px; }
+.game-compatibility .tag { padding:3px 8px; }
 progressbar.conversion-progress text { color: @text; font-size:15px; }
 progressbar.conversion-progress trough { min-height:8px; }
 progressbar trough { background:#29323d; min-height:5px; border-radius:5px; }

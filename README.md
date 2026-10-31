@@ -23,6 +23,7 @@
 
 - **Library:** discover EmuDeck games, installed ports and Prism Launcher instances, with portrait covers and platform filters.
 - **Ports:** browse, install and update supported projects. Check original-file requirements and choose missing files during setup.
+- **Windows compatibility:** inspect runtime components, prepare missing dependencies in the game’s prefix and use Proton recommendations from confirmed profiles. [Details](docs/COMPATIBILITY.md).
 - **Game settings:** compare compact profiles, expand their details and apply changes with a backup.
 - **Community:** share per-game settings, ratings and comments from the app.
 - **Validated games:** gameplay reports tied to a repository and version, with known limitations. Compare alternative ports from the catalog and check whether the installed variant was tested.

@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "games": [
+    {
+      "id": "prototype-2",
+      "steam_appids": [
+        "115320"
+      ],
+      "names": [
+        "prototype2"
+      ],
+      "resources": [
+        {
+          "name": "Prototype2Fix · página del autor",
+          "url": "https://www.nexusmods.com/prototype2/mods/42",
+          "notes": "Revisar la versión del juego admitida y las incidencias del autor antes de instalar. Enlace externo; no se descarga ni aplica automáticamente."
+        },
+        {
+          "name": "Reportes en ProtonDB",
+          "url": "https://www.protondb.com/app/115320",
+          "notes": "Experiencias de otros jugadores. Las versiones y los equipos pueden diferir."
+        }
+      ],
+      "executables": [
+        "prototype2.exe"
+      ]
+    },
+    {
+      "id": "splinter-cell-conviction",
+      "steam_appids": [
+        "33220"
+      ],
+      "names": [
+        "splintercellconviction",
+        "tomclancyssplintercellconviction"
+      ],
+      "resources": [
+        {
+          "name": "FusionFix · instrucciones del autor",
+          "url": "https://github.com/ThirteenAG/WidescreenFixesPack/blob/master/.github/docs/scc.md",
+          "notes": "El autor documenta la ubicación de los archivos y los overrides de DLL para Proton. Consultar también las incidencias; este enlace no certifica el fix en Steam Deck."
+        },
+        {
+          "name": "Incidencias del fix en Linux",
+          "url": "https://github.com/ThirteenAG/WidescreenFixesPack/issues/2318",
+          "notes": "Reportes de funcionamiento y ajustes de la comunidad."
+        },
+        {
+          "name": "Reportes en ProtonDB",
+          "url": "https://www.protondb.com/app/33220",
+          "notes": "Experiencias de otros jugadores. Las versiones y los equipos pueden diferir."
+        }
+      ],
+      "executables": [
+        "src/system/conviction_game.exe"
+      ]
+    },
+    {
+      "id": "splinter-cell-blacklist",
+      "steam_appids": [
+        "235600"
+      ],
+      "names": [
+        "splintercellblacklist",
+        "tomclancyssplintercellblacklist"
+      ],
+      "resources": [
+        {
+          "name": "FusionFix · instrucciones del autor",
+          "url": "https://github.com/ThirteenAG/WidescreenFixesPack/blob/master/.github/docs/scb.md",
+          "notes": "Revisar la versión, la carpeta de destino y los overrides de DLL indicados para Proton. Enlace externo; instalación manual."
+        },
+        {
+          "name": "Reportes en ProtonDB",
+          "url": "https://www.protondb.com/app/235600",
+          "notes": "Experiencias de otros jugadores. Las versiones y los equipos pueden diferir."
+        }
+      ],
+      "executables": [
+        "src/system/blacklist_game.exe",
+        "src/system/blacklist_dx11_game.exe"
+      ]
+    }
+  ]
+}

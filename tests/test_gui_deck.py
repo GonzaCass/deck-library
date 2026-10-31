@@ -22,6 +22,61 @@ class DeckUITests(unittest.TestCase):
         from gi.repository import Gtk,Gdk
         provider=Gtk.CssProvider();provider.load_from_data(gui.CSS);Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.w=gui.Window();self.w.resize(1280,760);self.w.show_all();self.settle()
+    def test_dependency_preparation_can_be_canceled_inside_the_app(self):
+        from deck_library.models import Entry
+        from deck_library import runtime_components,ports
+        from pe_fixture import image
+        import threading
+        path=pathlib.Path(self.temp.name)/'game.exe';path.write_bytes(image(['vcruntime140.dll']))
+        entry=Entry('Test',[str(path)],source=str(path),platform='Windows',kind='app')
+        self.w.entries=[entry];self.store.save([entry]);page=self.w.compatibility_page(entry);self.settle()
+        entered=threading.Event()
+        def prepare(*args,**kwargs):
+            entered.set();kwargs['cancel'].wait(3);raise ports.Cancelled()
+        with patch.object(self.w,'confirm',return_value=True),patch.object(runtime_components,'prepare',side_effect=prepare):
+            next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Preparar componentes').clicked();self.settle()
+            self.assertTrue(entered.is_set())
+            next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Cancelar').clicked();self.settle()
+        self.assertTrue(page.back_button.get_sensitive());self.assertFalse(self.w.profile_job);page.destroy()
+
+    def test_compatibility_page_lists_missing_components_and_supports_back(self):
+        from deck_library.models import Entry
+        from pe_fixture import image
+        path=pathlib.Path(self.temp.name)/'game.exe';path.write_bytes(image(['vcruntime140.dll']))
+        entry=Entry('PROTOTYPE 2',[str(path)],source=str(path),platform='Windows')
+        self.w.entries=[entry];self.store.save([entry]);self.w.select_game(entry);self.settle()
+        page=self.w.compatibility_page(entry);self.settle()
+        targets=self.w.control_targets(page)
+        self.assertTrue(next(c for c in targets if c.get_accessible().get_name()=='Preparar componentes').get_sensitive())
+        self.assertIn('Prototype2Fix · página del autor',[c.get_accessible().get_name() for c in targets])
+        self.w.controller_action('back');self.settle();self.assertFalse(self.w.inline_workflows)
+
+    def test_missing_component_preflight_can_try_the_game_without_installing(self):
+        from deck_library.models import Entry
+        from pe_fixture import image
+        path=pathlib.Path(self.temp.name)/'game.exe';path.write_bytes(image(['vcruntime140.dll']))
+        entry=Entry('Test',[str(path)],source=str(path),platform='Windows',kind='app')
+        self.w.entries=[entry];self.store.save([entry])
+        with patch('deck_library.gui_actions.subprocess.Popen') as launch:
+            self.w.play(entry);self.settle();launch.assert_not_called()
+            page=self.w.inline_workflows[-1]
+            next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Probar el juego').clicked();self.settle()
+            launch.assert_called_once()
+        self.assertFalse(self.w.inline_workflows);self.assertNotIn(entry.id,self.w._dependency_bypass)
+
+    def test_dependency_page_prepares_only_checked_components_and_keeps_result(self):
+        from deck_library.models import Entry
+        from deck_library import runtime_components
+        from pe_fixture import image
+        path=pathlib.Path(self.temp.name)/'game.exe';path.write_bytes(image(['vcruntime140.dll']))
+        entry=Entry('Test',[str(path)],source=str(path),platform='Windows',kind='app')
+        self.w.entries=[entry];self.store.save([entry]);page=self.w.compatibility_page(entry);self.settle()
+        with patch.object(self.w,'confirm',return_value=True),patch.object(runtime_components,'prepare',return_value={'backup':'/example/registry-backup'}) as prepare:
+            next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Preparar componentes').clicked();self.settle()
+            prepare.assert_called_once();self.assertEqual(prepare.call_args.args[:2],(entry,['vcrun2022']))
+        self.assertIn(page,self.w.inline_workflows);self.assertTrue(page.back_button.get_sensitive());self.assertFalse(self.w.profile_job)
+        page.destroy()
+
     def test_gtaiv_filter_action_does_not_reapply_the_full_recipe(self):
         from deck_library import gtaiv
         from deck_library.models import Entry
