@@ -23,6 +23,7 @@
 
 - **Biblioteca:** detectar juegos de EmuDeck, ports instalados e instancias de Prism Launcher, con carátulas verticales y filtros por plataforma.
 - **Ports:** explorar, instalar y actualizar los proyectos compatibles. Consultar los originales necesarios y elegir los archivos que falten al preparar el juego.
+- **Compatibilidad de Windows:** revisar componentes, preparar dependencias en el prefijo del juego y usar recomendaciones de Proton de perfiles comprobados. [Detalles](docs/COMPATIBILITY.md).
 - **Ajustes por juego:** comparar perfiles compactos, desplegar sus detalles y aplicar cambios con respaldo.
 - **Comunidad:** compartir ajustes, valoraciones y comentarios desde la app.
 - **Juegos validados:** pruebas vinculadas al repositorio y la versión, con sus limitaciones. Comparar variantes desde el catálogo y consultar si la instalada fue probada.

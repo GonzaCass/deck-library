@@ -31,9 +31,10 @@ def own_portrait(account,appid):
 
 def merge_steam(entries,home=None,account=None,ignored_shortcuts=()):
     from .gtaiv import discover
+    from .game_fixes import discover as discover_fixes
     entries=list(entries)
-    for game in discover(home) if account is None or home is not None else []:
-        match=next((e for e in entries if e.metadata.get('steam_store') and e.metadata.get('steam_appid')==12210),None)
+    for game in [*discover(home),*discover_fixes(home)] if account is None or home is not None else []:
+        match=next((e for e in entries if e.metadata.get('steam_store') and e.metadata.get('steam_appid')==game.metadata['steam_appid']),None)
         if match:match.metadata.update(game.metadata)
         else:entries.append(game)
     account=account or active_account(home)

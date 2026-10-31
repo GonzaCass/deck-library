@@ -58,21 +58,31 @@ def inspect(entry,home=None):
     return {'source':source,'folder':source.parent,'steam':steam,'appid':appid,'prefix':prefix,'missing':[v for v in VERBS if v not in installed],'detected':detected}
 
 
-def run(command,progress,timeout=2700,**kwargs):
+def run(command,progress,timeout=2700,cancel=None,**kwargs):
     """Run without a terminal or native installer dialogs; retain output in the job log."""
+    from .ports import check_cancel,Cancelled
+    check_cancel(cancel)
     process=subprocess.Popen(command,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,text=True,errors='replace',start_new_session=True,**kwargs)
-    tail=[];expired=threading.Event()
+    tail=[];expired=threading.Event();finished=threading.Event()
     def terminate():
         expired.set()
         try:os.killpg(process.pid,signal.SIGKILL)
         except ProcessLookupError:pass
     timer=threading.Timer(timeout,terminate);timer.daemon=True;timer.start()
+    def monitor():
+        while not finished.wait(0.1):
+            if cancel.is_set():
+                try:os.killpg(process.pid,signal.SIGKILL)
+                except ProcessLookupError:pass
+                return
+    if cancel is not None:threading.Thread(target=monitor,daemon=True).start()
     try:
         for line in process.stdout:
             line=line.rstrip();tail.append(line);tail=tail[-12:]
             if line:progress(line)
         code=process.wait()
-    finally:timer.cancel();process.stdout.close()
+    finally:finished.set();timer.cancel();process.stdout.close()
+    check_cancel(cancel)
     if expired.is_set():raise RuntimeError('La preparación superó el tiempo de espera. Se puede volver a intentar; el respaldo se conserva.')
     if code:raise RuntimeError('Protontricks terminó con error '+str(code)+'.\n'+'\n'.join(tail))
 

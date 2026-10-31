@@ -23,7 +23,17 @@ def choice(entry):
     return ''
 
 
+def automatic_version(entry,store=None,home=None):
+    """Prefer an installed build from a shipped, confirmed game profile."""
+    from .game_fixes import recommendation
+    if mode(entry) not in ('port','project2099','exe'):return ''
+    value=recommendation(entry,store)
+    return value['version'] if value and value['version'] in proton_tools.installed(home) else ''
+
+
 def default_tool(entry):
+    recommended=automatic_version(entry)
+    if recommended:return proton_tools.resolve(recommended)
     if mode(entry)=='project2099' and entry.metadata.get('engine')=='reeot':
         try:return project2099.proton_path(preferred='Proton 9.0 (Beta)')
         except ValueError:pass
@@ -54,7 +64,7 @@ def save(entry,version,store=None):
 
 def launch_command(entry,command,env,store):
     """Keep AppID, launcher path and per-game data directory unchanged."""
-    kind=mode(entry);version=choice(entry);command=list(command)
+    kind=mode(entry);version=choice(entry) or automatic_version(entry,store);command=list(command)
     if kind in ('port','project2099'):
         if '--proton' in command and kind=='project2099':
             index=command.index('--proton');del command[index:index+2]

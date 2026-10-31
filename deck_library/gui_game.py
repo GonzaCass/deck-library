@@ -189,11 +189,13 @@ class GameMixin:
         origin = {'eden': 'Eden', 'wiicompiled': 'WiiCompiled', 'prism': 'Prism Launcher', 'duckstation': 'DuckStation', 'dolphin': 'Dolphin', 'project2099': 'Project-2099'}.get(presets.adapter_for(entry), 'Port' if entry.kind == 'port' else 'Aplicación')
         platform.pack_start(text(origin, 'meta'), False, False, 0)
         info.pack_start(platform, False, False, 0)
+        compatibility=styled(Gtk.Box(spacing=8),'game-compatibility');self.compatibility_chips(entry,compatibility)
+        title_line=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);info.pack_start(title_line,False,False,0)
         name = text(entry.name, 'game-title', 44)
         name.set_lines(2)
         name.set_ellipsize(Pango.EllipsizeMode.END)
         tooltip_when_cut(name, entry.name)
-        info.pack_start(name, False, False, 0)
+        title_line.pack_start(name, False, False, 0)
         actions = Gtk.Box(spacing=10)
         needs_setup=entry.metadata.get('configured') is False and bool(entry.metadata.get('port_repository'))
         if entry.metadata.get('port_repository'):
@@ -219,7 +221,9 @@ class GameMixin:
         compact_menu=self.game_menu(entry,compact=True)
         compact_menu.set_tooltip_text('Más opciones del juego')
         actions.pack_start(compact_menu,False,False,0)
-        info.pack_start(actions, False, False, 0)
+        title_line.pack_start(actions, False, False, 0)
+        if compatibility.get_children():info.pack_start(compatibility,False,False,0)
+        self.game_title_line=title_line
         hero.pack_start(info, True, True, 0)
         self.game_header = hero
         self.game_hero_parts = (cover_button,platform,info,name,actions)
@@ -245,9 +249,10 @@ class GameMixin:
         self.compact_game_back.set_no_show_all(not compact);self.compact_game_back.set_visible(compact)
         compact_menu.show()
         name.set_line_wrap(not compact);name.set_lines(1 if compact else 2);name.set_width_chars(1 if compact else -1)
-        info.set_orientation(Gtk.Orientation.HORIZONTAL if compact else Gtk.Orientation.VERTICAL)
-        info.set_child_packing(name,compact,True,0,Gtk.PackType.START)
-        info.set_spacing(16 if compact else 12)
+        info.set_orientation(Gtk.Orientation.VERTICAL)
+        self.game_title_line.set_orientation(Gtk.Orientation.HORIZONTAL if compact else Gtk.Orientation.VERTICAL)
+        self.game_title_line.set_child_packing(name,compact,True,0,Gtk.PackType.START)
+        info.set_spacing(6 if compact else 12)
         self.game_header.set_border_width(8 if compact else 18)
         self.detail.set_border_width(12 if compact else 20)
         style=self.game_header.get_style_context()
@@ -322,6 +327,7 @@ class GameMixin:
         self.build_game_variant_notice(entry,content)
         self.build_broken_bond_repair(entry,content)
         self.build_shattered_fix(entry,content)
+        self.build_compatibility_action(entry,content)
         if adapter in presets.REGISTRY:
             self.build_profile_picker(entry, content, parent)
         else:

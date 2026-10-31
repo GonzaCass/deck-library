@@ -4,6 +4,7 @@ Every release has its notes on [GitHub](https://github.com/GonzaCass/deck-librar
 
 | Version | Date | Title |
 | --- | --- | --- |
+| [1.4.12](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.12) | 2026-10-31 | Per-game Windows component inspection and preparation, confirmed-profile Proton recommendations and community fix links |
 | [1.4.11](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.11) | 2026-10-30 | Disable the FusionFix color filter without resetting game settings; document catalog sources and the Savage Wind configuration |
 | [1.4.10](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.10) | 2026-10-30 | Visible Switch conversion progress, missing-ROM recovery and an optional FusionFix 5.1.2 trial |
 | [1.4.9](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.9) | 2026-10-30 | Reuse existing port installations, recover moved game folders and link Savage Wind compiled data |
