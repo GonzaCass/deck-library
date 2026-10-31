@@ -1,5 +1,5 @@
 """Switch XCI/NSP to exefs/romfs conversion page, for ports that ask for an extracted dump."""
-import pathlib,shutil,threading
+import pathlib,shutil,threading,time
 from gi.repository import Gtk,GLib,Pango
 from .inline_pages import InlineDialog
 from .installations import save_settings
@@ -59,7 +59,9 @@ class SwitchMixin:
             values['keys'].set_text(state['keys'] and ('Detectado: '+state['keys'] if state['keys'] in found else state['keys']) or 'No se encontró prod.keys: elegirlo')
             values['root'].set_text(state['root']+'/<ID del juego>')
             tool_state.set_text('Conversor incluido en Deck Library' if state['tool'] else 'El conversor se descargará automáticamente al convertir.')
-            ready=bool(state['game'] and state['keys']) and not state['busy'];convert.set_sensitive(ready);cancel_button.set_visible(state['busy'])
+            ready=bool(state['game'] and state['keys']) and not state['busy'];convert.set_sensitive(ready);cancel_button.set_no_show_all(not state['busy'])
+            if state['busy']:cancel_button.show_all()
+            else:cancel_button.hide()
         def pick(key,title,patterns,filter_name,folder=False):
             def choose(_):
                 if state['busy']:return
@@ -77,27 +79,49 @@ class SwitchMixin:
         row('keys','Claves (prod.keys)','Elegir',pick('keys','Elegir el archivo prod.keys',('*.keys',),'Claves'))
         row('root','Carpeta de destino','Cambiar',pick('root','Elegir la carpeta de destino',(),'',folder=True))
         tool_state=text('','muted',95);body.pack_start(tool_state,False,False,0)
-        progress=Gtk.ProgressBar();progress.set_no_show_all(True);body.pack_start(progress,False,False,0)
-        status=text('','status',95);status.set_selectable(True);body.pack_start(status,False,False,0)
-        def set_status(message):
-            if state['alive']:status.set_text(message);progress.pulse()
-            return False
+        feedback=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+        feedback.get_style_context().add_class('banner');feedback.set_no_show_all(True)
+        page.pack_start(feedback,False,False,0);page.reorder_child(feedback,2)
+        progress=Gtk.ProgressBar();progress.get_style_context().add_class('conversion-progress');progress.set_show_text(True);feedback.pack_start(progress,False,False,0)
+        status=text('','status',75);status.set_selectable(True);feedback.pack_start(status,False,False,0)
+        details=text('','muted',85);details.set_selectable(True);body.pack_start(details,False,False,0)
+        # Validation errors must also be visible before a conversion starts.
+        def reveal(*_):
+            feedback.set_no_show_all(False);feedback.show_all()
+        status.connect('notify::label',reveal)
+        state.update(result=None,pending='',started=0,timer=0)
+        def tick():
+            if not state['alive'] or not state['busy']:state['timer']=0;return False
+            progress.pulse();progress.set_text('En curso · '+str(int(time.monotonic()-state['started']))+' s')
+            if state['pending']:status.set_text(state['pending']);state['pending']=''
+            return True
+        def report(message):state['pending']=str(message)
+        def continue_ready(_):
+            if not state['result'] or state['busy']:return
+            try:
+                if on_done:on_done(state['result']['path'])
+                else:self.pages.set_visible_child_name('library');self.render()
+            except (OSError,ValueError) as error:status.set_text('No se pudo usar la carpeta.');details.set_text(str(error));return
+            offer_cleanup(state['root']);page.destroy()
+        ready_button=ActionButton('Usar esta carpeta' if on_done else 'Volver a la biblioteca','check',continue_ready,'play')
+        ready_button.set_no_show_all(True);page.get_action_area().pack_start(ready_button,False,False,0)
         def finish(result,error):
-            state['busy']=False;progress.hide()
+            state['busy']=False;state['pending']=''
+            if state['timer']:GLib.source_remove(state['timer']);state['timer']=0
             if not state['alive']:return False
-            if isinstance(error,Cancelled):status.set_text('Cancelado. No se modificó nada.')
-            elif isinstance(error,sx.NeedsUpdate):status.set_text(str(error));self.toast('Falta la actualización')
-            elif error:status.set_text(str(error))
+            page.set_deletable(True);page.back_button.set_sensitive(True)
+            progress.set_fraction(0 if error else 1)
+            progress.set_text('Cancelado' if isinstance(error,Cancelled) else 'Error' if error else 'Completado · 100 %')
+            if isinstance(error,Cancelled):status.set_text('Conversión cancelada.');details.set_text('Se conservaron los originales y la conversión anterior.')
+            elif error:status.set_text('No se pudo convertir el juego.'+'\n'+str(error).split('\n',1)[0][:180]);details.set_text(str(error));self.toast('Error al convertir el juego')
             else:
+                state['result']=result
                 facts=[f"{result['files']} archivos",f"{result['size']/1024**3:.1f} GB"]+(['Incluye la actualización'] if result['update'] else [])
-                status.set_text(result['path']+'\n'+' · '.join(facts)+('\nArchivos preparados para el port.' if on_done else '\nCarpeta extraída lista para usar.'));self.toast('Juego convertido')
-                offer_cleanup(state['root'])
-                if on_done:
-                    folder=result['path']
-                    try:on_done(folder)
-                    except (OSError,ValueError) as error:status.set_text(str(error));refresh();return False
-                    page.destroy();return False
-            refresh();return False
+                status.set_text('Conversión completada. La carpeta está lista.');details.set_text(result['path']+'\n'+' · '.join(facts))
+                ready_button.set_no_show_all(False);ready_button.show_all();convert.hide();self.toast('Juego convertido')
+            refresh()
+            if not error:convert.hide();ready_button.grab_focus()
+            return False
         def offer_cleanup(root):
             """Conversions delete their own working files; this offers what a cancelled or replaced one left behind."""
             found=sx.leftovers(root)
@@ -107,14 +131,14 @@ class SwitchMixin:
                 freed=sx.clean(root);status.set_text(status.get_text()+f'\nSe liberaron {freed/1024**3:.1f} GB.')
         def run_convert(_):
             if state['busy']:return
-            cancel=threading.Event();state.update(busy=True,cancel=cancel);progress.set_no_show_all(False);progress.show();status.set_text('Preparando…');refresh()
+            cancel=threading.Event();state.update(busy=True,cancel=cancel,result=None,pending='',started=time.monotonic());details.set_text('');ready_button.hide();progress.set_fraction(0);status.set_text('Preparando la conversión…');page.set_deletable(False);page.back_button.set_sensitive(False);refresh();state['timer']=GLib.timeout_add(150,tick)
             game,update,keys,root,tool=state['game'],state['update'],state['keys'],state['root'],state['tool']
             if minimum and not update:status.set_text('Comprobando la versión del juego…')
             def work():
                 try:
-                    converter=tool or sx.fetch_nstool(self.store,progress=lambda line:GLib.idle_add(set_status,line),cancel=cancel)
+                    converter=tool or sx.fetch_nstool(self.store,progress=report,cancel=cancel)
                     state['tool']=converter
-                    result=sx.Job(converter,keys,progress=lambda line:GLib.idle_add(set_status,line),cancel=cancel).convert(game,root,update or None,minimum);GLib.idle_add(finish,result,None)
+                    result=sx.Job(converter,keys,progress=report,cancel=cancel).convert(game,root,update or None,minimum);GLib.idle_add(finish,result,None)
                 except Exception as error:GLib.idle_add(finish,None,error)
             threading.Thread(target=work,daemon=True).start()
         actions=page.get_action_area()
@@ -122,6 +146,7 @@ class SwitchMixin:
         cancel_button=ActionButton('Cancelar','undo',lambda _:state['cancel'].set() if state['cancel'] else None,'danger');cancel_button.set_no_show_all(True);actions.pack_start(cancel_button,False,False,0)
         def closing(*_):
             state['alive']=False
+            if state['timer']:GLib.source_remove(state['timer']);state['timer']=0
             if state['cancel']:state['cancel'].set()
         page.connect('destroy',closing);page.connect('response',lambda *_:page.destroy())
         refresh();page._mount()

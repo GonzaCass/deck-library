@@ -213,3 +213,9 @@ La detección de Quiver lee el repositorio del registro `apps.json` por `folderN
 Savage Wind y Bayonetta 2 abren directamente el formulario de archivos cuando faltan originales. **Usar carpeta ya extraída** acepta la carpeta con `exefs/main` y `romfs` (o cualquiera de esas subcarpetas); no pide claves. La otra opción convierte un XCI/NSP propio, con actualización separada si hace falta, usando el conversor incluido. No hay un paso de preparar la herramienta.
 
 La carpeta se guarda como entrada del port. Bayonetta 2 continúa con su constructor. Savage Wind recibe la carpeta en su constructor de primer inicio mediante la interfaz `SAVAGEWIND_LAUNCHER_SETUP` del proyecto; el propio port verifica versión y compila. La estructura de carpetas por sí sola no confirma el juego ni su revisión. Después de generarse los datos y la biblioteca del juego, Deck Library no vuelve a forzar el asistente. La integración no incluye ROMs, claves ni firmware.
+
+### Conversion progress and missing ROMs
+
+Switch conversion keeps its progress bar and current phase above the form. The bar animates during extraction because the converter does not report a reliable overall percentage; it reaches 100% after validation and the final folder swap. Success, cancellation and errors stay visible. Choose **Use this folder** to continue a port installation, or return to the library after a standalone conversion.
+
+At startup, missing emulated ROMs offer **It was moved**, **It was deleted**, and **Review later**. Connect removable storage before deciding. Moving a ROM updates its reference while preserving the game ID, artwork, profiles and Steam AppID. Confirming deletion removes only the library reference and queues removal of its Steam shortcut; Steam must be closed to write that change. Saves and emulator settings are preserved. The prompt never automatically deletes original files.

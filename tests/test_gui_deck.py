@@ -17,10 +17,96 @@ class DeckUITests(unittest.TestCase):
         self.patches.append(patch.object(eden_controls,'status',return_value='ok'))
         from deck_library import port_locations
         self.patches.append(patch.object(port_locations,'candidates',return_value=[]))
+        self.patches.append(patch.object(gui.Window,'check_missing_roms',return_value=False))
         for p in self.patches:p.start()
         from gi.repository import Gtk,Gdk
         provider=Gtk.CssProvider();provider.load_from_data(gui.CSS);Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.w=gui.Window();self.w.resize(1280,760);self.w.show_all();self.settle()
+    def test_gtaiv_latest_choice_uses_the_selected_pinned_recipe(self):
+        from deck_library import gtaiv
+        from deck_library.models import Entry
+        from gi.repository import Gtk,GLib
+        original=self.inline.run
+        def walk(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from walk(child)
+        def drive(page):
+            def apply():
+                combo=next(c for c in walk(page) if isinstance(c,Gtk.ComboBoxText))
+                self.assertEqual(combo.get_active_id(),'4.0.5');combo.set_active_id('5.1.2')
+                next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Aplicar arreglo de GTA IV').clicked()
+                GLib.timeout_add(250,lambda:(page.response(Gtk.ResponseType.CLOSE),False)[1]);return False
+            GLib.timeout_add(150,apply);return original(page)
+        entry=Entry('GTA IV',['steam','steam://run/12210'],'steam','Windows',metadata={'gtaiv_root':'/example/GTAIV','gtaiv_settings':'/example/SETTINGS.CFG'})
+        with patch.object(gtaiv,'apply',return_value='/example/backup') as apply,patch.object(self.inline,'run',drive):self.w.gtaiv_dialog(entry)
+        self.assertEqual(apply.call_args.kwargs,{'release':'5.1.2'});self.assertFalse(self.w.inline_workflows)
+
+    def test_startup_missing_rom_can_be_moved_and_keeps_game_identity(self):
+        from deck_library import gui_rom_locations
+        from deck_library.models import Entry
+        target=pathlib.Path(self.temp.name)/'new.iso';target.write_bytes(b'rom')
+        old=Entry('Missing game',['dolphin','-e','/missing/game.iso'],'emulated','Wii','/missing/game.iso')
+        self.w.entries=[old];self.store.save([old])
+        gui_rom_locations.RomLocationsMixin.check_missing_roms(self.w);self.settle()
+        page=self.w.inline_workflows[-1]
+        actions=self.w.control_targets(page)
+        self.assertIn('Se borró',[c.get_accessible().get_name() for c in actions])
+        with patch.object(self.w,'pick_file',return_value=str(target)):
+            next(c for c in actions if c.get_accessible().get_name()=='Se movió').clicked();self.settle()
+        self.assertFalse(self.w.inline_workflows);self.assertEqual(self.store.load()[0].id,old.id)
+        self.assertEqual(self.store.load()[0].source,str(target))
+
+    def test_missing_rom_later_and_back_preserve_everything(self):
+        from deck_library import gui_rom_locations
+        gui_rom_locations.RomLocationsMixin.check_missing_roms(self.w);self.settle()
+        self.assertTrue(self.w.inline_workflows)
+        self.w.controller_action('back');self.settle()
+        self.assertFalse(self.w.inline_workflows);self.assertEqual(len(self.store.load()),1)
+        gui_rom_locations.RomLocationsMixin.check_missing_roms(self.w);self.settle();self.assertFalse(self.w.inline_workflows)
+
+    def test_conversion_progress_and_result_stay_visible_until_continue(self):
+        from gi.repository import Gtk
+        from deck_library import switch_extract
+        import threading
+        def walk(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from walk(child)
+        release=threading.Event();entered=threading.Event();done=[]
+        result={'path':self.temp.name,'files':10,'size':1024,'update':False}
+        def convert(*args):entered.set();release.wait(5);return result
+        with patch.object(switch_extract,'find_keys',return_value=['/fake/prod.keys']),patch.object(switch_extract,'tool_path',return_value='/fake/nstool'),patch.object(switch_extract,'Job') as job:
+            job.return_value.convert.side_effect=convert
+            page=self.w.switch_convert_page(on_done=done.append);self.settle()
+            choose=next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Elegir')
+            with patch.object(self.w,'pick_file',return_value='/fake/game.nsp'):choose.clicked()
+            next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Convertir').clicked();self.settle()
+            self.assertTrue(entered.is_set())
+            progress=next(c for c in walk(page) if isinstance(c,Gtk.ProgressBar))
+            self.assertTrue(progress.get_mapped());self.assertIs(progress.get_parent().get_parent(),page)
+            self.assertTrue(any(isinstance(c,Gtk.Label) and c.get_text()=='Cancelar' and c.get_mapped() for c in walk(page)))
+            self.w.controller_action('back');self.settle();self.assertIn(page,self.w.inline_workflows)
+            release.set();self.settle()
+            self.assertEqual(done,[]);self.assertIn(page,self.w.inline_workflows);self.assertEqual(progress.get_fraction(),1)
+            self.assertTrue(any(isinstance(c,Gtk.Label) and c.get_text()=='Conversión completada. La carpeta está lista.' for c in walk(page)))
+            with patch.object(switch_extract,'leftovers',return_value=[]):
+                next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Usar esta carpeta').clicked();self.settle()
+            self.assertEqual(done,[self.temp.name]);self.assertNotIn(page,self.w.inline_workflows)
+
+    def test_conversion_failure_is_visible_and_can_be_retried(self):
+        from gi.repository import Gtk
+        from deck_library import switch_extract
+        with patch.object(switch_extract,'find_keys',return_value=['/fake/prod.keys']),patch.object(switch_extract,'tool_path',return_value='/fake/nstool'),patch.object(switch_extract,'Job') as job:
+            job.return_value.convert.side_effect=ValueError('Invalid test keys')
+            page=self.w.switch_convert_page();self.settle()
+            choose=next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Elegir')
+            with patch.object(self.w,'pick_file',return_value='/fake/game.nsp'):choose.clicked()
+            next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Convertir').clicked();self.settle()
+            self.assertIn(page,self.w.inline_workflows)
+            self.assertTrue(next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Convertir').get_sensitive())
+            self.assertTrue(page.back_button.get_sensitive());page.destroy()
+
     def test_missing_port_offers_inline_location_recovery_and_back_without_launching(self):
         from deck_library import ports
         from deck_library.models import Entry,atomic_json

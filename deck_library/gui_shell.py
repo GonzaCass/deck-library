@@ -45,6 +45,7 @@ class ShellMixin:
         self.start_gamepad();GLib.timeout_add_seconds(12,self.top_up_library_art)
         self.ui_sources.append(GLib.timeout_add_seconds(45,self.poll_request_replies))
         self.start_live_refresh()
+        self.ui_sources.append(GLib.timeout_add_seconds(8,self.check_missing_roms))
     def compact_screen(self):
         screen=Gdk.Screen.get_default()
         return bool(screen) and screen.get_height()<=900 and screen.get_width()<=1400

@@ -319,10 +319,12 @@ class Job:
                 base_option=['--basenca',str(game['path'])] if patch is not None else []
                 self.hactool([*base_option,'-x','/0',str(staged/'exefs'),str(target['path'])]);self.hactool([*base_option,'-x','/1',str(staged/'romfs'),str(target['path'])])
             else:self.hactool(['-t','nca','--exefsdir='+str(staged/'exefs'),'--romfsdir='+str(staged/'romfs'),*(['--basenca='+str(game['path'])] if patch is not None else []),str(target['path'])])
+            self.progress('Comprobando los archivos extraídos…')
             files,size=validate(staged)
             check_cancel(self.cancel)
             receipt={'schema':1,'title_id':base_tid,'title':KNOWN_TITLES.get(base_tid,''),'sources':[pathlib.Path(source).name]+([pathlib.Path(update).name] if update else []),'update':bool(update),'tool':({'name':'nstool','tag':NSTOOL['tag']} if self.backend=='nstool' else {'name':'hactool','tag':HACTOOL['tag'],'commit':HACTOOL['commit']}),'files':files,'size':size,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
             atomic_json(staged/MANIFEST,receipt)
+            self.progress('Guardando la carpeta del juego…')
             backup=None
             if destination.exists():
                 backup=root/'.deck-library-original-backups'/str(time.time_ns())
