@@ -2,6 +2,16 @@
 
 En Deck Library: **Buscar juegos → Grand Theft Auto IV → Ver arreglo → Aplicar arreglo de GTA IV**. La aplicación detecta la instalación de Steam, también en microSD. Cerrar GTA IV primero. El botón descarga el paquete oficial, verifica su SHA-256, guarda un respaldo y aplica el arreglo sin abrir el juego. **Restaurar respaldo** vuelve al estado inmediatamente anterior a la última aplicación.
 
+## Probar FusionFix 5.1.2
+
+El selector del arreglo ofrece **4.0.5 · Perfil probado** y **5.1.2 · Nueva versión, para probar**. La segunda opción descarga el [ZIP oficial de 5.1.2](https://github.com/ThirteenAG/GTAIV.EFLC.FusionFix/releases/tag/v5.1.2), verifica el SHA-256 `138f4067a2d2f09df2df80c4378407ad7c742be0e3b99f090633d50820bb2450` y respalda cada archivo que reemplaza o quita.
+
+FusionFix cambió el formato de las opciones del menú. Este perfil crea un CFG nuevo con valores comprobados en el código de la versión 5.1.2: Vulkan, SMAA, límite de 60 FPS, filtro de sombras Soft, niebla volumétrica y oclusión ambiental desactivadas, y botones de PS5. Conserva la resolución, el idioma configurado, las opciones INI reconocidas y Proton. No interpreta los índices del CFG anterior como si tuvieran el mismo significado. El respaldo permite recuperar las opciones anteriores.
+
+**Restaurar respaldo** recupera la instalación anterior. Si el juego modificó sus ajustes durante la prueba, la app guarda esos archivos aparte antes de restaurar. Un binario cambiado posteriormente bloquea la restauración para no sobrescribir otros mods. No se tocan partidas.
+
+Validación del perfil 5.1.2: instalación con checksum y verificación de los archivos, arranque desde Steam y carga de una partida en Steam Deck. No se midieron FPS ni se realizó una comparación de rendimiento durante gameplay; no reemplaza la confirmación histórica de 4.0.5.
+
 ## Qué funcionó en esta Deck
 
 El 1 de octubre de 2026 el usuario reportó «anduvo perfecto el gta iv» después de sustituir FusionFix **5.0.1 por 4.0.5**, conservando **DXVK 2.6.2**, con estos ajustes en `dxvk.conf` al lado de `GTAIV.exe`:

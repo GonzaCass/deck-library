@@ -110,7 +110,8 @@ class ActionsMixin:
                 found=report(preferences=preferences);from .steam_inventory import merge_steam
                 from . import ports
                 ports.maintain(self.store)
-                merged=self.store.merge(scan(preferences=preferences),overwrite=False);entries=merge_steam(merged);self.store.save(entries);GLib.idle_add(self.discovered,entries,found)
+                from . import rom_locations
+                merged=self.store.merge(rom_locations.filter_forgotten(scan(preferences=preferences),self.store),overwrite=False);entries=merge_steam(merged,ignored_shortcuts=rom_locations.ignored_shortcuts(self.store));self.store.save(entries);GLib.idle_add(self.discovered,entries,found)
             except Exception as error:GLib.idle_add(self.discovery_failed,str(error))
         threading.Thread(target=work,daemon=True).start();return False
     def discovery_snapshot_ready(self,inventory):
@@ -120,7 +121,8 @@ class ActionsMixin:
             self.discover_busy=False;return False
         try:
             from .steam_inventory import merge_steam
-            entries=merge_steam(self.store.merge(inventory,overwrite=False));self.store.save(entries)
+            from . import rom_locations
+            entries=merge_steam(self.store.merge(rom_locations.filter_forgotten(inventory,self.store),overwrite=False),ignored_shortcuts=rom_locations.ignored_shortcuts(self.store));self.store.save(entries)
         except Exception as error:return self.discovery_failed(str(error))
         return self.discovered(entries)
     def discovery_failed(self,text):
@@ -144,6 +146,7 @@ class ActionsMixin:
             if self.selected:self.show_detail(self.selected)
             else:self.pages.set_visible_child_name('library')
         if self.pages.get_visible_child_name()!='welcome':self.fetch_covers()
+        GLib.idle_add(self.check_missing_roms)
         return False
     def refresh_platforms(self):
         self.platform_picker.handler_block_by_func(self.filter_changed);self.platform_picker.remove_all();self.platform_picker.append('all','Todas las plataformas')

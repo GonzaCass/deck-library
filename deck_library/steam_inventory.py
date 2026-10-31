@@ -29,7 +29,7 @@ def own_portrait(account,appid):
         if path.is_file():return str(path)
     return ''
 
-def merge_steam(entries,home=None,account=None):
+def merge_steam(entries,home=None,account=None,ignored_shortcuts=()):
     from .gtaiv import discover
     entries=list(entries)
     for game in discover(home) if account is None or home is not None else []:
@@ -43,6 +43,7 @@ def merge_steam(entries,home=None,account=None):
         account=accounts[0]
     result=list(entries);items=shortcuts(account)
     for item in items:
+        if (str(account),item['appid']) in ignored_shortcuts:continue
         command=launch_command(item);launch=command[0]
         instance=''
         if '--launch' in command:

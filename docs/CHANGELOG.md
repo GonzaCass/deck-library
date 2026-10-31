@@ -4,6 +4,7 @@ Every release has its notes on [GitHub](https://github.com/GonzaCass/deck-librar
 
 | Version | Date | Title |
 | --- | --- | --- |
+| [1.4.10](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.10) | 2026-10-30 | Visible Switch conversion progress, missing-ROM recovery and an optional FusionFix 5.1.2 trial |
 | [1.4.9](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.9) | 2026-10-30 | Reuse existing port installations, recover moved game folders and link Savage Wind compiled data |
 | [1.4.8](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.8) | 2026-10-29 | Remove the hardware-model line from Verified cards; retain testing hardware in evidence data |
 | [1.4.7](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.7) | 2026-10-29 | Automatic data refresh, consistent game pages and a Shattered Dimensions audio fix with optional language settings |

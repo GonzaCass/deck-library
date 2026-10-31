@@ -64,16 +64,24 @@ class ToolsMixin:
         dialog=InlineDialog(title='Arreglo de GTA IV',transient_for=self,modal=True)
         dialog.set_default_size(760,520);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(22);box.set_spacing(14)
-        box.pack_start(label('GTA IV · FusionFix 4.0.5','title'),False,False,0)
-        box.pack_start(label('Confirmado en una Steam Deck OLED el 01/10/2026: el juego funcionó bien con estos cambios. No hay medición de FPS sostenidos.','subtitle'),False,False,0)
-        box.pack_start(label('• FusionFix 4.0.5 oficial, con respaldo completo.\n• DXVK 2.6.2 y latencia máxima de un cuadro.\n• VSync de DXVK activado y el del juego apagado.\n• Se conservan los gráficos y el límite de FPS (60 en una instalación nueva).\n• Botones de PlayStation.\n\nEl juego debe estar cerrado. La primera vez se descargan unos 172 MB.','muted'),False,False,0)
+        box.pack_start(label('GTA IV · FusionFix','title'),False,False,0)
+        release=Gtk.ComboBoxText();release.append('4.0.5','4.0.5 · Perfil probado');release.append(gtaiv.LATEST_VERSION,gtaiv.LATEST_VERSION+' · Nueva versión, para probar');release.set_active_id(gtaiv.installed_release(e.metadata['gtaiv_root'],self.store) or '4.0.5');box.pack_start(release,False,False,0)
+        box.pack_start(label('Restaurar vuelve a los archivos y opciones anteriores. Los ajustes modificados durante la prueba se guardan aparte.','meta'),False,False,0)
+        box.pack_start(label('La versión 5.1.2 crea nuevos ajustes del menú: Vulkan, SMAA, límite de 60 FPS y botones de PlayStation. Se respaldan los ajustes anteriores. El rendimiento debe comprobarse jugando.','muted'),False,False,0)
+        description=label('','muted');box.pack_start(description,False,False,0)
+        def describe(*_):
+            if release.get_active_id()==gtaiv.LATEST_VERSION:
+                description.set_text('FusionFix 5.1.2 oficial con Vulkan. Nuevo CFG: SMAA, límite de 60 FPS, sombras Soft, sin niebla volumétrica ni oclusión ambiental, botones de PS5. Conserva resolución, idioma y Proton. Descarga: 214 MB. Arranque y carga de partida comprobados; falta comparar rendimiento jugando.')
+            else:description.set_text('FusionFix 4.0.5 oficial con DXVK 2.6.2. Conserva gráficos y límite de FPS; usa 60 FPS si no hay configuración. VSync de DXVK activado, el del juego apagado y botones de PS5. Descarga: 172 MB. Perfil confirmado por un usuario, sin mediciones de FPS sostenidos.')
+        release.connect('changed',describe);describe()
+        box.pack_start(label('Cerrar GTA IV antes de aplicar o restaurar. Se guarda un respaldo completo de los archivos modificados.','meta'),False,False,0)
         doc=pathlib.Path(__file__).resolve().parent.parent/'docs/GTAIV.md'
         box.pack_start(button('Leer instrucciones',lambda _:subprocess.Popen(['xdg-open',str(doc)],start_new_session=True)),False,False,0)
         status=label('Listo para aplicar.','muted');box.pack_start(status,False,False,0)
         row=Gtk.Box(spacing=12);box.pack_start(row,False,False,0)
         active=[False];buttons=[]
         def finish(result,error):
-            active[0]=False
+            active[0]=False;release.set_sensitive(True)
             for control in buttons:control.set_sensitive(True)
             dialog.set_deletable(True);dialog.set_response_sensitive(Gtk.ResponseType.CLOSE,True)
             status.set_text(('No se pudo completar: '+error) if error else 'Listo. Respaldo: '+result)
@@ -85,13 +93,13 @@ class ToolsMixin:
                 config=self.pick_file('Elegir SETTINGS.CFG de GTA IV')
                 if not config:return
                 e.metadata['gtaiv_settings']=config;self.store.save(self.entries)
-            active[0]=True
+            active[0]=True;chosen_release=release.get_active_id();release.set_sensitive(False)
             for control in buttons:control.set_sensitive(False)
             dialog.set_deletable(False);dialog.set_response_sensitive(Gtk.ResponseType.CLOSE,False)
             status.set_text('Descargando, respaldando y aplicando…' if action=='apply' else 'Restaurando respaldo…')
             def work():
                 try:
-                    result=gtaiv.apply(e.metadata['gtaiv_root'],config,self.store) if action=='apply' else gtaiv.restore(e.metadata['gtaiv_root'],self.store)
+                    result=gtaiv.apply(e.metadata['gtaiv_root'],config,self.store,release=chosen_release) if action=='apply' else gtaiv.restore(e.metadata['gtaiv_root'],self.store,preserve_current_settings=True)
                     GLib.idle_add(finish,result,None)
                 except Exception as exc:GLib.idle_add(finish,None,str(exc))
             threading.Thread(target=work,daemon=True).start()

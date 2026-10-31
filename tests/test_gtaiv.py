@@ -42,6 +42,19 @@ class GTAIVTests(unittest.TestCase):
         self.assertEqual(gtaiv.restore(self.root,self.store),backup)
         self.assertEqual({str(p.relative_to(self.root)):p.read_bytes() for p in self.root.rglob('*') if p.is_file()},original)
         self.assertEqual(self.settings.read_bytes(),self.original)
+    def test_latest_recipe_resets_old_menu_ids_and_restores_exact_files(self):
+        original=self.seed()
+        with patch.object(gtaiv,'LATEST_SHA256',hashlib.sha256(self.archive.read_bytes()).hexdigest()):
+            backup=gtaiv.apply(self.root,self.settings,self.store,self.archive,release='5.1.2')
+        self.assertEqual(gtaiv.installed_release(self.root,self.store),'5.1.2')
+        cfg=(self.root/gtaiv.CFG).read_text()
+        self.assertIn('FpsLimitPreset = 5',cfg);self.assertIn('Antialiasing = 2',cfg);self.assertIn('Buttons = 4',cfg)
+        self.assertNotIn('Antialiasing = 7',cfg)
+        import json
+        self.assertEqual(json.loads((pathlib.Path(backup)/'record.json').read_text())['version'],'5.1.2')
+        gtaiv.restore(self.root,self.store)
+        self.assertEqual({str(p.relative_to(self.root)):p.read_bytes() for p in self.root.rglob('*') if p.is_file()},original)
+
     def test_invalid_archive_busy_version_and_symlink_write_nothing(self):
         with patch.object(gtaiv,'busy',return_value=True),self.assertRaises(RuntimeError):self.apply()
         with patch.object(gtaiv,'SHA256','wrong'),self.assertRaises(ValueError):self.apply()
@@ -65,6 +78,15 @@ class GTAIVTests(unittest.TestCase):
         self.apply();self.settings.write_bytes(self.original)
         with self.assertRaises(ValueError):gtaiv.restore(self.root,self.store)
         self.assertEqual((self.root/'vulkan.dll').read_bytes(),b'dxvk')
+    def test_restore_after_playing_can_archive_changed_settings(self):
+        original=self.seed();self.apply()
+        (self.root/gtaiv.CFG).write_text('[MISC]\nAntialiasing = 2\n')
+        self.settings.write_bytes(self.original)
+        gtaiv.restore(self.root,self.store,preserve_current_settings=True)
+        archived=list(gtaiv.state_path(self.root,self.store).glob('before-restore-*/files/'+gtaiv.CFG))
+        self.assertEqual(len(archived),1);self.assertIn('Antialiasing = 2',archived[0].read_text())
+        self.assertEqual((self.root/gtaiv.CFG).read_bytes(),original[gtaiv.CFG])
+
     def test_discovery_micro_sd_and_official_games_not_queued_as_shortcuts(self):
         home=self.base/'home';steam=home/'.local/share/Steam';(steam/'steamapps').mkdir(parents=True)
         library=self.base/'SD library';game=library/'steamapps/common/Grand Theft Auto IV/GTAIV';game.mkdir(parents=True);(game/'GTAIV.exe').write_bytes(self.exe)

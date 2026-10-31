@@ -15,6 +15,8 @@ from .models import Entry, Store, atomic_json
 
 URL = 'https://github.com/ThirteenAG/GTAIV.EFLC.FusionFix/releases/download/v4.0.5/GTAIV.EFLC.FusionFix.zip'
 SHA256 = 'd78abf54aaf86a8193278a77bafc33dbc7767bd57d80968a8ed42edd75ba06bd'
+LATEST_VERSION = '5.1.2'
+LATEST_SHA256 = '138f4067a2d2f09df2df80c4378407ad7c742be0e3b99f090633d50820bb2450'
 DXVK = 'd3d9.maxFrameLatency = 1\nd3d9.presentInterval = 1\n'
 REMOVED = {
     'update/TBoGT/common/data/carcols.dat', 'update/TBoGT/common/data/fonts.dat',
@@ -88,20 +90,26 @@ def discover(home=None):
         return [entry]
     return []
 
-def download(store):
-    path=store.root/'downloads/fusionfix-4.0.5.zip'
-    if path.exists() and digest(path)==SHA256: return path
+def recipe(release):
+    if release=='4.0.5':return URL,SHA256
+    if release==LATEST_VERSION:return 'https://github.com/ThirteenAG/GTAIV.EFLC.FusionFix/releases/download/v'+release+'/GTAIV.EFLC.FusionFix.zip',LATEST_SHA256
+    raise ValueError('Versión de FusionFix no admitida.')
+
+def download(store,release='4.0.5'):
+    url,checksum=recipe(release)
+    path=store.root/('downloads/fusionfix-'+release+'.zip')
+    if path.exists() and digest(path)==checksum: return path
     path.parent.mkdir(parents=True,exist_ok=True)
     fd,name=tempfile.mkstemp(dir=path.parent,prefix='.fusionfix-')
     try:
-        with os.fdopen(fd,'wb') as out, urllib.request.urlopen(URL,timeout=60) as response:
+        with os.fdopen(fd,'wb') as out, urllib.request.urlopen(url,timeout=60) as response:
             if not response.url.startswith('https://'): raise ValueError('Descarga sin HTTPS.')
             size=0
             while chunk:=response.read(1024*1024):
                 size+=len(chunk)
                 if size>250*1024*1024: raise ValueError('Paquete demasiado grande.')
                 out.write(chunk)
-        if digest(pathlib.Path(name))!=SHA256: raise ValueError('La descarga no coincide con el SHA-256 fijado.')
+        if digest(pathlib.Path(name))!=checksum: raise ValueError('La descarga no coincide con el SHA-256 fijado.')
         os.replace(name,path)
     finally:
         if os.path.exists(name): os.unlink(name)
@@ -138,7 +146,18 @@ def state_path(root,store):
     key=hashlib.sha256(str(root).encode()).hexdigest()[:20]
     return store.root/'gtaiv'/key
 
-def apply(root,settings,store=None,archive=None):
+def installed_release(root,store=None):
+    store=store or Store();root=pathlib.Path(root).resolve()
+    try:
+        state=state_path(root,store);backup=pathlib.Path(json.loads((state/'last.json').read_text())['backup'])
+        record=json.loads((backup/'record.json').read_text())
+        row=next(r for r in record['files'] if r['name']=='plugins/GTAIV.EFLC.FusionFix.asi')
+        if digest(root/row['name'])==row['after'] and record['version'] in ('4.0.5',LATEST_VERSION):return record['version']
+    except (OSError,ValueError,KeyError,StopIteration):pass
+    return ''
+
+def apply(root,settings,store=None,archive=None,release='4.0.5'):
+    _,checksum=recipe(release)
     store=store or Store();root=validate_root(root);check_closed()
     settings=pathlib.Path(settings)
     if settings.is_symlink(): raise ValueError('La configuración no debe ser un enlace simbólico.')
@@ -146,8 +165,8 @@ def apply(root,settings,store=None,archive=None):
     before=settings.read_bytes()
     if len(before)!=1469 or before[:4]!=b'\x12\x15\x28\x10' or struct.unpack_from('<I',before,608)[0] not in (0,1):
         raise ValueError('Formato de SETTINGS.CFG no reconocido; no se modificó.')
-    archive=pathlib.Path(archive) if archive else download(store)
-    if digest(archive)!=SHA256: raise ValueError('El paquete no coincide con FusionFix 4.0.5 oficial.')
+    archive=pathlib.Path(archive) if archive else download(store,release)
+    if digest(archive)!=checksum: raise ValueError('El paquete no coincide con FusionFix '+release+' oficial.')
     state=state_path(root,store);state.mkdir(parents=True,exist_ok=True)
     with (state/'lock').open('w') as lock, zipfile.ZipFile(archive) as package:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
@@ -160,7 +179,7 @@ def apply(root,settings,store=None,archive=None):
         initial={n:digest(p) for n,p in targets.items()}
         if digest(settings)!=hashlib.sha256(before).hexdigest():raise RuntimeError('La configuración cambió durante la descarga.')
         changes={n:package.read(n) for n in names}
-        # Old defaults, and existing values only for keys understood by 4.0.5.
+        # Merge only keys present in the selected release's INI template.
         old=targets[INI].read_text() if targets[INI].exists() else ''
         section='';values={}
         for line in old.splitlines():
@@ -179,7 +198,14 @@ def apply(root,settings,store=None,archive=None):
             known.setdefault('USERPROFILE',{})['CustomUserProfilePath']=values['USERPROFILE']['CustomUserProfilePath']
         changes[INI]=patch_ini(template,known).encode()
         cfg=targets[CFG].read_text() if targets[CFG].exists() else '[FRAMELIMIT]\nFpsLimitPreset = 7\n'
-        changes[CFG]=patch_ini(cfg,{'MAIN':{'GraphicsAPI':1},'MISC':{'Buttons':9},'UPDATE':{'CheckForUpdates':0}}).encode()
+        if release==LATEST_VERSION:
+            # 5.1.2 stores zero-based enums; older CFG values are menu IDs.
+            # Start a new menu CFG rather than interpreting those IDs as enum values.
+            # Values below are pinned to source/settings.ixx at tag v5.1.2.
+            changes[CFG]=patch_ini('',{'MAIN':{'GraphicsAPI':1,'Windowed':0,'Bloom':0,'Definition':1},'FRAMELIMIT':{'FpsLimitPreset':5},'MISC':{'Buttons':4,'Antialiasing':2,'SunShafts':0,'AmbientOcclusion':0},'FOG':{'VolumetricFog':0},'SHADOWS':{'ShadowFilter':1},'UPDATE':{'CheckForUpdates':0}}).encode()
+            language=re.search(r'(?ms)^\[LANGUAGEOVERRIDE\]\s*.*?^Language\s*=\s*(\d+)\s*$',cfg)
+            if language:changes[CFG]=patch_ini(changes[CFG].decode(),{'LANGUAGEOVERRIDE':{'Language':language[1]}}).encode()
+        else:changes[CFG]=patch_ini(cfg,{'MAIN':{'GraphicsAPI':1},'MISC':{'Buttons':9},'UPDATE':{'CheckForUpdates':0}}).encode()
         changes['d3d9.cfg']=patch_ini(targets['d3d9.cfg'].read_text() if targets['d3d9.cfg'].exists() else '',{'MAIN':{'API':1}}).encode()
         # Keep unrelated DXVK options; overwrite just the two confirmed options.
         text=targets['dxvk.conf'].read_text() if targets['dxvk.conf'].exists() else ''
@@ -189,7 +215,7 @@ def apply(root,settings,store=None,archive=None):
         changes.update({n:None for n in REMOVED-names})
         check_closed()
         backup=state/datetime.datetime.now().strftime('%Y%m%dT%H%M%S%f');backup.mkdir()
-        record={'root':str(root),'version':'4.0.5','files':[]}
+        record={'root':str(root),'version':release,'files':[]}
         for n,p in targets.items():
             original=p.read_bytes() if p.exists() else None
             if (hashlib.sha256(original).hexdigest() if original is not None else None)!=initial[n]:
@@ -215,18 +241,27 @@ def apply(root,settings,store=None,archive=None):
             raise
     return str(backup)
 
-def restore(root,store=None):
+def restore(root,store=None,preserve_current_settings=False):
     store=store or Store();root=pathlib.Path(root).resolve();check_closed();state=state_path(root,store)
     with (state/'lock').open('w') as lock:
         fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
         backup=pathlib.Path(json.loads((state/'last.json').read_text())['backup'])
         record=json.loads((backup/'record.json').read_text())
+        changed_settings=[]
         for r in record['files']:
             p=pathlib.Path(r['target'])
             if r['name']!='SETTINGS.CFG':safe_target(root,r['name'])
-            if p.is_symlink() or digest(p)!=r['after']:
-                raise ValueError('Hay cambios posteriores en '+r['name']+'. Se conserva el respaldo sin sobrescribirlos.')
+            if p.is_symlink():raise ValueError('La configuración no debe ser un enlace simbólico.')
+            if digest(p)!=r['after']:
+                if preserve_current_settings and r['name'] in {CFG,INI,'SETTINGS.CFG','d3d9.cfg','dxvk.conf'}:
+                    changed_settings.append((r,p.read_bytes() if p.is_file() else None))
+                else:raise ValueError('Hay cambios posteriores en '+r['name']+'. Se conserva el respaldo sin sobrescribirlos.')
             if r['before'] is not None and digest(backup/'files'/r['name'])!=r['before']:raise ValueError('Respaldo dañado.')
+        if changed_settings:
+            saved=state/('before-restore-'+datetime.datetime.now().strftime('%Y%m%dT%H%M%S%f'))
+            for r,data in changed_settings:
+                if data is not None:write(saved/'files'/r['name'],data)
+            atomic_json(saved/'record.json',{'restoring':str(backup),'files':[{'name':r['name'],'present':data is not None} for r,data in changed_settings]})
         check_closed()
         for r in record['files']:
             p=pathlib.Path(r['target'])
@@ -241,10 +276,11 @@ def main():
     parser.add_argument('--root',type=pathlib.Path)
     parser.add_argument('--settings',type=pathlib.Path)
     parser.add_argument('--archive',type=pathlib.Path)
+    parser.add_argument('--release',choices=['4.0.5',LATEST_VERSION],default='4.0.5')
     args=parser.parse_args()
     if args.action=='detect': print(json.dumps([e.to_dict() for e in discover()],indent=2));return
     if args.root is None:parser.error('Falta --root.')
     if args.action=='apply' and args.settings is None:parser.error('Falta --settings.')
-    print(apply(args.root,args.settings,archive=args.archive) if args.action=='apply' else restore(args.root))
+    print(apply(args.root,args.settings,archive=args.archive,release=args.release) if args.action=='apply' else restore(args.root))
 
 if __name__=='__main__':main()

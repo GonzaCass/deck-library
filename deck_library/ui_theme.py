@@ -164,6 +164,8 @@ scrollbar slider { background:#616b78; border:2px solid @bg; border-radius:7px; 
 scrollbar.vertical slider { min-width:6px; min-height:36px; }
 scrollbar.horizontal slider { min-height:6px; min-width:36px; }
 textview text { background:@surface; color:@text; }
+progressbar.conversion-progress text { color: @text; font-size:15px; }
+progressbar.conversion-progress trough { min-height:8px; }
 progressbar trough { background:#29323d; min-height:5px; border-radius:5px; }
 progressbar progress { background-color:@accent_b; background-image:linear-gradient(90deg,@accent_a,@accent_b); border-radius:5px; }
 .toast { background:#1c2025; border:1px solid #526c59; border-radius:12px; padding:12px 16px; }
