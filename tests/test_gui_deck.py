@@ -22,6 +22,21 @@ class DeckUITests(unittest.TestCase):
         from gi.repository import Gtk,Gdk
         provider=Gtk.CssProvider();provider.load_from_data(gui.CSS);Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         self.w=gui.Window();self.w.resize(1280,760);self.w.show_all();self.settle()
+    def test_gtaiv_filter_action_does_not_reapply_the_full_recipe(self):
+        from deck_library import gtaiv
+        from deck_library.models import Entry
+        from gi.repository import Gtk,GLib
+        original=self.inline.run
+        def drive(page):
+            def apply():
+                next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Quitar filtro de color').clicked()
+                GLib.timeout_add(250,lambda:(page.response(Gtk.ResponseType.CLOSE),False)[1]);return False
+            GLib.timeout_add(150,apply);return original(page)
+        entry=Entry('GTA IV',['steam','steam://run/12210'],'steam','Windows',metadata={'gtaiv_root':'/example/GTAIV','gtaiv_settings':'/example/SETTINGS.CFG'})
+        with patch.object(gtaiv,'installed_release',return_value='5.1.2'),patch.object(gtaiv,'apply') as full,patch.object(gtaiv,'remove_color_filter',return_value='/example/backup') as remove,patch.object(self.inline,'run',drive):
+            self.w.gtaiv_dialog(entry)
+        full.assert_not_called();remove.assert_called_once_with('/example/GTAIV',self.store);self.assertFalse(self.w.inline_workflows)
+
     def test_gtaiv_latest_choice_uses_the_selected_pinned_recipe(self):
         from deck_library import gtaiv
         from deck_library.models import Entry

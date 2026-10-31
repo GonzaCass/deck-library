@@ -48,12 +48,25 @@ class GTAIVTests(unittest.TestCase):
             backup=gtaiv.apply(self.root,self.settings,self.store,self.archive,release='5.1.2')
         self.assertEqual(gtaiv.installed_release(self.root,self.store),'5.1.2')
         cfg=(self.root/gtaiv.CFG).read_text()
-        self.assertIn('FpsLimitPreset = 5',cfg);self.assertIn('Antialiasing = 2',cfg);self.assertIn('Buttons = 4',cfg)
+        self.assertIn('FpsLimitPreset = 5',cfg);self.assertIn('Antialiasing = 2',cfg);self.assertIn('Buttons = 4',cfg);self.assertIn('ScreenFilter = 1',cfg)
         self.assertNotIn('Antialiasing = 7',cfg)
         import json
         self.assertEqual(json.loads((pathlib.Path(backup)/'record.json').read_text())['version'],'5.1.2')
         gtaiv.restore(self.root,self.store)
         self.assertEqual({str(p.relative_to(self.root)):p.read_bytes() for p in self.root.rglob('*') if p.is_file()},original)
+
+    def test_color_filter_off_does_not_reset_fps_or_other_options(self):
+        self.seed()
+        with patch.object(gtaiv,'LATEST_SHA256',hashlib.sha256(self.archive.read_bytes()).hexdigest()):
+            gtaiv.apply(self.root,self.settings,self.store,self.archive,release='5.1.2')
+        cfg=self.root/gtaiv.CFG
+        cfg.write_text(gtaiv.patch_ini(cfg.read_text(),{'FRAMELIMIT':{'FpsLimitPreset':7},'MISC':{'ScreenFilter':0,'ConsoleGamma':0}}))
+        before=cfg.read_bytes();backup=gtaiv.remove_color_filter(self.root,self.store)
+        self.assertIn('ScreenFilter = 1',cfg.read_text());self.assertIn('FpsLimitPreset = 7',cfg.read_text())
+        self.assertIn('ConsoleGamma = 0',cfg.read_text());self.assertEqual((pathlib.Path(backup)/'files'/gtaiv.CFG).read_bytes(),before)
+        self.assertEqual(self.settings.read_bytes()[900:904],b'KEEP')
+        self.assertEqual(gtaiv.installed_release(self.root,self.store),'5.1.2')
+        with patch.object(gtaiv,'busy',return_value=True),self.assertRaises(RuntimeError):gtaiv.remove_color_filter(self.root,self.store)
 
     def test_invalid_archive_busy_version_and_symlink_write_nothing(self):
         with patch.object(gtaiv,'busy',return_value=True),self.assertRaises(RuntimeError):self.apply()

@@ -96,15 +96,17 @@ class ToolsMixin:
             active[0]=True;chosen_release=release.get_active_id();release.set_sensitive(False)
             for control in buttons:control.set_sensitive(False)
             dialog.set_deletable(False);dialog.set_response_sensitive(Gtk.ResponseType.CLOSE,False)
-            status.set_text('Descargando, respaldando y aplicando…' if action=='apply' else 'Restaurando respaldo…')
+            status.set_text('Descargando, respaldando y aplicando…' if action=='apply' else 'Quitando el filtro de color…' if action=='filter' else 'Restaurando respaldo…')
             def work():
                 try:
-                    result=gtaiv.apply(e.metadata['gtaiv_root'],config,self.store,release=chosen_release) if action=='apply' else gtaiv.restore(e.metadata['gtaiv_root'],self.store,preserve_current_settings=True)
+                    result=gtaiv.apply(e.metadata['gtaiv_root'],config,self.store,release=chosen_release) if action=='apply' else gtaiv.remove_color_filter(e.metadata['gtaiv_root'],self.store) if action=='filter' else gtaiv.restore(e.metadata['gtaiv_root'],self.store,preserve_current_settings=True)
                     GLib.idle_add(finish,result,None)
                 except Exception as exc:GLib.idle_add(finish,None,str(exc))
             threading.Thread(target=work,daemon=True).start()
         for title,action in [('Aplicar arreglo de GTA IV','apply'),('Restaurar respaldo','restore')]:
             control=button(title,lambda _,a=action:run(a),tone='presets');buttons.append(control);row.pack_start(control,True,True,0)
+        if gtaiv.installed_release(e.metadata['gtaiv_root'],self.store)==gtaiv.LATEST_VERSION:
+            control=button('Quitar filtro de color',lambda _:run('filter'),tone='presets');buttons.append(control);row.pack_start(control,True,True,0)
         self.fit_dialog(dialog);dialog.show_all()
         while True:
             dialog.run()

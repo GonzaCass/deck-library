@@ -202,7 +202,7 @@ def apply(root,settings,store=None,archive=None,release='4.0.5'):
             # 5.1.2 stores zero-based enums; older CFG values are menu IDs.
             # Start a new menu CFG rather than interpreting those IDs as enum values.
             # Values below are pinned to source/settings.ixx at tag v5.1.2.
-            changes[CFG]=patch_ini('',{'MAIN':{'GraphicsAPI':1,'Windowed':0,'Bloom':0,'Definition':1},'FRAMELIMIT':{'FpsLimitPreset':5},'MISC':{'Buttons':4,'Antialiasing':2,'SunShafts':0,'AmbientOcclusion':0},'FOG':{'VolumetricFog':0},'SHADOWS':{'ShadowFilter':1},'UPDATE':{'CheckForUpdates':0}}).encode()
+            changes[CFG]=patch_ini('',{'MAIN':{'GraphicsAPI':1,'Windowed':0,'Bloom':0,'Definition':1},'FRAMELIMIT':{'FpsLimitPreset':5},'MISC':{'Buttons':4,'Antialiasing':2,'SunShafts':0,'AmbientOcclusion':0,'ScreenFilter':1},'FOG':{'VolumetricFog':0},'SHADOWS':{'ShadowFilter':1},'UPDATE':{'CheckForUpdates':0}}).encode()
             language=re.search(r'(?ms)^\[LANGUAGEOVERRIDE\]\s*.*?^Language\s*=\s*(\d+)\s*$',cfg)
             if language:changes[CFG]=patch_ini(changes[CFG].decode(),{'LANGUAGEOVERRIDE':{'Language':language[1]}}).encode()
         else:changes[CFG]=patch_ini(cfg,{'MAIN':{'GraphicsAPI':1},'MISC':{'Buttons':9},'UPDATE':{'CheckForUpdates':0}}).encode()
@@ -239,6 +239,24 @@ def apply(root,settings,store=None,archive=None,release='4.0.5'):
                 if r['before'] is None:p.unlink(missing_ok=True)
                 else:write(p,(backup/'files'/r['name']).read_bytes())
             raise
+    return str(backup)
+
+def remove_color_filter(root,store=None):
+    """5.1.2: default=0, OFF=1. Back up only the menu CFG, keeping FPS and graphics."""
+    store=store or Store();root=validate_root(root);check_closed()
+    if installed_release(root,store)!=LATEST_VERSION:
+        raise ValueError('Este cambio necesita la instalación de FusionFix 5.1.2 registrada por Deck Library.')
+    state=state_path(root,store)
+    with (state/'lock').open('w') as lock:
+        fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        path=safe_target(root,CFG);before=path.read_bytes()
+        changed=patch_ini(before.decode(),{'MISC':{'ScreenFilter':1}}).encode()
+        backup=state/('color-filter-'+datetime.datetime.now().strftime('%Y%m%dT%H%M%S%f'))
+        write(backup/'files'/CFG,before)
+        atomic_json(backup/'record.json',{'version':LATEST_VERSION,'files':[{'name':CFG,'before':hashlib.sha256(before).hexdigest(),'after':hashlib.sha256(changed).hexdigest()}]})
+        check_closed()
+        if path.read_bytes()!=before:raise RuntimeError('La configuración cambió. Volver a comprobarla.')
+        write(path,changed)
     return str(backup)
 
 def restore(root,store=None,preserve_current_settings=False):
