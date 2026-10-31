@@ -12,6 +12,12 @@ FusionFix cambió el formato de las opciones del menú. Este perfil crea un CFG 
 
 Validación del perfil 5.1.2: instalación con checksum y verificación de los archivos, arranque desde Steam y carga de una partida en Steam Deck. No se midieron FPS ni se realizó una comparación de rendimiento durante gameplay; no reemplaza la confirmación histórica de 4.0.5.
 
+### Quitar el tono sepia sin reinstalar
+
+FusionFix 5.1.2 usa `ScreenFilter = 0` para el filtro predeterminado y `ScreenFilter = 1` para **OFF**, según su [enumeración en settings.ixx](https://github.com/ThirteenAG/GTAIV.EFLC.FusionFix/blob/v5.1.2/source/settings.ixx). Cero no desactiva el filtro. El perfil de 5.1.2 ahora escribe el valor OFF explícitamente. La gamma de consola y la exposición son opciones distintas.
+
+Si la versión 5.1.2 ya está instalada desde Deck Library, **Ver arreglo → Quitar filtro de color** cambia solo `MISC/ScreenFilter` y respalda el CFG. Conserva el límite de FPS, resolución, controles y el resto de los gráficos. Cerrar el juego antes de usarlo. La iluminación cálida de una zona o clima puede seguir presente: desactivar este filtro no elimina la iluminación propia del juego.
+
 ## Qué funcionó en esta Deck
 
 El 1 de octubre de 2026 el usuario reportó «anduvo perfecto el gta iv» después de sustituir FusionFix **5.0.1 por 4.0.5**, conservando **DXVK 2.6.2**, con estos ajustes en `dxvk.conf` al lado de `GTAIV.exe`:

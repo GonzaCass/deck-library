@@ -44,5 +44,9 @@
   "Otro juego comparte ese acceso de Steam. Desvincularlo antes de quitarlo.": "Another game shares this Steam shortcut. Unlink it before removing it.",
   "FusionFix 5.1.2 oficial con Vulkan. Nuevo CFG: SMAA, límite de 60 FPS, sombras Soft, sin niebla volumétrica ni oclusión ambiental, botones de PS5. Conserva resolución, idioma y Proton. Descarga: 214 MB. Arranque y carga de partida comprobados; falta comparar rendimiento jugando.": "Official FusionFix 5.1.2 with Vulkan. New CFG: SMAA, a 60 FPS cap, Soft shadows, volumetric fog and ambient occlusion disabled, PS5 prompts. Preserves resolution, language and Proton. Download: 214 MB. Boot and save loading checked; gameplay performance comparison is still pending.",
   "FusionFix 4.0.5 oficial con DXVK 2.6.2. Conserva gráficos y límite de FPS; usa 60 FPS si no hay configuración. VSync de DXVK activado, el del juego apagado y botones de PS5. Descarga: 172 MB. Perfil confirmado por un usuario, sin mediciones de FPS sostenidos.": "Official FusionFix 4.0.5 with DXVK 2.6.2. Preserves graphics and FPS limit; uses 60 FPS if no settings exist. DXVK VSync enabled, in-game VSync disabled and PS5 prompts. Download: 172 MB. User-confirmed profile, without sustained FPS measurements.",
-  "Cerrar GTA IV antes de aplicar o restaurar. Se guarda un respaldo completo de los archivos modificados.": "Close GTA IV before applying or restoring. All modified files are backed up."
+  "Cerrar GTA IV antes de aplicar o restaurar. Se guarda un respaldo completo de los archivos modificados.": "Close GTA IV before applying or restoring. All modified files are backed up.",
+  "Este cambio necesita la instalación de FusionFix 5.1.2 registrada por Deck Library.": "This change requires a FusionFix 5.1.2 installation registered by Deck Library.",
+  "Quitando el filtro de color…": "Removing the color filter…",
+  "Quitar filtro de color": "Remove color filter",
+  "La configuración cambió. Volver a comprobarla.": "Settings changed. Check them again."
 }
