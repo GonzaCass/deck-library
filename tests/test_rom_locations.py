@@ -33,7 +33,7 @@ class RomLocationTests(unittest.TestCase):
     def test_direct_steam_shortcut_queues_update_with_same_appid(self):
         target=self.root/'new.iso';target.write_bytes(b'rom');self.entry.metadata.update(steam_account=str(self.root/'account'),steam_appid=123)
         self.store.save([self.entry])
-        with patch.object(steam_inventory,'shortcuts',return_value=[{'appid':123,'exe':'dolphin','options':str(self.rom)}]):
+        with patch('deck_library.service.steam_running',return_value=True),patch.object(steam_inventory,'shortcuts',return_value=[{'appid':123,'exe':'dolphin','options':str(self.rom)}]):
             fresh=rom_locations.relocate(self.entry,target,self.store,start_worker=False)
         import json
         pending=json.loads((self.store.root/'pending.json').read_text())
@@ -64,7 +64,7 @@ class RomLocationTests(unittest.TestCase):
     def test_forget_removes_only_reference_and_does_not_reimport_pending_steam(self):
         account=self.root/'account';self.entry.metadata.update(steam_account=str(account),steam_appid=123);self.store.save([self.entry])
         save=self.store.root/'saves/game.sav';save.parent.mkdir();save.write_bytes(b'SAVE')
-        result=rom_locations.forget(self.entry,self.store,start_worker=False)
+        with patch('deck_library.service.steam_running',return_value=True):result=rom_locations.forget(self.entry,self.store,start_worker=False)
         self.assertEqual(result['state'],'pending');self.assertFalse(self.store.load());self.assertEqual(save.read_bytes(),b'SAVE')
         item={'appid':123,'name':'Game','exe':'dolphin','options':str(self.rom),'account':str(account),'startdir':'','icon':''}
         with patch.object(steam_inventory,'shortcuts',return_value=[item]):
