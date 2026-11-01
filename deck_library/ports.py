@@ -58,7 +58,7 @@ BUILTIN+=[
   'note':'Port nativo por recompilación. Necesita el disco de Wii U (.wux/.wud/.wua) y, para .wux/.wud, la clave del disco y la clave común, que se leen de keys.txt de EmuDeck y solo se usan en archivos temporales. La versión USA incluye español.'},
 ]
 
-PLATFORMS={'playstation':'PlayStation','ps1':'PlayStation','psx':'PlayStation','playstation 2':'PlayStation 2','ps2':'PlayStation 2','gamecube':'GameCube','wii u':'Wii U','wii':'Wii','nintendo 64':'Nintendo 64','game boy advance':'Game Boy Advance','gba':'Game Boy Advance','super nintendo':'Super Nintendo','snes':'Super Nintendo','nintendo':'Nintendo','n64':'Nintendo 64','xbox 360':'Xbox 360','x360':'Xbox 360','xbox':'Xbox','rexglue':'Xbox 360'}
+PLATFORMS={'playstation 3':'PlayStation 3','ps3':'PlayStation 3','playstation 2':'PlayStation 2','ps2':'PlayStation 2','playstation portable':'PSP','psp':'PSP','playstation':'PlayStation','ps1':'PlayStation','psx':'PlayStation','switch':'Switch','gamecube':'GameCube','gcn':'GameCube','wii u':'Wii U','wiiu':'Wii U','wii':'Wii','nintendo 64':'Nintendo 64','n64':'Nintendo 64','game boy advance':'Game Boy Advance','gba':'Game Boy Advance','super nintendo':'Super Nintendo','snes':'Super Nintendo','nintendo ds':'Nintendo DS','nds':'Nintendo DS','nintendo':'Nintendo','xbox 360':'Xbox 360','x360':'Xbox 360','og xbox':'Xbox','xbox':'Xbox','rexglue':'Xbox 360'}
 
 def platform_for(category):
     low=str(category).lower()
@@ -317,11 +317,14 @@ def icon_path(store,item,get=None,force=False):
     """Cached icon or box art for a catalog entry, or '' when none is available. Network work: call off the GTK thread."""
     import hashlib
     from . import cover_provider
+    from .port_patterns import CODENAME_REPOS,strip_port_noise
     folder=store.root/'catalog-icons';url=item.get('icon') or ''
+    mapped=CODENAME_REPOS.get(str(item.get('repository','')).strip().lower())
     if not url:
-        platform=platform_for(item.get('list',''))
+        platform=(mapped[1] if mapped else '') or platform_for(item.get('list',''))
         if not platform:return ''
-        key='cover:'+platform+':'+(item.get('cover_title') or item.get('game_title') or item['name'])
+        resolved_title=item.get('cover_title') or item.get('game_title') or (mapped[0] if mapped else strip_port_noise(item['name']))
+        key='cover:'+platform+':'+resolved_title
     else:key=url
     base=folder/hashlib.sha256(key.encode()).hexdigest()
     for suffix in ('.png','.jpg','.webp','.ico'):
@@ -337,11 +340,11 @@ def icon_path(store,item,get=None,force=False):
         try:return save(cover_provider.request(candidate,limit=ICON_LIMIT))
         except (OSError,ValueError):pass
     try:
-        platform=platform_for(item.get('list',''))
+        platform=(mapped[1] if mapped else '') or platform_for(item.get('list',''))
         if not platform:raise ValueError('sin plataforma para buscar portada')
-        title=item.get('cover_title') or item.get('game_title') or re.sub(r'\s*\((?:PSX|PS1|PS2|N64)(?: recompilado)?\)\s*$','',item['name'])
+        title=item.get('cover_title') or item.get('game_title') or (mapped[0] if mapped else strip_port_noise(re.sub(r'\s*\((?:PSX|PS1|PS2|N64)(?: recompilado)?\)\s*$','',item['name'])))
         rows=cover_provider.search(title,{'artwork_provider':'automatic','_artwork_platform':platform})
-        row=next((r for r in rows if cover_provider.normalized(r['title'])==cover_provider.normalized(title)),None)
+        row=next((r for r in rows if cover_provider.normalized(r['title'])==cover_provider.normalized(title)),None) or cover_provider.best_match(rows,title)
         if not row:raise ValueError('sin portada')
         return save(cover_provider.request(row['url'],limit=ICON_LIMIT))
     except (OSError,ValueError):

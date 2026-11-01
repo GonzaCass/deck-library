@@ -223,7 +223,7 @@ def summary(state):
 
 def release_notes(data,get=fetch_json):
     """Notes for the displayed release, never unrelated commits or an unverified newer tag."""
-    if 'notes' in data:return data['notes']
+    if str(data.get('notes') or '').strip():return data['notes']
     repository=data.get('repository','');tag=str(data.get('latest',''))
     if not repository:
         page=urllib.parse.urlsplit(data.get('page',''));parts=page.path.strip('/').split('/')
@@ -242,7 +242,7 @@ def release_notes(data,get=fetch_json):
 def notes_text(body):
     """Readable release Markdown without loading images or rendering active HTML."""
     from html.parser import HTMLParser
-    text=re.sub(r'<!--.*?-->','',str(body),flags=re.S)
+    text=re.sub(r'<!--.*?-->','',str(body or ''),flags=re.S)
     text=re.sub(r'!\[([^\]]*)\]\([^)]*\)','',text)
     text=re.sub(r'\[([^\]]+)\]\([^)]*\)',r'\1',text)
     text=re.sub(r'(?m)^\s*#{1,6}\s*','',text)

@@ -43,6 +43,18 @@ label.tag-violet,button label.tag-violet { color:#dbcbff; background:#2a243b; bo
 label.tag-yellow,button label.tag-yellow { color:#f5df9a; background:#302b1c; border-color:#645333; }
 label.tag-orange,button label.tag-orange { color:#ffc199; background:#35271e; border-color:#735039; }
 label.tag-red,button label.tag-red { color:#ffb8b2; background:#352225; border-color:#704147; }
+.plat-tag { border:1px solid #46515e; border-radius:6px; padding:3px 8px; background:alpha(#121417,.88); }
+.plat-tag label,.plat-tag drawingarea { font-size:13px; font-weight:700; color:#f1f3f5; }
+.plat-tag-green { border-color:#365e48; background:alpha(#182e24,.92); }
+.plat-tag-green label,.plat-tag-green drawingarea { color:#a4e9be; }
+.plat-tag-blue { border-color:#3b5475; background:alpha(#1d2c41,.92); }
+.plat-tag-blue label,.plat-tag-blue drawingarea { color:#b6d7ff; }
+.plat-tag-violet { border-color:#55476e; background:alpha(#2a243b,.92); }
+.plat-tag-violet label,.plat-tag-violet drawingarea { color:#dbcbff; }
+.plat-tag-yellow { border-color:#645333; background:alpha(#302b1c,.92); }
+.plat-tag-yellow label,.plat-tag-yellow drawingarea { color:#f5df9a; }
+.plat-tag-red { border-color:#704147; background:alpha(#352225,.92); }
+.plat-tag-red label,.plat-tag-red drawingarea { color:#ffb8b2; }
 label.compatibility-badge,button label.compatibility-badge { font-size:16px; font-weight:700; padding:4px 8px; }
 label.hero,label.welcome-title,label.game-title,.inline-page-heading { font-family:"Space Grotesk Light","Noto Sans",Sans; font-size:28px; font-weight:700; letter-spacing:-0.4px; }
 label.title,label.section-title { font-size:18px; font-weight:700; }
@@ -113,7 +125,7 @@ button.poster:focus { outline:2px solid @accent; outline-offset:0; }
 .port-card { background:@surface; border:1px solid @line; border-radius:10px; padding:0; }
 button.catalog-open { padding:0; background:transparent; border:0; border-radius:8px; }
 button.catalog-open:hover { background:@raised; }
-.port-card-content { padding:11px 12px; }
+.port-card-content { padding:8px 9px; }
 .port-card-content label.title { font-size:17px; font-weight:700; }
 .port-card-actions { padding:0 12px 12px; }
 .port-card label.os-badge { color:#c4ddff; font-size:15px; }
@@ -160,10 +172,10 @@ check { min-width:24px; min-height:24px; border:1px solid #79828d; border-radius
 check:checked { background:@accent_b; color:@on_accent; }
 switch { background:@line; border-radius:12px; }
 switch:checked { background:#9bdfb8; }
-scrollbar { background:transparent; min-width:10px; min-height:10px; }
-scrollbar slider { background:#616b78; border:2px solid @bg; border-radius:7px; }
-scrollbar.vertical slider { min-width:6px; min-height:36px; }
-scrollbar.horizontal slider { min-height:6px; min-width:36px; }
+scrollbar { background:transparent; min-width:0; min-height:0; opacity:0; }
+scrollbar slider { background:transparent; border:0; border-radius:0; min-width:0; min-height:0; opacity:0; }
+scrollbar.vertical slider { min-width:0; min-height:0; opacity:0; }
+scrollbar.horizontal slider { min-height:0; min-width:0; opacity:0; }
 textview text { background:@surface; color:@text; }
 .game-compatibility button { min-height:26px; padding:3px 8px; }
 .game-compatibility .tag { padding:3px 8px; }
@@ -178,7 +190,7 @@ label.toast-text { color:#d5f1df; font-size:17px; font-weight:600; }
 popover,menu { background:@surface; color:@text; border:1px solid @line; border-radius:10px; padding:5px; }
 popover button,menuitem { padding:7px 10px; }
 menuitem:hover,menuitem:selected,menuitem:selected label { background:#29323d; color:@text; }
-.controller-focus,button.controller-focus,entry.controller-focus,switch.controller-focus,scale.controller-focus { outline:2px solid @focus_ring; outline-offset:2px; box-shadow:none; }
+.controller-focus,button.controller-focus,entry.controller-focus,switch.controller-focus,scale.controller-focus,expander.controller-focus,expander:focus { outline:2px solid @focus_ring; outline-offset:2px; box-shadow:none; }
 combobox.controller-focus button { outline:2px solid @focus_ring; outline-offset:-2px; background:#29323d; }
 label.control-glyph { background:#1c2025; border:1px solid #616b78; border-radius:6px; padding:3px 6px; color:#f1f3f5; font-size:15px; font-weight:700; }
 label.control-stick { border-radius:14px; min-width:16px; padding:3px 5px; }
@@ -196,10 +208,17 @@ label.control-caption { color:@dim; font-size:15px; }
 .app-header { background:@bg; border-bottom:0; padding:6px 14px; }
 .deck-density .app-header { padding:6px 14px; }
 .deck-density .app-header button.console-round { min-height:20px; min-width:20px; padding:8px; }
-button.nav { border-radius:6px; padding:7px 17px; min-height:30px; }
+button.nav { border-radius:6px; padding:7px 10px; min-height:30px; }
 button.nav.active { background:transparent; border:1px solid transparent; border-bottom:2px solid @text; }
 button.nav.active label { color:@text; }
 button.nav.active label.badge { color:@on_accent; }
+button.search-pill { border-radius:18px; padding:7px 16px; min-height:30px; background:@text; color:@bg; border:1px solid @text; }
+button.search-pill label,button.search-pill drawingarea { color:@bg; font-weight:800; }
+button.search-pill:hover { background:@dim; border-color:@dim; }
+.port-hero-centered { padding:2px 12px 4px; }
+button.port-install-cta,.port-workspace button.port-install-cta { min-width:180px; min-height:38px; padding:6px 24px; border-radius:10px; background:@text; color:@bg; border:1px solid @text; }
+button.port-install-cta label,.port-workspace button.port-install-cta label { color:@bg; font-size:16px; font-weight:800; }
+button.port-install-cta:hover,.port-workspace button.port-install-cta:hover { background:@dim; border-color:@dim; }
 button.console-round { min-width:24px; min-height:24px; padding:12px; border-radius:8px; background:@raised; border:1px solid transparent; }
 button.console-round:hover,button.console-round.active { background:@accent_bg; border-color:@accent; }
 .shell-menu button.nav { border-radius:6px; }
@@ -218,8 +237,12 @@ button.console-card.featured { border-color:@dim; }
 button.console-card:hover,button.console-card:focus,button.console-card.controller-focus { border-color:@text; outline:0; box-shadow:0 0 0 1px @text; }
 button.console-all { border:2px dashed @line; border-radius:8px; background:transparent; }
 button.console-all:hover { background:@surface; border-color:@dim; }
-.console-utility { padding-top:12px; }
-.summary-card { background:transparent; border:1px solid @line; border-radius:10px; }
+.console-utility { padding-top:8px; border-top:1px solid alpha(@line,.45); }
+.summary-card { padding:6px 12px; background:@surface; border:1px solid alpha(@line,.65); border-radius:8px; }
+.summary-card label.summary-count { font-family:"Noto Sans",Sans; font-size:16px; font-weight:800; }
+.summary-card label.meta { font-size:14px; }
+button.console-secondary { background:@raised; border:1px solid alpha(@line,.8); min-height:34px; padding:10px 18px; border-radius:8px; }
+button.console-secondary:hover { background:@surface; border-color:@dim; }
 .library-game { border-radius:10px; padding:3px; }
 .library-game.game-focused { background:transparent; border-color:@text; }
 button.poster { border-radius:8px; background:transparent; }
@@ -234,6 +257,11 @@ label.control-glyph { border-radius:20px; min-width:17px; min-height:17px; paddi
 .hint-options label.control-glyph { background:#f5df9a; border-color:#f5df9a; color:#08090b; }
 .hint-search label.control-glyph { background:#b6d7ff; border-color:#b6d7ff; color:#08090b; }
 .hint-back label.control-glyph { background:#ffb8b2; border-color:#ffb8b2; color:#08090b; }
+.account-hero { padding:22px 32px; min-width:420px; }
+button.logout-cta { background:#352225; border:1px solid #704147; min-height:38px; padding:10px 22px; border-radius:10px; }
+button.logout-cta label,button.logout-cta drawingarea { color:#ffb8b2; font-weight:700; }
+button.logout-cta:hover { background:#942e2e; border-color:#b74444; }
+button.logout-cta:hover label,button.logout-cta:hover drawingarea { color:#ffffff; }
 
 /* Shared controls follow the home screen's neutral hierarchy. */
 * { outline-color:@focus_ring; }
@@ -260,6 +288,12 @@ button.danger:hover,button.game-delete:hover { background:#352225; border-color:
 button.game-section { border:1px solid transparent; background:@raised; padding:8px 18px; }
 button.game-section.active,button.quiet.active { background:@text; color:@bg; border:1px solid @text; }
 button.game-section.active label,button.game-section.active drawingarea,button.quiet.active label { color:@bg; }
+button.nav.quiet.active { background:transparent; color:@text; border:1px solid transparent; border-bottom:2px solid @text; }
+button.nav.quiet.active label,button.nav.quiet.active drawingarea { color:@text; }
+button.danger.logout-cta { background:#352225; border:1px solid #704147; min-height:34px; padding:10px 22px; border-radius:8px; }
+button.danger.logout-cta label,button.danger.logout-cta drawingarea { color:#ffb8b2; font-weight:700; }
+button.danger.logout-cta:hover { background:#942e2e; border-color:#b74444; }
+button.danger.logout-cta:hover label,button.danger.logout-cta:hover drawingarea { color:#ffffff; }
 button.profile-card { background:@surface; border:1px solid @line; border-radius:8px; padding:14px; }
 button.profile-card.chosen { background:@raised; border-color:@text; }
 .deck-density button.profile-card { padding:12px; }
@@ -267,7 +301,8 @@ button.profile-card.chosen { background:@raised; border-color:@text; }
 .game-workspace .apply-dock { padding:4px 0 8px; }
 .game-workspace .apply-dock button.action,button.game-section-back,.game-tabs button.action { min-height:30px; padding:6px 16px; }
 .game-workspace .apply-dock button.play { min-height:34px; }
-.card,.surface-panel,.preset-detail,.change-details,.port-card { background:@surface; border-color:alpha(@line,.65); border-radius:10px; }
+.card,.surface-panel,.preset-detail,.change-details { background:alpha(@surface,.55); border:1px solid alpha(@line,.28); border-radius:12px; }
+.port-card { background:@surface; border-color:alpha(@line,.55); border-radius:12px; }
 .console-page { background-image:linear-gradient(145deg,alpha(@ambience,.38),alpha(@bg,0) 42%); }
 label.hero,label.welcome-title,.inline-page-heading { font-family:"Noto Sans",Sans; font-size:34px; font-weight:800; letter-spacing:-.7px; }
 .deck-density label.hero,.deck-density .inline-page-heading { font-size:30px; }
@@ -296,11 +331,15 @@ button.preference-row label.preference-action { font-size:14px; font-weight:600;
 .appearance-group { background:@surface; border:1px solid alpha(@line,.5); border-radius:10px; padding:12px; }
 .appearance-field { padding:4px 0; }
 label.tag,button label.tag,label.platform-chip { border-radius:4px; }
-expander { background:@surface; border:1px solid alpha(@line,.5); border-radius:8px; padding:16px; }
-expander:focus { outline:2px solid @focus_ring; outline-offset:1px; }
+expander { background:@surface; border:1px solid alpha(@line,.6); border-radius:8px; padding:10px 14px; }
+expander:hover { background:@raised; border-color:@dim; }
+expander:focus,expander.controller-focus { outline:2px solid @focus_ring; outline-offset:2px; background:@raised; border-color:@text; }
+button.steam-pending-btn { padding:6px 10px; border-radius:6px; background:#243449; border:1px solid #405979; }
+button.steam-pending-btn:hover { background:@raised; border-color:@dim; }
+button.steam-pending-btn label.badge { background:@accent_b; color:@on_accent; font-size:13px; font-weight:800; border-radius:4px; padding:1px 5px; }
 popover,menu { background:@surface; border-radius:10px; padding:8px; }
 popover button,menuitem { border-radius:8px; padding:8px 14px; }
-.banner,.toast { border-radius:10px; }
+.banner,.toast { background:@raised; border:1px solid @line; border-radius:14px; padding:10px 16px; box-shadow:0 8px 24px rgba(0,0,0,.6); }
 .console-home button.console-play { background:@text; color:@bg; border-color:@text; min-height:34px; padding:10px 24px; }
 .console-home button.console-play:hover { background:@dim; border-color:@dim; }
 .console-home button.console-round { background:@raised; border-color:transparent; min-width:24px; min-height:24px; padding:12px; }
@@ -312,9 +351,12 @@ label.metadata-line { font-size:14px; font-weight:500; color:@dim; }
 .game-workspace button.action,.game-workspace .apply-dock button.action,
 .game-workspace .game-actions button,.port-workspace button { min-height:30px; padding:6px 12px; font-size:15px; }
 .game-workspace button.action label,.game-workspace .game-actions button label { font-size:15px; }
-.game-workspace .game-actions button.play { background:@accent_a; border-color:@accent_a; color:@on_accent; }
-.game-workspace .game-actions button.play:hover { background:@accent_a_hover; border-color:@accent_a_hover; }
-.game-workspace .game-actions button.play label,.game-workspace .game-actions button.play drawingarea { color:@on_accent; }
+.game-workspace .game-actions button.play { background:@text; border-color:@text; color:@bg; }
+.game-workspace .game-actions button.play:hover { background:@dim; border-color:@dim; }
+.game-workspace .game-actions button.play label,.game-workspace .game-actions button.play drawingarea { color:@bg; }
+.game-workspace .apply-dock button.play { background:@accent_a; border-color:@accent_a; color:@on_accent; }
+.game-workspace .apply-dock button.play:hover { background:@accent_a_hover; border-color:@accent_a_hover; }
+.game-workspace .apply-dock button.play label,.game-workspace .apply-dock button.play drawingarea { color:@on_accent; }
 .game-workspace .game-actions button.steam { background:@raised; border-color:@line; }
 .game-workspace .game-actions button.game-menu { background:@raised; border-color:@line; }
 .game-workspace .card,.port-workspace .card { padding:12px; }
@@ -332,6 +374,40 @@ button.section-tab label { color:@dim; font-weight:600; }
 button.section-tab:hover { background:alpha(@raised,.55); }
 button.section-tab.active { background:transparent; border-bottom-color:@text; }
 button.section-tab.active label { color:@text; }
+/* Semantic actions keep their colour in both themes and in compact workspaces. */
+button.primary,button.search-pill {
+    background-image:none; background:#2e62b2; border-color:#2e62b2; color:@on_accent;
+}
+button.primary:hover,button.search-pill:hover { background:#3972c4; border-color:#3972c4; }
+button.primary label,button.primary drawingarea,button.search-pill label,button.search-pill drawingarea { color:@on_accent; }
+button.play,button.action.play,button.console-play,button.port-install-cta,
+.console-home button.console-play,.port-workspace button.port-install-cta,
+.game-workspace .game-actions button.play,.game-workspace .apply-dock button.play {
+    background-image:none; background:#1c7845; border-color:#1c7845; color:@on_accent;
+}
+button.play:hover,button.action.play:hover,button.console-play:hover,button.port-install-cta:hover,
+.console-home button.console-play:hover,.port-workspace button.port-install-cta:hover,
+.game-workspace .game-actions button.play:hover,.game-workspace .apply-dock button.play:hover {
+    background:#228751; border-color:#228751;
+}
+button.play label,button.play drawingarea,button.action.play label,button.action.play drawingarea,
+button.console-play label,button.console-play drawingarea,button.port-install-cta label,
+.port-workspace button.port-install-cta label,
+.console-home button.console-play label,.console-home button.console-play drawingarea,
+.game-workspace .game-actions button.play label,.game-workspace .game-actions button.play drawingarea,
+.game-workspace .apply-dock button.play label,.game-workspace .apply-dock button.play drawingarea { color:@on_accent; }
+button.violet { background:#6152b6; border-color:#6152b6; color:@on_accent; }
+button.violet:hover { background:#7161c7; border-color:#7161c7; }
+button.violet label,button.violet drawingarea { color:@on_accent; }
+/* GTK outlines are rectangular. Shadows follow each control's border radius
+   without changing its size or flattening pill-shaped buttons. */
+button:focus,button.controller-focus,button.poster:focus,button.poster.controller-focus,
+button.console-card:focus,button.console-card.controller-focus,
+combobox:focus button,combobox.controller-focus button,
+entry.controller-focus,switch.controller-focus {
+    outline:0; box-shadow:0 0 0 2px @focus_ring;
+}
+button.disclosure { border-radius:8px; }
 /* Mouse clicks keep the selected state but do not leave a keyboard focus frame. */
 .pointer-input button:focus,.pointer-input button.controller-focus,.pointer-input button.poster:focus,
 .pointer-input entry.controller-focus,.pointer-input switch.controller-focus,.pointer-input scale.controller-focus,
@@ -350,6 +426,8 @@ BRAND={
 }
 # The stylesheet above is written for the black theme. The light theme swaps each colour for its counterpart.
 LIGHT={
+    # Filled actions use the same accessible white-on-colour palette in both themes.
+    '#1c7845':'#1c7845','#228751':'#228751','#2e62b2':'#2e62b2','#3972c4':'#3972c4','#6152b6':'#6152b6','#7161c7':'#7161c7',
     '#942e2e':'#942e2e','#aa3535':'#aa3535','#b74444':'#b74444',
     '#08090b':'#f3f5f9','#121417':'#ffffff','#1c2025':'#e8ecf4','#f1f3f5':'#161a20','#b6bec9':'#4b5563','#343b45':'#c6cedb',
     '#29323d':'#dfe5f0','#66717e':'#8e9aab','#79828d':'#7b8696','#616b78':'#9aa5b5','#46515e':'#b5bfce','#c8d0da':'#3a4452','#20262e':'#e6ebf3',

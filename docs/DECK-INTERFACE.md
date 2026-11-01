@@ -1,5 +1,16 @@
 # Interfaz y modo Juego
 
+## 1.5.0 — Interfaz de consola
+
+Inicio reúne el juego reciente y las carátulas de la biblioteca. La navegación superior muestra Inicio, Biblioteca, Ports, Actualizaciones, Solicitudes, Herramientas y Ajustes. **Más (•••)** contiene Verificados, Ayuda y **Agregar a Steam**; esta última acción se oculta cuando el acceso existe, está pendiente o la app se ejecuta en modo Juego.
+
+Las fichas de juegos y ports usan encabezados y secciones fijas. Instalar conserva la ficha debajo del asistente y el progreso. Las acciones principales tienen colores distinguibles, y el selector sigue la forma de cada botón.
+
+**Actualizaciones** contiene versiones, progreso y novedades del autor. Las notas tienen un área visible y desplazable; la publicación original y la acción de actualizar se centran a la derecha de la tarjeta. Las preferencias están en **Ajustes → Actualizaciones automáticas**, al principio de Ajustes, y se guardan al cambiar cada interruptor.
+
+Las [capturas en español e inglés](SCREENSHOTS.md) corresponden a esta versión. Las secciones siguientes documentan etapas anteriores y pueden describir una organización ya reemplazada.
+
+
 ## Vista actual (1.4.7)
 
 Todas las fichas usan **Ajustes**, **Controles** y **Juego y archivos**, con un único botón **Comunidad**. La cabecera mantiene Jugar, Steam, Eliminar y Más opciones. El desplegable agrupa edición avanzada, creación/importación/exportación de perfiles, valoración, restauración del perfil anterior, favoritos, carátulas y ayuda. La versión de Proton se consulta o cambia en Juego y archivos, según quién administre el acceso.

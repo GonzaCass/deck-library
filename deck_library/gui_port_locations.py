@@ -11,7 +11,8 @@ class PortLocationsMixin:
         page=InlineDialog(title='Instalar '+item['name'],transient_for=self)
         page.add_button('Volver',Gtk.ResponseType.CLOSE)
         body=page.get_content_area()
-        body.pack_start(text('Descargar el port o vincular una instalación que ya esté en este equipo. Los archivos del juego se eligen en el siguiente paso si hacen falta.','muted',85),False,False,0)
+        panel=self.card(body,'Origen de la instalación')
+        panel.pack_start(text('Descargar el port o vincular una instalación que ya esté en este equipo. Los archivos del juego se eligen en el siguiente paso si hacen falta.','muted',85),False,False,0)
         def download(_):
             page.destroy();GLib.idle_add(lambda:(self.install_port(item,False,runtime=runtime,location_chosen=True),False)[1])
         def existing(_):

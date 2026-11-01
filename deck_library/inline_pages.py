@@ -6,7 +6,10 @@ from gi.repository import Gtk,GLib,GObject,Pango
 
 class InlineActions(Gtk.Box):
     """Show commands added after an asynchronous operation, as well as initial ones."""
-    def __init__(self,owner):super().__init__(spacing=8);self.owner=owner
+    def __init__(self,owner):
+        super().__init__(spacing=8);self.owner=owner
+        # Leave room inside the header viewport for the rounded focus shadow.
+        for side in ('start','end','top','bottom'):getattr(self,'set_margin_'+side)(3)
     def register(self,child):
         if getattr(child,'_action_owner',None) is not self.owner:
             child._action_owner=self.owner;child.connect('notify::visible',lambda *_:self.owner._refresh_actions())
@@ -29,7 +32,7 @@ class InlineDialog(Gtk.Box):
         heading=Gtk.Label(label=title,xalign=0);heading.set_line_wrap(True);heading.get_style_context().add_class('inline-page-heading');head.pack_start(heading,True,True,0);self.pack_start(head,False,False,0)
         self.heading=heading;self.header=head
         self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
-        self.scroll=self.owner.new_scroll();self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC);self.scroll.set_overlay_scrolling(False);self.scroll.set_vexpand(True);self.scroll.add(self.content);self.pack_start(self.scroll,True,True,0)
+        self.scroll=self.owner.new_scroll();self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC);self.scroll.set_overlay_scrolling(True);self.scroll.set_vexpand(True);self.scroll.add(self.content);self.pack_start(self.scroll,True,True,0)
         self.actions=InlineActions(self);self.actions_scroll=self.owner.new_scroll();self.actions_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);self.actions_scroll.set_no_show_all(True);self.actions_scroll.add(self.actions);self.pack_start(self.actions_scroll,False,False,0);self.reorder_child(self.actions_scroll,1)
         self.connect('destroy',self._destroyed)
 
@@ -56,7 +59,11 @@ class InlineDialog(Gtk.Box):
     def get_default_size(self):return self._default_size
     def get_size(self):return self.owner.get_size()
     def get_focus(self):return self.owner.get_focus()
-    def set_deletable(self,value):self._deletable=value
+    def set_deletable(self,value):
+        self._deletable=value
+        if self._mounted and self.owner and not self.owner.ui_closed:
+            allowed=all(w._deletable for w in self.owner.inline_workflows)
+            for control in self.owner.navigation_controls:control.set_sensitive(allowed)
     def add_button(self,text,response):
         button=Gtk.Button(label=text);button.connect('clicked',lambda _:self.response(response));self.actions.add(button);self._buttons[response]=button
         if response in (Gtk.ResponseType.OK,Gtk.ResponseType.ACCEPT):button.get_style_context().add_class('primary')
@@ -83,7 +90,8 @@ class InlineDialog(Gtk.Box):
             if commands:self.content.remove(child);self.actions.pack_start(child,False,False,0)
         self._mounted=True;owner=self.owner;self._previous_focus=owner.get_focus();self._previous=owner.workflow_stack.get_visible_child()
         owner.inline_workflows.append(self);owner.workflow_stack.add(self);owner.workflow_stack.show();owner.workflow_stack.set_visible_child(self)
-        for control in owner.navigation_controls:control.set_sensitive(False)
+        allowed=all(w._deletable for w in owner.inline_workflows)
+        for control in owner.navigation_controls:control.set_sensitive(allowed)
         from .interactions import manual_text_input
         manual_text_input(self)
         Gtk.Box.show_all(self);self.actions.show_all();self._refresh_actions();owner.workflow_stack.set_visible_child(self)
@@ -118,11 +126,15 @@ class InlineDialog(Gtk.Box):
             owner.workflow_stack.set_visible_child(previous)
             from . import motion
             motion.enter_page(previous)
-        for control in owner.navigation_controls:control.set_sensitive(not owner.inline_workflows)
-        if not visible:return
+        allowed=all(w._deletable for w in owner.inline_workflows)
+        for control in owner.navigation_controls:control.set_sensitive(allowed)
+        if not visible or getattr(self,'_skip_restore_focus',False):return
         focus=self._previous_focus
         def restore():
             if owner.ui_closed:return False
+            # Another workflow can open before this idle callback runs. Its
+            # initial focus belongs to that workflow, never to the old page.
+            if owner.workflow_stack.get_visible_child() is not previous:return False
             if focus and owner.control_is_shown(focus):focus.grab_focus();owner.mark_controller_focus(owner,focus)
             else:owner.ensure_controller_focus(owner)
             owner.update_controller_hints(owner);return False

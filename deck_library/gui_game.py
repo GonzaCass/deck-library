@@ -16,7 +16,16 @@ class GameMixin:
         return True
 
     def navigate_from_game(self, callback, widget=None):
-        if self.discard_game_edits():callback(widget)
+        workflows=list(getattr(self,'inline_workflows',[]))
+        if any(not w._deletable for w in workflows):return
+        if not self.discard_game_edits():return
+        if workflows:
+            had_loop=any(w._loop and w._loop.is_running() for w in workflows)
+            for wf in reversed(workflows):
+                wf._skip_restore_focus=True;wf.cancel()
+                if not (wf._loop and wf._loop.is_running()) and not wf._closed:wf.destroy()
+            if had_loop:GLib.idle_add(lambda:(callback(widget),False)[1]);return
+        callback(widget)
 
     def show_detail(self, entry):
         opening = self.detail_game_id != entry.id
@@ -117,8 +126,8 @@ class GameMixin:
         styled(menu, 'quiet', 'game-menu')
         menu.set_valign(Gtk.Align.CENTER)
         body = Gtk.Box(spacing=8)
-        body.pack_start(Icon('more'), False, False, 0)
-        body.pack_start(text('Más' if compact else 'Más opciones'), False, False, 0)
+        body.pack_start(Icon('sliders'), False, False, 0)
+        body.pack_start(text('Opciones' if compact else 'Más opciones'), False, False, 0)
         menu.add(body)
         menu.get_accessible().set_name('Más opciones del juego')
         popover = Gtk.Popover.new(menu)
@@ -170,6 +179,8 @@ class GameMixin:
         from .gui import Poster
         cover = find_cover(entry)
         backdrop = GameBackdrop(cover)
+        backdrop.backdrop.platform = entry.platform or ''
+        backdrop.backdrop.set_cover(cover)
         hero = Gtk.Box(spacing=12)
         hero.set_border_width(18)
         hero.connect('draw',backdrop.draw_backdrop)
@@ -188,13 +199,15 @@ class GameMixin:
         hero.pack_start(cover_button, False, False, 0)
         info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=12)
         info.set_valign(Gtk.Align.CENTER)
+        from .port_patterns import entry_display_title,entry_port_project
+        display_name=entry_display_title(entry);port_project=entry_port_project(entry)
         origin = {'eden': 'Eden', 'wiicompiled': 'WiiCompiled', 'prism': 'Prism Launcher', 'duckstation': 'DuckStation', 'dolphin': 'Dolphin', 'project2099': 'Project-2099'}.get(presets.adapter_for(entry), 'Port' if entry.kind == 'port' else 'Steam' if entry.kind=='steam' else 'Aplicación')
-        platform=metadata_line([entry.platform,origin])
+        platform=metadata_line([entry.platform,origin,('Port: '+port_project) if port_project else ''])
         title_line=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);info.pack_start(title_line,False,False,0)
-        name = text(entry.name, 'game-title', 44)
+        name = text(display_name, 'game-title', 44)
         name.set_lines(2)
         name.set_ellipsize(Pango.EllipsizeMode.END)
-        tooltip_when_cut(name, entry.name)
+        tooltip_when_cut(name, display_name)
         title_line.pack_start(name, False, False, 0)
         actions = styled(Gtk.Box(spacing=8),'game-actions')
         actions.set_hexpand(True)
@@ -325,17 +338,24 @@ class GameMixin:
         adapter = presets.adapter_for(entry)
         if entry.metadata.get('gtaiv_root'):
             content.pack_start(TaskButton('Mejoras para GTA IV', 'FusionFix y DXVK', 'sliders', lambda _: self.gtaiv_dialog(entry)), False, False, 0)
-        self.build_game_variant_notice(entry,content)
         self.build_broken_bond_repair(entry,content)
         self.build_shattered_fix(entry,content)
-        self.build_compatibility_action(entry,content)
         if adapter in presets.REGISTRY:
             self.build_profile_picker(entry, content, parent)
         else:
-            panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8)
+            panel = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
             styled(panel, 'surface-panel')
-            panel.pack_start(text('Ajustes del juego', 'section-title'), False, False, 0)
+            top = Gtk.Box(spacing=10)
+            top.pack_start(styled(Icon('sliders', 20), 'violet-icon'), False, False, 0)
+            top.pack_start(text('Ajustes del juego', 'section-title'), True, True, 0)
+            pending = entry.metadata.get('configured') is False
+            top.pack_end(badge('Preparación pendiente' if pending else 'En la biblioteca', 'yellow' if pending else 'green'), False, False, 0)
+            panel.pack_start(top, False, False, 0)
             panel.pack_start(text('Este juego se configura desde sus propias opciones.', 'muted'), False, False, 0)
+            quick = Gtk.Box(spacing=8)
+            quick.pack_start(ActionButton('Controles e idioma', 'controller', lambda _: self.open_game_section('controls'), 'steam-outline'), False, False, 0)
+            quick.pack_start(ActionButton('Juego y archivos', 'folder', lambda _: self.open_game_section('content'), 'steam-outline'), False, False, 0)
+            panel.pack_start(quick, False, False, 0)
             content.pack_start(panel, False, False, 0)
 
     def build_broken_bond_repair(self,entry,body):
@@ -437,6 +457,7 @@ class GameMixin:
         dock_words = Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=3)
         self.profile_dock_title = text('Elegir un perfil','dock-title')
         self.profile_dock_note = text('La configuración actual se conserva hasta aplicar.','meta',60)
+        self.profile_dock_note.set_no_show_all(True);self.profile_dock_note.hide()
         dock_words.pack_start(self.profile_dock_title,False,False,0)
         dock_words.pack_start(self.profile_dock_note,False,False,0)
         dock.pack_start(dock_words,True,True,0)
@@ -519,14 +540,18 @@ class GameMixin:
             for profile in profiles[:3]:
                 cards.pack_start(self.profile_card(profile,choose,profile['id']==best),True,True,0)
             content.pack_start(cards,False,False,0)
+            self.profile_feedback.set_no_show_all(True);self.profile_feedback.hide()
             content.pack_start(self.profile_feedback,False,False,0)
             content.pack_start(self.profile_disclosure,False,False,0)
             alternatives=[p for p in profiles[3:] if not presets.is_bundled(p)]
             if alternatives:
                 extra=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
-                extra.pack_start(text('Alternativas y perfiles guardados. Compatibilidad prioriza la precisión de la emulación y puede reducir los FPS; no indica que el juego esté verificado.','muted',85),False,False,0)
+                note=text('Alternativas y perfiles guardados. Compatibilidad prioriza la precisión de la emulación y puede reducir los FPS; no indica que el juego esté verificado.','muted',85);note.set_no_show_all(True);note.hide()
+                extra.pack_start(note,False,False,0)
                 for profile in alternatives:extra.pack_start(self.profile_card(profile,choose,profile['id']==best),False,False,0)
-                content.pack_start(Reveal('Alternativas y perfiles guardados · '+str(len(alternatives)),extra),False,False,0)
+                rev=Reveal('Alternativas y perfiles guardados · '+str(len(alternatives)),extra)
+                rev.revealer.set_reveal_child(True)
+                content.pack_start(rev,False,False,0)
             selected = self.profile_choice.get(entry.id,best)
             choose(next((value for value in profiles if value['id']==selected),profiles[0]))
         else:
@@ -544,11 +569,7 @@ class GameMixin:
         if not profiles:self.profile_rate.hide();self.profile_rate.set_no_show_all(True)
         community=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
         self.game_community=community
-        intro=self.card(community,'Ajustes de la comunidad')
-        intro.pack_start(text('Buscar perfiles, publicar ajustes y consultar comentarios.','muted'),False,False,0)
-        intro.pack_start(ActionButton('Explorar la comunidad','community',lambda _:self.community_dialog(entry)),False,False,0)
-        self.community_profile_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);community.pack_start(self.community_profile_box,False,False,0)
-        if not self.signed_in():intro.pack_start(text('Hace falta una cuenta para publicar, valorar o comentar.','meta',85),False,False,0)
+        self.build_inline_community(entry,community)
         self.fetch_game_ratings(entry)
 
     def fetch_game_ratings(self,entry):
@@ -674,7 +695,7 @@ class GameMixin:
                 body.set_margin_end(12)
                 scroll.add(body)
                 page.pack_start(scroll,True,True,0)
-                if section=='community':body.pack_start(self.game_community,False,False,0)
+                if section=='community':body.pack_start(self.game_community,True,True,0)
                 else:{'controls':self.build_game_controls,'files':self.build_game_files,'content':self.build_game_content}.get(section,self.build_game_files)(entry,body)
             page.show_all()
         self.game_pages.set_transition_type(Gtk.StackTransitionType.NONE)
@@ -745,7 +766,9 @@ class GameMixin:
         if entry.kind=='port':actions.pack_start(ActionButton('Carpetas del juego','folder',lambda _:self.port_location_page(entry=entry),'cyan'),False,False,0)
         actions.pack_start(ActionButton('Diagnóstico','search',lambda _:self.check(entry)),False,False,0)
         shortcut.pack_start(actions,False,False,0)
+        self.build_compatibility_action(entry,shortcut)
         self.build_proton_selector(entry,body,compact=True)
+        self.build_game_variant_notice(entry,body)
         if entry.metadata.get('port_repository'):
             from . import ports
             record=ports.records(self.store).get(entry.metadata['port_repository'])

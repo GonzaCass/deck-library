@@ -1,16 +1,17 @@
 """Community port catalog page: browse, install and update ports from GitHub releases."""
-import pathlib,threading,time,datetime,json
+import os,pathlib,re,shutil,threading,time,datetime,json
 import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib,GdkPixbuf,Pango
-from .inline_pages import InlineDialog
+from .inline_pages import InlineDialog,InlineFileChooser
 from . import ports
 from .installations import save_settings
 from .service import queue_removals
-from .ui_components import badge,badge_row,metadata_line
+from .ui_components import ActionButton,badge,badge_row,metadata_line,platform_badge
+from .port_patterns import classify_port,fetch_readme,platform_info,resolve_game_identity,CODENAME_REPOS
 
 ART_WIDTH=88
-CATALOG_PAGE=30
+CATALOG_PAGE=42
 ART_HEIGHT=132
 
 def fit_badge(fit,long=False):
@@ -34,8 +35,7 @@ def readiness(item,record,original):
     if item.get('package_role') in ('source-only','build-tool'):return ('Solo código fuente · no se puede jugar todavía','orange')
     if record or original['known']:return None
     systems=[name.lower() for name in item.get('supported_os',[])]
-    if 'linux' in systems:return ('Listo para instalar','green')
-    if 'windows' in systems:return ('Se instala con Proton','blue')
+    if 'linux' in systems or 'windows' in systems:return ('Listo para instalar','green')
     return None
 
 class CatalogMixin:
@@ -45,30 +45,41 @@ class CatalogMixin:
         self.catalog_ready=True
         box=self.catalog_box;self.reset_page(box)
         head=Gtk.Box(spacing=12);titles=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2)
-        titles.pack_start(label('Conseguir juegos','hero'),False,False,0)
+        titles.pack_start(label('Ports','hero'),False,False,0)
         intro=label('Ports para la biblioteca. Algunos requieren archivos originales.','subtitle');intro.set_tooltip_text(intro.get_text())
         if self.compact_screen():intro.set_line_wrap(False);intro.set_ellipsize(Pango.EllipsizeMode.END);intro.set_max_width_chars(60)
         titles.pack_start(intro,False,False,0)
         head.pack_start(titles,True,True,0);actions=Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL if self.compact_screen() else Gtk.Orientation.VERTICAL,spacing=8);actions.set_valign(Gtk.Align.CENTER)
         actions.pack_start(button('Agregar repositorio',lambda _:self.add_repository_dialog()),False,False,0)
-        head.pack_end(actions,False,False,0);box.pack_start(head,False,False,0)
-        tools=Gtk.Box(spacing=10);self.catalog_search=Gtk.SearchEntry();self.catalog_search.set_placeholder_text('Buscar ports · X: teclado');self.bind_search_keyboard(self.catalog_search);self.catalog_search.connect('search-changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_search,True,True,0)
+        head.pack_end(actions,False,False,0);head.set_no_show_all(True);head.hide();box.pack_start(head,False,False,0)
+        tools=Gtk.Box(spacing=10);tools.get_style_context().add_class('page-toolbar');self.catalog_search=Gtk.SearchEntry();self.catalog_search.set_placeholder_text('Buscar ports · X: teclado');self.bind_search_keyboard(self.catalog_search);self.catalog_search.connect('search-changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_search,True,True,0)
         self.catalog_category=Gtk.ComboBoxText();self.catalog_category.get_accessible().set_name('Categoría de ports');self.catalog_category.append('','Todas las categorías');self.catalog_category.set_active_id('');self.catalog_category.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_category,False,False,0)
         self.catalog_source=Gtk.ComboBoxText();self.catalog_source.get_accessible().set_name('Fuente de ports');self.catalog_source.append('','Todas las fuentes')
         for name in ('Recomendado','Agregado','Quiver','GithubLauncher','Lista independiente','PortIntegration'):self.catalog_source.append(name,name)
-        self.catalog_source.set_active_id('');self.catalog_source.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_source,False,False,0);box.pack_start(tools,False,False,0)
+        self.catalog_source.set_active_id('');self.catalog_source.connect('changed',lambda _:self.fill_catalog());self.catalog_source.set_no_show_all(True);self.catalog_source.hide();tools.pack_start(self.catalog_source,False,False,0)
         self.catalog_sort=Gtk.ComboBoxText();self.catalog_sort.get_accessible().set_name('Orden de ports')
         for key,name in [('recent','Nuevos primero'),('new','Nuevos (30 días)'),('release','Últimas versiones'),('name','Nombre'),('installed','Instalados')]:self.catalog_sort.append(key,name)
         self.catalog_sort.set_active_id(self.preferences.get('catalog_sort','recent'));self.catalog_sort.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_sort,False,False,0)
         self.catalog_search.set_width_chars(12)
         for picker in (self.catalog_category,self.catalog_source,self.catalog_sort):
-            for cell in picker.get_cells():cell.set_property('ellipsize',Pango.EllipsizeMode.END);cell.set_property('max-width-chars',18)
+            for cell in picker.get_cells():cell.set_property('ellipsize',Pango.EllipsizeMode.END);cell.set_property('max-width-chars',28)
+        self.catalog_tools_revealer=Gtk.Revealer();self.catalog_tools_revealer.set_transition_type(Gtk.RevealerTransitionType.NONE);self.catalog_tools_revealer.add(tools);self.catalog_tools_revealer.set_reveal_child(False);self.catalog_tools_revealer.set_no_show_all(True);self.catalog_tools_revealer.hide();box.pack_start(self.catalog_tools_revealer,False,False,0)
         status_row=Gtk.Box(spacing=12);self.catalog_status=label('Cargando catálogo…','status');self.catalog_status.set_line_wrap(False);self.catalog_status.set_ellipsize(Pango.EllipsizeMode.END);self.catalog_status.set_width_chars(1);status_row.pack_start(self.catalog_status,True,True,0)
-        self.catalog_guide_button=button('Guía de compatibilidad',self.compatibility_guide);status_row.pack_end(self.catalog_guide_button,False,False,0);status_row.pack_end(button('Verificados',lambda _:self.validated_page()),False,False,0);box.pack_start(status_row,False,False,0)
-        self.pin_page_header(box,head,tools,status_row)
-        self.catalog_rows=Gtk.FlowBox();self.catalog_rows.set_selection_mode(Gtk.SelectionMode.NONE);self.catalog_rows.set_min_children_per_line(1);self.catalog_rows.set_max_children_per_line(4);self.catalog_rows.set_homogeneous(True);self.catalog_rows.set_column_spacing(14);self.catalog_rows.set_row_spacing(16);box.pack_start(self.catalog_rows,False,False,0)
+        self.catalog_guide_button=button('Guía de compatibilidad',self.compatibility_guide);self.catalog_guide_button.set_no_show_all(True);self.catalog_guide_button.hide();status_row.pack_end(self.catalog_guide_button,False,False,0);status_row.pack_end(button('Verificados',lambda _:self.validated_page()),False,False,0);status_row.set_no_show_all(True);status_row.hide();box.pack_start(status_row,False,False,0)
+        self.catalog_rows=Gtk.FlowBox();self.catalog_rows.set_selection_mode(Gtk.SelectionMode.NONE);self.catalog_rows.set_min_children_per_line(1);self.catalog_rows.set_max_children_per_line(6);self.catalog_rows.set_homogeneous(True);self.catalog_rows.set_column_spacing(12);self.catalog_rows.set_row_spacing(14);box.pack_start(self.catalog_rows,False,False,0)
         self.catalog_more_box=Gtk.Box();self.catalog_more_box.set_halign(Gtk.Align.CENTER);box.pack_start(self.catalog_more_box,False,False,0)
         box.show_all();self.pages.set_visible_child_name('catalog');self.load_catalog(False)
+
+    def reveal_catalog_search(self):
+        from . import motion
+        if hasattr(self,'catalog_tools_revealer'):
+            self.catalog_tools_revealer.set_no_show_all(False)
+            self.catalog_tools_revealer.set_reveal_child(True)
+            self.catalog_tools_revealer.show_all()
+            self.refresh_layout()
+        scroll=self.catalog_box.get_ancestor(Gtk.ScrolledWindow)
+        if scroll:motion.smooth_scroll(scroll.get_vadjustment(),0,duration=90)
+        if hasattr(self,'catalog_search'):self.catalog_search.grab_focus()
 
     def compatibility_guide(self,*_):
         from .gui import label
@@ -95,6 +106,11 @@ class CatalogMixin:
         if getattr(self,'catalog_load_busy',False):return
         self.catalog_load_busy=True
         self.catalog_status.set_text('Cargando catálogo…');extra=list(self.preferences.get('catalog_sources',[]))
+        if not getattr(self,'catalog_apps',None):
+            try:
+                cached=json.loads((self.store.root/'catalog-ports.json').read_text()).get('apps')
+                if cached:self.catalog_apps=cached;self.fill_catalog()
+            except (OSError,ValueError):pass
         def work():
             try:apps=ports.catalog(self.store,force,extra=extra)
             except Exception as error:GLib.idle_add(self.catalog_loaded,None,str(error));return
@@ -124,12 +140,12 @@ class CatalogMixin:
             if name not in known:self.catalog_category.append(name,name)
         self.reset_page(self.catalog_rows);self.reset_page(self.catalog_more_box);text=self.catalog_search.get_text().casefold().strip();category=self.catalog_category.get_active_id() or '';source=self.catalog_source.get_active_id() or ''
         installed=ports.records(self.store);updates={u['repository'] for u in (getattr(self,'update_state',None) or {}).get('catalog') or []}
-        matches=[a for a in everything if text in (' '.join((a['name'],a.get('game_title',''),a['repository'],original_requirement(a)['label']))).casefold() and (not category or a['list']==category) and (not source or source in a['source'])]
+        matches=[a for a in everything if text in (' '.join((a['name'],a.get('game_title',''),resolve_game_identity(a)[0],a['repository'],original_requirement(a)['label']))).casefold() and (not category or a['list']==category) and (not source or source in a['source'])]
         order=self.catalog_sort.get_active_id() or 'recent'
         if self.preferences.get('catalog_sort')!=order:self.preferences['catalog_sort']=order;save_settings(self.preferences,self.store)
         if order=='installed':matches=[a for a in matches if self.catalog_installation(a,installed)]
         if order=='new':matches=[a for a in matches if 0<time.time()-(a.get('added_at') or a.get('first_seen') or 0)<30*86400]
-        matches.sort(key=lambda a:(-(a.get('added_at') or a.get('first_seen') or 0) if order in ('recent','new') else -(a.get('release_at') or 0) if order=='release' else 0,(a.get('game_title') or a['name']).casefold(),a['name'].casefold()))
+        matches.sort(key=lambda a:(-(a.get('added_at') or a.get('first_seen') or 0) if order in ('recent','new') else -(a.get('release_at') or 0) if order=='release' else 0,resolve_game_identity(a)[0].casefold(),a['name'].casefold()))
         key=(text,category,source,order)
         if getattr(self,'catalog_filter_key',None)!=key:self.catalog_filter_key=key;self.catalog_limit=CATALOG_PAGE
         limit=getattr(self,'catalog_limit',CATALOG_PAGE)
@@ -142,42 +158,58 @@ class CatalogMixin:
         from .ui_components import PortImage
         compact=self.compact_screen()
         for item in matches[:limit]:
-            card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0);card.set_size_request(270,-1);card.get_style_context().add_class('port-card');open_=button('',lambda _,i=item:self.port_details(i));open_.get_style_context().add_class('catalog-open');body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0);open_.remove(open_.get_child());open_.add(body);card.pack_start(open_,False,False,0)
-            image=PortImage();cover=Gtk.Overlay();cover.add(image);body.pack_start(cover,False,False,0);images.append((item,image));chips={'tl':[],'tr':[],'bl':[],'br':[]}
-            title=item.get('game_title') or item['name'];image.get_accessible().set_name('Carátula de '+title)
+            card=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0);card.set_size_request(174,-1);card.get_style_context().add_class('port-card');open_=button('',lambda _,i=item:self.port_details(i));open_.get_style_context().add_class('catalog-open');body=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0);open_.remove(open_.get_child());open_.add(body);card.pack_start(open_,False,False,0)
+            image=PortImage();cover=Gtk.Overlay();cover.add(image);body.pack_start(cover,False,False,0);images.append((item,image));chips={'tl':[],'tr':[],'bl':[]}
+            title,mapped_platform=resolve_game_identity(item)
+            pinfo=platform_info(mapped_platform or item.get('list',''))
+            image.get_accessible().set_name('Carátula de '+title)
             open_.get_accessible().set_name('Ver detalles de '+title)
-            texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);texts.get_style_context().add_class('port-card-content');heading=label(title,'title');heading.set_lines(2);heading.set_max_width_chars(23);heading.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(heading,False,False,0);record=installed.get(item['repository']) or self.catalog_installation(item,installed)
-            if title.casefold()!=item['name'].casefold():
-                project=label(item['name'],'meta');project.set_lines(1);project.set_ellipsize(Pango.EllipsizeMode.END);project.set_max_width_chars(26);texts.pack_start(project,False,False,0)
+            texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=3);texts.get_style_context().add_class('port-card-content');heading=label(title,'cover-title');heading.set_lines(2);heading.set_width_chars(1);heading.set_max_width_chars(15);heading.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(heading,False,False,0);record=installed.get(item['repository']) or self.catalog_installation(item,installed)
+            original=original_requirement(item)
+            has_req=bool(original['known'] and original['label'])
+            norm_title=re.sub(r'[^a-z0-9]+','',title.casefold())
+            norm_name=re.sub(r'[^a-z0-9]+','',item['name'].casefold())
+            if norm_title!=norm_name:
+                project=label(item['name'],'meta');project.set_line_wrap(False);project.set_lines(1);project.set_ellipsize(Pango.EllipsizeMode.END);project.set_width_chars(1);project.set_max_width_chars(16)
+                if has_req or norm_name.startswith(norm_title):project.set_no_show_all(True);project.hide()
+                texts.pack_start(project,False,False,0)
+            if has_req:
+                req_line=label(original['label'],'meta');req_line.set_line_wrap(False);req_line.set_lines(1);req_line.set_ellipsize(Pango.EllipsizeMode.END);req_line.set_width_chars(1);req_line.set_max_width_chars(16);req_line.set_tooltip_text(original['details'] or original['label']);texts.pack_start(req_line,False,False,0)
             if item.get('description'):
-                description=label(item['description'],'status');description.set_lines(1 if compact else 2);description.set_max_width_chars(30);description.set_ellipsize(Pango.EllipsizeMode.END);texts.pack_start(description,False,False,0)
-            original=original_requirement(item);requirement=badge(('ROM · '+original['label']) if original['known'] else original['label'],'yellow' if original['known'] else 'neutral',22);requirement.set_tooltip_text(original['details']);chips['tr'].append(requirement)
+                description=label(item['description'],'status');description.set_lines(1);description.set_max_width_chars(20);description.set_ellipsize(Pango.EllipsizeMode.END);description.set_no_show_all(True);description.hide();texts.pack_start(description,False,False,0)
             reviewed=ports.is_reviewed(item);tags=[('Integración revisada','blue') if reviewed else ('Integración sin revisar','neutral')]
-            if item['list']:chips['tl'].append(badge(item['list'],'violet',18))
+            if item['list'] or mapped_platform:
+                chips['tl'].append(platform_badge(pinfo['short'],pinfo['icon'],pinfo['tone'],12))
             role=item.get('package_role')
             if role=='builder':tags.append(('Constructor','yellow'))
             elif role in ('source-only','build-tool'):tags.append(('Solo código fuente','orange'))
-            systems=system_tags(item);chips['bl'].append(badge(systems[0][0],systems[0][1],20))
             proof=variant_index.assess(item)
-            if proof['state']!='unvalidated':texts.pack_start(self.variant_badge(proof),False,False,0)  # the lack of a test is explained in the details page, not repeated on every card
+            if proof['state']!='unvalidated':
+                vbadge=self.variant_badge(proof);vbadge.set_max_width_chars(19)
+                if proof['state'] in ('other_variant','untested-variant','untested_variant'):vbadge.set_no_show_all(True);vbadge.hide()
+                texts.pack_start(vbadge,False,False,0)
             alternatives=variant_index.alternatives(item)
             if record:
                 other=record.get('alternative',False);tone='yellow' if other else variant_index.assess(item,record.get('tag',''))['tone']
-                chips['br'].append(badge('Variante sin identificar' if record.get('unidentified') else 'Otra variante instalada' if other else 'Instalado',tone,22))
-            if alternatives:chips['br'].append(badge(str(len(alternatives)+1)+' variantes','blue',14))
-            when=item.get('added_at') or item.get('first_seen') or 0
-            if when and time.time()-when<30*86400:chips['tl'].append(badge('Nuevo','blue',8))
-            for key,(horizontal,vertical) in {'tl':(Gtk.Align.START,Gtk.Align.START),'tr':(Gtk.Align.END,Gtk.Align.START),'bl':(Gtk.Align.START,Gtk.Align.END),'br':(Gtk.Align.END,Gtk.Align.END)}.items():
+                chips['tr'].append(badge('Variante sin identificar' if record.get('unidentified') else 'Otra variante instalada' if other else 'Instalado',tone,14))
+                if alternatives:chips['bl'].append(badge(str(len(alternatives)+1)+' variantes','blue',12))
+            elif alternatives:
+                chips['bl'].append(badge(str(len(alternatives)+1)+' variantes','blue',12))
+            else:
+                when=item.get('added_at') or item.get('first_seen') or 0
+                if when and time.time()-when<30*86400:chips['tr'].append(badge('Nuevo','blue',8))
+            for key,(horizontal,vertical) in {'tl':(Gtk.Align.START,Gtk.Align.START),'tr':(Gtk.Align.END,Gtk.Align.START),'bl':(Gtk.Align.START,Gtk.Align.END)}.items():
                 if chips[key]:
-                    holder=Gtk.Box(spacing=4);holder.set_halign(horizontal);holder.set_valign(vertical);holder.set_margin_start(8);holder.set_margin_end(8);holder.set_margin_top(8);holder.set_margin_bottom(8)
+                    holder=Gtk.Box(spacing=4);holder.set_halign(horizontal);holder.set_valign(vertical);holder.set_margin_start(6);holder.set_margin_end(6);holder.set_margin_top(6);holder.set_margin_bottom(6)
                     for chip in chips[key]:holder.pack_start(chip,False,False,0)
                     cover.add_overlay(holder);cover.set_overlay_pass_through(holder,True)
-            texts.pack_start(badge_row(tags,2),False,False,0)
             state=readiness(item,record,original)
-            if state:texts.pack_start(badge(state[0],state[1],40),False,False,0)
+            if state and proof['state']=='unvalidated' and len(tags)<2:tags.append(state)
+            row_badges=badge_row(tags,2);row_badges.set_no_show_all(True);row_badges.hide()
+            texts.pack_start(row_badges,False,False,0)
             if item.get('bios') or item.get('disc'):
-                checks=label('Comprobando requisitos…','status');checks.set_max_width_chars(34);texts.pack_start(checks,False,False,0);kits.append((item,checks))
-            body.pack_start(texts,False,False,0);side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);side.get_style_context().add_class('port-card-actions');card.pack_end(side,False,False,0)
+                checks=label('','status');checks.set_max_width_chars(34);checks.set_no_show_all(True);checks.hide();texts.pack_start(checks,False,False,0);kits.append((item,checks))
+            body.pack_start(texts,False,False,0);side=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);side.get_style_context().add_class('port-card-actions');side.set_no_show_all(True);side.hide();card.pack_end(side,False,False,0)
             if proof.get('report') and proof['report']['repository'].casefold()!=item['repository'].casefold():
                 target=variant_index.items.get(proof['report']['repository'].casefold())
                 if target:side.pack_start(button('Ver variante probada',lambda _,i=target:self.port_details(i)),False,False,0)
@@ -199,7 +231,7 @@ class CatalogMixin:
                 if item.get('preparation')=='launcher':
                     side.pack_start(label('Asistente del port','meta'),False,False,0);side.pack_start(button('Abrir port',lambda _,r=record:self.open_installed_port(r)),False,False,0)
                 elif item.get('preparation')=='manual':side.pack_start(button('Ver preparación',lambda _,i=item:self.port_details(i)),False,False,0)
-            else:side.pack_start(button('Instalar',lambda _,i=item:self.install_port(i,False)),False,False,0)
+            else:side.pack_start(button('Instalar',lambda _,i=item:self.install_port(i,False),tone='play'),False,False,0)
             if installed.get(item['repository']) and item['repository']!='GenryTheFox0/Project-2099':side.pack_start(button('Desinstalar',lambda _,i=item:self.uninstall_port(i),tone='danger'),False,False,0)
             if 'Agregado' in item['source']:side.pack_start(button('Quitar de la lista',lambda _,i=item:self.remove_repository(i),tone='danger'),False,False,0)
             card.catalog_open=open_;card.catalog_image=image;self.catalog_rows.add(card);wrapper=card.get_parent();wrapper.set_can_focus(False);wrapper.catalog_open=open_;wrapper.catalog_image=image
@@ -215,19 +247,45 @@ class CatalogMixin:
         def button(*args,**kwargs):
             control=make_button(*args,**kwargs);control.set_halign(Gtk.Align.START);control.set_valign(Gtk.Align.CENTER);return control
         item=ports.clean(item)
-        title=item.get('game_title') or item['name'];page=InlineDialog(title=title,transient_for=self);page.port_repository=item['repository'];page.add_button('Volver al catálogo',Gtk.ResponseType.CLOSE)
+        resolved_title,mapped_platform=resolve_game_identity(item)
+        pinfo=platform_info(mapped_platform or item.get('list',''))
+        pattern=classify_port(item)
+        title=resolved_title or item.get('game_title') or item['name'];page=InlineDialog(title=title,transient_for=self);page.port_repository=item['repository'];page.add_button('Volver al catálogo',Gtk.ResponseType.CLOSE)
+        page.actions_scroll.set_no_show_all(True);page.actions_scroll.hide()
         page.get_style_context().add_class('port-workspace')
-        box=page.get_content_area();box.set_spacing(12);hero=Gtk.Box(spacing=16);detail_art=(88,132) if self.compact_screen() else (96,144);image=Gtk.Image.new_from_icon_name('applications-games-symbolic',Gtk.IconSize.DIALOG);image.set_size_request(*detail_art);image.set_valign(Gtk.Align.START);hero.pack_start(image,False,False,0)
-        text=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+        box=page.get_content_area();box.set_spacing(8)
+        from .gui_console import ConsoleBackdrop
+        hero=Gtk.Overlay()
+        hero.set_size_request(-1,230)
+        hero_backdrop=ConsoleBackdrop()
+        hero_backdrop.set_size_request(-1,230)
+        hero_backdrop.platform=mapped_platform or item.get('list','')
+        hero.add(hero_backdrop)
+        hero_content=Gtk.Box(orientation=Gtk.Orientation.HORIZONTAL,spacing=20)
+        hero_content.set_margin_start(22);hero_content.set_margin_end(22);hero_content.set_margin_top(14);hero_content.set_margin_bottom(14)
+        hero.add_overlay(hero_content)
+        detail_art=(112,168) if not self.compact_screen() else (84,126)
+        cover_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL)
+        cover_box.set_valign(Gtk.Align.CENTER)
+        image=Gtk.Image.new_from_icon_name('applications-games-symbolic',Gtk.IconSize.DIALOG)
+        image.set_size_request(*detail_art);image.get_style_context().add_class('port-detail-cover')
+        cover_box.pack_start(image,False,False,0);hero_content.pack_start(cover_box,False,False,0)
+        text=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+        text.set_valign(Gtk.Align.CENTER)
         tool='utilit' in item.get('list','').casefold()
-        heading=item.get('game_title') or ('Herramienta para ports' if tool else item['name'])
-        if heading.casefold()!=item['name'].casefold():text.pack_start(label('Port: '+item['name'],'subtitle'),False,False,0)
-        facts=[(item['list'] or 'Plataforma sin especificar','violet'),*system_tags(item)]
-        if item['source']:facts.append((item['source'],'neutral'))
-        text.pack_start(label('Sobre este port','section-title'),False,False,0)
-        text.pack_start(metadata_line([value for value,_ in facts]),False,False,0)
+        heading='Herramienta para ports' if tool and not item.get('game_title') else title
+        hero_title=label(heading,'hero');hero_title.set_halign(Gtk.Align.START);text.pack_start(hero_title,False,False,0)
+        if heading.casefold()!=item['name'].casefold():
+            sub_port=label('Port: '+item['name'],'subtitle');sub_port.set_halign(Gtk.Align.START);text.pack_start(sub_port,False,False,0)
+        hero_plat_row=Gtk.Box(spacing=8);hero_plat_row.set_halign(Gtk.Align.START)
+        hero_plat_row.pack_start(platform_badge(pinfo['short'],pinfo['icon'],pinfo['tone'],20),False,False,0)
+        facts=[value for value,_ in system_tags(item)]
+        if item['source']:facts.append(item['source'])
+        meta_row=metadata_line(facts);meta_row.set_halign(Gtk.Align.START);hero_plat_row.pack_start(meta_row,False,False,0)
+        text.pack_start(hero_plat_row,False,False,0)
         summaries={'kit':'La primera ejecución prepara el juego a partir del disco y la BIOS propios.','openpete':'La primera ejecución compila el juego desde el disco original.','ctr':'Port para PC preparado a partir del disco original.','rom':'Port nativo que requiere una ROM original compatible.','zelda3':'Port nativo que requiere una ROM original compatible.','wwhd':'Port nativo que requiere los archivos del disco de Wii U.','project2099':'Recompilación para PC a partir de una copia propia de Xbox 360.'}
-        description=label(item.get('description') or summaries.get(item.get('setup')) or item.get('note') or 'Consultar los requisitos y la compatibilidad antes de instalar.','muted');description.set_lines(3);description.set_ellipsize(Pango.EllipsizeMode.END);text.pack_start(description,False,False,0)
+        description=label(item.get('description') or summaries.get(item.get('setup')) or item.get('note') or 'Consultar los requisitos y la compatibilidad antes de instalar.','muted');description.set_lines(2);description.set_max_width_chars(68);description.set_halign(Gtk.Align.START);description.set_ellipsize(Pango.EllipsizeMode.END);text.pack_start(description,False,False,0)
+        hero_cta_box=Gtk.Box(spacing=10);hero_cta_box.set_halign(Gtk.Align.START);hero_cta_box.set_margin_top(4)
         fit=ports.compatibility(item)
         compatibility=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
         estimate=self.card(compatibility,'Estimación del catálogo');estimate.pack_start(compatibility_badge(fit,True),False,False,0)
@@ -236,14 +294,18 @@ class CatalogMixin:
         version=self.card(compatibility,'Versión y paquete')
         if item.get('release_version'):version.pack_start(label('Versión disponible: '+item['release_version'],'muted'),False,False,0)
         if item.get('release_at'):version.pack_start(label('Publicada el '+datetime.datetime.fromtimestamp(item['release_at']).strftime('%d/%m/%Y'),'muted'),False,False,0)
-        hero.pack_start(text,True,True,0);box.pack_start(hero,False,False,0)
+        text.pack_start(hero_cta_box,False,False,0);hero_content.pack_start(text,True,True,0);box.pack_start(hero,False,False,0)
         summary=Gtk.Box(spacing=12);summary.set_homogeneous(True);box.pack_start(summary,False,False,0)
         original_card=self.card(summary,'Archivos necesarios');original_card.set_hexpand(True);summary.set_child_packing(original_card,True,True,0,Gtk.PackType.START)
         deck_card=self.card(summary,'Compatibilidad en Deck');deck_card.set_hexpand(True);summary.set_child_packing(deck_card,True,True,0,Gtk.PackType.START)
-        deck_card.pack_start(label(fit_badge(fit,True),'meta'),False,False,0)
-        deck_card.pack_start(label('Estimación del catálogo; no es una prueba de juego.','meta'),False,False,0)
+        for card_widget in (original_card,deck_card):
+            for child in card_widget.get_children():
+                child.set_halign(Gtk.Align.CENTER)
+                if isinstance(child,Gtk.Label):child.set_justify(Gtk.Justification.CENTER)
+        fit_lbl=label(fit_badge(fit,True),'meta');fit_lbl.set_halign(Gtk.Align.CENTER);fit_lbl.set_justify(Gtk.Justification.CENTER);deck_card.pack_start(fit_lbl,False,False,0)
+        disclaimer=label('Estimación del catálogo; no es una prueba de juego.','meta');disclaimer.set_no_show_all(True);disclaimer.hide();deck_card.pack_start(disclaimer,False,False,0)
         evidence=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);compatibility.pack_start(evidence,False,False,0);compatibility.reorder_child(evidence,0);variant_index=self.port_variant_index()
-        variant_status=Gtk.Box();deck_card.pack_start(variant_status,False,False,0);deck_card.reorder_child(variant_status,1)
+        variant_status=Gtk.Box();variant_status.set_halign(Gtk.Align.CENTER);deck_card.pack_start(variant_status,False,False,0);deck_card.reorder_child(variant_status,1)
         def refresh_evidence(tag=None):
             if page._closed:return False
             self.reset_page(evidence);candidate={**item,**({'release_version':tag} if tag else {})};self.build_port_evidence(evidence,candidate,page,variant_index)
@@ -255,30 +317,43 @@ class CatalogMixin:
         if item.get('description'):about.pack_start(label(item['description'],'muted'),False,False,0)
         if item.get('note'):about.pack_start(label(item['note'],'muted'),False,False,0)
         from .port_requirements import original_requirement
-        requirement=original_requirement(item);original_card.pack_start(label(requirement['label'],'title'),False,False,0)
+        requirement=original_requirement(item)
+        shown_req_label=requirement['label'] if requirement['known'] else pattern['short']
+        shown_req_details=requirement['details'] if requirement['known'] else pattern['summary']
+        req_title=label(shown_req_label,'title');req_title.set_halign(Gtk.Align.CENTER);req_title.set_justify(Gtk.Justification.CENTER);original_card.pack_start(req_title,False,False,0)
         if item.get('bios'):
             from .i18n import t
-            original_card.pack_start(label('BIOS: '+t(item['bios']['name']),'meta'),False,False,0)
-        summary_check=label('Comprobando requisitos…','meta');original_card.pack_start(summary_check,False,False,0)
-        original_card.pack_end(button('Ver requisitos',lambda _:page.section_tabs.select('requirements')),False,False,0)
-        deck_card.pack_end(button('Ver compatibilidad',lambda _:page.section_tabs.select('compatibility')),False,False,0)
+            bios_lbl=label('BIOS: '+t(item['bios']['name']),'meta');bios_lbl.set_halign(Gtk.Align.CENTER);original_card.pack_start(bios_lbl,False,False,0)
+        summary_check=label('Comprobando requisitos…','meta');summary_check.set_halign(Gtk.Align.CENTER);summary_check.set_justify(Gtk.Justification.CENTER);original_card.pack_start(summary_check,False,False,0)
+        req_btn=button('Ver requisitos',lambda _:page.section_tabs.select('requirements'));req_btn.set_halign(Gtk.Align.CENTER);original_card.pack_end(req_btn,False,False,0)
+        comp_btn=button('Ver compatibilidad',lambda _:page.section_tabs.select('compatibility'));comp_btn.set_halign(Gtk.Align.CENTER);deck_card.pack_end(comp_btn,False,False,0)
         files=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
-        originals=self.card(files,'ROM y versión necesarias');originals.pack_start(label(requirement['label'],'title'),False,False,0);originals.pack_start(label(requirement['details'],'muted'),False,False,0)
+        originals=self.card(files,'Archivos del juego original');originals.pack_start(label(shown_req_label,'title'),False,False,0);originals.pack_start(label(shown_req_details,'muted'),False,False,0)
+        self.build_pattern_actions(originals,item,pattern,page)
         if requirement['source']:
-            link=Gtk.LinkButton.new_with_label(requirement['source'],'Requisitos del proyecto');link.set_halign(Gtk.Align.START);originals.pack_start(link,False,False,0)
-        from .gui_switch import SWITCH_PORTS
-        if item['repository'].lower() in SWITCH_PORTS:
-            from .ui_components import ActionButton
-            from .gui_switch import minimum_for
-            def convert(_):page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.switch_convert_page(minimum=minimum_for(item['repository'])),False)[1])
-            originals.pack_start(ActionButton('Convertir XCI/NSP a carpeta','folder',convert,'steam-outline'),False,False,0)
+            link=Gtk.LinkButton.new_with_label(requirement['source'],'Abrir repositorio en GitHub');link.set_halign(Gtk.Align.START);originals.pack_start(link,False,False,0)
+        readme_panel=self.card(files,'Descripción e instrucciones de GitHub')
+        readme_text=label(item.get('description') or item.get('note') or 'Cargando descripción desde GitHub…','muted');readme_text.set_selectable(True);readme_text.set_max_width_chars(92);readme_panel.pack_start(readme_text,False,False,0)
+        if not os.environ.get('DECK_LIBRARY_UI_TESTS') and ports.valid_repository(item['repository']) and not item.get('web'):
+            def load_readme():
+                body=fetch_readme(self.store,item['repository'])
+                def apply_readme():
+                    if not page._closed:
+                        readme_text.set_text(body or item.get('description') or item.get('note') or 'El proyecto no incluye un archivo README.md público.')
+                        self.refresh_layout()
+                    return False
+                GLib.idle_add(apply_readme)
+            threading.Thread(target=load_readme,daemon=True).start()
         status=label('Cargando imagen…','meta');about.pack_start(status,False,False,0)
         def artwork(force=False):
             status.set_text('Cargando imagen…');retry.hide()
             def done(path,error):
                 if page._closed:return False
                 try:
-                    if path:image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path,detail_art[0],detail_art[1],True));status.set_text('');retry.hide()
+                    if path:
+                        image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path,detail_art[0],detail_art[1],True))
+                        hero_backdrop.set_cover(path)
+                        status.set_text('');retry.hide()
                     else:status.set_text(error or 'La fuente no tiene una imagen disponible.');retry.show()
                 except GLib.Error:status.set_text('No se pudo mostrar la imagen.');retry.show()
                 return False
@@ -293,10 +368,7 @@ class CatalogMixin:
         _,preparation_text=preparation(item);preparation_panel=self.card(files,'Preparación');preparation_panel.pack_start(label(preparation_text,'muted'),False,False,0)
         if item.get('source_note'):preparation_panel.pack_start(label(item['source_note'],'muted'),False,False,0)
         options=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
-        primary_action=[None]
-        def proton_install(_):
-            page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.install_port(item,bool(ports.records(self.store).get(item['repository'])),runtime='proton'),False)[1])
-        proton_button=button('Instalar con Proton',proton_install,True);proton_button.set_no_show_all(True);proton_button.hide();page.get_action_area().pack_start(proton_button,False,False,0)
+        primary_action=[]
         games=[(e.name,e.source) for e in self.entries if e.source]
         def requirements():
             try:lines=ports.requirements(item,games)
@@ -315,19 +387,19 @@ class CatalogMixin:
                 elif item.get('package_role') in ('source-only','build-tool'):
                     info=item.get('source_note','Solo código fuente. Requiere compilación.')
                     def unavailable():
-                        if not page._closed and primary_action[0]:primary_action[0].set_label('Requiere compilación' if item.get('package_role')=='build-tool' else 'Sin paquete publicado');primary_action[0].set_sensitive(False)
+                        if not page._closed:
+                            for btn in primary_action:btn.set_label('Requiere compilación' if item.get('package_role')=='build-tool' else 'Sin paquete publicado');btn.set_sensitive(False)
                         return False
                     GLib.idle_add(unavailable)
                 elif item.get('web'):info='Instalador integrado · '+item['web']['kind']
                 else:
-                    release=ports.release_for(item['repository']);plan=ports.package_plan(item,release.get('assets',[]));proton_plan=ports.package_plan(item,release.get('assets',[]),runtime='proton');info=port_packages.summary(plan)
+                    release=ports.release_for(item['repository']);plan=ports.package_plan(item,release.get('assets',[]));info=port_packages.summary(plan)
                     if plan:info+='\n'+plan['asset']['name']+' · '+release.get('tag_name','')
                     def offer():
                         if page._closed:return False
                         refresh_evidence(release.get('tag_name',''))
-                        if proton_plan and (not plan or plan['runtime']!='proton'):proton_button.set_no_show_all(False);proton_button.show_all();proton_button.set_no_show_all(True)
-                        if primary_action[0] and plan and plan['runtime']=='proton':primary_action[0].set_label('Instalar con Proton')
-                        if primary_action[0] and not plan:primary_action[0].set_label('Sin paquete compatible');primary_action[0].set_sensitive(False)
+                        if not plan:
+                            for btn in primary_action:btn.set_label('Sin paquete compatible');btn.set_sensitive(False)
                         return False
                     GLib.idle_add(offer)
             except Exception:info='No se pudo comprobar el paquete. Se volverá a consultar al instalar.'
@@ -341,22 +413,29 @@ class CatalogMixin:
             about.pack_start(button('Abrir proyecto en GitHub',lambda _:subprocess.Popen(['xdg-open','https://github.com/'+item['repository']],start_new_session=True)),False,False,0)
         installed=ports.records(self.store);record=installed.get(item['repository']) or self.catalog_installation(item,installed)
         updates={u['repository'] for u in (getattr(self,'update_state',None) or {}).get('catalog') or []}
+        def add_centered_cta(caption,callback):
+            cta=make_button(caption,callback,True);cta.get_style_context().add_class('console-play');cta.get_style_context().add_class('port-install-cta');cta.get_accessible().set_name(caption);hero_cta_box.pack_start(cta,False,False,0)
+            hdr=button(caption,callback,True);hdr.set_can_focus(False);hdr.get_style_context().add_class('header-mirror-cta');hdr.get_style_context().add_class('play');page.get_action_area().pack_start(hdr,False,False,0)
+            primary_action.extend([cta,hdr]);return cta
         if record and record.get('external'):
             def library(_):page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.select_game(record['entry']),False)[1])
-            page.get_action_area().pack_start(button('Ver en biblioteca',library,True),False,False,0)
+            add_centered_cta('Ver en biblioteca',library)
         elif record and item['repository'] in updates:
             def update(_):page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.install_port(item,True),False)[1])
-            page.get_action_area().pack_start(button('Actualizar',update,True),False,False,0)
+            add_centered_cta('Actualizar',update)
         elif record and record.get('setup') and not record.get('configured'):
-            page.get_action_area().pack_start(button('Configurar',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.configure_port(item),False)[1])),True),False,False,0)
+            add_centered_cta('Configurar',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.configure_port(item),False)[1])))
         elif record:
-            box.pack_start(label('Instalado · '+record.get('tag',''),'good'),False,False,0)
+            inst_lbl=label('Instalado · '+record.get('tag',''),'good');inst_lbl.set_halign(Gtk.Align.START);hero_cta_box.pack_start(inst_lbl,False,False,0)
             self.iso_cleanup_button(box,item,record)
             if installed.get(item['repository']) and item['repository']!='GenryTheFox0/Project-2099':options.pack_start(button('Desinstalar',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.uninstall_port(item),False)[1])),tone='danger'),False,False,0)
-            if item.get('preparation')=='launcher':page.get_action_area().pack_start(button('Abrir port',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.open_installed_port(record),False)[1]))),False,False,0)
+            if item.get('preparation')=='launcher':add_centered_cta('Abrir port',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.open_installed_port(record),False)[1])))
         else:
-            def install(_):page.response(Gtk.ResponseType.CLOSE);GLib.idle_add(lambda:(self.install_port(item,False),False)[1])
-            primary_action[0]=button('Instalar',install,True);page.get_action_area().pack_start(primary_action[0],False,False,0)
+            # Keep the detail page underneath the location choice and download.
+            # Closing it first exposes the previous page and lets its deferred
+            # focus restoration compete with the installation workflow.
+            def install(_):self.install_port(item,False)
+            add_centered_cta('Instalar',install)
         if item.get('package_role') not in ('source-only','build-tool') and item['repository'].casefold()!='genrythefox0/project-2099':
             def locate(_):
                 page.destroy();GLib.idle_add(lambda:(self.port_location_page(item),False)[1])
@@ -370,9 +449,9 @@ class CatalogMixin:
         if options.get_children():
             panel=self.card(management,'Instalación y archivos');panel.pack_start(options,False,False,0)
         project=self.card(management,'Acerca del port');project.pack_start(about,False,False,0)
-        page.preferred_focus=primary_action[0] or next((c for c in reversed(page.actions.get_children()) if c.get_style_context().has_class('primary')),None)
+        page.preferred_focus=primary_action[0] if primary_action else next((c for c in reversed(page.actions.get_children()) if c.get_style_context().has_class('primary')),None)
         page.set_sections([('summary','Resumen',box),('requirements','Requisitos',files),('compatibility','Compatibilidad',compatibility),('manage','Gestión',management)])
-        self.transfer_row(box,item['repository']);page.compact_header();page.show_all();artwork();page.run();page.destroy()
+        self.transfer_row(box,item['repository']);page.compact_header();page.show_all();page.actions_scroll.hide();artwork();page.run();page.destroy()
 
     def prepare_shaders(self):
         from . import ports
@@ -397,7 +476,8 @@ class CatalogMixin:
     def show_requirements(self,widget,lines,generation):
         if generation!=self.catalog_generation:return False
         marks={True:'✓ ',False:'✗ ',None:'? '}
-        widget.set_text('\n'.join(marks[ok]+text for ok,text in lines) if lines else '');return False
+        value='\n'.join(marks[ok]+text for ok,text in lines) if lines else ''
+        widget.set_text(value);widget.set_no_show_all(not bool(value));widget.set_visible(bool(value));return False
 
     def load_icons(self,images,generation):
         """Icons and box art arrive in the background; rows keep their layout meanwhile."""
@@ -416,9 +496,85 @@ class CatalogMixin:
         if generation!=self.catalog_generation:return False
         try:
             from .ui_components import PortImage
-            width,height=image.get_size_request();image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path,900 if isinstance(image,PortImage) else width if width>0 else ART_WIDTH,600 if isinstance(image,PortImage) else height if height>0 else ART_HEIGHT,True))
+            width,height=image.get_size_request();image.set_from_pixbuf(GdkPixbuf.Pixbuf.new_from_file_at_scale(path,480 if isinstance(image,PortImage) else width if width>0 else ART_WIDTH,720 if isinstance(image,PortImage) else height if height>0 else ART_HEIGHT,True))
         except GLib.Error:pass
         return False
+
+    def build_pattern_actions(self,panel,item,pattern,page):
+        from .gui import label
+        from .gui_switch import SWITCH_PORTS,minimum_for
+        kind=pattern['kind'];row=Gtk.Box(spacing=8);has_buttons=False
+        installed=ports.records(self.store).get(item['repository'])
+        if kind=='switch' or item['repository'].lower() in SWITCH_PORTS:
+            def convert(_):
+                page.response(Gtk.ResponseType.CLOSE)
+                GLib.idle_add(lambda:(self.switch_convert_page(minimum=minimum_for(item['repository'])),False)[1])
+            row.pack_start(ActionButton('Convertir XCI/NSP (+ prod.keys)','folder',convert,'primary' if installed else 'steam-outline'),False,False,0);has_buttons=True
+        elif kind in ('xbox360','xbox'):
+            def extract(_):
+                page.response(Gtk.ResponseType.CLOSE)
+                GLib.idle_add(lambda:(self.iso_extract_page(),False)[1])
+            row.pack_start(ActionButton('Extraer ISO de Xbox','disc',extract,'steam-outline'),False,False,0);has_buttons=True
+        if installed:
+            if installed.get('setup'):
+                row.pack_start(ActionButton('Configurar archivos del port','sliders',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.configure_port(item),False)[1])),'primary'),False,False,0);has_buttons=True
+            elif kind!='generic':
+                row.pack_start(ActionButton(pattern['button'],'folder',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.prepare_port_media(item,pattern),False)[1])),'primary' if kind!='switch' else 'console-secondary'),False,False,0);has_buttons=True
+        if has_buttons:panel.pack_start(row,False,False,2)
+        roms_sub=pattern.get('roms_folder') or ''
+        if roms_sub:
+            candidate=pathlib.Path.home()/'Emulation/roms'/roms_sub
+            if candidate.is_dir():
+                panel.pack_start(label(f'Carpeta de ROMs detectada: {candidate}','meta'),False,False,0)
+
+    def prepare_port_media(self,item,pattern=None):
+        pattern=pattern or classify_port(item)
+        record=ports.records(self.store).get(item['repository'])
+        if record and record.get('setup'):
+            self.configure_port(item);return
+        kind=pattern['kind']
+        if kind=='switch':
+            from .gui_switch import minimum_for
+            self.switch_convert_page(minimum=minimum_for(item['repository']));return
+        if not record:
+            if kind in ('xbox360','xbox'):self.iso_extract_page()
+            return
+        target_dir=ports.folder_for(record)
+        want_folder=kind in ('folder','pc') or not pattern.get('extensions')
+        chooser=InlineFileChooser(
+            title=pattern['button'],
+            transient_for=self,
+            action=Gtk.FileChooserAction.SELECT_FOLDER if want_folder else Gtk.FileChooserAction.OPEN,
+            patterns=() if want_folder else pattern['extensions'],
+            filter_name=pattern['short'],
+        )
+        chooser.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Copiar al port',Gtk.ResponseType.OK)
+        roms_sub=pattern.get('roms_folder') or ''
+        if roms_sub and (pathlib.Path.home()/'Emulation/roms'/roms_sub).is_dir():
+            chooser.load(pathlib.Path.home()/'Emulation/roms'/roms_sub)
+        elif (pathlib.Path.home()/'Downloads').is_dir():
+            chooser.load(pathlib.Path.home()/'Downloads')
+        if chooser.run()==Gtk.ResponseType.OK:
+            chosen=pathlib.Path(chooser.get_filename())
+            chooser.destroy()
+            try:
+                target_dir.mkdir(parents=True,exist_ok=True)
+                if chosen.is_file():
+                    shutil.copy2(chosen,target_dir/chosen.name)
+                    if chosen.suffix.lower()=='.cue':
+                        for sib in chosen.parent.glob(chosen.stem+'.*'):
+                            if sib.is_file() and sib!=chosen:shutil.copy2(sib,target_dir/sib.name)
+                    self.toast(f'{chosen.name} copiado a {target_dir.name}')
+                elif chosen.is_dir() and chosen.resolve()!=target_dir.resolve():
+                    for child in chosen.iterdir():
+                        dest=target_dir/child.name
+                        if child.is_dir():shutil.copytree(child,dest,dirs_exist_ok=True)
+                        elif child.is_file():shutil.copy2(child,dest)
+                    self.toast(f'Archivos copiados a {target_dir.name}')
+            except OSError as error:
+                self.message('No se pudieron copiar los archivos',str(error))
+        else:
+            chooser.destroy()
 
     def add_repository_dialog(self):
         from .gui import label
@@ -562,9 +718,32 @@ class CatalogMixin:
         else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en {ports.display_root()}/{record["folder"]}, pero hay varios ejecutables posibles. Elegir el correcto con «Agregar juegos → Elegir un juego o una app».')
         if getattr(self,'update_state',None):self.update_state=updates.reconcile_ports(self.update_state,self.store);self.refresh_update_badges()
         self.discover()
-        if not record.get('setup'):self.port_setup_finished(item)
+        if not record.get('setup'):
+            self.port_setup_finished(item)
+            if record.get('executable') and not os.environ.get('DECK_LIBRARY_UI_TESTS') and 'utilit' not in item.get('list','').casefold():
+                GLib.idle_add(lambda:(self.offer_installed_port_media(item,record),False)[1])
         if self.pages.get_visible_child_name()=='catalog':self.fill_catalog()
         return False
+
+    def offer_installed_port_media(self,item,record):
+        from .gui import label
+        pattern=classify_port(item)
+        if pattern['kind']=='generic':return
+        game_title,_=resolve_game_identity(item)
+        page=InlineDialog(title=(game_title or item['name'])+' instalado',transient_for=self)
+        page.add_button('Ir a la biblioteca',Gtk.ResponseType.CLOSE)
+        body=page.get_content_area();body.set_spacing(10)
+        card=self.card(body,'¿Preparar los archivos del juego ahora?')
+        card.pack_start(label(pattern['short'],'title'),False,False,0)
+        card.pack_start(label(pattern['summary'],'muted'),False,False,0)
+        actions=Gtk.Box(spacing=10);actions.set_margin_top(6)
+        def choose_media(_):
+            page.destroy();self.prepare_port_media(item,pattern)
+        actions.pack_start(ActionButton(pattern['button'],'folder',choose_media,'primary'),False,False,0)
+        actions.pack_start(ActionButton('Abrir el port directamente','play',lambda _:(page.destroy(),self.open_installed_port(record)),'console-secondary'),False,False,0)
+        actions.pack_start(ActionButton('Más tarde','check',lambda _:page.destroy(),'quiet'),False,False,0)
+        card.pack_start(actions,False,False,0)
+        page.connect('response',lambda *_:page.destroy());page._mount()
 
     def port_inputs(self,item):
         from .gui import label,button
@@ -580,10 +759,13 @@ class CatalogMixin:
             page=self.switch_convert_page(on_done=selected,minimum=minimum_for(item['repository']),on_prepared=prepared if item['repository'].casefold()=='revivedx/savagewindrecomp' else None)
             page.run();page.destroy();return chosen[0]
         page=InlineDialog(title='Preparar '+item['name'],transient_for=self);page.add_button('Más tarde',Gtk.ResponseType.CANCEL);ready=page.add_button('Preparar',Gtk.ResponseType.OK)
-        body=page.get_content_area();summary=label('','muted');body.pack_start(summary,False,False,0)
-        error=label('','status');body.pack_start(error,False,False,0)
+        body=page.get_content_area()
+        panel=self.card(body,'Archivos necesarios')
+        summary=label('','muted');panel.pack_start(summary,False,False,0)
+        error=label('','status');panel.pack_start(error,False,False,0)
         record=ports.records(self.store).get(item['repository'],{})
-        if item.get('source_note'):body.pack_start(label(item['source_note'],'muted'),False,False,0)
+        if item.get('source_note'):panel.pack_start(label(item['source_note'],'muted'),False,False,0)
+        pickers=Gtk.Box(spacing=10);panel.pack_start(pickers,False,False,4)
         def refresh():
             record=ports.records(self.store).get(item['repository'],{})
             lines=ports.requirements(record,[(e.name,e.source) for e in self.entries if e.source])
@@ -608,11 +790,11 @@ class CatalogMixin:
                         except (ValueError,OSError) as exc:error.set_text(str(exc))
                     from .gui_switch import minimum_for
                     self.switch_convert_page(on_done=converted,minimum=minimum_for(item['repository']))
-                body.pack_start(button('Convertir un XCI o NSP',convert_package,True),False,False,0)
-            if not record['original_data'].get('iso_only'):body.pack_start(button('Elegir carpeta extraída',lambda w:original_data(w,True)),False,False,0)
-            if record['original_data'].get('iso'):body.pack_start(button('Elegir ISO de Xbox 360' if record['original_data'].get('kind') in ('xbox360-dante','xbox360') else 'Elegir ISO de Xbox',original_data),False,False,0)
+                pickers.pack_start(button('Convertir un XCI o NSP',convert_package,True),False,False,0)
+            if record['original_data'].get('iso'):pickers.pack_start(button('Elegir ISO de Xbox 360' if record['original_data'].get('kind') in ('xbox360-dante','xbox360') else 'Elegir ISO de Xbox',original_data,True),False,False,0)
+            if not record['original_data'].get('iso_only'):pickers.pack_start(button('Elegir carpeta extraída',lambda w:original_data(w,True)),False,False,0)
         for key,caption in (('rom','Elegir ROM'),('disc','Elegir disco'),('bios','Elegir BIOS'),('wiiu','Elegir imagen de Wii U')):
-            if record.get(key):body.pack_start(button(caption,lambda w,k=key:select(w,k)),False,False,0)
+            if record.get(key):pickers.pack_start(button(caption,lambda w,k=key:select(w,k),key in ('rom','disc','wiiu')),False,False,0)
         page.get_action_area().pack_start(button('Volver a detectar',lambda _:refresh()),False,False,0)
         refresh();page.show_all();accepted=page.run()==Gtk.ResponseType.OK;page.destroy();return accepted
 

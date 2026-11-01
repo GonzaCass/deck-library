@@ -30,14 +30,17 @@
 - **Help:** follow the first-use guide and prepare a bug report.
 - **Steam:** add individual games or Deck Library itself, with artwork and controller navigation in Gaming Mode.
 
-Gameplay reports have their own **Validated games** tab. The guide and bug reports are under **Help**. Community profiles are inside each game; registration and sign-in are under **Account**. Game-specific repairs appear in the game details.
+Gameplay reports are under **More (•••) → Verified**. The guide and bug reports are under **More → Help**. Community profiles are inside each game; registration and sign-in are under **Account**. Game-specific repairs appear in the game details.
 
-![Library with fictional demo games](assets/screenshot.png)
+![Library with fictional demo games](assets/screenshots/en/library.png)
 
 <details>
 <summary>See the game settings view</summary>
 
-![Game settings with fictional demo artwork](assets/screenshot-game.png)
+![Game settings with fictional demo artwork](assets/screenshots/en/game.png)
+
+
+![Update notes with fictional demo data](assets/screenshots/en/updates.png)
 
 </details>
 
@@ -51,17 +54,17 @@ If the file opens as text, run `python3 install.py --desktop` in that folder. Re
 
 ## 🕹️ Use it from Steam
 
-1. In Desktop Mode, open Deck Library and click **Add to Steam** beside the top tabs.
+1. In Desktop Mode, open **More (•••) → Add to Steam**. This action appears only while Deck Library has no shortcut or pending addition.
 2. If Steam is open, changes stay in the pending banner. Exit Steam once to save them.
 3. Return to **Gaming Mode**, find **Deck Library** in Steam and press **Play**.
 
 To add a game instead, open its cover and choose **Add to Steam**. Each game can then launch directly from Steam.
 
-**Controls:** left stick/D-pad to move · right stick to scroll · **A** select · **B** back · **LB/RB** tabs · **X** search keyboard. Touch and trackpad remain available.
+**Controls:** left stick/D-pad to move · right stick to scroll · bumpers to change tabs. The bottom bar shows confirm, back and keyboard buttons for the selected controller layout. Touch and trackpad also work.
 
 ## 🔄 Already installed?
 
-Open Deck Library in **Desktop Mode**. Update checks run automatically; **Updates** shows their status. Automatic app installation is enabled by default in Desktop Mode; reopen the app after installation. Re-running the latest installer is also supported and keeps the library, profiles and settings.
+Open Deck Library in **Desktop Mode**. Update checks run automatically; **Updates** shows their status and expandable release notes. Preferences are under **Settings → Automatic updates**. Automatic app installation is enabled by default in Desktop Mode; reopen the app after installation. Re-running the latest installer is also supported and keeps the library, profiles and settings.
 
 The app and desktop icon update with the installation. Previous official Steam artwork is refreshed automatically; custom images and pending manual choices stay intact. Steam changes are saved when Steam closes, with backups.
 
@@ -70,7 +73,7 @@ The app and desktop icon update with the installation. Previous official Steam a
 
 Ports may require a specific ROM, disc revision, BIOS or extracted game files. The app detects supported originals or asks for their location. It does not include game files.
 
-The compatibility percentage is a metadata-based index, not measured gameplay performance. **Port catalog → Compatibility guide** explains the colors and calculation.
+The compatibility percentage is a metadata-based index, not measured gameplay performance. Each port’s **Compatibility** section explains the available evidence; the catalog percentage remains an estimate.
 
 An account is needed to publish or rate community settings. The local library and local profiles can be used without signing in. Some projects still require manual preparation; [requirements and supported routes](docs/PORTS.md) describe those cases.
 
@@ -80,6 +83,6 @@ An account is needed to publish or rate community settings. The local library an
 
 [Documentation](docs/README.md) · [Promo images](https://github.com/GonzaCass/deck-library/tree/main/promo) · [Ports and requirements](docs/PORTS.md) · [Profiles](docs/PRESETS.md) · [Release notes](docs/CHANGELOG.md) · [Validation](docs/VALIDATION.md)
 
-Found a problem? **Help → Report a problem** prepares a redacted diagnostic preview and a ZIP to attach to a [GitHub issue](https://github.com/GonzaCass/deck-library/issues). Sending diagnostics to the project is optional. Review the contents before sharing.
+Found a problem? **More → Help → Report a problem** prepares a redacted diagnostic preview and a ZIP to attach to a [GitHub issue](https://github.com/GonzaCass/deck-library/issues). Sending diagnostics to the project is optional. Review the contents before sharing.
 
 [MIT license](LICENSE). Independent project; not affiliated with Valve or the emulator and port projects it integrates.

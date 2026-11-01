@@ -18,6 +18,7 @@ class DeckUITests(unittest.TestCase):
         from deck_library import port_locations
         self.patches.append(patch.object(port_locations,'candidates',return_value=[]))
         self.patches.append(patch.object(gui.Window,'check_missing_roms',return_value=False))
+        self.patches.append(patch('deck_library.community.Client.search',return_value=[]))
         for p in self.patches:p.start()
         from gi.repository import Gtk,Gdk
         provider=Gtk.CssProvider();provider.load_from_data(gui.CSS);self.provider=provider;Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
@@ -220,6 +221,50 @@ class DeckUITests(unittest.TestCase):
             next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Descargar port').clicked();self.settle()
         install.assert_called_once_with(item,False,runtime='auto',location_chosen=True);self.assertFalse(self.w.inline_workflows)
 
+    def test_catalog_install_handoff_keeps_the_installation_page_and_focus(self):
+        from deck_library import ports
+        from gi.repository import Gtk,GLib
+        item=ports.clean({'repository':'test/Mario','name':'Mario test'})
+        self.w.catalog_apps=[item];self.w.catalog_page();self.settle()
+        original=self.inline.run;errors=[]
+        def drive(detail):
+            def finish():
+                try:
+                    self.assertIs(self.w.workflow_stack.get_visible_child(),detail)
+                    install.assert_called_once()
+                    self.assertEqual(install.call_args.args[0],item)
+                    self.assertEqual(self.w.pages.get_visible_child_name(),'catalog')
+                except Exception as error:errors.append(error)
+                finally:detail.response(Gtk.ResponseType.CLOSE)
+                return False
+            def choose():
+                try:
+                    page=self.w.inline_workflows[-1]
+                    self.assertIsNot(page,detail)
+                    self.assertIs(self.w.workflow_stack.get_visible_child(),page)
+                    download=next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Descargar port')
+                    self.assertTrue(download.get_mapped());self.assertIs(self.w.get_focus(),download)
+                    self.w.controller_action('back');self.settle()
+                    self.assertIs(self.w.workflow_stack.get_visible_child(),detail)
+                    next(c for c in self.w.control_targets(detail) if c.get_accessible().get_name()=='Instalar').clicked();self.settle()
+                    page=self.w.inline_workflows[-1]
+                    download=next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Descargar port')
+                    self.assertIs(self.w.get_focus(),download)
+                    download.clicked()
+                except Exception as error:errors.append(error)
+                GLib.timeout_add(200,finish);return False
+            def click():
+                try:
+                    next(c for c in self.w.control_targets(detail) if c.get_accessible().get_name()=='Instalar').clicked()
+                except Exception as error:errors.append(error)
+                GLib.timeout_add(180,choose);return False
+            GLib.timeout_add(180,click);return original(detail)
+        with patch.object(self.inline,'run',drive),patch.object(ports,'icon_path',return_value=''),patch.object(ports,'release_for',return_value={'assets':[{'name':'Mario-linux-x64.zip'}]}),patch.object(ports,'is_reviewed',return_value=True),patch.object(ports,'install',return_value={}) as install,patch.object(self.w,'port_installed',return_value=False):
+            self.w.port_details(item);self.settle()
+        if errors:raise errors[0]
+        self.assertFalse(self.w.inline_workflows)
+        self.assertEqual(self.w.pages.get_visible_child_name(),'catalog')
+
     def test_switch_wizard_reuses_a_compiled_game_in_a_different_folder_without_keys(self):
         from deck_library import ports,switch_port,switch_extract
         from deck_library.models import atomic_json
@@ -295,10 +340,10 @@ class DeckUITests(unittest.TestCase):
 
     def test_home_inbox_appears_after_verified_admin_login_and_disappears_after_logout(self):
         from unittest.mock import Mock
-        self.w.preferences['owner_mode']=False;self.w.home_page();self.settle()
+        self.w.preferences['owner_mode']=False;self.w.requests_page();self.settle()
         def received():return any(c.get_accessible().get_name()=='Bandeja de entrada' for c in self.w.control_targets(self.w.pages.get_visible_child()))
         self.assertFalse(received())
-        client=Mock();client.session.return_value={'token':'test-owner','login':'Owner'};client.me.return_value={'admin':True}
+        client=Mock();client.session.return_value={'token':'test-owner','login':'Owner'};client.me.return_value={'admin':True};client.request.return_value={'requests':[]}
         with patch.object(self.w,'signed_in',return_value=True),patch.object(self.w,'community_client',return_value=client):
             self.w.check_owner_mode();self.settle();self.assertTrue(self.w.preferences['owner_mode']);self.assertTrue(received())
         with patch.object(self.w,'signed_in',return_value=False):self.w.check_owner_mode();self.settle()
@@ -315,12 +360,11 @@ class DeckUITests(unittest.TestCase):
         for width,height in ((1280,800),(840,640)):
             self.w.resize(width,height);self.w.home_page();self.settle()
             shell=self.w.pages.get_visible_child();captions=[w.get_label() for w in walk(shell) if isinstance(w,Gtk.Button)]
-            self.assertEqual(captions.count('Solicitudes y reportes'),1)
-            for removed in ('Verificados','Ver biblioteca','Ayuda','Instalaciones y carpetas','Duplicados y conflictos','Ver actualizaciones'):self.assertNotIn(removed,captions)
-            support=self.w.home_support_button
-            scroll=self.w.home_box.get_ancestor(Gtk.ScrolledWindow);adjustment=scroll.get_vadjustment();self.assertGreater(adjustment.get_upper(),adjustment.get_page_size())
-            adjustment.set_value(adjustment.get_upper()-adjustment.get_page_size());self.settle()
-            self.assertTrue(support.get_mapped());self.assertGreaterEqual(support.translate_coordinates(self.w,0,0)[1],0)
+            for removed in ('Solicitudes y reportes','Bandeja de entrada','Verificados','Ver biblioteca','Ayuda','Instalaciones y carpetas','Duplicados y conflictos','Ver actualizaciones'):self.assertNotIn(removed,captions)
+            self.assertTrue(self.w.nav_buttons['Solicitudes'].get_mapped())
+            scroll=self.w.home_box.get_ancestor(Gtk.ScrolledWindow);adjustment=scroll.get_vadjustment()
+            if height<700:self.assertGreater(adjustment.get_upper(),adjustment.get_page_size())
+            adjustment.set_value(max(0,adjustment.get_upper()-adjustment.get_page_size()));self.settle()
             free=next(w for w in walk(shell) if isinstance(w,Gtk.Label) and 'GiB libres' in w.get_text());self.assertLess(free.translate_coordinates(self.w,0,0)[1],height);self.assertLessEqual(self.w.get_size().width,width)
 
     def test_inline_commands_stay_above_long_forms_and_support_combines_inbox_and_creation(self):
@@ -659,21 +703,14 @@ class DeckUITests(unittest.TestCase):
 
     def test_primary_tabs_cycle_and_secondary_pages_are_reachable_from_menu(self):
         self.w.home_page();self.settle()
-        for page in ('library','catalog','settings','home'):
+        for page in ('library','catalog','updates','requests','tools','settings','home'):
             self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.settle()
             self.assertEqual(self.w.pages.get_visible_child_name(),page)
-        self.w.shell_menu.clicked();self.settle()
-        popover=self.w.shell_menu.get_popover()
-        self.assertTrue(popover.get_mapped())
-        with patch.object(self.w,'favorite_home_game') as favorite:
-            self.w.last_controller_action=('',0);self.w.controller_action('options');favorite.assert_not_called()
-        self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.settle()
-        self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertFalse(popover.get_visible())
-        self.w.shell_menu.clicked();self.settle()
-        for name in ('Verificados','Actualizaciones','Herramientas'):
+        for name in ('Actualizaciones','Solicitudes','Herramientas'):
             self.assertTrue(self.w.nav_buttons[name].get_mapped())
+        self.assertTrue(self.w.account_button.get_mapped())
         self.w.nav_buttons['Herramientas'].clicked();self.settle()
-        self.assertEqual(self.w.pages.get_visible_child_name(),'tools');self.assertFalse(popover.get_visible())
+        self.assertEqual(self.w.pages.get_visible_child_name(),'tools')
 
     def test_preview_session_opens_home_and_does_not_auto_install_updates(self):
         from deck_library import gui_shell
@@ -742,6 +779,7 @@ class DeckUITests(unittest.TestCase):
             cover=card.get_child().get_children()[0]
             self.assertAlmostEqual(cover.get_allocated_width()/cover.get_allocated_height(),2/3,delta=.01)
         scroll=self.w.home_box.get_ancestor(Gtk.ScrolledWindow);adjustment=scroll.get_vadjustment()
+        self.w.resize(840,600);self.settle()
         self.assertEqual(adjustment.get_value(),0)
         event=Gdk.Event.new(Gdk.EventType.SCROLL);event.direction=Gdk.ScrollDirection.DOWN;event.window=scroll.get_window();event.set_device(Gdk.Display.get_default().get_default_seat().get_pointer())
         scroll.emit('scroll-event',event);self.settle();self.assertGreater(adjustment.get_value(),0)
@@ -850,7 +888,7 @@ class DeckUITests(unittest.TestCase):
         with patch.object(self.inline,'run',run):
             for width,height in ((1280,800),(840,640)):
                 self.w.resize(width,height);self.settle();self.w.catalog_guide_button.grab_focus();self.w.catalog_guide_button.clicked();self.settle()
-                self.assertFalse(self.w.inline_workflows);self.assertIs(self.w.get_focus(),self.w.catalog_guide_button)
+                self.assertFalse(self.w.inline_workflows);self.assertTrue(self.w.control_is_shown(self.w.get_focus()))
                 self.assertLessEqual(self.w.get_size().width,width);self.assertLessEqual(self.w.get_size().height,height)
         self.assertEqual(seen,[True]*6)
     def test_deck_game_sections_keep_the_full_width_and_visible_navigation(self):
@@ -1042,7 +1080,7 @@ class DeckUITests(unittest.TestCase):
                             for child in widget.get_children():values.extend(labels(child))
                         return values
                     summary=labels(page.content)
-                    for caption in ('Sobre este port','Archivos necesarios','Compatibilidad en Deck'):self.assertIn(caption,summary)
+                    for caption in ('Test','Archivos necesarios','Compatibilidad en Deck'):self.assertIn(caption,summary)
                     self.assertNotIn('Antes de instalar',summary)
                     actions=[c.get_label() for c in page.actions.get_children() if c.get_visible()]
                     self.assertEqual(actions,['Instalar'])
@@ -1071,11 +1109,42 @@ class DeckUITests(unittest.TestCase):
         button=self.w.game_play_button
         def outline():return button.get_style_context().get_property('outline-width',Gtk.StateFlags.FOCUSED)
         self.assertEqual(outline(),0)
-        self.w.keyboard_input(self.w,None);self.settle();self.assertEqual(outline(),2)
+        self.w.keyboard_input(self.w,None);self.settle();self.assertEqual(outline(),0);self.assertTrue(button.get_style_context().has_class('controller-focus'))
         self.w._deck_pointer_gesture.emit('pressed',1,10.,10.);self.settle();self.assertEqual(outline(),0)
         self.w.controller_action('right');self.settle();self.assertFalse(self.w.get_style_context().has_class('pointer-input'))
-        self.assertEqual(outline(),2)
+        self.assertEqual(outline(),0);self.assertTrue(self.w.get_focus().get_style_context().has_class('controller-focus'))
         self.w.pointer_input(self.w,None);self.assertTrue(self.w.get_style_context().has_class('pointer-input'))
+
+    def test_rounded_focus_and_colored_actions_render_in_both_themes(self):
+        from gi.repository import Gtk,Gdk
+        from deck_library import ui_theme
+        from deck_library.ui_components import ActionButton
+        page=self.inline(title='Actions',transient_for=self.w)
+        green=ActionButton('Instalar','download',tone='play');blue=ActionButton('Buscar','search',tone='primary')
+        blue.get_style_context().add_class('search-pill')
+        poster=ActionButton('Port','play',tone='play');poster.get_style_context().add_class('poster')
+        row=Gtk.Box(spacing=24);row.set_margin_start(16);row.set_margin_top(16)
+        row.pack_start(green,False,False,0);row.pack_start(blue,False,False,0);row.pack_start(poster,False,False,0)
+        page.content.pack_start(row,False,False,0);page._mount();self.settle()
+        for theme in ('dark','light'):
+            self.provider.load_from_data(ui_theme.css(theme=theme));self.w.keyboard_input(self.w,None)
+            for control in (green,blue,poster):
+                control.grab_focus();self.w.mark_controller_focus(self.w,control);self.settle()
+                style=control.get_style_context();background=style.get_background_color(Gtk.StateFlags.NORMAL);foreground=style.get_color(Gtk.StateFlags.NORMAL)
+                if control is not blue:self.assertGreater(background.green,background.blue)
+                else:self.assertGreater(background.blue,background.green)
+                self.assertGreater(foreground.red,.95);self.assertGreater(foreground.green,.95);self.assertGreater(foreground.blue,.95)
+                self.assertEqual(style.get_property('outline-width',Gtk.StateFlags.FOCUSED),0)
+                self.assertGreater(style.get_property('border-radius',Gtk.StateFlags.FOCUSED),0)
+                x,y=control.translate_coordinates(self.w,0,0);width=control.get_allocated_width()
+                image=Gdk.pixbuf_get_from_window(self.w.get_window(),x-2,y-2,width+4,control.get_allocated_height()+4)
+                pixels=image.get_pixels();stride=image.get_rowstride();channels=image.get_n_channels()
+                def pixel(px,py):return tuple(pixels[py*stride+px*channels:py*stride+px*channels+3])
+                # A focus ring reaches the middle of the top edge but rounds
+                # away from the diagonal corner; a GTK outline fills both.
+                edge=pixel(width//2+2,1);corner=pixel(1,1)
+                self.assertGreater(sum(abs(a-b) for a,b in zip(edge,corner)),100)
+        page.destroy();self.provider.load_from_data(self.gui.CSS)
 
     def test_local_tabs_keep_independent_scroll_and_bumpers_stay_in_the_workflow(self):
         from gi.repository import Gtk
@@ -1609,21 +1678,25 @@ class DeckUITests(unittest.TestCase):
 
     def test_install_port_can_remove_the_iso_only_after_the_final_cleanup_choice(self):self.exercise_full_iso_install_flow(True)
 
-    def test_port_detail_offers_proton_as_an_explicit_alternative(self):
+    def test_port_detail_uses_unified_install_action_without_proton_button_clutter(self):
         from gi.repository import Gtk,GLib
         from deck_library import ports
         item=ports.clean({'repository':'a/test','name':'Test'})
         release={'assets':[{'name':'Test-linux-x64.zip'},{'name':'Test-win64.zip'}]};original_run=self.inline.run;seen=[]
         def run(page):
             def choose():
-                buttons=self.w.control_targets(page);proton=next((c for c in buttons if c.get_accessible().get_name()=='Instalar con Proton'),None)
-                seen.append(proton is not None)
-                if proton:proton.clicked()
-                else:page.response(Gtk.ResponseType.CLOSE)
+                buttons=self.w.control_targets(page)
+                proton=next((c for c in buttons if c.get_accessible().get_name()=='Instalar con Proton'),None)
+                unified=next((c for c in buttons if c.get_accessible().get_name()=='Instalar'),None)
+                seen.append(proton is None and unified is not None)
+                if unified:unified.clicked()
+                # Installing now keeps the details open underneath its wizard.
+                # The mocked installer has no workflow to complete or close it.
+                page.response(Gtk.ResponseType.CLOSE)
                 return False
             GLib.timeout_add(300,choose);return original_run(page)
         with patch.object(ports,'release_for',return_value=release),patch.object(ports,'icon_path',return_value=''),patch.object(self.w,'install_port') as install,patch.object(self.inline,'run',run):
-            self.w.port_details(item);self.settle();install.assert_called_once();self.assertEqual(install.call_args.kwargs['runtime'],'proton')
+            self.w.port_details(item);self.settle();install.assert_called_once()
         self.assertEqual(seen,[True])
     def test_pending_page_shows_the_operation_name_without_another_dialog(self):
         from gi.repository import Gtk
@@ -1644,7 +1717,7 @@ class DeckUITests(unittest.TestCase):
         self.w.pages.set_visible_child_name('settings');self.w.open_library()
         self.assertEqual(original_cards,list(self.w.covers.get_children()))
         self.w.controller_action('next_tab');self.assertEqual(self.w.pages.get_visible_child_name(),'catalog')
-        self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.assertEqual(self.w.pages.get_visible_child_name(),'settings')
+        self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.assertEqual(self.w.pages.get_visible_child_name(),'updates')
         self.w.controller_action('back');self.assertEqual(self.w.pages.get_visible_child_name(),'library')
         tile=self.w.covers.get_children()[0].get_child();button=next(c for c in tile.get_children() if isinstance(c,Gtk.Button))
         button.grab_focus();self.w.last_controller_action=('',0);self.w.controller_action('activate')
@@ -1822,19 +1895,130 @@ class DeckUITests(unittest.TestCase):
         with patch.object(self.inline,'run',run),patch.object(ports,'icon_path',return_value=''),patch.object(ports,'requirements',return_value=[]),patch.object(self.w,'install_port') as install:open_.clicked();install.assert_not_called()
         self.assertTrue(all(seen));self.assertEqual(len(seen),5);self.assertFalse(self.w.inline_workflows)
 
+    def test_update_preferences_are_in_settings_and_not_below_updates(self):
+        from gi.repository import Gtk
+        from deck_library.installations import settings
+        self.w.updates_page();self.settle()
+        self.assertFalse(any(isinstance(c,(Gtk.Switch,Gtk.CheckButton)) for c in self.w.control_targets(self.w.updates_box)))
+        self.w.settings_page();self.settle()
+        next(c for c in self.w.control_targets(self.w.settings_box) if c.get_accessible().get_name()=='Actualizaciones automáticas').clicked();self.settle()
+        page=self.w.inline_workflows[-1];switches=[c for c in self.w.control_targets(page) if isinstance(c,Gtk.Switch)]
+        self.assertEqual(len(switches),5)
+        for control in switches:
+            self.assertTrue(control.get_mapped());x,y=control.translate_coordinates(self.w,0,0)
+            self.assertGreaterEqual(y,0);self.assertLessEqual(y+control.get_allocated_height(),800)
+        target=next(c for c in switches if c.get_accessible().get_name()=='Actualizar ports automáticamente')
+        target.set_active(True);self.assertTrue(settings(self.store)['auto_update_ports'])
+        self.w.controller_action('back');self.settle();self.assertFalse(self.w.inline_workflows)
+        self.assertEqual(self.w.pages.get_visible_child_name(),'settings')
+
+    def test_animated_gaming_update_notes_are_visible_and_actions_are_centered(self):
+        from gi.repository import Gtk
+        from deck_library import updates,motion
+        from deck_library.ui_components import Reveal
+        def walk(widget):
+            yield widget
+            if isinstance(widget,Gtk.Container):
+                for c in widget.get_children():yield from walk(c)
+        self.w.preferences['animations']=True;self.w.apply_motion()
+        data={'name':'Example Port','repository':'example/test','installed':'v1','latest':'v2','notes':'','page':'https://github.com/example/test/releases/tag/v2'}
+        with patch.object(motion,'gaming_mode',return_value=True),patch.object(updates,'release_notes',return_value='Release notes loaded after an empty cache.\n'*30):
+            for width,height in ((1280,800),(840,640)):
+                self.w.resize(width,height);self.w.update_state={'catalog':[data]};self.w.updates_page();self.settle()
+                disclosure=next(c for c in walk(self.w.updates_box) if isinstance(c,Reveal))
+                if not disclosure.revealer.get_reveal_child():disclosure.control.clicked()
+                self.settle();self.settle()
+                viewport=disclosure.revealer.get_child()
+                self.assertTrue(viewport.get_mapped());self.assertGreaterEqual(viewport.get_allocated_height(),110)
+                label=next(c for c in walk(viewport) if isinstance(c,Gtk.Label))
+                self.assertTrue(label.get_mapped());self.assertIn('loaded after an empty cache',label.get_text())
+                controls=self.w.control_targets(self.w.updates_box)
+                actions=[c for c in controls if c.get_accessible().get_name() in ('Actualizar','Publicación original')]
+                self.assertEqual(len(actions),2)
+                centers=[c.translate_coordinates(self.w,0,0)[1]+c.get_allocated_height()/2 for c in actions]
+                self.assertLessEqual(abs(centers[0]-centers[1]),1)
+                row=actions[0].get_parent().get_parent();row_y=row.translate_coordinates(self.w,0,0)[1]
+                self.assertLessEqual(abs(centers[0]-(row_y+row.get_allocated_height()/2)),1)
+                for c in actions:
+                    x,y=c.translate_coordinates(self.w,0,0);self.assertLessEqual(x+c.get_allocated_width(),width)
+                disclosure.control.clicked();self.settle();self.assertFalse(viewport.get_mapped())
+        self.w.preferences['animations']=False;self.w.apply_motion()
+
+    def test_steam_menu_action_disappears_for_existing_or_queued_shortcuts(self):
+        from deck_library import library_app,motion
+        self.assertTrue(self.w.shell_menu.get_visible())
+        with patch.object(library_app,'is_added',return_value=False),patch.object(motion,'gaming_mode',return_value=False):
+            self.w.refresh_steam_library_offer();self.assertTrue(self.w.steam_library_button.get_visible())
+            self.w.shell_menu.set_active(True);self.settle();self.assertTrue(self.w.steam_library_button.get_mapped())
+            self.w.shell_menu.set_active(False)
+        with patch.object(library_app,'is_added',return_value=True):
+            self.w.refresh_steam_library_offer();self.w.show_all();self.assertFalse(self.w.steam_library_button.get_visible())
+        with patch.object(library_app,'is_added',return_value=False),patch.object(motion,'gaming_mode',return_value=True):
+            self.w.refresh_steam_library_offer();self.assertFalse(self.w.steam_library_button.get_visible())
+
     def test_update_notes_and_options_are_reachable_with_the_controller(self):
         from gi.repository import Gtk
+        from deck_library.ui_components import Reveal
         self.w.update_state={'catalog':[{'name':'Test port','repository':'example/test','installed':'v1','latest':'v2','notes':'- First change\n- Second change\n- Third change\n- Fourth change'}]}
         self.w.updates_page();self.settle()
-        targets=self.w.control_targets(self.w);expanders=[c for c in targets if isinstance(c,Gtk.Expander)]
-        self.assertEqual(len(expanders),2);notes=next(c for c in expanders if 'v2' in c.get_label());self.assertFalse(notes.get_expanded())
-        self.w.last_controller_action=('',0);notes.grab_focus();self.w.controller_action('activate');self.settle();self.assertTrue(notes.get_expanded())
-        self.w.last_controller_action=('',0);self.w.controller_action('activate');self.settle();self.assertFalse(notes.get_expanded())
+        def disclosures(widget):
+            if isinstance(widget,Reveal):yield widget
+            elif isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from disclosures(child)
+        expanders=list(disclosures(self.w.updates_box));self.assertEqual(len(expanders),1)
+        notes=next(c for c in expanders if 'v2' in c.control.get_label());self.assertFalse(notes.revealer.get_reveal_child())
+        self.w.last_controller_action=('',0);notes.control.grab_focus();self.w.controller_action('activate');self.settle();self.assertTrue(notes.revealer.get_reveal_child())
+        self.w.last_controller_action=('',0);self.w.controller_action('activate');self.settle();self.assertFalse(notes.revealer.get_reveal_child())
+        notes.control.clicked();self.settle();self.assertTrue(notes.revealer.get_reveal_child())
+        self.w.updates_page();self.settle()
+        notes=next(c for c in disclosures(self.w.updates_box) if 'v2' in c.control.get_label())
+        self.assertTrue(notes.revealer.get_reveal_child());notes.control.clicked();self.settle();self.assertFalse(notes.revealer.get_reveal_child())
         def labels(widget):
             if isinstance(widget,Gtk.Label):yield widget.get_text()
             if isinstance(widget,Gtk.Container):
                 for child in widget.get_children():yield from labels(child)
         shown='\n'.join(labels(self.w.updates_box));self.assertIn('First change',shown);self.assertIn('Third change',shown)
+
+    def test_release_notes_load_once_and_stay_collapsible_with_a_pointer(self):
+        import ctypes,ctypes.util,threading
+        from gi.repository import Gtk,Gdk
+        from deck_library import updates
+        from deck_library.ui_components import Reveal
+        self.w.resize(1280,800)
+        self.w.update_state={'catalog':[{'name':'Test port','repository':'example/test','installed':'v1','latest':'v2'}]}
+        ready=threading.Event()
+        def fetch(data):ready.wait(3);return '\n'.join('Change '+str(i) for i in range(80))
+        def disclosures(widget):
+            if isinstance(widget,Reveal):yield widget
+            elif isinstance(widget,Gtk.Container):
+                for child in widget.get_children():yield from disclosures(child)
+        # XTest delivers a full press/release pair through GTK's event handling,
+        # including the scroller's touch/mouse drag capture.
+        x11=ctypes.CDLL(ctypes.util.find_library('X11'));xtst=ctypes.CDLL(ctypes.util.find_library('Xtst'))
+        x11.XOpenDisplay.argtypes=[ctypes.c_char_p];x11.XOpenDisplay.restype=ctypes.c_void_p
+        x11.XFlush.argtypes=[ctypes.c_void_p];x11.XCloseDisplay.argtypes=[ctypes.c_void_p]
+        xtst.XTestFakeMotionEvent.argtypes=[ctypes.c_void_p,ctypes.c_int,ctypes.c_int,ctypes.c_int,ctypes.c_ulong]
+        xtst.XTestFakeButtonEvent.argtypes=[ctypes.c_void_p,ctypes.c_uint,ctypes.c_int,ctypes.c_ulong]
+        display=x11.XOpenDisplay(os.environ['DISPLAY'].encode())
+        self.assertTrue(display)
+        def click(control):
+            x,y=control.translate_coordinates(self.w,control.get_allocated_width()//2,control.get_allocated_height()//2)
+            origin=self.w.get_window().get_origin();x+=origin[-2];y+=origin[-1]
+            xtst.XTestFakeMotionEvent(display,-1,x,y,0);xtst.XTestFakeButtonEvent(display,1,True,0);x11.XFlush(display);self.settle()
+            xtst.XTestFakeButtonEvent(display,1,False,0);x11.XFlush(display);self.settle()
+        try:
+            with patch.object(updates,'release_notes',side_effect=fetch) as fetcher:
+                self.w.updates_page();self.settle()
+                notes=next(c for c in disclosures(self.w.updates_box) if 'v2' in c.control.get_label())
+                for _ in range(2):
+                    click(notes.control);self.assertTrue(notes.revealer.get_reveal_child())
+                    click(notes.control);self.assertFalse(notes.revealer.get_reveal_child())
+                ready.set();self.settle();fetcher.assert_called_once()
+                click(notes.control);self.assertTrue(notes.revealer.get_reveal_child())
+                content=notes.revealer.get_child();self.assertLessEqual(content.get_allocated_height(),220)
+                self.assertGreater(content.get_vadjustment().get_upper(),content.get_vadjustment().get_page_size())
+                click(notes.control);self.assertFalse(notes.revealer.get_reveal_child())
+        finally:ready.set();x11.XCloseDisplay(display)
 
     def test_a_signed_out_user_sees_a_register_or_sign_in_button_and_a_signed_in_one_sees_the_name(self):
         import json
@@ -1999,15 +2183,15 @@ class DeckUITests(unittest.TestCase):
     def test_an_unreviewed_port_asks_once_before_installing(self):
         from deck_library import ports
         item=ports.clean({'repository':'someone/else','name':'Else','category':'PC'})
-        with patch.object(ports,'install',side_effect=ValueError('stop')) as install,patch.object(self.w,'confirm',return_value=False) as confirm,patch.object(self.w,'port_failed'):
+        with patch.object(ports,'install',side_effect=ValueError('stop')) as install,patch.object(self.w,'confirm',return_value=False) as confirm,patch.object(self.w,'port_failed',return_value=False):
             self.w.install_port(item,False,location_chosen=True);confirm.assert_called_once();install.assert_not_called();self.assertFalse(self.w.preferences.get('unreviewed_acknowledged'))
         import time
-        with patch.object(ports,'install',side_effect=ValueError('stop')) as install,patch.object(self.w,'confirm',return_value=True) as confirm,patch.object(self.w,'port_failed') as failed:
+        with patch.object(ports,'install',side_effect=ValueError('stop')) as install,patch.object(self.w,'confirm',return_value=True) as confirm,patch.object(self.w,'port_failed',return_value=False) as failed:
             self.w.install_port(item,False,location_chosen=True);until=time.monotonic()+3
             while not failed.called and time.monotonic()<until:self.settle()
             confirm.assert_called_once();self.assertTrue(self.w.preferences.get('unreviewed_acknowledged'))
         self.w.port_busy=False;self.w.port_jobs.clear()
-        with patch.object(ports,'install',side_effect=ValueError('stop')),patch.object(self.w,'confirm') as confirm,patch.object(self.w,'port_failed') as failed:
+        with patch.object(ports,'install',side_effect=ValueError('stop')),patch.object(self.w,'confirm') as confirm,patch.object(self.w,'port_failed',return_value=False) as failed:
             self.w.install_port(item,False,location_chosen=True);until=time.monotonic()+3
             while not failed.called and time.monotonic()<until:self.settle()
             confirm.assert_not_called()
@@ -2023,9 +2207,12 @@ class DeckUITests(unittest.TestCase):
         from deck_library import presets
         from gi.repository import Gtk
         entry=self.w.entries[0];profile={**presets.recommended(entry,self.store)[0],'id':'player-profile'};self.w.community_rating_cache={entry.id:(time.monotonic(),[{'id':'shared-1','preset':profile,'author':'Player','rating':4.5,'ratings':2}])}
-        self.w.select_game(entry);self.settle();panel=self.w.community_profile_box
-        self.assertFalse(panel.get_mapped());self.assertEqual(len(panel.get_children()),1);self.assertIsNone(panel.get_ancestor(Gtk.Revealer))
+        values=[{'id':'shared-1','preset':profile,'author':'Player','rating':4.5,'ratings':2}]
+        with patch('deck_library.community.Client.search',return_value=values):self.w.select_game(entry);self.settle()
+        panel=self.w.game_community
+        self.assertFalse(panel.get_mapped());self.assertIsNone(panel.get_ancestor(Gtk.Revealer))
         self.w.game_section_controls['community'].clicked();self.settle();self.assertTrue(panel.get_mapped())
+        self.assertTrue(any(c.get_accessible().get_name()=='Ver ajustes' for c in self.w.control_targets(panel)))
         self.assertGreater(len(self.w.profile_cards),3)
         self.assertIsNotNone(self.w.profile_cards[-1].get_ancestor(Gtk.Revealer))  # saved/generic alternatives have their own explanation
         self.w.resize(840,640);self.settle();self.assertLessEqual(self.w.get_size().width,840)
@@ -2168,7 +2355,8 @@ class DeckUITests(unittest.TestCase):
         play=self.w.game_play_button;self.assertTrue(play.get_style_context().has_class('controller-focus'))
         self.w.controller_action('right');self.settle();focus=self.w.get_focus()
         self.assertIsNot(focus,play);self.assertTrue(focus.get_style_context().has_class('controller-focus'));self.assertFalse(play.get_style_context().has_class('controller-focus'))
-        self.assertIn('B',[item.get_children()[0].get_text() for item,_ in self.w.controller_hint.items.values()])
+        from deck_library.controller_hints import LAYOUTS
+        self.assertTrue({'○','B'}&{LAYOUTS[item.get_children()[0].layout][item.get_children()[0].role] for item,_ in self.w.controller_hint.items.values()})
         self.w.controller_action('back');self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertEqual(self.w.get_focus().library_entry_id,chosen)
 
     def test_profile_focus_survives_detail_refresh_and_section_back(self):
@@ -2320,7 +2508,7 @@ class DeckUITests(unittest.TestCase):
                     self.w.open_library();self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.settle()
                     self.assertEqual(self.w.pages.get_visible_child_name(),'catalog')
                     self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.settle()
-                    self.assertEqual(self.w.pages.get_visible_child_name(),'settings');self.assertTrue(self.w.settings_box.get_mapped());self.assertEqual(self.w.pages.get_transition_type(),Gtk.StackTransitionType.NONE)
+                    self.assertEqual(self.w.pages.get_visible_child_name(),'updates');self.assertTrue(self.w.updates_box.get_mapped());self.assertEqual(self.w.pages.get_transition_type(),Gtk.StackTransitionType.NONE)
                     self.w.last_controller_action=('',0);self.w.controller_action('back');self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'library');self.assertTrue(self.w.covers.get_mapped())
                 self.w.select_game(self.w.entries[0]);self.settle();self.w.open_game_section('files');self.settle();self.assertEqual(self.w.game_pages.get_transition_type(),Gtk.StackTransitionType.NONE)
                 self.w.last_controller_action=('',0);self.w.controller_action('back');self.settle();self.assertEqual(self.w.game_tab,'profiles')
@@ -2343,7 +2531,7 @@ class DeckUITests(unittest.TestCase):
             self.assertEqual(self.w.pages.get_visible_child_name(),'catalog')
             driver.sdl.read.return_value=set();driver.poll();self.w.last_controller_action=('',0)
             driver.sdl.read.return_value={'next_tab'};driver.poll();self.settle()
-            self.assertEqual(self.w.pages.get_visible_child_name(),'settings')
+            self.assertEqual(self.w.pages.get_visible_child_name(),'updates')
             driver.sdl.read.return_value=set();driver.poll();self.w.last_controller_action=('',0)
             driver.sdl.read.return_value={'back'};driver.poll();self.settle();self.assertEqual(self.w.pages.get_visible_child_name(),'library')
             # Steam's own menu or another app must keep its input.
@@ -2516,14 +2704,14 @@ class DeckUITests(unittest.TestCase):
         for width,height in ((1280,800),(840,640)):
             self.w.resize(width,height);self.w.settings_page();self.settle()
             rows=[c for c in self.w.control_targets(self.w.settings_box) if isinstance(c,SettingsRow)]
-            self.assertEqual(len(rows),3)
+            self.assertEqual(len(rows),4)
             self.assertTrue(all(row.description.get_text() for row in rows))
             self.assertFalse(self.w.control_targets(self.w.settings_box.page_header))
             for row in rows:
                 x,_=row.translate_coordinates(self.w,0,0)
                 self.assertGreaterEqual(x,0);self.assertLessEqual(x+row.get_allocated_width(),width)
                 self.assertGreaterEqual(row.get_allocated_height(),44)
-            rows[0].grab_focus()
+            next(r for r in rows if r.get_accessible().get_name()=='Carátulas y apariencia').grab_focus()
             with patch.object(self.w,'appearance_dialog') as appearance:
                 self.w.last_controller_action=('',0);self.w.controller_action('activate');appearance.assert_called_once()
 

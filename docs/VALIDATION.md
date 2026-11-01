@@ -1,5 +1,13 @@
 # Validación
 
+## 1.5.0 — Console interface and update workflows
+
+- Core discovery: 1,171 tests with 183 UI/environment skips; all remaining tests passed. All 181 GTK interface checks passed on a disposable X11 display. Coverage includes 1280×800 and 840×640, native pointer press/release, controller activation/back navigation, update preference persistence, and release-note visibility with animations and Gaming Mode detection enabled.
+- New checks verify that original-release links and update buttons share a vertical center, empty cached notes can fetch the displayed release, and update preferences no longer appear below the update list. Steam self-shortcut detection covers managed launchers, manually created shortcuts and additions already queued for the selected account.
+- English and Spanish captures use a temporary library, fictional game titles, original vector covers and sample release metadata. They contain no personal library, credentials or game files. See [screenshots](SCREENSHOTS.md).
+- This is interface and installation-flow validation with mocked game downloads. It is not new physical controller, gameplay or performance evidence. No community API/database migration is required.
+
+
 ## 1.4.9 — Existing installations and folder recovery
 
 - Core discovery: 1,105 tests, with 150 environment/UI skips. All 148 GTK checks passed; after the final recovery and fixture-isolation changes, 11 focused GUI checks passed again. The location workflows were inspected at 1280×800 and 840×640 on an isolated virtual display, including controller back navigation. This is UI validation, not a new physical Gaming Mode or gameplay test.

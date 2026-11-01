@@ -75,22 +75,12 @@ class InputMixin:
     def update_controller_hints(self,window):
         hint=getattr(window,'_deck_controller_hints',None) if window is not self else getattr(self,'controller_hint',None)
         if hint is None:return
-        focus=self.navigation_focus(window);activate='Seleccionar';back='Volver'
+        activate='Seleccionar';back='Volver'
         if window is self and getattr(self,'inline_workflows',[]):back='Volver'
         elif window is not self:back='Cerrar'
         elif self.pages.get_visible_child_name()=='detail':back={'home':'Inicio','validated':'Verificados'}.get(getattr(self,'detail_origin','library'),'Biblioteca') if self.game_tab=='profiles' else 'Volver al juego'
         elif self.pages.get_visible_child_name()!='library':back='Biblioteca'
         if self.current_popover(window) or isinstance(Gtk.grab_get_current(),Gtk.MenuShell):back='Cerrar menú'
-        if window is self and focus is not None:
-            if getattr(focus,'library_entry_id',None) or getattr(focus,'home_game_id',None):activate='Abrir ficha'
-            elif getattr(focus,'profile_id',None):activate='Ver perfil'
-            elif isinstance(focus,Gtk.Entry):activate='Abrir teclado'
-            elif isinstance(focus,Gtk.MenuButton):activate='Abrir menú'
-            elif isinstance(focus,Gtk.Expander):activate='Cerrar' if focus.get_expanded() else 'Abrir'
-            elif isinstance(focus,(Gtk.CheckButton,Gtk.Switch)):activate='Cambiar'
-            elif isinstance(focus,Gtk.Button):
-                caption=focus.get_label()
-                if caption and len(caption)<=16:activate=caption
         hint.update(activate,back,window.get_size().width,home=window is self and self.pages.get_visible_child_name()=='home' and not getattr(self,'inline_workflows',[]) and not self.current_popover(window))
 
     def prepare_controller_window(self,window):
@@ -102,7 +92,7 @@ class InputMixin:
             window.connect('set-focus',self.mark_controller_focus)
             if isinstance(window,Gtk.Dialog):
                 from .controller_hints import ControllerHints
-                hint=ControllerHints(compact=True);area=window.get_action_area();area.pack_start(hint,False,False,0);area.set_child_secondary(hint,True);area.set_child_non_homogeneous(hint,True);window._deck_controller_hints=hint
+                hint=ControllerHints(compact=True,layout=self.preferences.get('controller_layout','ps'));area=window.get_action_area();area.pack_start(hint,False,False,0);area.set_child_secondary(hint,True);area.set_child_non_homogeneous(hint,True);window._deck_controller_hints=hint
         self.mark_controller_focus(window,window.get_focus())
 
     def control_is_shown(self,widget):
@@ -181,7 +171,11 @@ class InputMixin:
 
     def move_control_focus(self,window,direction):
         from .navigation import control_neighbour
-        popover=self.current_popover(window);workflow=self.inline_workflows[-1] if window is self and getattr(self,'inline_workflows',[]) else None;targets=self.control_targets(popover or workflow or window);focus=self.navigation_focus(window);rectangles={}
+        popover=self.current_popover(window);workflow=self.inline_workflows[-1] if window is self and getattr(self,'inline_workflows',[]) else None;targets=self.control_targets(popover or workflow or window)
+        if workflow and workflow._deletable and not popover:
+            for nav in getattr(self,'navigation_controls',[]):
+                if self.control_is_shown(nav) and nav not in targets:targets.append(nav)
+        focus=self.navigation_focus(window);rectangles={}
         for index,widget in enumerate(targets):
             point=widget.translate_coordinates(window,0,0)
             if point:rectangles[index]=(*point,widget.get_allocated_width(),widget.get_allocated_height())
@@ -274,6 +268,7 @@ class InputMixin:
 
     def reveal_bounds(self,focus):
         if focus is None or not focus.get_mapped():return
+        from . import motion
         visual=getattr(focus,'library_focus_visual',focus);scroll=focus.get_ancestor(Gtk.ScrolledWindow)
         while scroll:
             child=scroll.get_child();content=child.get_child() if isinstance(child,Gtk.Viewport) else child
@@ -283,7 +278,7 @@ class InputMixin:
                     start=point[axis];value=adjustment.get_value();page=adjustment.get_page_size();padding=12
                     if start-padding<value:value=start-padding
                     elif start+size+padding>value+page:value=start+size+padding-page
-                    adjustment.set_value(max(adjustment.get_lower(),min(value,adjustment.get_upper()-page)))
+                    motion.smooth_scroll(adjustment,max(adjustment.get_lower(),min(value,adjustment.get_upper()-page)))
             parent=scroll.get_parent();scroll=parent.get_ancestor(Gtk.ScrolledWindow) if parent else None
 
     def keep_scroll_focus(self,scroll,focus,vertical):
@@ -333,12 +328,16 @@ class InputMixin:
         for pane in sorted(find(workflow or window),key=lambda w:w.get_allocated_width()*w.get_allocated_height(),reverse=True):
             if pane not in candidates:candidates.append(pane)
         vertical=action in ('scroll_up','scroll_down')
+        from . import motion
         for scroll in candidates:
             adjustment=scroll.get_vadjustment() if vertical else scroll.get_hadjustment()
             lower=adjustment.get_lower();upper=max(lower,adjustment.get_upper()-adjustment.get_page_size())
             if upper>lower:
                 sign=-1 if action in ('scroll_up','scroll_left') else 1
-                adjustment.set_value(max(lower,min(upper,adjustment.get_value()+sign*min(96,max(32,adjustment.get_page_size()*.16)))))
+                base=getattr(adjustment,'_deck_scroll_target',None)
+                if base is None or not getattr(adjustment,'_deck_scroll_source',None):base=adjustment.get_value()
+                target=max(lower,min(upper,base+sign*min(110,max(44,adjustment.get_page_size()*.18))))
+                motion.smooth_scroll(adjustment,target,duration=75)
                 self.keep_scroll_focus(scroll,focus,vertical)
                 return True
         return True
@@ -358,7 +357,8 @@ class InputMixin:
     def controller_action(self,action,window=None):
         import time
         now=time.monotonic();previous=getattr(self,'last_controller_action',('',0))
-        if previous[0]==action and now-previous[1]<.09:return True
+        cooldown=.03 if action.startswith('scroll_') else .075
+        if previous[0]==action and now-previous[1]<cooldown:return True
         self.last_controller_action=(action,now)
         self.controller_mode=True;self.disable_tooltips()
         if hasattr(self,'controller_hint'):self.controller_hint.show()
@@ -368,6 +368,8 @@ class InputMixin:
         workflow=self.inline_workflows[-1] if window is self and getattr(self,'inline_workflows',[]) else None
         handler=getattr(workflow or window,'account_controller',None)
         if handler and handler(action):return True
+        if not workflow and window is self and self.pages.get_visible_child_name()=='account' and getattr(self,'active_account_pane',None) is not None:
+            if self.active_account_pane.handle_controller(action,self):return True
         grab=Gtk.grab_get_current()
         if isinstance(grab,Gtk.Menu):
             anchor=grab.get_attach_widget()
@@ -395,7 +397,7 @@ class InputMixin:
             if self.game_tab==name:self.game_section_controls[name].grab_focus()
             return True
         if action in ('previous_tab','next_tab') and window is self:
-            names=list(self.primary_nav);tab={'home':'Inicio','library':'Biblioteca','detail':{'home':'Inicio'}.get(getattr(self,'detail_origin','library'),'Biblioteca'),'catalog':'Ports','settings':'Ajustes'}.get(self.pages.get_visible_child_name(),'Ajustes');active=names.index(tab);self.nav_buttons[names[(active+(-1 if action=='previous_tab' else 1))%len(names)]].clicked();return True
+            names=list(self.primary_nav);tab={'home':'Inicio','library':'Biblioteca','detail':{'home':'Inicio'}.get(getattr(self,'detail_origin','library'),'Biblioteca'),'catalog':'Ports','updates':'Actualizaciones','pending':'Actualizaciones','requests':'Solicitudes','tools':'Herramientas','account':'Ajustes','settings':'Ajustes'}.get(self.pages.get_visible_child_name(),'Ajustes');active=names.index(tab) if tab in names else 0;self.nav_buttons[names[(active+(-1 if action=='previous_tab' else 1))%len(names)]].clicked();return True
         if action in ('options','menu') and window is self and not workflow:
             if popover:return True
             return self.controller_options(action)
@@ -417,9 +419,13 @@ class InputMixin:
             return True
         if action.startswith('scroll_'):return self.scroll_controller(action,window)
         if action=='search' and window is self:
+            if self.pages.get_visible_child_name()=='validated' and hasattr(self,'validated_search'):
+                self.open_keyboard(self.validated_search);return True
+            if self.pages.get_visible_child_name()=='catalog' and hasattr(self,'catalog_search'):
+                if hasattr(self,'reveal_catalog_search'):self.reveal_catalog_search()
+                self.open_keyboard(self.catalog_search);return True
             if self.pages.get_visible_child_name()=='home':self.open_library()
-            entry=self.validated_search if self.pages.get_visible_child_name()=='validated' and hasattr(self,'validated_search') else self.catalog_search if self.pages.get_visible_child_name()=='catalog' and hasattr(self,'catalog_search') else self.search
-            self.open_keyboard(entry);return True
+            self.open_keyboard(self.search);return True
         if not workflow and window is self and self.move_library_focus(action):return True
         focus=self.navigation_focus(window)
         if action=='activate':

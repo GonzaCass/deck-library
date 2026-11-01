@@ -38,8 +38,8 @@ def main():
         images=artwork(ROOT/'dist/demo-artwork',args.download_artwork)
     with tempfile.TemporaryDirectory() as folder:
         store=Store(folder)
-        names=['Bosque de cristal: el despertar de los guardianes','Circuito norte','Estación 13','Orbital','Puerto Atlas','Senderos','Valle de cobre','Viaje estelar']
-        entries=[] if args.empty else [Entry(name,['/bin/true',str(i)],kind='emulated' if i==0 else 'port',platform=['Switch','Linux','PS2','Wii','Windows'][i%5],game_id='0100000000000000' if i==0 else '',metadata={'configured':False} if i==3 else {}) for i,name in enumerate(names)]
+        from demo_library import fictional_entries
+        entries=[] if args.empty else fictional_entries(store,args.language)
         if args.real_games and not args.empty:
             from demo_library import entries as real_entries
             entries=real_entries(store,images)
@@ -72,6 +72,7 @@ def main():
             demo_values[entry.id]=values
             return {'changes':sum(len(options) for options in profile['settings'].values()),'backup':'demo'}
         patches=[patch.object(gui_shell,'Store',return_value=store),patch.object(gui_shell,'settings',return_value=prefs),patch.object(gui.Window,'discover',return_value=False),patch.object(gui.Window,'load_catalog',catalog),patch.object(gui.Window,'load_icons',return_value=None),patch.object(gui.Window,'check_kits',return_value=None),patch.object(gui.Window,'check_missing_roms',return_value=False),patch.object(gui_shell,'find_accounts',return_value=[]),patch.object(gui_shell,'active_account',return_value=None),patch.object(gui.Window,'in_steam',return_value=False),patch('deck_library.artwork.find_accounts',return_value=[])]
+        patches.append(patch('deck_library.community.Client.search',return_value=[]))
         patches.append(patch.object(gui.Window,'check_kits',kits))
         patches.append(patch.object(gui.Window,'load_icons',icons))
         patches.extend([patch.object(presets,'current_values',current_values),patch.object(presets,'apply',apply_preview),patch.object(gui.Window,'offer_deck_controls',return_value=None)])
@@ -83,7 +84,9 @@ def main():
         patches.append(patch.object(gui.Window,'install_port',lambda window,*a,**kw:window.toast(install_message)))
         patches.append(patch.object(gui.Window,'apply_game_profile',lambda window,*a,**kw:window.toast(install_message)))
         patches.append(patch.object(gui.Window,'restore_game_profile',lambda window,*a,**kw:window.toast(install_message)))
-        from deck_library import ports
+        from deck_library import ports,updates
+        demo_notes='• Correcciones de controles.\n• Mejoras en la carga inicial.\n• Compatibilidad con Vulkan.' if args.language=='es' else '• Controller fixes.\n• Faster startup.\n• Vulkan compatibility.'
+        patches.append(patch.object(updates,'cached',return_value={'catalog':[{'name':'Circuito norte' if args.language=='es' else 'Northern Circuit','repository':'example/demo-port','installed':'1.0','latest':'1.1','notes':demo_notes,'page':'https://example.invalid/demo-release'}]}))
         def port_icon(store,item,**_):return images.get(item.get('cover_title') or item.get('game_title') or item['name'],{}).get('cover','')
         patches.extend([patch.object(ports,'icon_path',port_icon),patch.object(ports,'release_for',return_value={'tag_name':'demo','assets':[{'name':'demo-linux-x86_64.zip','browser_download_url':'https://example.invalid/demo.zip'}]}),patch.object(ports,'requirements',return_value=[(None,'Vista previa · archivos originales no comprobados.' if args.language=='es' else 'Preview · original files have not been checked.')])])
         for item in patches:item.start()
@@ -94,7 +97,7 @@ def main():
         provider=Gtk.CssProvider();provider.load_from_data(ui_theme.css(args.scale,args.theme));gui.PROVIDER=provider
         Gtk.StyleContext.add_provider_for_screen(Gdk.Screen.get_default(),provider,Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
         window=gui.Window();window.resize(args.width,args.height);window.show_all()
-        window.set_title('Deck Library — Demo')
+        window.set_title('Deck Library — Demo');window.shell_clock.set_text('14:30');window.dismiss_banner()
         demo=Gtk.Label(label='DEMO');demo.get_style_context().add_class('meta');window.shell_search.get_parent().pack_end(demo,False,False,8);demo.show()
         def show_page(name):
             if name=='game':
@@ -127,7 +130,15 @@ def main():
                     window.open_game_section(section);shot('game-'+section)
         if args.all_pages:
             for name in ('settings','tools','catalog','updates','help','validated'):
-                show_page(name);shot(name)
+                show_page(name)
+                if name=='updates':
+                    from deck_library.ui_components import Reveal
+                    def expand(widget):
+                        if isinstance(widget,Reveal):widget.control.clicked()
+                        elif isinstance(widget,Gtk.Container):
+                            for child in widget.get_children():expand(child)
+                    expand(window.updates_box)
+                shot(name)
             window.settings_page()
             from deck_library.inline_pages import InlineDialog
             original=InlineDialog.run

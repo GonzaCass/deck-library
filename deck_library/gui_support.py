@@ -16,6 +16,25 @@ class SupportMixin:
         from .community import Client
         return Client(self.store,self.preferences.get('community_url','https://presets.jokerlan.xyz'))
 
+    def requests_page(self,*_):
+        if not self.discard_game_edits():return
+        box=self.requests_box;self.reset_page(box);box.set_spacing(12)
+        toolbar=Gtk.Box(spacing=10)
+        toolbar.pack_start(ActionButton('Nueva solicitud','plus',lambda _:self.request_game_page(),'primary'),False,False,0)
+        toolbar.pack_start(ActionButton('Reportar un problema','file',lambda _:self.bug_report_page(None),'console-secondary'),False,False,0)
+        if self.owner_verified():
+            toolbar.pack_start(ActionButton('Bandeja de entrada','upload',lambda _:self.owner_requests_page(),'steam'),False,False,0)
+        if not self.signed_in():
+            toolbar.pack_end(ActionButton('Iniciar sesión','community',lambda _:self.account_page(),'steam'),False,False,0)
+        self.pin_page_header(box,toolbar)
+        if not self.signed_in():
+            box.pack_start(text('Iniciar sesión para gestionar las solicitudes y los reportes enviados.','muted',85),False,False,0)
+        else:
+            box.pack_start(text('Mis solicitudes y reportes','section-title'),False,False,0)
+        listing=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);box.pack_start(listing,False,False,0)
+        box.show_all();self.pages.set_visible_child_name('requests');self.refresh_layout()
+        GLib.idle_add(lambda:(self.refresh_my_requests(listing),False)[1])
+
     def support_page(self,entry=None):
         if entry is not None and not hasattr(entry,'metadata'):entry=None
         page=InlineDialog(title='Solicitudes y reportes',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
@@ -80,7 +99,7 @@ class SupportMixin:
                 if error:status.set_text(str(error))
                 else:
                     self.toast('Solicitud enviada');status.set_text(f"Solicitud recibida. Número: {result['id']}");send_button.set_sensitive(False)
-                    page.get_action_area().pack_start(ActionButton('Ver mis solicitudes','community',lambda _:(page.destroy(),self.my_requests_page()),'cyan'),False,False,0);body.show_all();changed()
+                    page.get_action_area().pack_start(ActionButton('Ver mis solicitudes','community',lambda _:(page.destroy(),self.requests_page()),'cyan'),False,False,0);body.show_all();changed()
                 return False
             def work():
                 try:GLib.idle_add(done,self.community_client().request('/v1/requests',value),None)
@@ -90,9 +109,15 @@ class SupportMixin:
         page.connect('destroy',lambda *_:state.update(alive=False));page.connect('response',lambda *_:page.destroy());changed();page._mount();return page
 
     def build_request_notification(self,root):
-        self.request_notice=Gtk.Box(spacing=10);self.request_notice.get_style_context().add_class('request-notice');self.request_notice.set_no_show_all(True)
+        from .ui_components import Icon
+        self.request_notice=Gtk.Box(spacing=10);self.request_notice.get_style_context().add_class('banner');self.request_notice.set_no_show_all(True)
         self.request_notice_label=text('','title',65);self.request_notice.pack_start(self.request_notice_label,True,True,0)
-        self.request_notice.pack_end(ActionButton('Ver respuestas','community',lambda _:self.my_requests_page(),'violet'),False,False,0);root.pack_start(self.request_notice,False,False,0)
+        self.request_notice_action=ActionButton('Ver respuestas','community',lambda _:self.navigate_from_game(self.requests_page),'violet')
+        self.request_notice.pack_end(self.request_notice_action,False,False,0)
+        close_btn=Gtk.Button();close_btn.add(Icon('close',18));close_btn.get_style_context().add_class('quiet')
+        close_btn.set_tooltip_text('Cerrar aviso');close_btn.get_accessible().set_name('Cerrar aviso')
+        close_btn.connect('clicked',lambda _:self.request_notice.hide())
+        self.request_notice.pack_end(close_btn,False,False,0);root.pack_start(self.request_notice,False,False,0)
 
     def poll_request_replies(self):
         if self.ui_closed:return False
@@ -107,8 +132,10 @@ class SupportMixin:
             count=value.get('unread',0)
             if hasattr(self,'request_notice'):
                 if count:
-                    self.request_notice_label.set_text('Nueva respuesta recibida' if count==1 else f'Nuevas respuestas en {count} solicitudes');self.request_notice.set_no_show_all(False);self.request_notice.show_all();self.request_notice.set_no_show_all(True)
-                    if getattr(self,'request_unread_count',0)<count:self.toast('Nueva respuesta · Ver respuestas')
+                    self.request_notice_label.set_text('Nueva respuesta recibida' if count==1 else f'Nuevas respuestas en {count} solicitudes')
+                    self.request_notice.set_no_show_all(False);self.request_notice.show_all();self.request_notice.set_no_show_all(True)
+                    if getattr(self,'_request_notice_timer',0):GLib.source_remove(self._request_notice_timer)
+                    self._request_notice_timer=GLib.timeout_add_seconds(5,lambda:(setattr(self,'_request_notice_timer',0),self.request_notice.hide(),False)[2])
                 else:self.request_notice.hide()
             self.request_unread_count=count;return False
         def work():

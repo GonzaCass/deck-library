@@ -64,11 +64,13 @@ class ActionsMixin:
         if value.get('layouts'):parts.append(f'configuración de mando asignada a {len(value["layouts"])}')
         return (', '.join(parts) or 'Cambios guardados').capitalize()+'. Abrir Steam para verlos.'
     def set_status(self,text):
-        self.status.set_text(text);self.status.set_visible(bool(text))
+        self.status.set_text(text)
+        toasted=bool(text and hasattr(self,'toast_widget') and re.search(r'guardad|aplicad|actualizad|instalad|configurad|restaurad|exportad|importad|cancelad|descartad|no se pudo|no se pudieron|falló|error',text,re.I))
+        self.status.set_visible(False)
         ident=getattr(self,'status_timer',0)
         if ident:GLib.source_remove(ident);self.status_timer=0
-        if text and not getattr(self,'ui_closed',False):self.status_timer=GLib.timeout_add_seconds(7,self.clear_status)
-        if hasattr(self,'toast_widget') and re.search(r'guardad|aplicad|actualizad|instalad|configurad|restaurad|exportad|importad|cancelad|descartad|no se pudo|no se pudieron|falló|error',text,re.I):self.toast(text)
+        if text and not getattr(self,'ui_closed',False):self.status_timer=GLib.timeout_add_seconds(5,self.clear_status)
+        if toasted:self.toast(text)
     def clear_status(self):
         self.status_timer=0;self.status.set_text('');self.status.set_visible(False);return False
     def message(self,title,text):

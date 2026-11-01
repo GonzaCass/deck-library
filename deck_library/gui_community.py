@@ -188,6 +188,121 @@ class CommunityMixin:
         refresh_account();dialog.show_all();stack.set_visible_child_name(mode);search(None);dialog.run();alive[0]=False;account_page.close();dialog.destroy()
         if self.selected and self.selected.id==e.id:self.show_detail(e)
 
+    def build_inline_community(self,e,parent_box):
+        self.reset_page(parent_box)
+        client=Client(self.store,self.preferences.get('community_url','https://presets.jokerlan.xyz'))
+        header_bar=Gtk.Box(spacing=10)
+        header_bar.pack_start(text('Perfiles de la comunidad','section-title'),True,True,0)
+        user_login=client.session().get('login')
+        if user_login:header_bar.pack_end(text('Conectado: '+user_login,'meta'),False,False,0)
+        else:header_bar.pack_end(ActionButton('Iniciar sesión','controller',lambda _:self.account_page(),'quiet'),False,False,0)
+        publish_btn=ActionButton('Compartir mis ajustes','upload',lambda _:self.community_dialog(e,mode='publish'),'violet-outline')
+        header_bar.pack_end(publish_btn,False,False,0)
+        parent_box.pack_start(header_bar,False,False,0)
+
+        stack=Gtk.Stack()
+        stack.set_homogeneous(False)
+        stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if motion.page_transitions() else Gtk.StackTransitionType.NONE)
+        parent_box.pack_start(stack,True,True,0)
+
+        browse=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
+        status=text('Buscando perfiles de la comunidad…','status',95)
+        browse.pack_start(status,False,False,0)
+        rows_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8)
+        browse.pack_start(rows_box,True,True,0)
+        stack.add_named(browse,'browse')
+
+        detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10)
+        detail_actions=Gtk.Box(spacing=10)
+        back_btn=ActionButton('Volver a perfiles','back',lambda _:stack.set_visible_child_name('browse'),'quiet')
+        detail_actions.pack_start(back_btn,False,False,0)
+        selected_profile=[None]
+        def do_download():
+            if not selected_profile[0]:return
+            try:
+                value=client.download(selected_profile[0])
+                self.profile_choice[e.id]=value['id']
+                self.toast('Perfil de la comunidad guardado')
+                self.show_detail(e)
+            except Exception as err:
+                self.toast('No se pudo guardar el perfil.')
+        apply_btn=ActionButton('Aplicar este perfil','download',do_download,'violet')
+        detail_actions.pack_start(apply_btn,False,False,0)
+        rate_btn=ActionButton('Valorar perfil','star',lambda _:self.community_dialog(e,selected_profile[0]['preset']['id'] if selected_profile[0] else None,mode='feedback'),'quiet')
+        detail_actions.pack_start(rate_btn,False,False,0)
+        detail.pack_start(detail_actions,False,False,0)
+
+        prof_title=text('','title',70)
+        prof_score=text('','rating')
+        prof_meta=text('','muted',100);prof_meta.set_selectable(True)
+        detail.pack_start(prof_title,False,False,0)
+        detail.pack_start(prof_score,False,False,0)
+        detail.pack_start(prof_meta,False,False,0)
+        detail.pack_start(text('Ajustes del perfil','section-title'),False,False,0)
+        settings_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6)
+        detail.pack_start(settings_box,False,False,0)
+        stack.add_named(detail,'detail')
+
+        def show_profile(value):
+            selected_profile[0]=value
+            p=value['preset']
+            prof_title.set_text(profile_display.title(p))
+            prof_score.set_text(rating_caption(value))
+            prof_meta.set_text(value.get('author','Usuario')+' · '+profile_display.verification(p)+'\n'+p.get('objective','')+'\n'+p['adapter']['id']+' · '+', '.join(p['adapter']['versions']))
+            self.reset_page(settings_box)
+            from .gui_tools import SETTING_LABELS
+            for section_name,options in p.get('settings',{}).items():
+                for key,setting in options.items():
+                    caption=SETTING_LABELS.get(p['adapter']['id'],{}).get(key,(key,''))[0]
+                    row=Gtk.Box(spacing=12)
+                    row.pack_start(text(caption,limit=55),True,True,0)
+                    row.pack_end(text(profile_display.value_text(p['adapter']['id'],key,setting),'meta',40),False,False,0)
+                    settings_box.pack_start(row,False,False,0)
+            for note_content in (p.get('notes'),p.get('instructions')):
+                if note_content:
+                    nl=text(note_content,'muted',100);nl.set_selectable(True)
+                    settings_box.pack_start(nl,False,False,0)
+            settings_box.show_all()
+            stack.set_visible_child_name('detail')
+            back_btn.grab_focus()
+
+        def on_search_done(values,error):
+            if self.ui_closed or not self.selected or self.selected.id!=e.id:return False
+            if error:
+                status.set_text(str(error))
+                return False
+            status.set_text('')
+            self.reset_page(rows_box)
+            if not values:
+                empty_card=self.card(rows_box,'Sin perfiles disponibles')
+                empty_card.pack_start(text('Todavía no hay un perfil para este juego.','muted'),False,False,0)
+                rows_box.show_all()
+                return False
+            for val in values:
+                p=val['preset']
+                card=self.card(rows_box,profile_display.title(p))
+                card_row=Gtk.Box(spacing=12)
+                card_info=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4)
+                card_info.pack_start(text(rating_caption(val),'rating',40),False,False,0)
+                card_info.pack_start(text(val.get('author','Usuario')+' · '+p.get('objective',''),'meta',65),False,False,0)
+                card_row.pack_start(card_info,True,True,0)
+                view_btn=ActionButton('Ver ajustes','sliders',lambda _,v=val:show_profile(v),'quiet')
+                card_row.pack_end(view_btn,False,False,0)
+                use_btn=ActionButton('Usar perfil','download',lambda _,v=val:(selected_profile.__setitem__(0,v),do_download()),'violet')
+                card_row.pack_end(use_btn,False,False,0)
+                card.pack_start(card_row,False,False,0)
+            rows_box.show_all()
+            return False
+
+        def work():
+            try:
+                vals=client.search(e)
+                GLib.idle_add(on_search_done,vals,None)
+            except Exception as err:
+                GLib.idle_add(on_search_done,None,str(err))
+        threading.Thread(target=work,daemon=True).start()
+        parent_box.show_all()
+
 
 def rating_caption(value):
     count=value.get('ratings',0);rating=value.get('rating')

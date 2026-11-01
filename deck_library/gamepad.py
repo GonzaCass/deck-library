@@ -9,9 +9,9 @@ def stick_direction(x,y,previous=None,enter=10000,leave=6500):
     """A modest dead zone and hysteresis keep diagonals and resting sticks stable."""
     magnitude=max(abs(x),abs(y))
     if magnitude<(leave if previous else enter):return None
-    if previous in ('left','right') and abs(x)>=abs(y)*.85 and abs(x)>=leave:
+    if previous in ('left','right') and abs(x)>=abs(y)*.9 and abs(x)>=leave:
         direction='right' if x>0 else 'left'
-    elif previous in ('up','down') and abs(y)>=abs(x)*.85 and abs(y)>=leave:
+    elif previous in ('up','down') and abs(y)>=abs(x)*.9 and abs(y)>=leave:
         direction='down' if y>0 else 'up'
     else:direction=('right' if x>0 else 'left') if abs(x)>abs(y) else ('down' if y>0 else 'up')
     if direction!=previous and magnitude<enter:return None
@@ -22,8 +22,12 @@ class Repeater:
     def events(self,pressed,now=None):
         now=time.monotonic() if now is None else now;pressed=set(pressed);out=[]
         for key in sorted(pressed):
-            if key not in self.held:out.append(key);self.next[key]=now+.35
-            elif key in DIRECTIONS+SCROLL_DIRECTIONS and now>=self.next[key]:out.append(key);self.next[key]=now+.11
+            if key not in self.held:
+                out.append(key)
+                self.next[key]=now+(.04 if key in SCROLL_DIRECTIONS else .24)
+            elif key in DIRECTIONS+SCROLL_DIRECTIONS and now>=self.next[key]:
+                out.append(key)
+                self.next[key]=now+(.04 if key in SCROLL_DIRECTIONS else .085)
         self.held=pressed;self.next={k:v for k,v in self.next.items() if k in pressed};return out
 
 class SDL:

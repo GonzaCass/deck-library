@@ -26,5 +26,10 @@ def control_neighbour(rectangles,current,direction):
         overlap=min(y+h,ty+th)-max(y,ty) if horizontal else min(x+w,tx+tw)-max(x,tx)
         gap=max(0,abs(along)-(w+tw)/2 if horizontal else abs(along)-(h+th)/2)
         across=max(0,abs(dy)-(h+th)/2 if horizontal else abs(dx)-(w+tw)/2)
-        candidates.append((overlap<=0,gap*gap+across*across*2,abs(along),key))
+        if horizontal:
+            if overlap<=0 and across>max(h,th)*.85:continue
+            candidates.append((overlap<=0,gap+across*1.8,abs(along),key))
+        else:
+            score=gap+(0 if overlap>0 else across*.38+14)
+            candidates.append((score,across,abs(along),key))
     return min(candidates)[3] if candidates else None

@@ -11,6 +11,21 @@ class AppUpdatesTests(unittest.TestCase):
     def setUp(self):self.temp=tempfile.TemporaryDirectory();self.root=pathlib.Path(self.temp.name);self.store=Store(self.root/'private')
     def tearDown(self):self.temp.cleanup()
 
+    def test_self_shortcut_offer_recognizes_pending_managed_and_manual_entries(self):
+        from deck_library import steam_inventory
+        account=self.root/'account';app=self.root/'DeckLibrary/app.py'
+        with patch.object(steam_inventory,'shortcuts',return_value=[]):
+            self.assertFalse(library_app.is_added(self.store,[account],app))
+            atomic_json(self.store.root/'pending.json',{'ids':[library_app.APP_ID],'account':str(account)})
+            self.assertTrue(library_app.is_added(self.store,[account],app))
+            self.assertFalse(library_app.is_added(self.store,[self.root/'other'],app))
+        (self.store.root/'pending.json').unlink()
+        for row in ({'name':'Deck Library','exe':str(self.store.root/'launchers'/(library_app.APP_ID+'.sh')),'options':''},
+                    {'name':'Deck Library','exe':'/usr/bin/python3','options':'"'+str(app)+'" --gaming'},
+                    {'name':'Deck Library','exe':str(app.parent/'launch.sh'),'options':''}):
+            with patch.object(steam_inventory,'shortcuts',return_value=[row]):self.assertTrue(library_app.is_added(self.store,[account],app))
+        with patch.object(steam_inventory,'shortcuts',return_value=[{'name':'Deck Library','exe':'/bin/true','options':''}]):self.assertFalse(library_app.is_added(self.store,[account],app))
+
     def test_an_inflight_check_cannot_restore_an_offer_for_a_port_just_installed(self):
         row={'name':'Game','repository':'Example/Port','installed':'v1','latest':'v2'}
         state={'catalog':[row],'ports':[row],'app':None}

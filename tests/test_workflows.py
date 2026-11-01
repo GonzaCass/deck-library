@@ -37,6 +37,12 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(release_notes({'repository':'owner/repo','latest':'v2.1'},get),'Actualización del autor');self.assertIn('/releases/tags/v2.1',calls[0])
         self.assertEqual(release_notes({'repository':'owner/repo','latest':'v1.0'},get),'')
         self.assertEqual(release_notes({'notes':'Texto en caché'},lambda _:self.fail('Unexpected request')),'Texto en caché')
+    def test_empty_cached_notes_retry_the_displayed_release(self):
+        calls=[]
+        def get(url):calls.append(url);return {'tag_name':'v2','body':'Notes supplied by the author.'}
+        self.assertEqual(release_notes({'repository':'owner/repo','latest':'v2','notes':''},get),'Notes supplied by the author.')
+        self.assertEqual(len(calls),1)
+
     def test_quiver_retains_publisher_release_notes(self):
         with patch('deck_library.updates.quiver_apps',return_value=[{'name':'Port','repository':'owner/repo','installed':'1.0','skipped':''}]):
             rows=check_quiver(get=lambda _:{'tag_name':'2.0','body':'Fixed controls','html_url':'https://github.com/owner/repo/releases/tag/2.0'})

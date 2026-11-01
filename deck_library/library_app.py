@@ -13,6 +13,30 @@ def managed_shortcuts(account):
     from . import steam_inventory
     return [r for r in steam_inventory.shortcuts(account) if r['name']=='Deck Library' and pathlib.Path(r['exe'].strip('"')).name==APP_ID+'.sh' and pathlib.Path(r['exe'].strip('"')).parent.name=='launchers']
 
+def is_added(store,accounts,app=None):
+    """Include queued additions and manually created shortcuts, without modifying Steam."""
+    from . import steam_inventory
+    accounts=[pathlib.Path(a) for a in accounts]
+    app=pathlib.Path(app or pathlib.Path(__file__).resolve().parent.parent/'app.py')
+    try:pending=json.loads((store.root/'pending.json').read_text())
+    except (OSError,ValueError):pending={}
+    if isinstance(pending,dict) and isinstance(pending.get('ids'),list) and APP_ID in pending['ids'] and (not pending.get('account') or any(str(a)==pending['account'] for a in accounts)):return True
+    for account in accounts:
+        try:rows=steam_inventory.shortcuts(account)
+        except (OSError,ValueError,KeyError):continue
+        for row in rows:
+            command=steam_inventory.launch_command(row)
+            if pathlib.Path(command[0]).name==APP_ID+'.sh':return True
+            if _app_name(row['name'])!='decklibrary':continue
+            for value in command:
+                path=pathlib.Path(value)
+                if path in (app,app.parent/'launch.sh'):return True
+                if path.name in ('app.py','launch.sh') and _app_name(path.parent.name).startswith('decklibrary'):return True
+    return False
+
+def _app_name(value):
+    return ''.join(c for c in value.casefold() if c.isalnum())
+
 def refresh_existing_launcher(store=None,home=None,app=None):
     """An existing managed Steam shortcut must launch the installed copy after an upgrade."""
     from .models import Store

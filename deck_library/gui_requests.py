@@ -24,6 +24,7 @@ class RequestsMixin(SupportMixin):
                 page=self.pages.get_visible_child_name()
                 if page=='tools':self.tools_page()
                 elif page=='home':self.home_page()
+                elif page=='requests':self.requests_page()
             return False
         if not self.signed_in():apply(False);return
         def work():

@@ -92,8 +92,8 @@ class Banner(Gtk.DrawingArea):
 
 class Poster(Gtk.DrawingArea):
     """Fixed 2:3 canvas; fill the cover without side bands."""
-    def __init__(self,entry,path,width=160,height=240,overlay=False,steam=False):
-        super().__init__();self.entry=entry;self.overlay=overlay;self.steam=steam;self.set_size_request(width,height);self.pixbuf=None
+    def __init__(self,entry,path,width=160,height=240,overlay=False,steam=False,favorite=False):
+        super().__init__();self.entry=entry;self.overlay=overlay;self.steam=steam;self.favorite=favorite;self.set_size_request(width,height);self.pixbuf=None
         if path:
             try:self.pixbuf=GdkPixbuf.Pixbuf.new_from_file_at_scale(path,600,900,True)
             except (GLib.Error,OSError):pass
@@ -104,37 +104,59 @@ class Poster(Gtk.DrawingArea):
         except (GLib.Error,OSError):self.pixbuf=None
         self.queue_draw()
     def draw_poster(self,widget,cr):
-        import cairo
+        import cairo,math
         w=widget.get_allocated_width();h=widget.get_allocated_height()
         radius=8;cr.new_path()
         for x,y,a,b in [(w-radius,radius,-1.5708,0),(w-radius,h-radius,0,1.5708),(radius,h-radius,1.5708,3.1416),(radius,radius,3.1416,4.7124)]:cr.arc(x,y,radius,a,b)
         cr.close_path();cr.clip()
-        palettes={'Switch':(.10,.48,.40),'WiiCompiled':(.08,.60,.56),'Wii':(.08,.60,.56),'PS2':(.70,.23,.15),'Minecraft':(.22,.46,.28),'Linux':(.32,.39,.60),'Windows':(.47,.52,.55)}
-        color=palettes.get(self.entry.platform,(.31,.35,.53));cr.set_source_rgb(*color);cr.paint()
+        palettes={'Switch':(.11,.46,.41),'WiiCompiled':(.09,.52,.50),'Wii':(.09,.52,.50),'PlayStation 2':(.20,.31,.58),'PS2':(.20,.31,.58),'PlayStation':(.24,.28,.54),'Xbox 360':(.14,.45,.26),'Minecraft':(.20,.45,.27),'Linux':(.24,.35,.56),'Windows':(.26,.34,.48)}
+        color=palettes.get(self.entry.platform,(.26,.31,.49));cr.set_source_rgb(*color);cr.paint()
         if self.pixbuf:
             pw=self.pixbuf.get_width();ph=self.pixbuf.get_height();scale=max(w/pw,h/ph);cr.save();cr.rectangle(0,0,w,h);cr.clip();cr.translate((w-pw*scale)/2,(h-ph*scale)/2);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,self.pixbuf,0,0);cr.get_source().set_extend(cairo.EXTEND_PAD);cr.paint();cr.restore()
         else:
             from gi.repository import PangoCairo
+            from .port_patterns import entry_display_title
+            shown_name=entry_display_title(self.entry)
+            bg=cairo.LinearGradient(0,0,0,h)
+            bg.add_color_stop_rgb(0,min(1,color[0]*1.18),min(1,color[1]*1.18),min(1,color[2]*1.18))
+            bg.add_color_stop_rgb(1,color[0]*.36,color[1]*.36,color[2]*.42)
+            cr.set_source(bg);cr.paint()
+            glow=cairo.RadialGradient(w*.78,h*.18,2,w*.78,h*.18,max(w,h)*.75)
+            glow.add_color_stop_rgba(0,1,1,1,.14);glow.add_color_stop_rgba(1,1,1,1,0)
+            cr.set_source(glow);cr.paint()
             if w<100:
-                layout=self.create_pango_layout(self.entry.name.strip()[:1].upper() or '?');layout.set_font_description(Pango.FontDescription('Sans Bold '+str(max(10,int(w/2.4)))));tw,th=layout.get_pixel_size();cr.set_source_rgb(.93,.95,.98);cr.move_to((w-tw)/2,(h-th)/2);PangoCairo.show_layout(cr,layout);return False
-            cr.set_source_rgba(1,1,1,.06)
-            for offset in range(-int(h),int(w),38):cr.move_to(offset+h*.5,0);cr.line_to(offset,h)
-            cr.set_line_width(14);cr.stroke()
+                layout=self.create_pango_layout(shown_name.strip()[:1].upper() or '?');layout.set_font_description(Pango.FontDescription('Sans Bold '+str(max(10,int(w/2.4)))));tw,th=layout.get_pixel_size();cr.set_source_rgb(.95,.97,1);cr.move_to((w-tw)/2,(h-th)/2);PangoCairo.show_layout(cr,layout);return False
+            words=[part[0].upper() for part in shown_name.replace(':',' ').split() if part and part[0].isalnum()][:2]
+            monogram=''.join(words) or (shown_name.strip()[:1].upper() or '?')
+            emblem=self.create_pango_layout(monogram);emblem.set_font_description(Pango.FontDescription('Sans Bold '+str(max(24,int(w*.34)))))
+            ew,eh=emblem.get_pixel_size();cr.set_source_rgba(1,1,1,.10);cr.move_to((w-ew)/2,max(18,(h-eh)*.36));PangoCairo.show_layout(cr,emblem)
             if not self.overlay:
-                layout=self.create_pango_layout(self.entry.name);layout.set_width(int((w-30)*Pango.SCALE));layout.set_wrap(Pango.WrapMode.WORD_CHAR);layout.set_alignment(Pango.Alignment.CENTER);layout.set_font_description(Pango.FontDescription('Sans Bold '+str(max(7,min(19,int(w/8))))));_,th=layout.get_pixel_size();cr.set_source_rgb(.93,.95,.98);cr.move_to(15,(h-th)/2);PangoCairo.show_layout(cr,layout)
-                cr.set_source_rgba(0,0,0,.3);cr.rectangle(0,h-30,w,30);cr.fill();layout=self.create_pango_layout(self.entry.platform.upper());layout.set_font_description(Pango.FontDescription('Sans Bold 9'));tw,_=layout.get_pixel_size();cr.set_source_rgb(.8,.86,.95);cr.move_to((w-tw)/2,h-23);PangoCairo.show_layout(cr,layout)
+                layout=self.create_pango_layout(shown_name);layout.set_width(int((w-28)*Pango.SCALE));layout.set_wrap(Pango.WrapMode.WORD_CHAR);layout.set_ellipsize(Pango.EllipsizeMode.END);layout.set_height(-2);layout.set_alignment(Pango.Alignment.CENTER);layout.set_font_description(Pango.FontDescription('Sans Bold '+str(max(9,min(14,int(w/9.5))))));_,th=layout.get_pixel_size();cr.set_source_rgb(.95,.97,1);cr.move_to(14,h-th-36);PangoCairo.show_layout(cr,layout)
+                cr.set_source_rgba(0,0,0,.28);cr.rectangle(0,h-28,w,28);cr.fill();layout=self.create_pango_layout((self.entry.platform or 'Juego').upper());layout.set_font_description(Pango.FontDescription('Sans Bold 8'));tw,_=layout.get_pixel_size();cr.set_source_rgb(.84,.90,.98);cr.move_to((w-tw)/2,h-21);PangoCairo.show_layout(cr,layout)
         if self.overlay:self.draw_overlay(widget,cr,w,h)
         return False
     def draw_overlay(self,widget,cr,w,h):
         """Bottom gradient with the game's name and platform, and a small badge for shortcuts already in Steam."""
-        import cairo
+        import cairo,re
         from gi.repository import PangoCairo
-        shade=cairo.LinearGradient(0,0,0,h);shade.add_color_stop_rgba(0,0.025,0.035,0.04,.08);shade.add_color_stop_rgba(.45,0.025,0.035,0.04,.12);shade.add_color_stop_rgba(1,0.025,0.035,0.04,.94);cr.set_source(shade);cr.paint()
-        layout=self.create_pango_layout(self.entry.name);layout.set_font_description(Pango.FontDescription('Sans Bold 11'));layout.set_width(int((w-24)*Pango.SCALE));layout.set_ellipsize(Pango.EllipsizeMode.END);layout.set_height(-2)
-        _,th=layout.get_pixel_size();cr.set_source_rgba(1,1,1,.97);cr.move_to(12,h-th-16);PangoCairo.show_layout(cr,layout)
-        sub=self.create_pango_layout(self.entry.platform.upper());sub.set_font_description(Pango.FontDescription('Sans Bold 8'));tw,th=sub.get_pixel_size();cr.set_source_rgba(.02,.03,.04,.78);cr.rectangle(10,10,tw+14,th+8);cr.fill();cr.set_source_rgba(.9,.94,1,1);cr.move_to(17,14);PangoCairo.show_layout(cr,sub)
+        from .port_patterns import entry_display_title
+        shown_name=entry_display_title(self.entry)
+        shade=cairo.LinearGradient(0,0,0,h);shade.add_color_stop_rgba(0,0.02,0.03,0.04,.02);shade.add_color_stop_rgba(.52,0.02,0.03,0.04,.18);shade.add_color_stop_rgba(1,0.02,0.03,0.04,.94);cr.set_source(shade);cr.paint()
+        clean_title=re.sub(r'\s*\((?:Europe|USA|Japan|World|[E]n[A-Za-z, ]*|Rev\s*\w+|v\d[\d\.]*|Disc\s*\d+)[^\)]*\)','',shown_name,flags=re.I).strip() or shown_name
+        layout=self.create_pango_layout(clean_title);layout.set_font_description(Pango.FontDescription('Sans Bold 9.5'));layout.set_width(int((w-16)*Pango.SCALE));layout.set_wrap(Pango.WrapMode.WORD_CHAR);layout.set_ellipsize(Pango.EllipsizeMode.END);layout.set_height(-3)
+        _,th=layout.get_pixel_size();cr.set_source_rgba(1,1,1,.98);cr.move_to(8,h-th-10);PangoCairo.show_layout(cr,layout)
+        sub=self.create_pango_layout((self.entry.platform or 'Juego').upper());sub.set_font_description(Pango.FontDescription('Sans Bold 7.5'));tw,th=sub.get_pixel_size()
+        px,py,pw,ph,pr=8,8,tw+12,th+5,5
+        cr.new_path()
+        for x,y,a,b in [(px+pw-pr,py+pr,-1.5708,0),(px+pw-pr,py+ph-pr,0,1.5708),(px+pr,py+ph-pr,1.5708,3.1416),(px+pr,py+pr,3.1416,4.7124)]:cr.arc(x,y,pr,a,b)
+        cr.close_path();cr.set_source_rgba(.04,.06,.09,.78);cr.fill()
+        cr.set_source_rgba(.92,.95,1,.95);cr.move_to(px+6,py+2.5);PangoCairo.show_layout(cr,sub)
         if self.steam:
-            cr.set_source_rgba(0.04,0.05,0.09,.78);cr.arc(w-22,22,13,0,6.2832);cr.fill();cr.set_source_rgba(.62,.72,1,1);cr.set_line_width(2.4);cr.move_to(w-28,22);cr.line_to(w-23,27);cr.line_to(w-15,17);cr.stroke()
+            cr.set_source_rgba(0.04,0.05,0.09,.82);cr.arc(w-18,18,10,0,6.2832);cr.fill();cr.set_source_rgba(.68,.82,1,1);cr.set_line_width(2.0);cr.move_to(w-22.5,18);cr.line_to(w-19,21.5);cr.line_to(w-13,14);cr.stroke()
+        if self.favorite:
+            fx=w-38 if self.steam else w-18
+            cr.set_source_rgba(0.04,0.05,0.09,.82);cr.arc(fx,18,10,0,6.2832);cr.fill()
+            star=self.create_pango_layout('★');star.set_font_description(Pango.FontDescription('Sans Bold 9'));sw,sh=star.get_pixel_size();cr.set_source_rgba(1,.82,.28,1);cr.move_to(fx-sw/2,18-sh/2);PangoCairo.show_layout(cr,star)
 
 from .gui_actions import ActionsMixin
 from .gui_shell import ShellMixin

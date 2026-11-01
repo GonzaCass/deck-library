@@ -6,9 +6,17 @@ from .models import atomic_json
 MAX_IMAGE=12*1024*1024
 ALIASES={'0100152000022000':'Mario Kart 8 Deluxe','01006A800016E000':'Super Smash Bros. Ultimate','0100000000010000':'Super Mario Odyssey','010036B0034E4000':'Super Mario Party','01006FE013472000':'Mario Party Superstars','0100965017338000':'Super Mario Party Jamboree','RMCP01':'Mario Kart Wii'}
 
+def _title_key(name):
+    s=re.sub(r'\([^)]*\)|\[[^]]*\]','',str(name or '').lower())
+    s=re.sub(r'^(?:the\s+)|(?:,\s*the\b)','',s.strip())
+    return re.sub(r'[^a-z0-9]','',s)
+
 def title_for(entry):
     if entry.platform=='Minecraft':return 'Minecraft'
-    return ALIASES.get(entry.game_id.upper(),re.sub(r'\([^)]*\)|\[[^]]*\]|(?:\s+v?\d+\.\d+.*)$','',entry.name).strip())
+    if entry.game_id.upper() in ALIASES:return ALIASES[entry.game_id.upper()]
+    from .port_patterns import entry_display_title
+    base=entry_display_title(entry) if (entry.kind=='port' or entry.metadata.get('port_repository') or entry.metadata.get('game_title')) else entry.name
+    return re.sub(r'\([^)]*\)|\[[^]]*\]|(?:\s+v?\d+\.\d+.*)$','',base).strip()
 
 def request(url,key='',limit=1024*1024,timeout=15):
     if urllib.parse.urlparse(url).scheme!='https':raise ValueError('El proveedor debe usar HTTPS.')
@@ -47,7 +55,7 @@ def sgdb_search(query,key):
             if grid.get('url'):rows.append({'title':game['name'],'url':grid['url'],'provider':'SteamGridDB','page':'https://www.steamgriddb.com/grid/'+str(grid['id']),'width':grid.get('width',600),'height':grid.get('height',900)})
     return rows
 
-SYSTEMS={'Wii':'Nintendo - Wii','WiiCompiled':'Nintendo - Wii','GameCube':'Nintendo - GameCube','PlayStation':'Sony - PlayStation','PlayStation 2':'Sony - PlayStation 2','PSP':'Sony - PlayStation Portable','Nintendo 3DS':'Nintendo - Nintendo 3DS','Wii U':'Nintendo - Wii U','Nintendo 64':'Nintendo - Nintendo 64','Game Boy Advance':'Nintendo - Game Boy Advance','Super Nintendo':'Nintendo - Super Nintendo Entertainment System','Xbox 360':'Microsoft - Xbox 360','Xbox':'Microsoft - Xbox'}
+SYSTEMS={'Switch':'Nintendo - Nintendo Switch','Wii':'Nintendo - Wii','WiiCompiled':'Nintendo - Wii','GameCube':'Nintendo - GameCube','PlayStation':'Sony - PlayStation','PlayStation 2':'Sony - PlayStation 2','PlayStation 3':'Sony - PlayStation 3','PSP':'Sony - PlayStation Portable','Nintendo 3DS':'Nintendo - Nintendo 3DS','Nintendo DS':'Nintendo - Nintendo DS','Wii U':'Nintendo - Wii U','Nintendo 64':'Nintendo - Nintendo 64','Game Boy Advance':'Nintendo - Game Boy Advance','Game Boy Color':'Nintendo - Game Boy Color','Game Boy':'Nintendo - Game Boy','NES':'Nintendo - Nintendo Entertainment System','Super Nintendo':'Nintendo - Super Nintendo Entertainment System','SEGA':'Sega - Mega Drive - Genesis','Xbox 360':'Microsoft - Xbox 360','Xbox':'Microsoft - Xbox'}
 @functools.lru_cache(maxsize=12)
 def libretro_index(system):
     url='https://thumbnails.libretro.com/'+urllib.parse.quote(system,safe='')+'/Named_Boxarts/'
@@ -62,9 +70,9 @@ def libretro_index(system):
 def libretro_search(query,platform,fuzzy=False):
     system=SYSTEMS.get(platform)
     if not system:return []
-    wanted=normalized(query)
+    wanted=normalized(query);wanted_key=_title_key(query)
     # Fuzzy lookups (manual search) accept titles that contain the query; automatic ones stay exact.
-    rows=[row for row in libretro_index(system) if normalized(row['title'])==wanted or (fuzzy and len(wanted)>=4 and wanted in normalized(row['title']))]
+    rows=[row for row in libretro_index(system) if normalized(row['title'])==wanted or _title_key(row['title'])==wanted_key or (fuzzy and len(wanted)>=4 and wanted in normalized(row['title']))]
     rows.sort(key=lambda row:('Europe' not in row['title'],len(row['title'])))
     return rows[:12]
 
@@ -95,8 +103,8 @@ def search(query,preferences,merge=False):
     return wiki_search(query)
 
 def best_match(entry,rows):
-    wanted=normalized(title_for(entry))
-    exact=[row for row in rows if normalized(row['title'])==wanted]
+    title=title_for(entry);wanted=normalized(title);wanted_key=_title_key(title)
+    exact=[row for row in rows if normalized(row['title'])==wanted or _title_key(row['title'])==wanted_key]
     # Never silently assign an unrelated search result.
     if exact:return exact[0]
     # Wikipedia redirects the Deluxe edition to the shared Mario Kart 8 article.

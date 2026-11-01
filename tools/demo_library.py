@@ -18,6 +18,21 @@ GAMES=[
 
 PORT_ARTWORK=[{'name':'Spider-Man','libretro':('Sony - PlayStation','Spider-Man (USA).png')}]
 
+def fictional_entries(store,language='en'):
+    """Local, original vector covers for reproducible screenshots without a personal library."""
+    from deck_library.models import Entry
+    english=['Crystal Forest','Northern Circuit','Station 13','Orbital','Port Atlas','Trails','Copper Valley','Star Journey']
+    spanish=['Bosque de cristal','Circuito norte','Estación 13','Orbital','Puerto Atlas','Senderos','Valle de cobre','Viaje estelar']
+    colors=[('#125c49','#86d8af'),('#243d70','#78a9ff'),('#625832','#efdfa1'),('#482766','#ce9bfa'),('#205964','#88d3df'),('#66394e','#f6a4c8'),('#71462a','#f8ba89'),('#384f70','#a6caed')]
+    folder=store.root/'demo-art';folder.mkdir(exist_ok=True);result=[]
+    for i,(name,(bg,fg)) in enumerate(zip(spanish if language=='es' else english,colors)):
+        art=folder/f'{i}.svg'
+        art.write_text(f'<svg xmlns="http://www.w3.org/2000/svg" width="600" height="900"><defs><linearGradient id="sky" x2="0.8" y2="1"><stop stop-color="{bg}"/><stop offset="1" stop-color="#101825"/></linearGradient></defs><rect width="600" height="900" fill="url(#sky)"/><circle cx="410" cy="245" r="170" fill="{fg}"/><path d="M0 590L330 270L600 600V900H0Z" fill="{fg}" opacity=".28"/><path d="M0 180L600 690M0 290L600 800" stroke="#ffffff" opacity=".25" stroke-width="2"/><text x="38" y="785" fill="#ffffff" font-family="Sans" font-size="36" font-weight="bold">{html.escape(name)}</text><text x="38" y="840" fill="#ffffff" font-family="Sans" font-size="18">DEMO · DECK LIBRARY</text></svg>')
+        is_port=i in (1,3,4,6)
+        result.append(Entry(name,['/bin/true',str(i)],kind='port' if is_port else 'emulated',platform='Linux' if is_port else 'Switch',cover=str(art),game_id='' if is_port else f'01000000000000{i:02d}'))
+    return result
+
+
 def fetch(url,limit=12*1024*1024):
     if urllib.parse.urlparse(url).scheme!='https':raise ValueError('Artwork requires HTTPS')
     request=urllib.request.Request(url,headers={'User-Agent':'DeckLibrary-VisualPreview/1.0'})

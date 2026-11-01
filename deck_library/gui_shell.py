@@ -21,16 +21,18 @@ class ShellMixin:
         self.get_style_context().add_class('pointer-input');self.connect('button-press-event',self.pointer_input);self.connect('touch-event',self.pointer_input);self.connect('key-press-event',self.keyboard_input)
         self.track_pointer_input(self)
         self.connect('size-allocate',self.update_density);self.connect('destroy',Gtk.main_quit);self.connect('destroy',self.close_ui_sources);self.connect('delete-event',lambda *_:not self.discard_game_edits());self.connect('key-press-event',self.library_key);self.connect('set-focus',self.library_focus_changed);self.connect('map',self.fit_window);self.connect('size-allocate',self.update_game_size);self.connect('size-allocate',lambda *_:self.update_controller_hints(self))
-        root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.add(root);self.build_navigation(root)
-        overlay=Gtk.Overlay();root.pack_start(overlay,True,True,0);self.pages=PageStack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);self.inline_workflows=[];self.workflow_stack=Gtk.Stack();self.workflow_stack.set_homogeneous(False);self.workflow_stack.connect('notify::visible-child',self.refresh_layout);self.workflow_stack.add_named(self.pages,'main');overlay.add(self.workflow_stack);self.toast_widget=motion.Toast();overlay.add_overlay(self.toast_widget)
-        self.build_library_page();self.home_box=self.scrolled_page('home');self.validated_box=self.scrolled_page('validated');self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.detail.set_border_width(20);self.pages.add_named(self.detail,'detail');self.settings_box=self.scrolled_page('settings');self.updates_box=self.scrolled_page('updates');self.catalog_box=self.scrolled_page('catalog');self.add_box=self.scrolled_page('add');self.pending_box=self.scrolled_page('pending');self.tools_box=self.scrolled_page('tools');self.help_box=self.scrolled_page('help')
+        root=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);self.add(root)
+        self.floating_banners=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);self.floating_banners.set_halign(Gtk.Align.END);self.floating_banners.set_valign(Gtk.Align.END);self.floating_banners.set_margin_bottom(14);self.floating_banners.set_margin_start(24);self.floating_banners.set_margin_end(24)
+        self.build_navigation(root)
+        overlay=Gtk.Overlay();root.pack_start(overlay,True,True,0);self.pages=PageStack();self.pages.set_hexpand(True);self.pages.set_vexpand(True);self.pages.connect('notify::visible-child-name',self.page_changed);self.inline_workflows=[];self.workflow_stack=Gtk.Stack();self.workflow_stack.set_homogeneous(False);self.workflow_stack.connect('notify::visible-child',self.refresh_layout);self.workflow_stack.add_named(self.pages,'main');overlay.add(self.workflow_stack);overlay.add_overlay(self.floating_banners);overlay.set_overlay_pass_through(self.floating_banners,True);self.toast_widget=motion.Toast();overlay.add_overlay(self.toast_widget)
+        self.build_library_page();self.home_box=self.scrolled_page('home');self.validated_box=self.scrolled_page('validated');self.detail=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.detail.set_border_width(20);self.pages.add_named(self.detail,'detail');self.settings_box=self.scrolled_page('settings');self.updates_box=self.scrolled_page('updates');self.catalog_box=self.scrolled_page('catalog');self.requests_box=self.scrolled_page('requests');self.account_box=self.scrolled_page('account');self.add_box=self.scrolled_page('add');self.pending_box=self.scrolled_page('pending');self.tools_box=self.scrolled_page('tools');self.help_box=self.scrolled_page('help')
         self.wizard_actions=Gtk.Box(spacing=8);self.wizard_actions.set_border_width(12);wizard_shell=Gtk.Box(orientation=Gtk.Orientation.VERTICAL);wizard_shell.pack_start(self.wizard_actions,False,False,0)
         self.wizard_box=Gtk.Stack();self.wizard_box.set_homogeneous(False);self.wizard_box.connect('notify::visible-child',self.refresh_layout);wizard_scroll=self.new_scroll();wizard_scroll.add(self.wizard_box);wizard_shell.pack_start(wizard_scroll,True,True,0);self.pages.add_named(wizard_shell,'welcome')
         footer=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);footer.set_margin_start(24);footer.set_margin_end(24);footer.set_margin_bottom(8);root.pack_end(footer,False,False,0)
-        self.build_pending_banner(footer);footer.remove(self.pending_bar);root.pack_start(self.pending_bar,False,False,0);root.reorder_child(self.pending_bar,4)
+        self.build_pending_banner(self.floating_banners)
         self.artwork_bar=Gtk.Box(spacing=8);self.artwork_bar.set_no_show_all(True);self.artwork_spinner=Gtk.Spinner();self.artwork_label=label('','meta');self.artwork_bar.pack_start(self.artwork_spinner,False,False,0);self.artwork_bar.pack_start(self.artwork_label,True,True,0);footer.pack_start(self.artwork_bar,False,False,0)
         from .controller_hints import ControllerHints
-        self.controller_hint=ControllerHints();self.controller_hint.set_no_show_all(False);footer.pack_start(self.controller_hint,False,False,0)
+        self.controller_hint=ControllerHints(layout=self.preferences.get('controller_layout','ps'));self.controller_hint.set_no_show_all(False);footer.pack_start(self.controller_hint,False,False,0)
         status_row=Gtk.Box(spacing=12);footer.pack_start(status_row,False,False,0)
         self.status=label('','status');self.status.set_line_wrap(False);self.status.set_ellipsize(Pango.EllipsizeMode.END);self.status.set_no_show_all(True);self.status.hide();status_row.pack_start(self.status,True,True,0)
         self.version_label=label('v'+__version__);self.version_label.set_line_wrap(False);self.version_label.set_max_width_chars(48);self.version_label.set_ellipsize(Pango.EllipsizeMode.END);self.version_label.set_halign(Gtk.Align.START);self.version_label.set_tooltip_text('Instalación en uso: '+str(pathlib.Path(__file__).resolve().parent.parent))
@@ -45,6 +47,7 @@ class ShellMixin:
         if self.preferences.get('check_updates',True):self.ui_sources.append(GLib.timeout_add_seconds(5,self.check_updates))
         path=self.store.root/'last-sync.json';self.last_sync_seen=path.stat().st_mtime if path.exists() else 0;self.ui_sources.append(GLib.timeout_add_seconds(3,self.poll_sync));self.refresh_pending()
         self.start_gamepad();GLib.timeout_add_seconds(12,self.top_up_library_art)
+        if not os.environ.get('DECK_LIBRARY_UI_TESTS'):self.ui_sources.append(GLib.timeout_add_seconds(3,lambda:(self.fetch_covers(),False)[1]))
         self.ui_sources.append(GLib.timeout_add_seconds(45,self.poll_request_replies))
         self.start_live_refresh()
         self.ui_sources.append(GLib.timeout_add_seconds(8,self.check_missing_roms))
@@ -77,7 +80,7 @@ class ShellMixin:
         button.caption.set_text(caption);button.caption.set_no_show_all(False);button.caption.show()
         button.set_tooltip_text(('Cuenta · '+login) if login else 'Registrarse o iniciar sesión');button.get_accessible().set_name(caption)
         for name in ('steam','quiet'):style.remove_class(name)
-        style.add_class('quiet');GLib.idle_add(self.check_owner_mode)
+        style.add_class('quiet');style.add_class('nav');GLib.idle_add(self.check_owner_mode)
         GLib.idle_add(lambda:(self.poll_request_replies(),False)[1])
     def update_density(self,_,allocation):
         self.resize_console_home()
@@ -114,52 +117,60 @@ class ShellMixin:
     def build_navigation(self,root):
         from .gui import label,button
         from .ui_components import Icon
-        bar=Gtk.Box(spacing=8);bar.get_style_context().add_class('app-header');bar.set_border_width(0);root.pack_start(bar,False,False,0)
+        bar=Gtk.Box(spacing=6);bar.get_style_context().add_class('app-header');bar.set_border_width(0);root.pack_start(bar,False,False,0)
         from . import ui_theme;self.brand_icon=Gtk.Image.new_from_pixbuf(ui_theme.brand_pixbuf(self.asset('brand.png'),28,self.preferences.get('theme','dark')));bar.pack_start(self.brand_icon,False,False,4);brand=label('Deck Library','brand');brand.set_margin_end(12);self.brand_label=brand;bar.pack_start(brand,False,False,0)
         self.nav_buttons={};self.nav_icons=[];self.update_badge=label('','badge');self.update_badge.set_no_show_all(True);self.update_badge.set_valign(Gtk.Align.CENTER);self.update_badge.set_halign(Gtk.Align.CENTER)
         from .ui_components import ActionButton,styled
-        self.primary_nav=('Inicio','Biblioteca','Ports','Ajustes')
+        self.primary_nav=('Inicio','Biblioteca','Ports','Actualizaciones','Solicitudes','Herramientas','Ajustes')
         self.shell_menu=styled(Gtk.MenuButton(),'console-round','shell-menu')
-        menu_body=Gtk.Box(spacing=6);menu_body.pack_start(Icon('more',20),False,False,0)
-        self.shell_update_badge=label('','badge');self.shell_update_badge.set_no_show_all(True);menu_body.pack_start(self.shell_update_badge,False,False,0)
+        menu_body=Gtk.Box(spacing=6);menu_body.pack_start(Icon('more',18),False,False,0)
+        self.shell_update_badge=label('','badge');self.shell_update_badge.set_no_show_all(True);self.shell_update_badge.hide();menu_body.pack_start(self.shell_update_badge,False,False,0)
         self.shell_menu.add(menu_body);self.shell_menu.set_tooltip_text('Más secciones');self.shell_menu.get_accessible().set_name('Más secciones')
         popover=Gtk.Popover.new(self.shell_menu);extras=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);extras.set_border_width(12)
         self.shell_menu_scroll=self.new_scroll();self.shell_menu_scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);self.shell_menu_scroll.set_min_content_width(220);self.shell_menu_scroll.set_max_content_height(500);self.shell_menu_scroll.set_propagate_natural_height(True);self.shell_menu_scroll.add(extras);popover.add(self.shell_menu_scroll);self.shell_menu.set_popover(popover)
-        for name,callback in [('Inicio',lambda _:self.home_page()),('Biblioteca',lambda _:self.open_library()),('Ports',lambda _:self.catalog_page()),('Ajustes',lambda _:self.settings_page()),('Verificados',lambda _:self.validated_page()),('Actualizaciones',lambda _:self.updates_page()),('Herramientas',lambda _:self.tools_page())]:
+        for name,callback in [('Inicio',lambda _:self.home_page()),('Biblioteca',lambda _:self.open_library()),('Ports',lambda _:self.catalog_page()),('Actualizaciones',lambda _:self.updates_page()),('Solicitudes',lambda _:self.requests_page()),('Herramientas',lambda _:self.tools_page()),('Ajustes',lambda _:self.settings_page()),('Verificados',lambda _:self.validated_page())]:
             control=button(name,lambda w,action=callback:self.navigate_from_game(action,w));control.get_style_context().add_class('nav');control.set_valign(Gtk.Align.CENTER);bar.pack_start(control,False,False,0);self.nav_buttons[name]=control
-            caption=control.get_child();control.remove(caption);content=Gtk.Box(spacing=7);icon=Icon({'Inicio':'grid','Biblioteca':'library','Verificados':'check','Ports':'controller','Actualizaciones':'download','Herramientas':'folder','Ajustes':'sliders'}[name],18);self.nav_icons.append(icon);content.pack_start(icon,False,False,0);content.pack_start(caption,False,False,0);control.add(content);control.get_accessible().set_name(name)
-            if name=='Ports':caption.set_text('Conseguir juegos')
+            caption=control.get_child();control.remove(caption);content=Gtk.Box(spacing=7);icon=Icon({'Inicio':'grid','Biblioteca':'library','Verificados':'check','Ports':'controller','Actualizaciones':'download','Solicitudes':'community','Herramientas':'folder','Ajustes':'sliders'}[name],18);self.nav_icons.append(icon);content.pack_start(icon,False,False,0);content.pack_start(caption,False,False,0);control.add(content);control.get_accessible().set_name(name)
             if name not in self.primary_nav:
                 bar.remove(control);extras.pack_start(control,False,False,0);control.connect('clicked',lambda _:popover.popdown())
             if name=='Actualizaciones':
                 content.pack_start(self.update_badge,False,False,0)
         self.steam_library_button=button('Agregar a Steam',self.add_library_to_steam);self.steam_library_button.set_valign(Gtk.Align.CENTER);self.steam_library_button.set_tooltip_text('Agregar Deck Library a Steam');self.steam_library_button.get_accessible().set_name('Agregar Deck Library a Steam');self.steam_library_button.get_style_context().add_class('steam-add');bar.pack_start(self.steam_library_button,False,False,0)
-        gaming=motion.gaming_mode()
-        self.steam_library_button.set_no_show_all(gaming)
-        self.steam_library_button.set_visible(not gaming)
-        bar.remove(self.steam_library_button);extras.pack_start(self.steam_library_button,False,False,0)
-        from .gui_account import account_dialog
+        self.steam_library_button.set_no_show_all(True);self.steam_library_button.hide()
+        bar.remove(self.steam_library_button);extras.pack_start(self.steam_library_button,False,False,0);self.steam_library_button.get_style_context().add_class('primary');self.steam_library_button.connect('clicked',lambda _:popover.popdown())
         from .ui_components import ActionButton
         help_button=ActionButton('Ayuda','file',self.help_page,'quiet');self.help_button=help_button;extras.pack_start(help_button,False,False,0);help_button.connect('clicked',lambda _:popover.popdown())
-        account_button=ActionButton('Cuenta','community',lambda _:account_dialog(self),'quiet');account_button.set_valign(Gtk.Align.CENTER);self.account_button=account_button;extras.pack_start(account_button,False,False,0);account_button.connect('clicked',lambda _:popover.popdown());self.refresh_account_button()
+        account_button=ActionButton('Cuenta','community',lambda w:self.navigate_from_game(lambda _:self.account_page(),w),'quiet');account_button.get_style_context().add_class('nav');account_button.set_valign(Gtk.Align.CENTER);self.account_button=account_button;self.nav_icons.append(account_button.icon);bar.pack_start(account_button,False,False,0);self.refresh_account_button()
+        pending_btn=styled(ActionButton('Steam','steam',lambda _:self.navigate_from_game(lambda _:self.pending_details()),'quiet'),'steam-pending-btn')
+        pending_btn.set_valign(Gtk.Align.CENTER);pending_btn.set_tooltip_text('Cambios pendientes en Steam');pending_btn.get_accessible().set_name('Cambios pendientes en Steam')
+        self.steam_pending_badge=label('','badge');self.steam_pending_badge.set_valign(Gtk.Align.CENTER);pending_btn.body.pack_end(self.steam_pending_badge,False,False,0)
+        pending_btn.set_no_show_all(True);pending_btn.hide();self.steam_pending_btn=pending_btn;bar.pack_start(pending_btn,False,False,0)
         extras.show_all()
         self.shell_menu_scroll.show_all()
-        self.shell_search=styled(ActionButton('','search',lambda _:self.search_library()),'console-round');self.shell_search.get_accessible().set_name('Buscar juegos');self.shell_search.set_tooltip_text('Buscar juegos')
+        self.shell_search=styled(ActionButton('Buscar','search',lambda w:self.navigate_from_game(lambda _:self.search_library(),w),'primary'),'search-pill');self.shell_search.get_accessible().set_name('Buscar juegos');self.shell_search.set_tooltip_text('Buscar juegos')
         bar.pack_end(self.shell_menu,False,False,0);bar.pack_end(self.shell_search,False,False,0)
         self.shell_clock=label('','meta');self.shell_clock.set_margin_start(12);bar.pack_end(self.shell_clock,False,False,0)
         self.tick_shell_clock();self.ui_sources.append(GLib.timeout_add_seconds(30,self.tick_shell_clock))
-        self.navigation_controls=[*self.nav_buttons.values(),self.steam_library_button,account_button,help_button,self.shell_menu,self.shell_search]
+        self.navigation_controls=[*self.nav_buttons.values(),self.steam_library_button,account_button,pending_btn,help_button,self.shell_menu,self.shell_search]
         # Keep all tabs and the Steam action reachable at compact widths.
-        header_scroll=self.new_scroll();header_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);header_scroll.set_overlay_scrolling(False);root.remove(bar);header_scroll.add(bar);root.pack_start(header_scroll,False,False,0);root.reorder_child(header_scroll,0)
-        self.update_banner=Gtk.Box(spacing=12);self.update_banner.set_no_show_all(True);self.update_banner.get_style_context().add_class('banner');self.banner_text=label('');self.banner_action=button('Ver',lambda _:self.banner_clicked());self.update_banner.pack_start(self.banner_text,True,True,0);self.banner_close=Gtk.Button();self.banner_close.add(Icon('close',18));self.banner_close.get_style_context().add_class('quiet');self.banner_close.set_tooltip_text('Cerrar el aviso');self.banner_close.get_accessible().set_name('Cerrar el aviso');self.banner_close.connect('clicked',lambda _:self.dismiss_banner());self.banner_close.show_all();self.update_banner.pack_end(self.banner_close,False,False,0);self.update_banner.pack_end(self.banner_action,False,False,0);root.pack_start(self.update_banner,False,False,0)
-        self.build_launch_notice(root)
-        self.build_request_notification(root)
+        header_scroll=self.new_scroll();header_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);header_scroll.set_overlay_scrolling(True);root.remove(bar);header_scroll.add(bar);root.pack_start(header_scroll,False,False,0);root.reorder_child(header_scroll,0)
+        self.update_banner=Gtk.Box(spacing=12);self.update_banner.set_no_show_all(True);self.update_banner.get_style_context().add_class('banner');self.banner_text=label('');self.banner_action=button('Ver',lambda _:self.banner_clicked());self.update_banner.pack_start(self.banner_text,True,True,0);self.banner_close=Gtk.Button();self.banner_close.add(Icon('close',18));self.banner_close.get_style_context().add_class('quiet');self.banner_close.set_tooltip_text('Cerrar el aviso');self.banner_close.get_accessible().set_name('Cerrar el aviso');self.banner_close.connect('clicked',lambda _:self.dismiss_banner());self.banner_close.show_all();self.update_banner.pack_end(self.banner_close,False,False,0);self.update_banner.pack_end(self.banner_action,False,False,0);self.floating_banners.pack_start(self.update_banner,False,False,0)
+        self.build_launch_notice(self.floating_banners)
+        self.build_request_notification(self.floating_banners)
     def tick_shell_clock(self):
         import time
         self.shell_clock.set_text(time.strftime('%H:%M'));return not self.ui_closed
     def search_library(self):
-        self.open_library();self.search.grab_focus()
-        if self.controller_mode:self.open_keyboard(self.search)
+        page=self.pages.get_visible_child_name()
+        if page=='catalog' and hasattr(self,'catalog_search'):
+            if hasattr(self,'reveal_catalog_search'):self.reveal_catalog_search()
+            self.open_keyboard(self.catalog_search);return
+        if page=='validated' and hasattr(self,'validated_search'):
+            self.validated_search.grab_focus();self.open_keyboard(self.validated_search);return
+        self.open_library()
+        scroll=self.library_stack.get_visible_child()
+        if isinstance(scroll,Gtk.ScrolledWindow):motion.smooth_scroll(scroll.get_vadjustment(),0,duration=90)
+        self.search.grab_focus();self.open_keyboard(self.search)
     def dismiss_banner(self):
         """Hide the notice until its text changes (another update, or a different state)."""
         self.banner_dismissed=self.banner_text.get_text();self.update_banner.hide()
@@ -183,8 +194,22 @@ class ShellMixin:
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);box.get_style_context().add_class('card')
         if title:box.pack_start(label(title,'title'),False,False,0)
         parent.pack_start(box,False,False,0);return box
+    def account_page(self,*_):
+        if not self.discard_game_edits():return
+        from .gui_account import AccountPane
+        from .community import Client
+        if getattr(self,'active_account_pane',None) is not None:
+            self.active_account_pane.close();self.active_account_pane=None
+        self.reset_page(self.account_box)
+        pane=AccountPane(Client(self.store,self.preferences.get('community_url','https://presets.jokerlan.xyz')),on_change=self.refresh_account_button,on_requests=self.requests_page)
+        self.active_account_pane=pane;self.account_box.pack_start(pane,True,True,0)
+        self.account_box.show_all();self.pages.set_visible_child_name('account');self.refresh_layout()
+        GLib.idle_add(lambda:(self.ensure_controller_focus(self),False)[1])
     def page_changed(self,*_):
-        page=self.pages.get_visible_child_name();active={'home':'Inicio','library':'Biblioteca','validated':'Verificados','detail':{'home':'Inicio','validated':'Verificados'}.get(getattr(self,'detail_origin','library'),'Biblioteca'),'add':'Ports','catalog':'Ports','updates':'Actualizaciones','tools':'Herramientas','settings':'Ajustes','pending':'Actualizaciones'}.get(page)
+        page=self.pages.get_visible_child_name();active={'home':'Inicio','library':'Biblioteca','validated':'Verificados','detail':{'home':'Inicio','validated':'Verificados'}.get(getattr(self,'detail_origin','library'),'Biblioteca'),'add':'Ports','catalog':'Ports','updates':'Actualizaciones','requests':'Solicitudes','tools':'Herramientas','settings':'Ajustes','pending':'Actualizaciones'}.get(page)
+        if page!='account' and getattr(self,'active_account_pane',None) is not None:
+            self.active_account_pane.close();self.active_account_pane=None
+        acc_style=self.account_button.get_style_context();acc_style.add_class('active') if page=='account' else acc_style.remove_class('active')
         style=self.help_button.get_style_context();style.add_class('active') if page=='help' else style.remove_class('active')
         secondary=active and active not in self.primary_nav or page=='help'
         style=self.shell_menu.get_style_context();style.add_class('active') if secondary else style.remove_class('active')
@@ -192,9 +217,9 @@ class ShellMixin:
             style=control.get_style_context();style.add_class('active') if name==active else style.remove_class('active')
     def build_library_page(self):
         from .gui import label,button
-        page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);page.set_border_width(14);self.pages.add_named(page,'library')
-        head=Gtk.Box(spacing=12);head.pack_start(label('Biblioteca','hero'),False,False,0);self.library_count=label('','meta');self.library_count.get_style_context().add_class('library-count');head.pack_start(self.library_count,True,True,0);page.pack_start(head,False,False,0)
-        toolbar=Gtk.Box(spacing=10);toolbar.get_style_context().add_class('page-toolbar');self.search=Gtk.SearchEntry();self.search.set_placeholder_text('Buscar juegos · X: teclado');self.bind_search_keyboard(self.search);self.search.set_width_chars(16);self.search.set_hexpand(True);self.search.connect('search-changed',lambda _:self.render());toolbar.pack_start(self.search,True,True,0);self.filter_toggle=button('Vista y filtros',self.toggle_library_filters);toolbar.pack_end(self.filter_toggle,False,False,0);page.pack_start(toolbar,False,False,0)
+        page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);page.set_border_width(14);self.pages.add_named(page,'library')
+        head=Gtk.Box(spacing=12);head.pack_start(label('Biblioteca','hero'),False,False,0);head.set_no_show_all(True);head.hide();page.pack_start(head,False,False,0)
+        toolbar=Gtk.Box(spacing=10);toolbar.get_style_context().add_class('page-toolbar');self.search=Gtk.SearchEntry();self.search.set_placeholder_text('Buscar juegos · X: teclado');self.bind_search_keyboard(self.search);self.search.set_width_chars(16);self.search.set_hexpand(True);self.search.connect('search-changed',lambda _:self.render());toolbar.pack_start(self.search,True,True,0);self.library_count=label('','meta');self.library_count.get_style_context().add_class('library-count');toolbar.pack_start(self.library_count,False,False,4);self.filter_toggle=button('Vista y filtros',self.toggle_library_filters);toolbar.pack_end(self.filter_toggle,False,False,0);page.pack_start(toolbar,False,False,0)
         filters=Gtk.Box(spacing=8);self.platform_picker=Gtk.ComboBoxText();self.platform_picker.get_accessible().set_name('Plataforma');self.platform_picker.append('all','Todas las plataformas');self.platform_picker.set_active_id('all');self.platform_picker.connect('changed',self.filter_changed);filters.pack_start(self.platform_picker,False,False,0)
         self.type_picker=Gtk.ComboBoxText();self.type_picker.get_accessible().set_name('Tipo de juego');self.type_picker.append('all','Todos los tipos')
         for key,title in TYPES:self.type_picker.append(key,title)
@@ -237,8 +262,9 @@ class ShellMixin:
             from .game_removal import library_entries
             entries=library_entries(self.entries,self.preferences,prefer_ports=False)[0]
         from .originals import associations
+        from .port_patterns import entry_display_title
         linked=associations(self.entries,self.preferences.get('unlinked_originals',[]))
-        return sorted([e for e in entries if text in (e.name+' '+e.platform).casefold() and (self.platform_filter=='all' or self.platform_filter==e.platform or any(o.platform==self.platform_filter for o in linked.get(e.id,[]))) and (self.type_filter=='all' or self.type_filter==entry_type(e))],key=self.sort_key())
+        return sorted([e for e in entries if text in (e.name+' '+entry_display_title(e)+' '+e.platform).casefold() and (self.platform_filter=='all' or self.platform_filter==e.platform or any(o.platform==self.platform_filter for o in linked.get(e.id,[]))) and (self.type_filter=='all' or self.type_filter==entry_type(e))],key=self.sort_key())
     def render(self):
         previous_focus=getattr(self.get_focus(),'library_entry_id',None)
         self.library_targets={}
@@ -252,15 +278,17 @@ class ShellMixin:
             self.originals_label.set_text(str(len(originals))+' originales con un port instalado.');self.originals_button.set_tooltip_text(self.originals_label.get_text());self.originals_bar.set_no_show_all(False);self.originals_bar.show_all();self.originals_bar.set_no_show_all(True)
         else:self.originals_bar.hide()
         from .gui import label,Poster
+        from .port_patterns import entry_display_title
         self.steam_pending_ids=self.pending_game_ids();self.reset_page(self.list);self.reset_page(self.covers);self.reset_page(self.platform_groups);self.new_tiles=[];entries=self.visible();total=len(self.shown_entries()[0]);self.library_count.set_text(str(total)+' juegos'+(' · '+str(len(entries))+' visibles' if len(entries)!=total else ''))
         groups={}
         for e in entries:
+            shown=entry_display_title(e)
             row=Gtk.ListBoxRow();row.entry=e
             if self.view=='list':self.bind_library_focus(row,e)
             compact=self.compact_screen();body=Gtk.Box(spacing=12 if compact else 16);body.set_border_width(3 if compact else 8);row.add(body)
             if self.selection_mode:
                 check=Gtk.CheckButton();check.set_active(e.id in self.checked);check.connect('toggled',self.toggle,e.id);body.pack_start(check,False,False,0)
-            body.pack_start(Poster(e,find_cover(e),*((36,54) if compact else (48,72))),False,False,0);texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=1 if compact else 6);texts.pack_start(label(e.name,'title'),False,False,0);texts.pack_start(label(e.platform+(' · En Steam' if self.in_steam(e) else ''),'meta'),False,False,0);body.pack_start(texts,True,True,0);self.list.add(row)
+            body.pack_start(Poster(e,find_cover(e),*((36,54) if compact else (48,72))),False,False,0);texts=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=1 if compact else 6);texts.pack_start(label(shown,'title'),False,False,0);texts.pack_start(label(e.platform+(' · En Steam' if self.in_steam(e) else ''),'meta'),False,False,0);body.pack_start(texts,True,True,0);self.list.add(row)
             linked=self.rom_associations.get(e.id,[])
             if linked:texts.pack_start(label(rom_caption(linked),'meta'),False,False,0)
             if self.view=='covers':self.add_cover_card(e)
@@ -289,18 +317,16 @@ class ShellMixin:
 
     def add_cover_card(self,e,target=None):
         from .gui import label,Poster
-        tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0);tile.get_style_context().add_class('library-game');tile.set_size_request(148,-1);tile.set_halign(Gtk.Align.CENTER);action=Gtk.Button();action.get_style_context().add_class('poster');action.add(Poster(e,find_cover(e),148,222,overlay=True,steam=self.in_steam(e)));action.connect('clicked',lambda _:self.select_game(e));action.set_tooltip_text(e.name);self.bind_library_focus(action,e,tile)
+        from .port_patterns import entry_display_title
+        shown=entry_display_title(e)
+        tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0);tile.get_style_context().add_class('library-game');tile.set_size_request(148,-1);tile.set_halign(Gtk.Align.CENTER);action=Gtk.Button();action.get_style_context().add_class('poster');action.add(Poster(e,find_cover(e),148,222,overlay=True,steam=self.in_steam(e),favorite=self.is_favorite(e)));action.connect('clicked',lambda _:self.select_game(e));action.set_tooltip_text(shown);self.bind_library_focus(action,e,tile)
         if e.id in self.checked:action.get_style_context().add_class('selected')
-        tile.pack_start(action,False,False,0);info=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);info.get_style_context().add_class('game-card-info');tile.pack_start(info,False,False,0)
-        if self.is_favorite(e):info.pack_start(label('★ Favorito','card-state'),False,False,0)
-        if e.metadata.get('configured') is False:info.pack_start(label('Necesita preparación','card-state'),False,False,0)
-        elif self.in_steam(e):info.pack_start(label('En Steam','card-state'),False,False,0)
-        elif e.id in getattr(self,'steam_pending_ids',()):info.pack_start(label('Pendiente en Steam','card-state'),False,False,0)
+        tile.pack_start(action,False,False,0);info=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);info.get_style_context().add_class('game-card-info');info.set_no_show_all(True);info.hide();tile.pack_start(info,False,False,0)
         (target if target is not None else self.covers).add(tile);tile.get_parent().set_can_focus(False);self.new_tiles.append(tile)
         linked=getattr(self,'rom_associations',{}).get(e.id,[])
         if linked:
             from .originals import rom_caption
-            badge=label(rom_caption(linked),'meta');badge.set_tooltip_text('\n'.join(o.source for o in linked));tile.pack_start(badge,False,False,0)
+            badge=label(rom_caption(linked),'meta');badge.set_no_show_all(True);badge.hide();badge.set_tooltip_text('\n'.join(o.source for o in linked));tile.pack_start(badge,False,False,0)
     def open_library(self):
         if not self.discard_game_edits():return
         if getattr(self,'library_dirty',False):self.render()
@@ -343,24 +369,32 @@ class ShellMixin:
         if self.detail_origin=='home':self.home_focus_id=e.id
         self.detail_game_id=None;self.selected=e;self.show_detail(e);self.pages.set_visible_child_name('detail');self.game_play_button.grab_focus()
     def add_hub(self):self.catalog_page()
+    def offer_steam_shortcut(self):
+        from .library_app import is_added
+        account=self.current_account() if hasattr(self,'account') else None
+        return not motion.gaming_mode() and not is_added(self.store,[account] if account else [])
+
+    def refresh_steam_library_offer(self):
+        offer=self.offer_steam_shortcut()
+        self.steam_library_button.set_no_show_all(not offer);self.steam_library_button.set_visible(offer)
+        row=getattr(self,'steam_tools_row',None)
+        if row is not None:row.set_no_show_all(not offer);row.set_visible(offer)
+        return False
+
     def settings_page(self):
         from .gui import label,button
         self.reset_page(self.settings_box)
         self.settings_box.set_spacing(6)
-        heading=label('Ajustes','hero')
+        heading=label('Ajustes','hero');heading.set_no_show_all(True);heading.hide()
         self.pin_page_header(self.settings_box,heading)
-        from . import hardware
-        device=hardware.describe()
-        if device:self.settings_box.pack_start(label(device,'muted'),False,False,0);self.settings_box.pack_start(label('Con una TV o un monitor externo se pueden usar otras frecuencias: Deck Library no limita la pantalla.','meta'),False,False,0)
         from .ui_components import SettingsRow
-        groups=[('General',[('Carátulas y apariencia','Proveedor de imágenes, tema, tamaño de la interfaz, idioma y animaciones.','Configurar','image',lambda _:self.appearance_dialog())]),
+        groups=[('General',[('Actualizaciones automáticas','Búsqueda, instalación de versiones y valoraciones de la comunidad.','Configurar','download',self.update_settings_page),('Carátulas y apariencia','Proveedor de imágenes, tema, tamaño de la interfaz, idioma y animaciones.','Configurar','image',lambda _:self.appearance_dialog())]),
                 ('Biblioteca',[('Instalaciones y carpetas','Emuladores y carpetas de juegos.','Elegir carpetas','folder',lambda _:self.installation_dialog())]),
                 ('Mantenimiento',[('Configuración inicial','Volver a detectar instalaciones.','Iniciar asistente','plus',lambda _:self.start_wizard())])]
         for heading,rows in groups:
             self.settings_box.pack_start(label(heading,'eyebrow'),False,False,0)
             for title,description,caption,icon,action in rows:
                 self.settings_box.pack_start(SettingsRow(title,description,caption,icon,action),False,False,0)
-        self.settings_box.pack_start(label('Convertir juegos de Switch, extraer ISO, agregar Deck Library a Steam y revisar duplicados está en Herramientas.','meta'),False,False,0)
         if self.version_label.get_parent() is not None:self.version_label.get_parent().remove(self.version_label)
         self.settings_box.pack_start(self.version_label,False,False,0)
         self.settings_box.show_all();self.pages.set_visible_child_name('settings')
@@ -374,6 +408,9 @@ class ShellMixin:
         for key_,title_ in (('auto','Automático'),('es','Español'),('en','English')):language.append(key_,title_)
         current_language=self.preferences.get('language') or ('es' if self.preferences.get('onboarding_complete') else 'auto');language.set_active_id(current_language)
         first_page=Gtk.ComboBoxText();first_page.get_accessible().set_name('Al abrir Deck Library');first_page.append('library','Biblioteca');first_page.append('home','Inicio');first_page.set_active_id(self.preferences.get('start_page') or 'home');first_row=Gtk.Box(spacing=12);first_row.pack_start(label('Al abrir Deck Library'),True,True,0);first_row.pack_end(first_page,False,False,0);box.pack_start(first_row,False,False,0)
+        pad_layout=Gtk.ComboBoxText();pad_layout.get_accessible().set_name('Botones del mando')
+        for key_,title_ in (('ps','PlayStation'),('deck','Steam Deck'),('xbox','Xbox'),('switch','Nintendo Switch')):pad_layout.append(key_,title_)
+        pad_layout.set_active_id(self.preferences.get('controller_layout') or 'ps');pad_row=Gtk.Box(spacing=12);pad_row.pack_start(label('Botones del mando'),True,True,0);pad_row.pack_end(pad_layout,False,False,0);box.pack_start(pad_row,False,False,0)
         theme=Gtk.ComboBoxText();theme.get_accessible().set_name('Tema')
         for key_,title_ in (('dark','Negro'),('light','Claro')):theme.append(key_,title_)
         theme.set_active_id(self.preferences.get('theme') or 'dark');theme_row=Gtk.Box(spacing=12);theme_row.pack_start(label('Tema'),True,True,0);theme_row.pack_end(theme,False,False,0);box.pack_start(theme_row,False,False,0)
@@ -383,12 +420,13 @@ class ShellMixin:
         language_row=Gtk.Box(spacing=12);language_row.pack_start(label('Idioma · Language'),True,True,0);language_row.pack_end(language,False,False,0);box.pack_start(language_row,False,False,0);self.fit_dialog(dialog);dialog.show_all()
         animations=Gtk.Switch();animations.set_active(self.preferences.get('animations',True));animations.set_valign(Gtk.Align.CENTER);animations.get_accessible().set_name('Animaciones')
         motion_row=Gtk.Box(spacing=12);motion_row.pack_start(label('Animaciones'),True,True,0);motion_row.pack_end(animations,False,False,0);box.pack_start(motion_row,False,False,0)
-        for row in (first_row,theme_row,scale_row,language_row,motion_row):row.get_style_context().add_class('appearance-field')
+        for row in (first_row,pad_row,theme_row,scale_row,language_row,motion_row):row.get_style_context().add_class('appearance-field')
         advanced=Gtk.Expander(label='Proveedor de carátulas y clave API');advanced.get_style_context().add_class('appearance-group')
         provider_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);advanced.add(provider_box);body.pack_start(advanced,False,False,0)
         combo,key=self.provider_fields(provider_box,compact=True);body.show_all()
         if dialog.run()==Gtk.ResponseType.OK:
-            self.preferences.update(artwork_provider=combo.get_active_id(),steamgriddb_key=key.get_text().strip(),animations=animations.get_active(),start_page=first_page.get_active_id() or 'library',ui_scale=scale.get_active_id() or 'normal',theme=theme.get_active_id() or 'dark')
+            self.preferences.update(artwork_provider=combo.get_active_id(),steamgriddb_key=key.get_text().strip(),animations=animations.get_active(),start_page=first_page.get_active_id() or 'library',ui_scale=scale.get_active_id() or 'normal',theme=theme.get_active_id() or 'dark',controller_layout=pad_layout.get_active_id() or 'ps')
+            if hasattr(self,'controller_hint'):self.controller_hint.set_layout(self.preferences['controller_layout']);self.update_controller_hints(self)
             from . import gui,ui_theme
             ui_theme.set_theme(self.preferences['theme']);self.brand_icon.set_from_pixbuf(ui_theme.brand_pixbuf(self.asset('brand.png'),28,self.preferences['theme']));Gtk.Settings.get_default().set_property('gtk-application-prefer-dark-theme',self.preferences['theme']!='light')
             if gui.PROVIDER is not None:gui.PROVIDER.load_from_data(ui_theme.css(self.preferences['ui_scale'],self.preferences['theme']))
@@ -402,9 +440,18 @@ class ShellMixin:
         try:reconcile_pending(self.store);rows=pending_changes(self.store)
         except (OSError,ValueError):rows=[]
         if rows:
-            self.pending_label.set_text(('Pendiente en Steam · '+rows[0]['description']) if len(rows)==1 else f'{len(rows)} cambios de biblioteca pendientes en Steam');self.pending_bar.set_no_show_all(False);self.pending_bar.show_all();self.pending_bar.set_no_show_all(True)
-        else:self.pending_bar.hide()
-        self.refresh_game_steam()
+            if hasattr(self,'steam_pending_btn'):
+                self.steam_pending_badge.set_text(str(len(rows)))
+                self.steam_pending_btn.set_no_show_all(False);self.steam_pending_btn.show_all();self.steam_pending_btn.set_no_show_all(True)
+            if hasattr(self,'pending_bar'):
+                self.pending_label.set_text(('Pendiente en Steam · '+rows[0]['description']) if len(rows)==1 else f'{len(rows)} cambios de biblioteca pendientes en Steam')
+                if os.environ.get('DECK_LIBRARY_UI_TESTS'):
+                    self.pending_bar.set_no_show_all(False);self.pending_bar.show_all();self.pending_bar.set_no_show_all(True)
+                else:self.pending_bar.hide()
+        else:
+            if hasattr(self,'steam_pending_btn'):self.steam_pending_btn.hide()
+            if hasattr(self,'pending_bar'):self.pending_bar.hide()
+        self.refresh_game_steam();self.refresh_steam_library_offer()
         return False
     def after_apply_closing(self,done):
         self.refresh_pending();self.pending_details()

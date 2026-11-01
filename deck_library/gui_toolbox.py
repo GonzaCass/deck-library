@@ -12,15 +12,16 @@ class ToolboxMixin:
         from . import motion
         from .gui import label
         if not self.discard_game_edits():return
-        self.reset_page(self.tools_box);self.tools_box.pack_start(label('Herramientas','hero'),False,False,0)
+        self.reset_page(self.tools_box);heading=label('Herramientas','hero');heading.set_no_show_all(True);heading.hide();self.tools_box.pack_start(heading,False,False,0)
         tools=[('Convertir un juego de Switch','Convierte un XCI o NSP propio (y su actualización) en la carpeta exefs y romfs que piden algunos ports.','Convertir','folder',lambda _:self.switch_convert_page()),
                ('Extraer una ISO de Xbox o Xbox 360','Extrae el contenido de una ISO de Xbox o Xbox 360 a una carpeta, verificándolo.','Extraer','folder',lambda _:self.iso_extract_page()),
                ('ROMs y ports instalados','Gestionar la copia de consola de un juego que ya tiene un port.','Gestionar ROMs','folder',lambda _:self.originals_dialog()),
                ('Duplicados y conflictos','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),
                ('Juegos ocultos','Restaurar juegos quitados de la biblioteca sin borrar sus archivos.','Juegos ocultos','library',self.hidden_games_dialog)]
-        if not motion.gaming_mode():tools.append(('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam))
+        if self.offer_steam_shortcut():tools.append(('Deck Library en Steam','Abrir esta biblioteca desde Steam, a pantalla completa en modo Juego.','Agregar a Steam','steam',self.add_library_to_steam))
         for title,description,caption,icon,action in tools:
-            self.tools_box.pack_start(SettingsRow(title,description,caption,icon,action),False,False,0)
+            row=SettingsRow(title,description,caption,icon,action);self.tools_box.pack_start(row,False,False,0)
+            if title=='Deck Library en Steam':self.steam_tools_row=row
         self.pin_page_header(self.tools_box,self.tools_box.get_children()[0])
         self.tools_box.show_all();self.pages.set_visible_child_name('tools')
 

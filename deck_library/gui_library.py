@@ -7,7 +7,7 @@ from .models import Entry
 class LibraryToolsMixin:
     def new_scroll(self):
         from .interactions import configure_scroll
-        scroll=Gtk.ScrolledWindow();scroll.set_overlay_scrolling(False);scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);return configure_scroll(scroll)
+        scroll=Gtk.ScrolledWindow();scroll.set_overlay_scrolling(True);scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);return configure_scroll(scroll)
     def fit_window(self,*_):
         if os.environ.get('SteamAppId') or '--gaming' in sys.argv:self.fullscreen()
         return False

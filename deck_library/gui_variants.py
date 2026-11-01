@@ -66,7 +66,7 @@ class VariantsMixin:
         if not entry.metadata.get('port_repository'):return
         item=port_variants.entry_item(entry);index=self.port_variant_index();assessment=index.assess(item,item['release_version'])
         if not index.alternatives(item) and not assessment['report'] and not assessment['issue']:return
-        row=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);parent.pack_start(row,False,False,0)
+        row=self.card(parent,'Prueba de juego en Steam Deck')
         row.pack_start(self.variant_badge(assessment),False,False,0)
         row.pack_start(text('Variante instalada: '+item['repository']+' · '+(item['release_version'] or 'Versión sin identificar'),'meta',85),False,False,0)
         if assessment['state']!='verified':row.pack_start(text(assessment['issue'] or EXPLANATIONS[assessment['state']],'muted',85),False,False,0)

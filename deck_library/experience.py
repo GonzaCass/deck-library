@@ -161,7 +161,10 @@ class ExperienceMixin:
                 GLib.idle_add(self.artwork_label.set_text,f'Carátulas {index} de {len(candidates)}: {entry.name}')
                 self.artwork_attempted.add(entry.id)
                 try:
-                    row=cover_provider.best_match(entry,cover_provider.search(cover_provider.title_for(entry),{**preferences,'_artwork_platform':entry.platform}))
+                    from .port_patterns import CODENAME_REPOS
+                    repo=str(entry.metadata.get('port_repository','')).strip().lower()
+                    plat=entry.metadata.get('original_platform') or (CODENAME_REPOS[repo][1] if repo in CODENAME_REPOS else '') or entry.platform
+                    row=cover_provider.best_match(entry,cover_provider.search(cover_provider.title_for(entry),{**preferences,'_artwork_platform':plat}))
                     if row:
                         path=cover_provider.download(row,self.store);GLib.idle_add(self.cover_received,entry.id,path,row);successes+=1
                 except Exception:pass
@@ -172,6 +175,7 @@ class ExperienceMixin:
         if entry and (not entry.cover or not pathlib.Path(entry.cover).is_file()):
             entry.cover=path;entry.metadata['artwork']={'provider':row['provider'],'page':row.get('page','')};self.store.save(self.entries);self.library_dirty=True
             if self.pages.get_visible_child_name()=='library':self.render()
+            elif self.pages.get_visible_child_name()=='home':self.home_page()
             if self.selected and self.selected.id==id_ and self.pages.get_visible_child_name()=='detail':self.show_detail(entry)
         return False
     def covers_finished(self,count,total):

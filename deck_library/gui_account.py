@@ -5,7 +5,7 @@ from .inline_pages import InlineDialog
 from . import auth_runtime,motion,i18n
 from .auth_policy import account_uri
 from .community import Client
-from .ui_components import ActionButton,text
+from .ui_components import ActionButton,Icon,badge,styled,text
 
 class AccountSocket(Gtk.Socket):
     # A remote plug can advertise its previous allocation as its minimum.
@@ -18,25 +18,33 @@ class AccountPane(Gtk.Box):
         window=self.get_toplevel()
         if window is not self and hasattr(window,'refresh_layout'):window.refresh_layout()
 
-    def __init__(self,client,on_change=lambda:None):
-        super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=12)
-        self.client=client;self.on_change=on_change;self.alive=True;self.generation=0;self.process=None;self.timer=None;self.wait=None;self.uri=None;self.deadline=0;self.install_cancel=threading.Event()
-        self.pack_start(text('Cuenta','section-title'),False,False,0)
-        self.summary=text('','title');self.pack_start(self.summary,False,False,0)
-        self.actions=Gtk.Box(spacing=10);self.pack_start(self.actions,False,False,0)
-        self.login=ActionButton('Iniciar sesión','community',lambda _:self.start('login'),'steam');self.register=ActionButton('Crear cuenta','plus',lambda _:self.start('register'),'violet-outline');self.logout=ActionButton('Cerrar sesión','undo',lambda _:self.signout(),'quiet')
-        for button in (self.login,self.register,self.logout):
+    def __init__(self,client,on_change=lambda:None,on_requests=None):
+        super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=14)
+        self.client=client;self.on_change=on_change;self.on_requests=on_requests;self.alive=True;self.generation=0;self.process=None;self.timer=None;self.wait=None;self.uri=None;self.deadline=0;self.install_cancel=threading.Event()
+        self.hero_card=styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10),'card','account-hero')
+        self.hero_card.set_halign(Gtk.Align.CENTER);self.hero_card.set_margin_top(12)
+        avatar=styled(Icon('community',34),'violet-icon');avatar.set_halign(Gtk.Align.CENTER);self.hero_card.pack_start(avatar,False,False,0)
+        self.summary=text('','hero');self.summary.set_halign(Gtk.Align.CENTER);self.summary.set_justify(Gtk.Justification.CENTER);self.hero_card.pack_start(self.summary,False,False,0)
+        self.state_box=Gtk.Box(spacing=8);self.state_box.set_halign(Gtk.Align.CENTER);self.hero_card.pack_start(self.state_box,False,False,0)
+        self.subtitle=text('','muted',54);self.subtitle.set_halign(Gtk.Align.CENTER);self.subtitle.set_justify(Gtk.Justification.CENTER);self.hero_card.pack_start(self.subtitle,False,False,0)
+        self.actions=Gtk.Box(spacing=12);self.actions.set_halign(Gtk.Align.CENTER);self.actions.set_margin_top(6);self.hero_card.pack_start(self.actions,False,False,0)
+        self.login=ActionButton('Iniciar sesión','community',lambda _:self.start('login'),'primary')
+        self.register=ActionButton('Crear cuenta','plus',lambda _:self.start('register'),'console-secondary')
+        self.requests_btn=ActionButton('Ver mis solicitudes','file',lambda _:self.on_requests() if self.on_requests else None,'console-secondary')
+        self.logout=styled(ActionButton('Cerrar sesión','logout',lambda _:self.signout(),'danger'),'logout-cta')
+        for button in (self.login,self.register,self.requests_btn,self.logout):
             button.show_all();button.set_no_show_all(True);self.actions.pack_start(button,False,False,0)
+        self.pack_start(self.hero_card,False,False,0)
+        self.cancel_button=ActionButton('Cancelar inicio de sesión','back',lambda _:self.cancel(),'quiet');self.cancel_button.set_halign(Gtk.Align.CENTER);self.cancel_button.show_all();self.cancel_button.set_no_show_all(True);self.pack_start(self.cancel_button,False,False,0)
         self.stack=Gtk.Stack();self.stack.set_homogeneous(False);self.stack.set_vexpand(True);self.stack.connect('notify::visible-child',self.refresh_layout);self.stack.set_transition_type(Gtk.StackTransitionType.CROSSFADE if motion.page_transitions() else Gtk.StackTransitionType.NONE);self.stack.set_transition_duration(120 if motion.page_transitions() else 0);self.pack_start(self.stack,True,True,0)
-        intro=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);intro.set_valign(Gtk.Align.CENTER);intro.pack_start(text('Permite publicar ajustes, valorar perfiles y compartir resultados.','muted',64),False,False,0);intro.pack_start(text('Los perfiles se pueden consultar sin una cuenta.','meta',64),False,False,0);intro.pack_start(text('El nombre de usuario se muestra públicamente al publicar perfiles y comentarios. No usar el correo como nombre de usuario.','meta',64),False,False,0);intro.pack_start(text('Para crear una cuenta es necesario verificar el correo.','meta',64),False,False,0);intro.pack_start(text('Después de verificar el correo, volver al inicio de sesión y pulsar Conectar. La app conserva la sesión para los próximos inicios.','meta',64),False,False,0);self.stack.add_named(intro,'intro')
+        intro=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);intro.set_halign(Gtk.Align.CENTER);self.stack.add_named(intro,'intro')
         self.browser_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);self.stack.add_named(self.browser_box,'browser');self.socket=None
-        self.fallback=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.stack.add_named(self.fallback,'fallback');self.reason=text('','muted',70);self.fallback.pack_start(self.reason,False,False,0)
+        self.fallback=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.fallback.set_halign(Gtk.Align.CENTER);self.stack.add_named(self.fallback,'fallback');self.reason=text('','muted',70);self.fallback.pack_start(self.reason,False,False,0)
         self.retry=ActionButton('Reintentar','refresh',lambda _:self.embed(),'violet-outline');self.fallback.pack_start(self.retry,False,False,0)
         self.install_button=ActionButton('Instalar componente de inicio de sesión','download',lambda _:self.install_runtime(),'violet');self.fallback.pack_start(self.install_button,False,False,0)
         self.external=ActionButton('Continuar en el navegador','community',lambda _:self.open_external(),'quiet');self.fallback.pack_start(self.external,False,False,0)
         self.code=text('','meta',70);self.code.set_selectable(True);self.fallback.pack_start(self.code,False,False,0)
-        self.status=text('','status',85);self.pack_start(self.status,False,False,0)
-        self.cancel_button=ActionButton('Cancelar inicio de sesión','back',lambda _:self.cancel(),'quiet');self.cancel_button.show_all();self.cancel_button.set_no_show_all(True);self.pack_start(self.cancel_button,False,False,0);self.reorder_child(self.cancel_button,2)
+        self.status=text('','status',85);self.status.set_halign(Gtk.Align.CENTER);self.pack_start(self.status,False,False,0)
         self.connect('destroy',lambda *_:self.close());self.show_all();self.refresh();self.stack.set_visible_child_name('intro');self.cancel_button.hide()
         if self.client.session().get('token'):self.validate()
 
@@ -63,7 +71,11 @@ class AccountPane(Gtk.Box):
 
     def refresh(self):
         login=self.client.session().get('login');self.summary.set_text(login or 'Sin sesión')
+        for child in self.state_box.get_children():child.destroy()
+        self.state_box.pack_start(badge('Sesión activa' if login else 'Sin conectar','green' if login else 'neutral'),False,False,0);self.state_box.show_all()
+        self.subtitle.set_text('Las solicitudes y los perfiles comunitarios quedan vinculados a esta cuenta.' if login else 'Iniciar sesión para seguir las solicitudes o publicar perfiles.')
         self.login.set_visible(not login);self.register.set_visible(not login);self.logout.set_visible(bool(login))
+        self.requests_btn.set_visible(bool(login and self.on_requests))
         self.on_change()
 
     def validate(self):
@@ -72,11 +84,11 @@ class AccountPane(Gtk.Box):
         self.task(self.client.me,done,self.refresh)
 
     def start(self,mode):
-        self.cancel();self.mode=mode;self.status.set_text('Conectando…');self.login.set_sensitive(False);self.register.set_sensitive(False);self.cancel_button.show();self.actions.hide();self.summary.hide()
+        self.cancel();self.mode=mode;self.status.set_text('Conectando…');self.login.set_sensitive(False);self.register.set_sensitive(False);self.cancel_button.show();self.hero_card.hide()
         def started(value):
             self.wait=value['wait_key'];self.uri=account_uri(value.get('verification_uri_complete') or value['verification_uri'],i18n.language());self.deadline=time.monotonic()+900
             self.code.set_text('Código: '+value['user_code']);self.embed();self.schedule(value.get('interval',5))
-        def failed():self.login.set_sensitive(True);self.register.set_sensitive(True);self.cancel_button.hide();self.actions.show();self.summary.show()
+        def failed():self.login.set_sensitive(True);self.register.set_sensitive(True);self.cancel_button.hide();self.hero_card.show();self.actions.show();self.summary.show()
         self.task(lambda:self.client.start('keycloak'),started,failed)
 
     def embed(self):
@@ -177,7 +189,7 @@ class AccountPane(Gtk.Box):
         if self.timer:
             if GLib.MainContext.default().find_source_by_id(self.timer):GLib.source_remove(self.timer)
             self.timer=None
-        self.stop_browser();self.stack.set_visible_child_name('intro');self.login.set_sensitive(True);self.register.set_sensitive(True);self.cancel_button.hide();self.status.set_text('');self.actions.show();self.summary.show()
+        self.stop_browser();self.stack.set_visible_child_name('intro');self.login.set_sensitive(True);self.register.set_sensitive(True);self.cancel_button.hide();self.status.set_text('');self.hero_card.show();self.actions.show();self.summary.show()
     def close(self):
         if self.alive:self.cancel();self.alive=False
 

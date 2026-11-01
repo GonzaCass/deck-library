@@ -16,11 +16,13 @@ def find_cover(entry,home=None):
             file=root/'Cache/ShortcutIcons/MarioKartWii-MarioKartWiiCompiled_temp.png'
             if file.exists():return str(file)
     wanted=normalized(entry.name)
+    from .port_patterns import entry_display_title
+    alt_wanted=normalized(entry_display_title(entry))
     for account in find_accounts(home):
         try:
             data=read_kv((account/'shortcuts.vdf').read_bytes())['shortcuts'][1]
             for _,value in data.values():
-                if normalized(get(value,'appname',''))!=wanted:continue
+                if normalized(get(value,'appname','')) not in {wanted,alt_wanted}:continue
                 appid=get(value,'appid')
                 for suffix in ('p.png','p.jpg','.png','.jpg'):
                     file=account/'grid'/(str(appid)+suffix)

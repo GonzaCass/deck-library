@@ -6,11 +6,11 @@ from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango, Atk
 from . import motion
 
 class PortImage(Gtk.Image):
-    """Landscape artwork fills the card, independently of its allocation or source aspect ratio."""
+    """Vertical 2:3 box-art canvas for port cards; keeps square/landscape icons uncropped over a soft backdrop."""
     def __init__(self):
         super().__init__();self.set_from_icon_name('applications-games-symbolic',Gtk.IconSize.DIALOG)
-    def do_get_preferred_width(self):return (0,260)
-    def do_get_preferred_height(self):return (148,148)
+    def do_get_preferred_width(self):return (156,174)
+    def do_get_preferred_height(self):return (252,252)
     def do_draw(self,cr):
         width,height=self.get_allocated_width(),self.get_allocated_height();radius=8;cr.save();cr.new_path()
         for x,y,a,b in [(width-radius,radius,-math.pi/2,0),(width-radius,height-radius,0,math.pi/2),(radius,height-radius,math.pi/2,math.pi),(radius,radius,math.pi,math.pi*1.5)]:cr.arc(x,y,radius,a,b)
@@ -19,7 +19,13 @@ class PortImage(Gtk.Image):
         cr.set_source_rgb(*ui_theme.drawn('image'));cr.paint()
         pix=self.get_pixbuf() if self.get_storage_type()==Gtk.ImageType.PIXBUF else None
         if pix:
-            scale=max(width/pix.get_width(),height/pix.get_height());cr.translate((width-pix.get_width()*scale)/2,(height-pix.get_height()*scale)/2);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,pix,0,0);cr.paint()
+            pw,ph=pix.get_width(),pix.get_height()
+            if ph>=pw*1.12:
+                scale=max(width/pw,height/ph);cr.save();cr.translate((width-pw*scale)/2,(height-ph*scale)/2);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,pix,0,0);cr.paint();cr.restore()
+            else:
+                bg=max(width/pw,height/ph);cr.save();cr.translate((width-pw*bg)/2,(height-ph*bg)/2);cr.scale(bg,bg);Gdk.cairo_set_source_pixbuf(cr,pix,0,0);cr.paint();cr.restore()
+                cr.set_source_rgba(0.05,0.06,0.08,0.74);cr.paint()
+                fg=min((width-14)/pw,(height-14)/ph);cr.save();cr.translate((width-pw*fg)/2,(height-ph*fg)/2);cr.scale(fg,fg);Gdk.cairo_set_source_pixbuf(cr,pix,0,0);cr.paint();cr.restore()
         else:Gtk.Image.do_draw(self,cr)
         cr.restore();return False
 
@@ -47,6 +53,14 @@ def badge(value, tone='neutral', limit=32):
     widget.set_max_width_chars(limit);widget.set_halign(Gtk.Align.START);widget.set_valign(Gtk.Align.CENTER)
     widget.set_tooltip_text(value)
     return widget
+
+
+def platform_badge(value, icon_name='controller', tone='neutral', limit=16):
+    box=styled(Gtk.Box(spacing=4),'plat-tag','plat-tag-'+tone)
+    box.set_halign(Gtk.Align.START);box.set_valign(Gtk.Align.CENTER)
+    ic=Icon(icon_name,13);lbl=text(value);lbl.set_line_wrap(False);lbl.set_ellipsize(Pango.EllipsizeMode.END);lbl.set_max_width_chars(limit)
+    box.pack_start(ic,False,False,0);box.pack_start(lbl,False,False,0);box.set_tooltip_text(value)
+    return box
 
 
 def badge_row(values,per_line=12,compact=False):
@@ -91,7 +105,7 @@ class SectionTabs(Gtk.Box):
         self.stack=Gtk.Stack();self.stack.set_homogeneous(False);self.stack.set_transition_type(Gtk.StackTransitionType.NONE)
         self.pack_start(self.stack,True,True,0)
     def add_page(self,name,caption,child):
-        scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);scroll.set_overlay_scrolling(False);scroll.add(child)
+        scroll=Gtk.ScrolledWindow();scroll.set_policy(Gtk.PolicyType.NEVER,Gtk.PolicyType.AUTOMATIC);scroll.set_overlay_scrolling(True);scroll.add(child)
         scroll.show_all();self.stack.add_named(scroll,name);self.scrolls[name]=scroll
         control=section_tab(caption,lambda _:self.select(name));self.buttons[name]=control;self.bar.pack_start(control,False,False,0)
         self.select(self.stack.get_visible_child_name() or name)
@@ -214,6 +228,26 @@ class Icon(Gtk.DrawingArea):
             circle(10,10,6);line((15,15),(21,21))
         elif name == 'file':
             line((5,2),(14,2),(20,8),(20,22),(5,22),(5,2));line((14,2),(14,8),(20,8));line((8,13),(16,13));line((8,17),(14,17))
+        elif name == 'logout':
+            line((10,4),(4,4),(4,20),(10,20));line((9,12),(21,12));line((16,7),(21,12),(16,17))
+        elif name == 'plat-ps':
+            line((6.8,3.6),(10.2,9.4),(3.4,9.4),(6.8,3.6));circle(17.2,6.5,2.9)
+            cr.rectangle(3.8,14.4,5.8,5.8);cr.stroke();line((14.4,14.4),(20.2,20.2));line((20.2,14.4),(14.4,20.2))
+        elif name == 'plat-xbox':
+            circle(12,12,9);line((6.6,6.6),(17.4,17.4));line((17.4,6.6),(6.6,17.4))
+        elif name == 'plat-switch':
+            cr.rectangle(4,3,6.5,18);cr.stroke();cr.rectangle(13.5,3,6.5,18);cr.stroke()
+            cr.arc(7.25,8.5,1.5,0,math.tau);cr.fill();cr.arc(16.75,14.5,1.5,0,math.tau);cr.fill()
+        elif name == 'plat-nintendo':
+            line((9,3),(15,3),(15,9),(21,9),(21,15),(15,15),(15,21),(9,21),(9,15),(3,15),(3,9),(9,9),(9,3))
+        elif name == 'plat-pc':
+            cr.rectangle(3,4,18,12);cr.stroke();line((12,16),(12,20));line((7,20),(17,20))
+        elif name == 'plat-sega':
+            circle(12,12,9);circle(12,12,4.5)
+        elif name == 'plat-arcade':
+            circle(12,6.5,3.2);line((12,9.7),(12,16));cr.rectangle(4,16,16,4.5);cr.stroke()
+        elif name == 'disc':
+            circle(12,12,9);circle(12,12,2.6);cr.arc(12,12,5.8,-math.pi*.75,-math.pi*.25);cr.stroke()
         else:
             circle(12,12,9);line((12,7),(12,13));circle(12,17,.6)
         return False
