@@ -131,6 +131,18 @@ def entry_port_project(entry):
     return ''
 
 
+# The consoles most people look for come first in every platform list: PlayStation, then Switch, then Xbox.
+CONSOLE_FIRST = ('PS1', 'PS2', 'PS3', 'PS4', 'PS5', 'PSP', 'PS Vita', 'Switch', 'Switch 2', 'Xbox', 'Xbox 360', 'Xbox One')
+
+
+def console_sort_key(name):
+    """Sort key for platform names: the main consoles in a fixed order, then every other platform alphabetically."""
+    short = platform_info(name)['short']
+    if short in CONSOLE_FIRST:
+        return (0, CONSOLE_FIRST.index(short), '')
+    return (1, 0, str(name).casefold())
+
+
 def platform_info(raw):
     """Normalize messy catalog category strings into (short, icon, canonical, tone)."""
     low = str(raw or '').strip().lower()

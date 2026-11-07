@@ -5,6 +5,7 @@ from .ui_components import Dropdown
 from .inline_pages import InlineDialog,InlineFileButton
 from .models import Store,Entry,atomic_json
 from .discovery import scan,available_emulators,nice_name,SYSTEMS
+from .port_patterns import console_sort_key
 from .runtime import diagnostics,clean_environment
 from .service import queue_entries,queue_removals,queue_controllers
 from .installations import settings,save_settings,report
@@ -153,7 +154,7 @@ class ActionsMixin:
         return False
     def refresh_platforms(self):
         self.platform_picker.handler_block_by_func(self.filter_changed);self.platform_picker.remove_all();self.platform_picker.append('all','Todas las plataformas')
-        for platform in sorted({e.platform for e in self.shown_entries()[0]}):self.platform_picker.append(platform,platform)
+        for platform in sorted({e.platform for e in self.shown_entries()[0]},key=console_sort_key):self.platform_picker.append(platform,platform)
         self.platform_picker.set_active_id(self.platform_filter)
         if self.platform_picker.get_active_id() is None:self.platform_filter='all';self.platform_picker.set_active_id('all')
         self.platform_picker.handler_unblock_by_func(self.filter_changed)

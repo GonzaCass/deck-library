@@ -8,7 +8,7 @@ from . import ports
 from .installations import save_settings
 from .service import queue_removals
 from .ui_components import ActionButton,Dropdown,badge,badge_row,metadata_line,platform_badge
-from .port_patterns import classify_port,fetch_readme,platform_info,resolve_game_identity,CODENAME_REPOS
+from .port_patterns import classify_port,console_sort_key,fetch_readme,platform_info,resolve_game_identity,CODENAME_REPOS
 
 ART_WIDTH=88
 CATALOG_PAGE=42
@@ -58,7 +58,7 @@ class CatalogMixin:
         actions.pack_start(button('Agregar repositorio',lambda _:self.add_repository_dialog()),False,False,0)
         head.pack_end(actions,False,False,0);head.set_no_show_all(True);head.hide();box.pack_start(head,False,False,0)
         tools=Gtk.Box(spacing=10);tools.get_style_context().add_class('page-toolbar');self.catalog_search=Gtk.SearchEntry();self.catalog_search.set_placeholder_text('Buscar ports · X: teclado');self.bind_search_keyboard(self.catalog_search);self.catalog_search.connect('search-changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_search,True,True,0)
-        self.catalog_category=Dropdown('Categoría de ports',20);self.catalog_category.append('','Todas las plataformas');self.catalog_category.set_active_id('');self.catalog_category.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_category,False,False,0)
+        self.catalog_category=Dropdown('Categoría de ports',20);self.catalog_category.append('','Todas las plataformas');self.catalog_category.set_active_id('');self.catalog_category.connect('changed',lambda _:None if getattr(self,'catalog_updating',False) else self.fill_catalog());tools.pack_start(self.catalog_category,False,False,0)
         self.catalog_source=Dropdown('Fuente de ports',18);self.catalog_source.append('','Todas las fuentes')
         for name in ('Recomendado','Agregado','Quiver','GithubLauncher','Lista independiente','PortIntegration'):self.catalog_source.append(name,name)
         self.catalog_source.set_active_id('');self.catalog_source.connect('changed',lambda _:self.fill_catalog());self.catalog_source.set_no_show_all(True);self.catalog_source.hide();tools.pack_start(self.catalog_source,False,False,0)
@@ -66,7 +66,7 @@ class CatalogMixin:
         for key,name in [('recent','Nuevos primero'),('new','Nuevos (30 días)'),('release','Últimas versiones'),('name','Nombre'),('installed','Instalados')]:self.catalog_sort.append(key,name)
         self.catalog_sort.set_active_id(self.preferences.get('catalog_sort','recent'));self.catalog_sort.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_sort,False,False,0)
         self.catalog_search.set_width_chars(12)
-        self.catalog_tools_revealer=Gtk.Revealer();self.catalog_tools_revealer.set_transition_type(Gtk.RevealerTransitionType.NONE);self.catalog_tools_revealer.add(tools);self.catalog_tools_revealer.set_reveal_child(False);self.catalog_tools_revealer.set_no_show_all(True);self.catalog_tools_revealer.hide();box.pack_start(self.catalog_tools_revealer,False,False,0)
+        self.catalog_tools_revealer=Gtk.Revealer();self.catalog_tools_revealer.set_transition_type(Gtk.RevealerTransitionType.NONE);self.catalog_tools_revealer.add(tools);self.catalog_tools_revealer.set_reveal_child(True);box.pack_start(self.catalog_tools_revealer,False,False,0)
         status_row=Gtk.Box(spacing=12);self.catalog_status=label('Cargando catálogo…','status');self.catalog_status.set_line_wrap(False);self.catalog_status.set_ellipsize(Pango.EllipsizeMode.END);self.catalog_status.set_width_chars(1);status_row.pack_start(self.catalog_status,True,True,0)
         self.catalog_guide_button=button('Guía de compatibilidad',self.compatibility_guide);self.catalog_guide_button.set_no_show_all(True);self.catalog_guide_button.hide();status_row.pack_end(self.catalog_guide_button,False,False,0);status_row.pack_end(button('Verificados',lambda _:self.validated_page()),False,False,0);status_row.set_no_show_all(True);status_row.hide();box.pack_start(status_row,False,False,0)
         self.catalog_rows=Gtk.FlowBox();self.catalog_rows.set_selection_mode(Gtk.SelectionMode.NONE);self.catalog_rows.set_min_children_per_line(1);self.catalog_rows.set_max_children_per_line(6);self.catalog_rows.set_homogeneous(True);self.catalog_rows.set_column_spacing(12);self.catalog_rows.set_row_spacing(14);box.pack_start(self.catalog_rows,False,False,0)
@@ -137,10 +137,15 @@ class CatalogMixin:
         from .gui import label,button
         from .port_requirements import original_requirement
         if not hasattr(self,'catalog_apps'):return
-        everything=self.catalog_entries();variant_index=self.port_variant_index(everything);categories=sorted({console_of(a) for a in everything if console_of(a)},key=str.casefold);current=self.catalog_category.get_active_id() or ''
-        known=set(self.catalog_category.ids())
-        for name in categories:
-            if name not in known:self.catalog_category.append(name,name)
+        everything=self.catalog_entries();variant_index=self.port_variant_index(everything);categories=sorted({console_of(a) for a in everything if console_of(a)},key=console_sort_key);current=self.catalog_category.get_active_id() or ''
+        if self.catalog_category.ids()[1:]!=categories:
+            # Rebuilt (not appended to) so a console found later still lands in its place: PlayStation, Switch and Xbox first.
+            self.catalog_updating=True
+            try:
+                self.catalog_category.remove_all();self.catalog_category.append('','Todas las plataformas')
+                for name in categories:self.catalog_category.append(name,name)
+                self.catalog_category.set_active_id(current if current in categories else '')
+            finally:self.catalog_updating=False
         self.reset_page(self.catalog_rows);self.reset_page(self.catalog_more_box);text=self.catalog_search.get_text().casefold().strip();category=self.catalog_category.get_active_id() or '';source=self.catalog_source.get_active_id() or ''
         installed=ports.records(self.store);updates={u['repository'] for u in (getattr(self,'update_state',None) or {}).get('catalog') or []}
         matches=[a for a in everything if text in (' '.join((a['name'],a.get('game_title',''),resolve_game_identity(a)[0],a['repository'],original_requirement(a)['label']))).casefold() and (not category or console_of(a)==category) and (not source or source in a['source'])]

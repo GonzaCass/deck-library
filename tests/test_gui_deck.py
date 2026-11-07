@@ -2712,6 +2712,31 @@ class DeckUITests(unittest.TestCase):
             self.assertEqual(self.w.preferences['emulators']['switch2'],[str(chosen)]);self.assertIn(str(chosen),' '.join(texts(page)))
             self.assertTrue((layout.folder('roms',home)/'switch2').is_dir())
 
+    def test_ports_always_shows_the_search_and_lists_playstation_switch_and_xbox_first(self):
+        from deck_library import ports
+        lists=['Xbox 360','PC','PS3','Wii','PlayStation 2','Nintendo Switch','Nintendo 64','Xbox','PSP','Switch 2','Game Boy Advance']
+        rows=[ports.clean({'repository':f'owner/game{i}','name':f'Game {i}','list':name},source='Quiver') for i,name in enumerate(lists)]
+        self.w.catalog_page();self.w.catalog_apps=rows[:3]
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):
+            self.w.fill_catalog();self.settle()
+            self.assertTrue(self.w.catalog_search.get_mapped(),'The search must be visible without pressing Search.');self.assertTrue(self.w.catalog_category.get_mapped());self.assertTrue(self.w.catalog_sort.get_mapped())
+            self.w.catalog_category.set_active_id('PS3');self.settle()
+            self.w.catalog_apps=rows;self.w.fill_catalog();self.settle()
+            ids=[i for i in self.w.catalog_category.ids() if i]
+            from deck_library.port_patterns import CONSOLE_FIRST
+            main=[i for i in ids if i in CONSOLE_FIRST];self.assertEqual(main,[c for c in CONSOLE_FIRST if c in ids]);self.assertTrue({'PS2','PS3','PSP','Switch','Switch 2','Xbox','Xbox 360'}<=set(main))
+            self.assertEqual(ids[:len(main)],main,'PlayStation, Switch and Xbox come first, in one block.')
+            rest=ids[len(main):];self.assertEqual(rest,sorted(rest,key=str.casefold));self.assertTrue({'PC','Wii','N64','GBA'}<=set(rest))
+            self.assertEqual(self.w.catalog_category.get_active_id(),'PS3','A rebuilt list keeps the chosen platform.')
+
+    def test_the_library_platform_filter_uses_the_same_order(self):
+        from deck_library.models import Entry
+        platforms=['Wii','Xbox 360','PlayStation 2','Linux','Switch','PSP','GameCube']
+        self.w.entries=[Entry(f'G{i}',['/bin/true'],kind='emulated',platform=name,source=f'/tmp/{i}.iso') for i,name in enumerate(platforms)];self.w.library_dirty=True
+        with patch.object(self.w,'shown_entries',return_value=(self.w.entries,[])):
+            self.w.refresh_platforms()
+        ids=[i for i in self.w.platform_picker.ids() if i!='all'];self.assertEqual(ids[:4],['PlayStation 2','PSP','Switch','Xbox 360']);self.assertEqual(ids[4:],sorted(ids[4:],key=str.casefold))
+
     def test_catalog_filters_work_from_the_controller(self):
         from deck_library import ports
         self.w.catalog_page();self.w.catalog_apps=[ports.clean({'repository':'owner/a','name':'A','list':'PS3'},source='Quiver'),ports.clean({'repository':'owner/b','name':'B','list':'Switch'},source='Quiver')]
