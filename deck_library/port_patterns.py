@@ -136,6 +136,8 @@ def platform_info(raw):
     low = str(raw or '').strip().lower()
     if not low or 'utilit' in low:
         return {'short': 'Utilidad' if 'utilit' in low else 'Port', 'icon': 'sliders' if 'utilit' in low else 'controller', 'canonical': '', 'tone': 'neutral'}
+    if 'switch 2' in low or 'switch2' in low or re.search(r'(?<![a-z0-9])nx2(?![a-z0-9])', low):
+        return {'short': 'Switch 2', 'icon': 'plat-switch', 'canonical': 'Switch 2', 'tone': 'red'}
     if any(k in low for k in ('switch',)):
         return {'short': 'Switch', 'icon': 'plat-switch', 'canonical': 'Switch', 'tone': 'red'}
     if any(k in low for k in ('xbox 360', 'x360', 'rexglue')):
@@ -204,6 +206,14 @@ PATTERNS = {
         'button': 'Convertir NSP / XCI o elegir carpeta',
         'extensions': ('*.nsp', '*.xci', '*.nsz'),
         'roms_folder': 'switch',
+    },
+    'Switch 2': {
+        'kind': 'switch2',
+        'short': 'NSP / XCI de Switch 2 + prod.keys',
+        'summary': 'Experimental: hace falta un emulador de Switch 2 (forks de Eden como Eglantine), el juego propio, prod.keys y firmware. Eden oficial no los ejecuta.',
+        'button': 'Elegir carpeta del juego',
+        'extensions': ('*.nsp', '*.xci'),
+        'roms_folder': 'switch2',
     },
     'Xbox 360': {
         'kind': 'xbox360',

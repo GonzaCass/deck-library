@@ -85,8 +85,10 @@ class InlineDialog(Gtk.Box):
     def _mount(self):
         if self._mounted:return
         # Commands belong in the fixed header; field controls remain beside their values.
+        from .ui_components import Dropdown
+        def command(widget):return isinstance(widget,Gtk.Button) and not isinstance(widget,Dropdown)  # a list of options is a field, not an action
         for child in list(self.content.get_children()):
-            commands=isinstance(child,Gtk.Button) or (type(child) is Gtk.Box and child.get_children() and all(isinstance(c,Gtk.Button) for c in child.get_children()))
+            commands=command(child) or (type(child) is Gtk.Box and child.get_children() and all(command(c) for c in child.get_children()))
             if commands:self.content.remove(child);self.actions.pack_start(child,False,False,0)
         self._mounted=True;owner=self.owner;self._previous_focus=owner.get_focus();self._previous=owner.workflow_stack.get_visible_child()
         owner.inline_workflows.append(self);owner.workflow_stack.add(self);owner.workflow_stack.show();owner.workflow_stack.set_visible_child(self)

@@ -22,6 +22,34 @@ class PortLocationsMixin:
         page.connect('response',lambda *_:page.destroy());page._mount()
         return page
 
+    def port_program_page(self,item):
+        """Asked right after an install that could not tell which file starts the game: pick it from what the folder holds, or look for it."""
+        from . import port_packages
+        repository=item['repository'];record=ports.records(self.store).get(repository)
+        if not record:return None
+        folder=ports.folder_for(record).resolve()
+        page=InlineDialog(title='¿Qué programa inicia el juego?',transient_for=self);page.add_button('Más tarde',Gtk.ResponseType.CLOSE)
+        body=page.get_content_area();body.set_spacing(10)
+        body.pack_start(text(item['name']+' se instaló, pero no se pudo saber qué programa lo inicia. Elegirlo ahora, o dejarlo para más tarde en Carpetas del juego.','muted',90),False,False,0)
+        status=text('','status',90);body.pack_start(status,False,False,0)
+        names=(repository.rsplit('/',1)[-1],item.get('name'),item.get('game_title'))
+        found=[p.relative_to(folder).as_posix() for kind in ('windows','linux') for p in port_packages.rank_executables(folder,names,kind)]
+        def use(relative):
+            try:ports.set_executable(repository,relative,self.store)
+            except (OSError,ValueError) as error:status.set_text(str(error));return
+            self.discover();self.toast('Programa elegido: '+relative);page.response(Gtk.ResponseType.CLOSE)
+        if found:
+            card=self.card(body,'Programas encontrados')
+            for relative in dict.fromkeys(found):card.pack_start(ActionButton(relative,'play',lambda _,r=relative:use(r),'steam-outline'),False,False,0)
+        def other(_):
+            path=self.pick_file('Elegir el programa que inicia el juego')
+            if not path:return
+            try:relative=pathlib.Path(path).resolve().relative_to(folder).as_posix()
+            except ValueError:status.set_text('Elegir un archivo de la carpeta del port: '+str(folder));return
+            use(relative)
+        body.pack_start(ActionButton('Buscar otro archivo','folder',other,'steam-outline'),False,False,0)
+        page.connect('response',lambda *_:page.destroy());page._mount();return page
+
     def port_location_page(self,item=None,entry=None):
         repository=(entry.metadata.get('port_repository','') if entry else '') or (item or {}).get('repository','')
         record=ports.records(self.store).get(repository,{})

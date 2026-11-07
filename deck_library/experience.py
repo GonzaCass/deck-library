@@ -3,6 +3,7 @@ import pathlib,threading
 import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib,GdkPixbuf
+from .ui_components import Dropdown
 from .inline_pages import InlineDialog,InlineFileChooser
 from .installations import report,save_settings
 from . import cover_provider
@@ -12,7 +13,7 @@ class ExperienceMixin:
         from .gui import label
         box.pack_start(label('Proveedor de carátulas','title'),False,False,0)
         box.pack_start(label('Automático usa SteamGridDB si hay una clave configurada; si no, busca en Libretro y Wikipedia. La imagen se puede cambiar por juego.','muted'),False,False,0)
-        combo=Gtk.ComboBoxText()
+        combo=Dropdown()
         for key,name in [('automatic','Automático (recomendado)'),('libretro','Libretro · consolas clásicas'),('wikipedia','Wikipedia · sin cuenta'),('steamgriddb','SteamGridDB · carátulas 600 × 900'),('off','Solo imágenes locales')]:combo.append(key,name)
         combo.set_active_id(self.preferences.get('artwork_provider','automatic'));box.pack_start(combo,False,False,0)
         if compact:
@@ -239,7 +240,7 @@ class ExperienceMixin:
         account=pathlib.Path(e.metadata['steam_account']);appid=e.metadata['steam_appid']
         dialog=InlineDialog(title='Arte de Steam · '+e.name,transient_for=self,modal=True);dialog.set_default_size(900,660);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(18);box.set_spacing(10)
-        top=Gtk.Box(spacing=10);query=Gtk.Entry();query.set_text(cover_provider.title_for(e));top.pack_start(query,True,True,0);games=Gtk.ComboBoxText();top.pack_start(games,False,False,0);find=button('Buscar juego',lambda _:look(),True);top.pack_start(find,False,False,0);box.pack_start(top,False,False,0)
+        top=Gtk.Box(spacing=10);query=Gtk.Entry();query.set_text(cover_provider.title_for(e));top.pack_start(query,True,True,0);games=Dropdown();top.pack_start(games,False,False,0);find=button('Buscar juego',lambda _:look(),True);top.pack_start(find,False,False,0);box.pack_start(top,False,False,0)
         status=label('','muted');box.pack_start(status,False,False,0)
         present=steamart.existing(account,appid);chosen={};notebook=Gtk.Notebook();box.pack_start(notebook,True,True,0);lists={};state={'alive':True,'game':None}
         summary=label('','muted');box.pack_start(summary,False,False,0)

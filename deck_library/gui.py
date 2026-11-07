@@ -109,7 +109,7 @@ class Poster(Gtk.DrawingArea):
         radius=8;cr.new_path()
         for x,y,a,b in [(w-radius,radius,-1.5708,0),(w-radius,h-radius,0,1.5708),(radius,h-radius,1.5708,3.1416),(radius,radius,3.1416,4.7124)]:cr.arc(x,y,radius,a,b)
         cr.close_path();cr.clip()
-        palettes={'Switch':(.11,.46,.41),'WiiCompiled':(.09,.52,.50),'Wii':(.09,.52,.50),'PlayStation 2':(.20,.31,.58),'PS2':(.20,.31,.58),'PlayStation':(.24,.28,.54),'Xbox 360':(.14,.45,.26),'Minecraft':(.20,.45,.27),'Linux':(.24,.35,.56),'Windows':(.26,.34,.48)}
+        palettes={'Switch':(.11,.46,.41),'Switch 2':(.13,.40,.50),'WiiCompiled':(.09,.52,.50),'Wii':(.09,.52,.50),'PlayStation 2':(.20,.31,.58),'PS2':(.20,.31,.58),'PlayStation':(.24,.28,.54),'Xbox 360':(.14,.45,.26),'Minecraft':(.20,.45,.27),'Linux':(.24,.35,.56),'Windows':(.26,.34,.48)}
         color=palettes.get(self.entry.platform,(.26,.31,.49));cr.set_source_rgb(*color);cr.paint()
         if self.pixbuf:
             pw=self.pixbuf.get_width();ph=self.pixbuf.get_height();scale=max(w/pw,h/ph);cr.save();cr.rectangle(0,0,w,h);cr.clip();cr.translate((w-pw*scale)/2,(h-ph*scale)/2);cr.scale(scale,scale);Gdk.cairo_set_source_pixbuf(cr,self.pixbuf,0,0);cr.get_source().set_extend(cairo.EXTEND_PAD);cr.paint();cr.restore()

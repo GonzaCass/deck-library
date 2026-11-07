@@ -10,7 +10,7 @@ class ConsoleBackdrop(Gtk.DrawingArea):
 
     def set_cover(self,path,platform=None):
         if platform is not None:self.platform=platform
-        palettes={'Switch':(.11,.42,.38),'WiiCompiled':(.09,.46,.45),'Wii':(.09,.46,.45),'PlayStation 2':(.20,.29,.52),'PS2':(.20,.29,.52),'PlayStation':(.24,.27,.50),'Xbox 360':(.14,.40,.25),'Minecraft':(.18,.40,.25),'Linux':(.22,.33,.52),'Windows':(.24,.32,.46)}
+        palettes={'Switch':(.11,.42,.38),'Switch 2':(.12,.37,.46),'WiiCompiled':(.09,.46,.45),'Wii':(.09,.46,.45),'PlayStation 2':(.20,.29,.52),'PS2':(.20,.29,.52),'PlayStation':(.24,.27,.50),'Xbox 360':(.14,.40,.25),'Minecraft':(.18,.40,.25),'Linux':(.22,.33,.52),'Windows':(.24,.32,.46)}
         tint=palettes.get(self.platform)
         if path==self.path and tint==self.tint:return
         self.path=path;self.tint=tint;self.pixbuf=None

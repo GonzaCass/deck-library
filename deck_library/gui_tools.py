@@ -3,6 +3,7 @@ import datetime,json,pathlib,shlex,subprocess,sys,threading
 import gi
 gi.require_version('Gtk','3.0')
 from gi.repository import Gtk,GLib
+from .ui_components import Dropdown
 from .inline_pages import InlineDialog,InlineFileChooser,InlineFileButton
 from .installations import settings,save_settings,report
 from .models import atomic_json
@@ -65,7 +66,7 @@ class ToolsMixin:
         dialog.set_default_size(760,520);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(22);box.set_spacing(14)
         box.pack_start(label('GTA IV · FusionFix','title'),False,False,0)
-        release=Gtk.ComboBoxText();release.append('4.0.5','4.0.5 · Perfil probado');release.append(gtaiv.LATEST_VERSION,gtaiv.LATEST_VERSION+' · Nueva versión, para probar');release.set_active_id(gtaiv.installed_release(e.metadata['gtaiv_root'],self.store) or '4.0.5');box.pack_start(release,False,False,0)
+        release=Dropdown();release.append('4.0.5','4.0.5 · Perfil probado');release.append(gtaiv.LATEST_VERSION,gtaiv.LATEST_VERSION+' · Nueva versión, para probar');release.set_active_id(gtaiv.installed_release(e.metadata['gtaiv_root'],self.store) or '4.0.5');box.pack_start(release,False,False,0)
         box.pack_start(label('Restaurar vuelve a los archivos y opciones anteriores. Los ajustes modificados durante la prueba se guardan aparte.','meta'),False,False,0)
         box.pack_start(label('La versión 5.1.2 crea nuevos ajustes del menú: Vulkan, SMAA, límite de 60 FPS y botones de PlayStation. Se respaldan los ajustes anteriores. El rendimiento debe comprobarse jugando.','muted'),False,False,0)
         description=label('','muted');box.pack_start(description,False,False,0)

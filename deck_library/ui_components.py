@@ -37,7 +37,7 @@ class Dropdown(Gtk.MenuButton):
     a popover stays open. Same small API as ComboBoxText: append, remove_all, set_active_id, get_active_id and a `changed` signal."""
     __gsignals__ = {'changed': (GObject.SignalFlags.RUN_FIRST, None, ())}
 
-    def __init__(self, name='', width_chars=18):
+    def __init__(self, name='', width_chars=30):
         super().__init__()
         self.options = []
         self.active = None
@@ -89,6 +89,15 @@ class Dropdown(Gtk.MenuButton):
 
     def ids(self):
         return [identifier for identifier, _ in self.options]
+
+    def append_text(self, caption):
+        self.append(str(len(self.options)), caption)
+
+    def get_active(self):
+        return next((index for index, (identifier, _) in enumerate(self.options) if identifier == self.active), -1)
+
+    def set_active(self, index):
+        self.set_active_id(self.options[index][0] if 0 <= index < len(self.options) else None)
 
     def get_active_id(self):
         return self.active
@@ -182,7 +191,7 @@ class SectionTabs(Gtk.Box):
     """Fixed local navigation with an independent scroll position for each section."""
     def __init__(self):
         super().__init__(orientation=Gtk.Orientation.VERTICAL,spacing=10)
-        self.buttons={};self.scrolls={}
+        self.buttons={};self.scrolls={};self.listeners=[]
         self.bar=styled(Gtk.Box(spacing=12),'subtab-bar');self.bar.get_accessible().set_role(Atk.Role.PAGE_TAB_LIST)
         nav=Gtk.ScrolledWindow();nav.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);nav.add(self.bar)
         self.pack_start(nav,False,False,0)
@@ -197,6 +206,7 @@ class SectionTabs(Gtk.Box):
         previous=self.stack.get_visible_child_name();self.stack.set_visible_child_name(name)
         for key,control in self.buttons.items():select_tab(control,key==name)
         if previous!=name:motion.enter_page(self.stack.get_visible_child())
+        for listener in self.listeners:listener(name)
     def cycle(self,step):
         names=list(self.buttons);current=self.stack.get_visible_child_name();name=names[(names.index(current)+step)%len(names)]
         self.select(name);self.buttons[name].grab_focus()

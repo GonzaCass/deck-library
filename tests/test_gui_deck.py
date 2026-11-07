@@ -2,6 +2,11 @@
 import os,pathlib,tempfile,unittest
 from unittest.mock import patch
 
+def Dropdown():
+    """The list control used for every picker (imported late: it needs GTK)."""
+    from deck_library.ui_components import Dropdown as control
+    return control
+
 @unittest.skipUnless(os.environ.get('DECK_LIBRARY_UI_TESTS')=='1' and os.environ.get('DISPLAY'),'requires GTK and a disposable display')
 class DeckUITests(unittest.TestCase):
     def setUp(self):
@@ -104,7 +109,7 @@ class DeckUITests(unittest.TestCase):
                 for child in widget.get_children():yield from walk(child)
         def drive(page):
             def apply():
-                combo=next(c for c in walk(page) if isinstance(c,Gtk.ComboBoxText))
+                combo=next(c for c in walk(page) if isinstance(c,Dropdown()))
                 self.assertEqual(combo.get_active_id(),'4.0.5');combo.set_active_id('5.1.2')
                 next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Aplicar arreglo de GTA IV').clicked()
                 GLib.timeout_add(250,lambda:(page.response(Gtk.ResponseType.CLOSE),False)[1]);return False
@@ -619,12 +624,12 @@ class DeckUITests(unittest.TestCase):
         self.w.platform_picker.grab_focus();self.w.controller_action('right');self.settle()
         self.assertIs(self.w.navigation_focus(self.w),self.w.type_picker)
         self.w.view_picker.grab_focus();self.w.controller_action('activate');self.settle()
-        self.assertIsInstance(Gtk.grab_get_current(),Gtk.MenuShell)
+        self.assertTrue(self.w.view_picker.get_popover().get_mapped())
         self.w.controller_action('down');self.w.last_controller_action=('',0);self.w.controller_action('activate');self.settle()
         self.assertEqual(self.w.view,'list')
         self.w.platform_picker.grab_focus();self.w.last_controller_action=('',0);self.w.controller_action('activate');self.settle()
         self.w.controller_action('back');self.settle()
-        self.assertNotIsInstance(Gtk.grab_get_current(),Gtk.MenuShell)
+        self.assertFalse(self.w.platform_picker.get_popover().get_mapped())
 
     def test_touch_drag_fallback_scrolls_and_leaves_short_taps_unclaimed(self):
         from gi.repository import Gtk
@@ -1083,7 +1088,8 @@ class DeckUITests(unittest.TestCase):
                     for caption in ('Test','Archivos necesarios','Compatibilidad en Deck'):self.assertIn(caption,summary)
                     self.assertNotIn('Antes de instalar',summary)
                     actions=[c.get_label() for c in page.actions.get_children() if c.get_visible()]
-                    self.assertEqual(actions,['Instalar'])
+                    self.assertEqual(actions,[],'The summary already has the install button; the header copy must not repeat it.')
+                    self.assertEqual(len([c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Instalar']),1)
                     self.assertEqual(page.actions_scroll.get_parent(),page.header)
                     primary=next(c for c in self.w.control_targets(page) if c.get_accessible().get_name()=='Instalar')
                     self.assertIs(self.w.get_focus(),primary)
@@ -1091,6 +1097,7 @@ class DeckUITests(unittest.TestCase):
                     self.assertGreaterEqual(x,0);self.assertLessEqual(x+primary.get_allocated_width(),840);self.assertLessEqual(y+primary.get_allocated_height(),640)
                     self.assertFalse(any(c.get_accessible().get_name()=='Usar instalación existente' for c in self.w.control_targets(page)))
                     tabs.buttons['manage'].grab_focus();self.w.controller_action('activate');self.settle()
+                    self.assertEqual([c.get_label() for c in page.actions.get_children() if c.get_visible()],['Instalar'],'Other tabs keep the install button in the header.')
                     self.assertTrue(any(c.get_accessible().get_name()=='Usar instalación existente' for c in self.w.control_targets(page)))
                     self.w.last_controller_action=('',0);self.w.controller_action('next_tab');self.settle()
                     self.assertEqual(tabs.stack.get_visible_child_name(),'summary');self.assertIn(page,self.w.inline_workflows)
@@ -1417,7 +1424,7 @@ class DeckUITests(unittest.TestCase):
             texts=[w.get_text() for w in everything if isinstance(w,Gtk.Label)];self.assertIn('No adjuntar archivos ni enlaces de descarga de juegos.',texts)
             entry=next(w for w in everything if isinstance(w,Gtk.Entry));send=next(w for w in walk(page) if hasattr(w,'get_label') and not isinstance(w,Gtk.Label) and w.get_label()=='Enviar solicitud')
             send.emit('clicked');self.settle();request.assert_not_called();entry.set_text('Mi juego')
-            next(w for w in everything if isinstance(w,Gtk.ComboBoxText) and w.get_accessible().get_name()=='Tipo de solicitud').set_active_id('emulated')
+            next(w for w in everything if isinstance(w,Dropdown()) and w.get_accessible().get_name()=='Tipo de solicitud').set_active_id('emulated')
             next(w for w in everything if isinstance(w,Gtk.TextView)).get_buffer().set_text('No responde el mando')
             send.emit('clicked');self.settle();self.settle()
             sent=request.call_args[0];self.assertEqual(sent[0],'/v1/requests');self.assertEqual(sent[1]['title'],'Mi juego');self.assertEqual(set(sent[1]),{'title','platform','details','category','repository'});self.assertEqual(sent[1]['category'],'emulated')
@@ -2662,6 +2669,49 @@ class DeckUITests(unittest.TestCase):
         self.assertEqual((port_folder/'PS3_GAME/PARAM.SFO').read_bytes(),b'sfo');self.assertEqual((port_folder/'PS3_DISC.SFB').read_bytes(),b'sfb')
         self.assertTrue(iso.exists(),'The ISO must never be touched.')
 
+    def test_after_an_install_without_a_program_the_user_is_asked_which_one_starts_the_game(self):
+        from gi.repository import Gtk
+        from deck_library import ports
+        folder=pathlib.Path(self.temp.name)/'unknown-port';(folder/'bin').mkdir(parents=True);(folder/'bin/play.exe').write_bytes(b'MZfixture');(folder/'data.bin').write_bytes(b'x')
+        outside=pathlib.Path(self.temp.name)/'elsewhere.exe';outside.write_bytes(b'MZ')
+        item=ports.clean({'repository':'owner/unknown','name':'Unknown Port'},source='Quiver');record={'repository':'owner/unknown','folder':'unknown-port','install_path':str(folder),'executable':''}
+        def labels(page):
+            values=[]
+            def walk(widget):
+                if isinstance(widget,Gtk.Label):values.append(widget.get_text())
+                if hasattr(widget,'get_label') and not isinstance(widget,Gtk.Label):values.append(widget.get_label())
+                if isinstance(widget,Gtk.Container):
+                    for child in widget.get_children():walk(child)
+            walk(page);return values
+        with patch.object(ports,'records',return_value={'owner/unknown':record}),patch.object(ports,'folder_for',return_value=folder),patch.object(ports,'set_executable') as chosen,patch.object(self.w,'discover'):
+            page=self.w.port_program_page(item);self.settle();shown=labels(page);self.assertIn('bin/play.exe',shown);self.assertIn('Buscar otro archivo',shown)
+            button=lambda caption:next(c for c in self.w.control_targets(page) if isinstance(c,Gtk.Button) and c.get_label()==caption)
+            with patch.object(self.w,'pick_file',return_value=str(outside)):button('Buscar otro archivo').clicked();self.settle()
+            chosen.assert_not_called();self.assertTrue(any('carpeta del port' in (value or '') for value in labels(page)))
+            with patch.object(self.w,'pick_file',return_value=str(folder/'data.bin')):button('Buscar otro archivo').clicked();self.settle()
+            chosen.assert_called_once_with('owner/unknown','data.bin',self.store)
+
+    def test_the_switch_2_page_explains_the_requirements_lists_the_forks_and_saves_the_chosen_emulator(self):
+        from gi.repository import Gtk
+        from deck_library import layout
+        home=pathlib.Path(self.temp.name)/'home';chosen=pathlib.Path(self.temp.name)/'fork.AppImage';chosen.write_bytes(b'\x7fELF')
+        def texts(page):
+            values=[]
+            def walk(widget):
+                if isinstance(widget,Gtk.Label):values.append(widget.get_text())
+                if isinstance(widget,Gtk.Container):
+                    for child in widget.get_children():walk(child)
+            walk(page);return values
+        self.w.tools_page();self.settle()
+        labels=[c.get_label() for c in self.w.control_targets(self.w.tools_box) if isinstance(c,Gtk.Button)]
+        self.assertTrue(any('Switch 2' in (caption or '') for caption in labels) or any('Switch 2' in value for value in texts(self.w.tools_box)))
+        with patch('pathlib.Path.home',return_value=home),patch.object(self.w,'pick_file',return_value=str(chosen)),patch('deck_library.discovery.shutil.which',return_value=None):
+            page=self.w.switch2_page();self.settle();shown=' '.join(texts(page))
+            for expected in ('Eden oficial','prod.keys','Eglantine','No se detectó ningún emulador'):self.assertIn(expected,shown)
+            next(c for c in self.w.control_targets(page) if isinstance(c,Gtk.Button) and c.get_label()=='Elegir programa').clicked();self.settle()
+            self.assertEqual(self.w.preferences['emulators']['switch2'],[str(chosen)]);self.assertIn(str(chosen),' '.join(texts(page)))
+            self.assertTrue((layout.folder('roms',home)/'switch2').is_dir())
+
     def test_catalog_filters_work_from_the_controller(self):
         from deck_library import ports
         self.w.catalog_page();self.w.catalog_apps=[ports.clean({'repository':'owner/a','name':'A','list':'PS3'},source='Quiver'),ports.clean({'repository':'owner/b','name':'B','list':'Switch'},source='Quiver')]
@@ -2792,7 +2842,7 @@ class DeckUITests(unittest.TestCase):
                 for child in widget.get_children():yield from walk(child)
         def choose(page):
             page._mount();self.settle()
-            controls={c.get_accessible().get_name():c for c in walk(page) if isinstance(c,Gtk.ComboBoxText)}
+            controls={c.get_accessible().get_name():c for c in walk(page) if isinstance(c,Dropdown())}
             for name,value in [('Tema','light'),('Tamaño de la interfaz','large'),('Al abrir Deck Library','home')]:
                 self.assertTrue(controls[name].get_mapped());controls[name].set_active_id(value)
             advanced=next(c for c in walk(page) if isinstance(c,Gtk.Expander) and c.get_label()=='Proveedor de carátulas y clave API')

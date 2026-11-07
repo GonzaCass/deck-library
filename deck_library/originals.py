@@ -12,7 +12,7 @@ def key(name):
 @functools.lru_cache(maxsize=4096)
 def platform_key(name):
     value=re.sub(r'[^a-z0-9]','',name.lower().replace(' ports',''))
-    return {'ps1':'playstation','psx':'playstation','ps2':'playstation2','ps3':'playstation3','ps4':'playstation4','n64':'nintendo64','gcn':'gamecube','gc':'gamecube','x360':'xbox360','gba':'gameboyadvance','snes':'supernintendo'}.get(value,value)
+    return {'ps1':'playstation','psx':'playstation','ps2':'playstation2','ps3':'playstation3','ps4':'playstation4','n64':'nintendo64','gcn':'gamecube','gc':'gamecube','x360':'xbox360','nx2':'switch2','switch2':'switch2','gba':'gameboyadvance','snes':'supernintendo'}.get(value,value)
 
 def original_platform(port):
     value=port.metadata.get('original_platform','')

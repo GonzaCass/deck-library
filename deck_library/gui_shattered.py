@@ -1,6 +1,7 @@
 """One action for the existing Shattered Dimensions Steam installation."""
 import threading
 from gi.repository import Gtk,GLib
+from .ui_components import Dropdown
 from . import shattered
 from .inline_pages import InlineDialog
 from .ui_components import ActionButton,Reveal,text,badge
@@ -16,7 +17,7 @@ class ShatteredMixin:
             if value['detected']:panel.pack_start(badge('Componentes detectados','green'),False,False,0)
         except (OSError,ValueError) as error:panel.pack_start(text(str(error),'meta',95),False,False,0)
         options=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);row=Gtk.Box(spacing=10)
-        row.pack_start(text('Idioma del juego'),True,True,0);language=Gtk.ComboBoxText()
+        row.pack_start(text('Idioma del juego'),True,True,0);language=Dropdown()
         for key,caption in [('ESN','Español'),('keep','Conservar idioma actual')]:language.append(key,caption)
         language.set_active_id('keep');row.pack_end(language,False,False,0);options.pack_start(row,False,False,0)
         options.pack_start(text('Requiere el acceso de Steam con Proton 10.0 y un primer inicio completado. Protontricks se instala si falta. Las voces necesitan los archivos del idioma elegido. El respaldo cubre el registro y los archivos locales modificados; no es una copia completa del prefijo.','meta',95),False,False,0)

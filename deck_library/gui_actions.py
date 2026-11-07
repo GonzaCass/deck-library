@@ -1,6 +1,7 @@
 """Library actions and background work, independent of the window layout."""
 import json,os,pathlib,shlex,subprocess,sys,threading,re
 from gi.repository import Gtk,GLib,Pango
+from .ui_components import Dropdown
 from .inline_pages import InlineDialog,InlineFileButton
 from .models import Store,Entry,atomic_json
 from .discovery import scan,available_emulators,nice_name,SYSTEMS
@@ -268,7 +269,7 @@ class ActionsMixin:
         if existing and existing.kind=='steam':self.steam_edit_dialog(existing);return
         dialog=InlineDialog(title='Editar juego' if existing else 'Agregar un juego',transient_for=self,modal=True);dialog.set_default_size(650,510);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL);dialog.add_button('Guardar',Gtk.ResponseType.OK)
         box=dialog.get_content_area();box.set_border_width(22);box.set_spacing(12)
-        kind=Gtk.ComboBoxText();kinds=['Port o app de Linux','Juego emulado','Comando personalizado']
+        kind=Dropdown();kinds=['Port o app de Linux','Juego emulado','Comando personalizado']
         for k in kinds:kind.append_text(k)
         kind.set_active(1 if existing and existing.kind=='emulated' else 2 if existing else 0);box.pack_start(label('Tipo','muted'),False,False,0);box.pack_start(kind,False,False,0)
         name=Gtk.Entry();name.set_placeholder_text('Nombre en Steam');name.set_text(existing.name if existing else '');box.pack_start(name,False,False,0)
@@ -278,7 +279,7 @@ class ActionsMixin:
             path=widget.get_filename()
             if path and not name.get_text():name.set_text(nice_name(pathlib.Path(path)))
         file_.connect('file-set',chosen);box.pack_start(file_,False,False,0)
-        emulator=Gtk.ComboBoxText();emus=available_emulators(preferences=self.preferences);keys=list(emus)
+        emulator=Dropdown();emus=available_emulators(preferences=self.preferences);keys=list(emus)
         for key in keys:emulator.append_text(emus[key]['name'])
         if keys:emulator.set_active(0)
         emulator_label=label('Emulador','muted');box.pack_start(emulator_label,False,False,0);box.pack_start(emulator,False,False,0)

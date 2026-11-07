@@ -15,6 +15,7 @@ class ToolboxMixin:
         self.reset_page(self.tools_box);heading=label('Herramientas','hero');heading.set_no_show_all(True);heading.hide();self.tools_box.pack_start(heading,False,False,0)
         tools=[('Convertir un juego de Switch','Convierte un XCI o NSP propio (y su actualización) en la carpeta exefs y romfs que piden algunos ports.','Convertir','folder',lambda _:self.switch_convert_page()),
                ('Extraer una ISO de Xbox, Xbox 360 o PS3','Extrae el contenido de una ISO a una carpeta, verificándolo. Sirve para los ports que piden la carpeta del juego.','Extraer','folder',lambda _:self.iso_extract_page()),
+               ('Switch 2 (experimental)','Emulador y carpeta para juegos de Switch 2. Se usan forks de Eden que todavía no son del todo compatibles.','Ver','controller',lambda _:self.switch2_page()),
                ('ROMs y ports instalados','Gestionar la copia de consola de un juego que ya tiene un port.','Gestionar ROMs','folder',lambda _:self.originals_dialog()),
                ('Duplicados y conflictos','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),
                ('Juegos ocultos','Restaurar juegos quitados de la biblioteca sin borrar sus archivos.','Juegos ocultos','library',self.hidden_games_dialog)]
@@ -24,6 +25,37 @@ class ToolboxMixin:
             if title=='Deck Library en Steam':self.steam_tools_row=row
         self.pin_page_header(self.tools_box,self.tools_box.get_children()[0])
         self.tools_box.show_all();self.pages.set_visible_child_name('tools')
+
+    def switch2_page(self,*_):
+        """Where Switch 2 games go, which emulator is in use, and the community forks that run them. Nothing is downloaded or installed."""
+        import json,subprocess
+        from . import i18n
+        from .discovery import available_emulators
+        page=InlineDialog(title='Switch 2 (experimental)',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
+        body=page.get_content_area();body.set_spacing(10)
+        body.pack_start(text('Los juegos de Switch 2 se ejecutan con forks comunitarios de Eden. No son versiones del equipo de Eden, siguen siendo experimentales y Eden oficial no los ejecuta. Hace falta el juego propio, prod.keys y firmware propios: Deck Library no los incluye ni los descarga.','muted',95),False,False,0)
+        games=layout.folder('roms')/'switch2'
+        try:games.mkdir(parents=True,exist_ok=True)
+        except OSError:pass
+        card=self.card(body,'Emulador en uso');status=text('','muted',90);card.pack_start(status,False,False,0)
+        def refresh():
+            found=available_emulators(preferences=self.preferences).get('switch2')
+            status.set_text('Detectado: '+' '.join(found['command']) if found else 'No se detectó ningún emulador de Switch 2. Elegir su programa o dejar su AppImage en ~/Applications.')
+        def choose(_):
+            path=self.pick_file('Elegir el emulador de Switch 2')
+            if not path:return
+            emulators=dict(self.preferences.get('emulators',{}));emulators['switch2']=[path];self.preferences['emulators']=emulators;save_settings(self.preferences,self.store);refresh()
+        card.pack_start(ActionButton('Elegir programa','folder',choose,'steam-outline'),False,False,0)
+        folder=self.card(body,'Carpeta de los juegos')
+        folder.pack_start(text('Los NSP y XCI de Switch 2 van en '+str(games).replace(str(pathlib.Path.home()),'~')+' (o en una carpeta llamada switch2 o nx2 dentro de cualquier carpeta de ROMs). Después, «Actualizar biblioteca» los agrega como juegos de Switch 2.','muted',90),False,False,0)
+        try:data=json.loads((pathlib.Path(__file__).resolve().parent.parent/'catalog/switch2-emulators.json').read_text(encoding='utf-8'))
+        except (OSError,ValueError):data={'emulators':[]}
+        known=self.card(body,'Forks conocidos')
+        known.pack_start(text('Lista de la guía comunitaria '+data.get('source','')+' (estado al '+data.get('as_of','')+'). Deck Library no los probó.','meta',90),False,False,0)
+        for emulator in data.get('emulators',[]):
+            note=emulator.get('note_en') if i18n.language()=='en' else emulator.get('note');known.pack_start(text(emulator['name'],'title',90),False,False,0);known.pack_start(text(', '.join(emulator.get('systems',[]))+' · '+(note or ''),'muted',90),False,False,0)
+            known.pack_start(ActionButton('Abrir página','file',lambda _,u=emulator['url']:subprocess.Popen(['xdg-open',u],start_new_session=True),'quiet'),False,False,0)
+        refresh();page.connect('response',lambda *_:page.destroy());page._mount();return page
 
     def extract_iso_for_port(self,item):
         """The ISO tool, opened from a port: when the extraction ends the game folder can go straight into the port's folder."""

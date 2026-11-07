@@ -1,6 +1,7 @@
 """Editable, local profile draft. No account or network is needed to capture settings."""
 import json
 from gi.repository import Gtk
+from .ui_components import Dropdown
 from . import presets
 from .ui_components import ActionButton,text
 
@@ -11,7 +12,7 @@ class ProfileComposer(Gtk.Box):
         self.pack_start(text('Compartir mis ajustes','section-title'),False,False,0)
         self.title=Gtk.Entry();self.title.set_text(entry.name+' — mis ajustes')
         self.pack_start(text('Nombre del perfil'),False,False,0);self.pack_start(self.title,False,False,0)
-        self.objective=Gtk.ComboBoxText()
+        self.objective=Dropdown()
         for name in ('Equilibrado','Rendimiento','Calidad','Personalizado'):self.objective.append(name,name)
         self.objective.set_active_id('Personalizado')
         self.pack_start(text('Objetivo'),False,False,0);self.pack_start(self.objective,False,False,0)
@@ -37,7 +38,7 @@ class ProfileComposer(Gtk.Box):
         self.instructions.set_tooltip_text('Las instrucciones se muestran al usar el perfil. Deck Library no ejecuta estos comandos.')
         self.notes=self.editor('Resultado de las pruebas y observaciones',70)
         row=Gtk.Box(spacing=10);self.pack_start(row,False,False,0)
-        self.runtime=Gtk.ComboBoxText()
+        self.runtime=Dropdown()
         for key,name in (('native','Linux nativo'),('proton','Proton'),('steam','Administrado por Steam')):self.runtime.append(key,name)
         self.version=Gtk.Entry();self.version.set_placeholder_text('Versión de Proton (si corresponde)')
         row.pack_start(self.runtime,False,False,0);row.pack_start(self.version,True,True,0)

@@ -1,5 +1,6 @@
 """Manual options inside the game page, with a fixed save action."""
 from gi.repository import Gtk,GLib
+from .ui_components import Dropdown
 from .inline_pages import InlineDialog
 from . import presets
 from .gui_tools import SETTING_LABELS,SECTION_LABELS
@@ -24,7 +25,7 @@ class EditorMixin:
                 if rule is bool:
                     widget=Gtk.Switch();widget.set_active(bool(initial));widget.set_valign(Gtk.Align.CENTER);widget.connect('notify::active',lambda w,_,i=ident:changed(i));read=lambda w:w.get_active()
                 elif isinstance(rule[0],str):
-                    widget=Gtk.ComboBoxText()
+                    widget=Dropdown()
                     for choice in rule:widget.append(choice,choice)
                     widget.set_active_id(initial if initial in rule else rule[0]);widget.connect('changed',lambda w,i=ident:changed(i));read=lambda w:w.get_active_id()
                 else:

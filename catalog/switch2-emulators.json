@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "source": "https://github.com/riyadhHDA/wichforks",
+  "as_of": "2026-11-07",
+  "emulators": [
+    {
+      "name": "Eglantine (Djihads80)",
+      "url": "https://github.com/Djihads80/Eglantine",
+      "systems": [
+        "Windows",
+        "Linux",
+        "macOS"
+      ],
+      "note": "Base de la familia y punto de partida habitual. Versiones preliminares.",
+      "note_en": "Main upstream of the family and the usual starting point. Pre-release builds."
+    },
+    {
+      "name": "Eglantine (SmileyTatsu)",
+      "url": "https://github.com/SmileyTatsu/Eglantine",
+      "systems": [
+        "Windows",
+        "Linux",
+        "macOS"
+      ],
+      "note": "Fork orientado a Mario Kart World.",
+      "note_en": "Fork aimed at Mario Kart World."
+    },
+    {
+      "name": "Orchid",
+      "url": "https://github.com/MythosOfs/Orchid",
+      "systems": [
+        "Windows",
+        "Linux"
+      ],
+      "note": "Independiente desde que se separó de Eglantine; orientado a Ocarina of Time.",
+      "note_en": "Independent since leaving Eglantine; aimed at Ocarina of Time."
+    },
+    {
+      "name": "Lichii (zortos293)",
+      "url": "https://github.com/zortos293/Lichii",
+      "systems": [
+        "Windows",
+        "Linux",
+        "macOS"
+      ],
+      "note": "Fork grande derivado de Eglantine que también ejecuta juegos de Switch 1.",
+      "note_en": "Large Eglantine-derived fork that also runs Switch 1 titles."
+    },
+    {
+      "name": "Eglantine (notsapinho)",
+      "url": "https://github.com/notsapinho/Eglantine",
+      "systems": [
+        "Windows",
+        "Linux"
+      ],
+      "note": "Compilación pequeña orientada a Pokémon Pokopia; la de Linux x86_64 necesita AVX2.",
+      "note_en": "Small build aimed at Pokémon Pokopia; the Linux x86_64 build needs AVX2."
+    },
+    {
+      "name": "selevet-eglantine",
+      "url": "https://github.com/sylvieistaken/selevet-eglantine",
+      "systems": [
+        "Windows",
+        "Linux"
+      ],
+      "note": "Ajustada para procesadores Zen 3; recomendada para Donkey Kong Bananza.",
+      "note_en": "Tuned for Zen 3 processors; recommended for Donkey Kong Bananza."
+    },
+    {
+      "name": "Droplet",
+      "url": "https://gitlab.com/seighttt/droplet",
+      "systems": [
+        "Windows",
+        "Linux"
+      ],
+      "note": "Juego en línea privado con servidor propio. No lee NSP/XCI cifrados, solo carpetas descifradas.",
+      "note_en": "Private online play with a self-hosted server. It cannot read encrypted NSP/XCI files, only decrypted folders."
+    },
+    {
+      "name": "Eglantine (rdenno)",
+      "url": "https://github.com/rdenno/Eglantine",
+      "systems": [
+        "Windows",
+        "Linux",
+        "macOS"
+      ],
+      "note": "Tiene una rama nx2-merged, útil para Hyrule Warriors. Proyecto muy pequeño.",
+      "note_en": "Has an nx2-merged branch, useful for Hyrule Warriors. Very small project."
+    }
+  ],
+  "note_en": "Community forks of the Eden code base. Experimental, not Eden team releases; official Eden does not run Switch 2 games in its stable release. Deck Library does not ship, download or update any of them.",
+  "note": "Forks comunitarios del código de Eden. Son experimentales y no son versiones del equipo de Eden; Eden oficial no ejecuta juegos de Switch 2 en su versión estable. Deck Library no los incluye, descarga ni actualiza."
+}

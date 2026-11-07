@@ -1,10 +1,11 @@
 """Support forms, administrator replies and persistent response notifications."""
 import threading
 from gi.repository import Gtk,GLib
+from .ui_components import Dropdown
 from .inline_pages import InlineDialog
 from .ui_components import ActionButton,badge,text
 
-PLATFORMS=('Switch','PlayStation','Xbox','Wii / Wii U','PC (Windows)','Otra')
+PLATFORMS=('Switch','Switch 2','PlayStation','Xbox','Wii / Wii U','PC (Windows)','Otra')
 CATEGORIES={'report':'Reporte de problema','port':'Port','emulated':'Juego emulado','native':'Juego nativo','minecraft':'Instancia de Minecraft'}
 STATES={'new':('Recibida','neutral'),'investigating':('En estudio','blue'),'fixed':('Resuelta','green'),'declined':('No se pudo','orange')}
 
@@ -60,14 +61,14 @@ class SupportMixin:
     def request_game_page(self,*_,entry=None):
         page=InlineDialog(title='Hacer una solicitud',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
         body=page.get_content_area();body.set_spacing(8)
-        category=Gtk.ComboBoxText();category.get_accessible().set_name('Tipo de solicitud')
+        category=Dropdown();category.get_accessible().set_name('Tipo de solicitud')
         for key,name in CATEGORIES.items():
             if key!='report':category.append(key,name)
         initial=('port' if entry.kind=='port' else 'minecraft' if entry.platform=='Minecraft' else 'emulated' if entry.kind=='emulated' else 'native') if entry else 'port'
         category.set_active_id(initial);body.pack_start(text('Tipo de solicitud','title'),False,False,0);body.pack_start(category,False,False,0)
         title=Gtk.Entry();title.set_max_length(120);title.set_placeholder_text('Nombre del juego o de la instancia');body.pack_start(text('Nombre del juego o de la instancia','title'),False,False,0);body.pack_start(title,False,False,0)
         if entry:title.set_text(entry.name)
-        platform=Gtk.ComboBoxText();platform.get_accessible().set_name('Plataforma del juego')
+        platform=Dropdown();platform.get_accessible().set_name('Plataforma del juego')
         for name in PLATFORMS:platform.append(name,name)
         platform.set_active_id(entry.platform if entry and entry.platform in PLATFORMS else 'Otra');body.pack_start(text('Plataforma','title'),False,False,0);body.pack_start(platform,False,False,0)
         repo_box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=4);repo_box.pack_start(text('Repositorio del port en GitHub','title'),False,False,0)

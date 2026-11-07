@@ -7,6 +7,8 @@ from .content import switch_id
 # Extensions are restricted to bootable files; updates/DLC are excluded separately.
 SYSTEMS={
  'switch':('Switch','eden',('-f','-g'),{'.nsp','.xci'}),
+ 'switch2':('Switch 2','switch2',('-f','-g'),{'.nsp','.xci'}),
+ 'nx2':('Switch 2','switch2',('-f','-g'),{'.nsp','.xci'}),
  'wii':('Wii','dolphin-emu',('-b','-e'),{'.iso','.rvz','.wbfs','.gcz'}),
  'gc':('GameCube','dolphin-emu',('-b','-e'),{'.iso','.rvz','.gcz'}),
  'psx':('PlayStation','duckstation',('-batch','-fullscreen'),{'.cue','.chd','.pbp','.m3u'}),
@@ -20,6 +22,8 @@ SYSTEMS={
  'wiiu':('Wii U','cemu',('-f','-g'),{'.wua','.wud','.wux','.rpx'}),
 }
 EMULATOR_FLATPAKS={'mgba':'io.mgba.mGBA','eden':'dev.eden_emu.eden','dolphin-emu':'org.DolphinEmu.dolphin-emu','duckstation':'org.duckstation.DuckStation','pcsx2-qt':'net.pcsx2.PCSX2','ppsspp':'org.ppsspp.PPSSPP','azahar':'org.azahar_emu.Azahar','cemu':'info.cemu.Cemu'}
+# Community forks of Eden that run Switch 2 games; the first one found is used unless the user picked a program.
+SWITCH2_FORKS=('eglantine','lichii','orchid','selevet','pokedinner','droplet')
 REJECT_PARTS={'updates','update','dlc','mods','duplicates','firmware','keys','sistemas','systems','bios'}
 
 def nice_name(path):
@@ -40,6 +44,9 @@ def available_emulators(home=None,preferences=None):
         launcher=pathlib.Path(emudeck['launchers'])/(slug+'.sh')
         apps=pathlib.Path(emudeck['apps']);images=sorted(p for p in apps.glob('*.AppImage') if p.name.lower().startswith(slug.split('-')[0]))
         binary=shutil.which(slug)
+        if slug=='switch2':
+            images=sorted(p for folder in dict.fromkeys((apps,home/'Applications')) for p in folder.glob('*.AppImage') if p.name.lower().startswith(SWITCH2_FORKS))
+            binary=next((found for found in map(shutil.which,SWITCH2_FORKS) if found),None)
         app_id=flatpaks.get(slug,'')
         if configured:command=configured if isinstance(configured,list) else [configured]
         elif slug=='eden' and images:command=[str(images[0])]
@@ -202,4 +209,5 @@ def scan(home=None,extra_roots=(),preferences=None):
     for e in prism_entries(home,preferences):found[e.id]=e
     for e in found.values():
         if e.platform=='Switch':e.game_id=switch_id(e);e.metadata['adapter']='eden'
+        elif e.platform=='Switch 2':e.game_id=switch_id(e)  # same title-ID naming; no Eden profiles, the forks keep their own settings
     return sorted(found.values(),key=lambda e:e.name.casefold())

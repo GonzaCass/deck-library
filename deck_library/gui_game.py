@@ -1,6 +1,7 @@
 """Game workspace: a visual overview, explicit profile selection and secondary task pages."""
 import json
 from gi.repository import Gtk, GLib, Pango
+from .ui_components import Dropdown
 from . import presets, motion, profile_display as display
 from .artwork import find_cover
 from .ui_components import ActionButton, TaskButton, Icon, Reveal, GameBackdrop, styled, text, tooltip_when_cut, badge, section_tab, select_tab, metadata_line
@@ -739,7 +740,7 @@ class GameMixin:
         if not compact:
             panel.pack_start(text(explanation,'muted',85),False,False,0)
             panel.pack_start(text('En Steam, dejar desactivada la opción de forzar una herramienta de compatibilidad para este acceso directo: Deck Library ya ejecuta Proton.','meta',85),False,False,0)
-        choices=proton_tools.installed();combo=Gtk.ComboBoxText();combo.set_hexpand(True)
+        choices=proton_tools.installed();combo=Dropdown();combo.set_hexpand(True)
         try:automatic='Automática · '+selection.default_tool(entry).parent.name
         except ValueError:automatic='Automática · Proton no instalado'
         combo.append('',automatic)

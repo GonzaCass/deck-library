@@ -3,7 +3,7 @@ import pathlib
 from . import presets
 from .content import eden_paths
 LANGUAGES={'1':'Inglés (EE. UU.)','12':'Inglés (Reino Unido)','5':'Español (España)','14':'Español (Latinoamérica)','2':'Francés','3':'Alemán','4':'Italiano','17':'Portugués (Brasil)','0':'Japonés'}
-SLUGS={'Switch':'eden','Wii':'dolphin-emu','GameCube':'dolphin-emu','PlayStation':'duckstation','PlayStation 2':'pcsx2-qt','PSP':'ppsspp','Nintendo 3DS':'azahar','Wii U':'cemu'}
+SLUGS={'Switch':'eden','Switch 2':'switch2','Wii':'dolphin-emu','GameCube':'dolphin-emu','PlayStation':'duckstation','PlayStation 2':'pcsx2-qt','PSP':'ppsspp','Nintendo 3DS':'azahar','Wii U':'cemu'}
 
 def inspect_emulator(entry,preferences=None):
     preferences=preferences or {};slug=SLUGS.get(entry.platform,'');languages={};language=None

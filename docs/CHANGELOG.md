@@ -4,6 +4,7 @@ Every release has its notes on [GitHub](https://github.com/GonzaCass/deck-librar
 
 | Version | Date | Title |
 | --- | --- | --- |
+| [1.6.0](https://github.com/GonzaCass/deck-library/releases/tag/v1.6.0) | 2026-11-07 | Every port package installs, PlayStation 3 ISO extraction, tap-friendly lists, experimental Switch 2 support and a faster library |
 | [1.5.0](https://github.com/GonzaCass/deck-library/releases/tag/v1.5.0) | 2026-11-01 | Console-style interface, reliable release-note display, update preferences in Settings and conditional Steam shortcut actions |
 | [1.4.12](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.12) | 2026-10-31 | Per-game Windows component inspection and preparation, confirmed-profile Proton recommendations and community fix links |
 | [1.4.11](https://github.com/GonzaCass/deck-library/releases/tag/v1.4.11) | 2026-10-30 | Disable the FusionFix color filter without resetting game settings; document catalog sources and the Savage Wind configuration |

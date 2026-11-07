@@ -1,6 +1,7 @@
 """Library-first shell: top navigation and persistent game tabs, without a sidebar."""
 import json,os,pathlib,threading
 from gi.repository import Gtk,Gdk,GLib,Pango,GdkPixbuf
+from .ui_components import Dropdown
 from .inline_pages import InlineDialog
 from .models import Store
 from .installations import settings,save_settings
@@ -220,14 +221,14 @@ class ShellMixin:
         page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);page.set_border_width(14);self.pages.add_named(page,'library')
         head=Gtk.Box(spacing=12);head.pack_start(label('Biblioteca','hero'),False,False,0);head.set_no_show_all(True);head.hide();page.pack_start(head,False,False,0)
         toolbar=Gtk.Box(spacing=10);toolbar.get_style_context().add_class('page-toolbar');self.search=Gtk.SearchEntry();self.search.set_placeholder_text('Buscar juegos · X: teclado');self.bind_search_keyboard(self.search);self.search.set_width_chars(16);self.search.set_hexpand(True);self.search.connect('search-changed',lambda _:self.render());toolbar.pack_start(self.search,True,True,0);self.library_count=label('','meta');self.library_count.get_style_context().add_class('library-count');toolbar.pack_start(self.library_count,False,False,4);self.filter_toggle=button('Vista y filtros',self.toggle_library_filters);toolbar.pack_end(self.filter_toggle,False,False,0);page.pack_start(toolbar,False,False,0)
-        filters=Gtk.Box(spacing=8);self.platform_picker=Gtk.ComboBoxText();self.platform_picker.get_accessible().set_name('Plataforma');self.platform_picker.append('all','Todas las plataformas');self.platform_picker.set_active_id('all');self.platform_picker.connect('changed',self.filter_changed);filters.pack_start(self.platform_picker,False,False,0)
-        self.type_picker=Gtk.ComboBoxText();self.type_picker.get_accessible().set_name('Tipo de juego');self.type_picker.append('all','Todos los tipos')
+        filters=Gtk.Box(spacing=8);self.platform_picker=Dropdown();self.platform_picker.get_accessible().set_name('Plataforma');self.platform_picker.append('all','Todas las plataformas');self.platform_picker.set_active_id('all');self.platform_picker.connect('changed',self.filter_changed);filters.pack_start(self.platform_picker,False,False,0)
+        self.type_picker=Dropdown();self.type_picker.get_accessible().set_name('Tipo de juego');self.type_picker.append('all','Todos los tipos')
         for key,title in TYPES:self.type_picker.append(key,title)
         self.type_picker.set_active_id('all');self.type_picker.connect('changed',lambda w:self.type_changed(w.get_active_id() or 'all'));filters.pack_start(self.type_picker,False,False,0)
-        self.sort_picker=Gtk.ComboBoxText();self.sort_picker.get_accessible().set_name('Orden de la biblioteca')
+        self.sort_picker=Dropdown();self.sort_picker.get_accessible().set_name('Orden de la biblioteca')
         for key,title in [('name','Nombre'),('recent','Jugados hace poco'),('favorites','Favoritos primero')]:self.sort_picker.append(key,title)
         self.library_sort=self.preferences.get('library_sort','name');self.sort_picker.set_active_id(self.library_sort);self.sort_picker.connect('changed',self.change_sort);filters.pack_start(self.sort_picker,False,False,0)
-        self.view_picker=Gtk.ComboBoxText();self.view_picker.get_accessible().set_name('Vista de biblioteca')
+        self.view_picker=Dropdown();self.view_picker.get_accessible().set_name('Vista de biblioteca')
         for key,title in [('covers','Carátulas'),('list','Lista'),('platforms','Por plataforma')]:self.view_picker.append(key,title)
         self.view_picker.set_active_id(self.view);self.view_picker.connect('changed',self.change_view);filters.pack_end(self.view_picker,False,False,0);self.select_button=button('Seleccionar',lambda _:self.toggle_selection());filters.pack_end(self.select_button,False,False,0);filter_scroll=self.new_scroll();filter_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);filter_scroll.add(filters);self.filter_scroll=filter_scroll;filter_scroll.set_no_show_all(True);filter_scroll.hide();page.pack_start(filter_scroll,False,False,0)
         self.originals_bar=Gtk.Box(spacing=10);self.originals_bar.set_no_show_all(True);self.originals_label=label('','muted');self.originals_button=button('ROMs asociadas',lambda _:self.originals_dialog());self.originals_bar.pack_end(self.originals_button,False,False,0);filters.pack_end(self.originals_bar,False,False,0)
@@ -243,7 +244,7 @@ class ShellMixin:
             row=ActionButton(caption,icon,action,tone);row.set_halign(Gtk.Align.CENTER);self.empty_box.pack_start(row,False,False,0)
         empty_scroll=self.new_scroll();empty_scroll.add(self.empty_box);self.library_stack.add_named(empty_scroll,'empty')
         self.selection_bar=Gtk.Box(spacing=8);self.selection_bar.get_style_context().add_class('selection-bar');self.selection_bar.set_no_show_all(True);self.selection_label=label('');self.selection_bar.pack_start(self.selection_label,True,True,0);self.selection_bar.pack_start(button('Seleccionar visibles',lambda _:self.select_visible()),False,False,0)
-        self.account=Gtk.ComboBoxText();self.accounts=find_accounts();current=active_account()
+        self.account=Dropdown();self.accounts=find_accounts();current=active_account()
         if current in self.accounts:self.accounts.remove(current);self.accounts.insert(0,current)
         for i,path in enumerate(self.accounts):self.account.append_text('Cuenta actual' if path==current else 'Cuenta Steam '+str(i+1))
         if not self.accounts:self.account.append_text('Steam sin sesión')
@@ -404,17 +405,17 @@ class ShellMixin:
         body=dialog.get_content_area();body.set_border_width(4);body.set_spacing(8)
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2);box.get_style_context().add_class('appearance-group');body.pack_start(box,False,False,0)
         box.pack_start(label('Pantalla e idioma','section-title'),False,False,4)
-        language=Gtk.ComboBoxText();language.get_accessible().set_name('Idioma · Language')
+        language=Dropdown();language.get_accessible().set_name('Idioma · Language')
         for key_,title_ in (('auto','Automático'),('es','Español'),('en','English')):language.append(key_,title_)
         current_language=self.preferences.get('language') or ('es' if self.preferences.get('onboarding_complete') else 'auto');language.set_active_id(current_language)
-        first_page=Gtk.ComboBoxText();first_page.get_accessible().set_name('Al abrir Deck Library');first_page.append('library','Biblioteca');first_page.append('home','Inicio');first_page.set_active_id(self.preferences.get('start_page') or 'home');first_row=Gtk.Box(spacing=12);first_row.pack_start(label('Al abrir Deck Library'),True,True,0);first_row.pack_end(first_page,False,False,0);box.pack_start(first_row,False,False,0)
-        pad_layout=Gtk.ComboBoxText();pad_layout.get_accessible().set_name('Botones del mando')
+        first_page=Dropdown();first_page.get_accessible().set_name('Al abrir Deck Library');first_page.append('library','Biblioteca');first_page.append('home','Inicio');first_page.set_active_id(self.preferences.get('start_page') or 'home');first_row=Gtk.Box(spacing=12);first_row.pack_start(label('Al abrir Deck Library'),True,True,0);first_row.pack_end(first_page,False,False,0);box.pack_start(first_row,False,False,0)
+        pad_layout=Dropdown();pad_layout.get_accessible().set_name('Botones del mando')
         for key_,title_ in (('ps','PlayStation'),('deck','Steam Deck'),('xbox','Xbox'),('switch','Nintendo Switch')):pad_layout.append(key_,title_)
         pad_layout.set_active_id(self.preferences.get('controller_layout') or 'ps');pad_row=Gtk.Box(spacing=12);pad_row.pack_start(label('Botones del mando'),True,True,0);pad_row.pack_end(pad_layout,False,False,0);box.pack_start(pad_row,False,False,0)
-        theme=Gtk.ComboBoxText();theme.get_accessible().set_name('Tema')
+        theme=Dropdown();theme.get_accessible().set_name('Tema')
         for key_,title_ in (('dark','Negro'),('light','Claro')):theme.append(key_,title_)
         theme.set_active_id(self.preferences.get('theme') or 'dark');theme_row=Gtk.Box(spacing=12);theme_row.pack_start(label('Tema'),True,True,0);theme_row.pack_end(theme,False,False,0);box.pack_start(theme_row,False,False,0)
-        scale=Gtk.ComboBoxText();scale.get_accessible().set_name('Tamaño de la interfaz')
+        scale=Dropdown();scale.get_accessible().set_name('Tamaño de la interfaz')
         for key_,title_ in (('normal','Normal'),('large','Grande'),('xlarge','Muy grande')):scale.append(key_,title_)
         scale.set_active_id(self.preferences.get('ui_scale') or 'normal');scale_row=Gtk.Box(spacing=12);scale_row.pack_start(label('Tamaño de la interfaz'),True,True,0);scale_row.pack_end(scale,False,False,0);box.pack_start(scale_row,False,False,0)
         language_row=Gtk.Box(spacing=12);language_row.pack_start(label('Idioma · Language'),True,True,0);language_row.pack_end(language,False,False,0);box.pack_start(language_row,False,False,0);self.fit_dialog(dialog);dialog.show_all()

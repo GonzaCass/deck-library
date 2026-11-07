@@ -8,7 +8,7 @@ parser=argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--ui-preview',action='store_true',help='Build a separate UI preview archive under dist.')
 args=parser.parse_args()
 archive_name=f'DeckLibrary-{VERSION}'+('-ui-preview' if args.ui_preview else '')
-files=[ROOT/name for name in ('app.py','AGENTS.md','install.py','launch.sh','Instalar.sh','README.md','LEEME.md','LICENSE','.gitignore','.github/workflows/test.yml','catalog/ports.json','catalog/validated-games.json','catalog/port-variants.json','assets/icon.svg','assets/icon.png','assets/screenshot.png','assets/screenshot-game.png','assets/welcome.png','docs/VALIDATION.md','docs/PRESETS.md','docs/COMMUNITY-PRESETS.md','docs/GTAIV.md','docs/PROJECT2099.md','docs/DMC3-CRIMSON.md','docs/SPIDER-MAN-SHATTERED-DIMENSIONS.md','docs/PORTS.md','tools/build_release.py')]
+files=[ROOT/name for name in ('app.py','AGENTS.md','install.py','launch.sh','Instalar.sh','README.md','LEEME.md','LICENSE','.gitignore','.github/workflows/test.yml','catalog/ports.json','catalog/validated-games.json','catalog/port-variants.json','catalog/switch2-emulators.json','assets/icon.svg','assets/icon.png','assets/screenshot.png','assets/screenshot-game.png','assets/welcome.png','docs/VALIDATION.md','docs/PRESETS.md','docs/COMMUNITY-PRESETS.md','docs/GTAIV.md','docs/PROJECT2099.md','docs/DMC3-CRIMSON.md','docs/SPIDER-MAN-SHATTERED-DIMENSIONS.md','docs/PORTS.md','docs/SWITCH2.md','tools/build_release.py')]
 for folder in ('deck_library','tests'):
     files.extend(sorted((ROOT/folder).glob('*.py')))
 files.extend(sorted((ROOT/'presets').glob('*.json')))

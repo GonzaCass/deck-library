@@ -1,0 +1,21 @@
+# Switch 2 (experimental) · Switch 2 (experimental)
+
+## Español
+
+Deck Library reconoce los juegos de Switch 2 como una plataforma propia y los inicia con un fork comunitario de Eden. **No es una función estable**: esos forks todavía no son del todo compatibles, no son versiones del equipo de Eden y Eden oficial no ejecuta juegos de Switch 2.
+
+- **Qué hace.** Una carpeta `switch2` (o `nx2`) dentro de cualquier carpeta de ROMs, por ejemplo `~/DeckLibrary/roms/switch2`, se agrega a la biblioteca como **Switch 2**. Los juegos de Switch 1 siguen en `switch` y se inician con Eden como siempre. Las actualizaciones y el contenido descargable se ignoran igual que en Switch 1 (por el identificador del título o por carpetas llamadas `updates` o `dlc`).
+- **Qué emulador usa.** El que se elija en **Herramientas → Switch 2 (experimental) → Elegir programa**, o el primer AppImage de Eglantine, Lichii, Orchid, selevet o PokeDinner que haya en `~/Applications` o en la carpeta de aplicaciones de EmuDeck, o un programa con ese nombre en el PATH. Se inicia con `-f -g`, igual que Eden.
+- **Qué hace falta.** El juego propio, `prod.keys` y firmware propios. Deck Library no incluye, descarga ni actualiza ninguno de esos archivos ni los forks.
+- **Lista de forks.** **Herramientas → Switch 2** muestra los forks conocidos con su sistema y una nota, tomados de la guía comunitaria <https://github.com/riyadhHDA/wichforks> (estado al 7 de noviembre de 2026). Los datos están en `catalog/switch2-emulators.json`. Deck Library no probó ninguno.
+- **Límites.** No se aplican los perfiles de Eden a Switch 2 (cada fork guarda su propia configuración). La conversión de NSP/XCI a `exefs` + `romfs` es solo para Switch 1. No se probó con un juego ni con un emulador de Switch 2 reales: la detección y el inicio se comprobaron con archivos de prueba. Las compilaciones nativas de la guía (nxnative para macOS, Banana Native para Android) no corren en la Deck y no están integradas.
+
+## English
+
+Deck Library recognises Switch 2 games as a platform of their own and starts them with a community fork of Eden. **This is not a stable feature**: those forks are not fully compatible yet, they are not releases from the Eden team and official Eden does not run Switch 2 games.
+
+- **What it does.** A folder called `switch2` (or `nx2`) inside any ROM folder, for example `~/DeckLibrary/roms/switch2`, is added to the library as **Switch 2**. Switch 1 games stay in `switch` and start with Eden as before. Updates and DLC are ignored as for Switch 1 (by title ID, or by folders called `updates` or `dlc`).
+- **Which emulator.** The one chosen in **Tools → Switch 2 (experimental) → Choose program**, or the first Eglantine, Lichii, Orchid, selevet or PokeDinner AppImage in `~/Applications` or EmuDeck's applications folder, or a program with one of those names on the PATH. It is started with `-f -g`, like Eden.
+- **What is needed.** Your own game, `prod.keys` and firmware. Deck Library does not include, download or update those files or the forks.
+- **Fork list.** **Tools → Switch 2** lists the known forks with their systems and a note, taken from the community guide <https://github.com/riyadhHDA/wichforks> (state as of 7 November 2026). The data is in `catalog/switch2-emulators.json`. Deck Library has not tested any of them.
+- **Limits.** Eden profiles are not applied to Switch 2 (each fork keeps its own settings). The NSP/XCI to `exefs` + `romfs` conversion is for Switch 1 only. It was not tried with a real Switch 2 game or emulator: detection and launch were checked with sample files. The guide's native builds (nxnative for macOS, Banana Native for Android) do not run on the Deck and are not integrated.

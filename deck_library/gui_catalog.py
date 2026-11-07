@@ -456,6 +456,12 @@ class CatalogMixin:
         project=self.card(management,'Acerca del port');project.pack_start(about,False,False,0)
         page.preferred_focus=primary_action[0] if primary_action else next((c for c in reversed(page.actions.get_children()) if c.get_style_context().has_class('primary')),None)
         page.set_sections([('summary','Resumen',box),('requirements','Requisitos',files),('compatibility','Compatibilidad',compatibility),('manage','Gestión',management)])
+        # The header copy of the main button exists so it stays reachable from the other tabs; the summary already has the real one.
+        mirrors=[b for b in primary_action if b.get_style_context().has_class('header-mirror-cta')]
+        def mirror(name):
+            for b in mirrors:b.set_no_show_all(True);b.set_visible(name!='summary')
+            page._refresh_actions()
+        page.section_tabs.listeners.append(mirror);mirror('summary')
         self.transfer_row(box,item['repository']);page.compact_header();page.show_all();page.actions_scroll.hide();artwork();page.run();page.destroy()
 
     def prepare_shaders(self):
@@ -720,7 +726,9 @@ class CatalogMixin:
             self.set_status(item['name']+' instalado. Preparando la configuración…');self.configure_port(item,automatic=True)
         elif record.get('sandbox'):self.message(item['name']+' instalado','Abrirlo desde la biblioteca inicia el asistente: pide el disco y la BIOS propios y compila el juego dentro del SDK de KDE (la primera vez tarda varios minutos). Después se agrega a Steam como cualquier otro juego.')
         elif record['executable']:self.set_status(f'{item["name"]} {record["tag"]} instalado.'+(' Abrir el port para elegir los archivos originales.' if item.get('preparation')=='launcher' else ' Revisar la preparación manual en su ficha.' if item.get('preparation')=='manual' else '')+(f' Se eligió {record["executable"]} para iniciarlo; si no abre, cambiarlo en Carpetas del juego.' if record.get('executable_guess') else ''))
-        else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en {ports.display_root()}/{record["folder"]}, pero no se encontró un programa para iniciarlo. Elegirlo en Carpetas del juego o con «Agregar juegos → Elegir un juego o una app».')
+        else:
+            self.set_status(f'{item["name"]} se instaló en {ports.display_root()}/{record["folder"]}. Falta elegir el programa que lo inicia.')
+            GLib.idle_add(lambda:(self.port_program_page(item),False)[1])
         if getattr(self,'update_state',None):self.update_state=updates.reconcile_ports(self.update_state,self.store);self.refresh_update_badges()
         self.discover()
         if not record.get('setup'):

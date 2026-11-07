@@ -1,6 +1,7 @@
 """Screen-sized library workflows and non-modal pending Steam changes."""
 import os,pathlib,sys,threading
 from gi.repository import Gtk,Gdk,GLib
+from .ui_components import Dropdown
 from .inline_pages import InlineDialog
 from .models import Entry
 
@@ -78,7 +79,7 @@ class LibraryToolsMixin:
         dialog=InlineDialog(title='Emulador · '+e.platform,transient_for=self,modal=True);dialog.set_default_size(700,500);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(12)
         state=inspect_emulator(e,self.preferences);text=label(state['summary']);text.set_selectable(True);text.set_max_width_chars(65);box.pack_start(text,False,False,0)
         if state['languages']:
-            combo=Gtk.ComboBoxText()
+            combo=Dropdown()
             for key,title in state['languages'].items():combo.append(key,title)
             combo.set_active_id(state.get('language'));box.pack_start(combo,False,False,0)
             def save(_):

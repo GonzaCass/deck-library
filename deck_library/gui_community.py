@@ -1,6 +1,7 @@
 """Community: a full-width profile list, followed by one readable profile at a time."""
 import threading,json
 from gi.repository import Gtk,GLib
+from .ui_components import Dropdown
 from .inline_pages import InlineDialog
 from .community import Client
 from . import presets,profile_display,motion
@@ -39,7 +40,7 @@ class CommunityMixin:
         feedback.action_bar.pack_start(ActionButton('Volver al perfil','back',lambda _:stack.set_visible_child_name('profile'),'quiet'),False,False,0)
         feedback.pack_start(text('Valorar el perfil · 1 a 5 estrellas','section-title'),False,False,0)
         feedback.pack_start(text('Hace falta una cuenta. Se puede actualizar la valoración y añadir un comentario; no se puede valorar un perfil propio.','muted',85),False,False,0)
-        rating=Gtk.ComboBoxText()
+        rating=Dropdown()
         for n in range(1,6):rating.append(str(n),str(n)+' '+('★'*n))
         rating.set_active_id('5');feedback.pack_start(rating,False,False,0)
         feedback.pack_start(text('Comentario (opcional)','meta'),False,False,0)
