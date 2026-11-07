@@ -1,13 +1,15 @@
 """Associate original images with ready ports without changing either entry or file."""
-import pathlib,re
+import functools,pathlib,re
 from .library_view import title_key,entry_type
 from .models import atomic_json
 ALIASES={'crashteamracingturbocharged':'crashteamracing','ctrcrashteamracing':'crashteamracing','crashteamracing':'crashteamracing','mariokartwiicompiled':'mariokartwii'}
+@functools.lru_cache(maxsize=65536)
 def key(name):
     name=str(name or '')
     name=re.sub(r'^(.+?),\s*(The|A|An)(\s*[-:]\s*|$)',r'\2 \1\3',name,flags=re.I)
     value=re.sub(r'[^a-z0-9]','',title_key(name));return ALIASES.get(value,value)
 
+@functools.lru_cache(maxsize=4096)
 def platform_key(name):
     value=re.sub(r'[^a-z0-9]','',name.lower().replace(' ports',''))
     return {'ps1':'playstation','psx':'playstation','ps2':'playstation2','ps3':'playstation3','ps4':'playstation4','n64':'nintendo64','gcn':'gamecube','gc':'gamecube','x360':'xbox360','gba':'gameboyadvance','snes':'supernintendo'}.get(value,value)
@@ -25,18 +27,19 @@ def pairs(entries,excluded=()):
     title_platforms={}
     for e in entries:
         if entry_type(e)=='emulator':title_platforms.setdefault(key(e.name),set()).add(platform_key(e.platform))
+    # What is compared for every port is worked out once, not once per original: a library of thousands of games used to take minutes here.
+    facts=[(port,original_platform(port),(port.game_id or '').upper(),{key(port.name),key(port.metadata.get('game_title',''))}) for port in ports]
     for original in entries:
         if entry_type(original)!='emulator' or original.id in excluded:continue
-        matches=[]
-        for port in ports:
-            platform=original_platform(port)
-            if platform and platform!=platform_key(original.platform):continue
-            if original.game_id and port.game_id:
-                if original.game_id.upper()==port.game_id.upper():matches.append(port)
+        matches=[];original_platform_key=platform_key(original.platform);original_id=(original.game_id or '').upper();title=key(original.name)
+        alone=len(title_platforms.get(title,()))<=1
+        for port,platform,port_id,port_titles in facts:
+            if platform and platform!=original_platform_key:continue
+            if original_id and port_id:
+                if original_id==port_id:matches.append(port)
                 continue
-            title=key(original.name)
-            if not title or not platform and len(title_platforms.get(title,()))>1:continue
-            if title in {key(port.name),key(port.metadata.get('game_title',''))}:matches.append(port)
+            if not title or not platform and not alone:continue
+            if title in port_titles:matches.append(port)
         if matches:result.append((original,matches))
     return result
 

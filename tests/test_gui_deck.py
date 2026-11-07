@@ -2638,6 +2638,30 @@ class DeckUITests(unittest.TestCase):
             self.assertFalse(picker.get_popover().get_mapped());self.assertEqual(picker.get_active_id(),'PS3');self.assertEqual(len(self.w.catalog_rows.get_children()),3)
             picker.set_active_id('Switch');self.settle();self.assertEqual(len(self.w.catalog_rows.get_children()),2)
 
+    def test_a_ps3_iso_is_extracted_from_the_tools_page_and_offered_to_the_port(self):
+        from gi.repository import Gtk,GLib
+        import sys;sys.path.insert(0,str(pathlib.Path(__file__).parent))
+        from test_iso9660 import build,GAME
+        from deck_library import ports
+        iso=pathlib.Path(self.temp.name)/'game.iso';iso.write_bytes(build(GAME));out=pathlib.Path(self.temp.name)/'extracted'
+        port_folder=pathlib.Path(self.temp.name)/'port';port_folder.mkdir();done=[]
+        item=ports.clean({'repository':'owner/ps3port','name':'PS3 Port','list':'PlayStation 3'},source='Quiver')
+        record={'repository':'owner/ps3port','folder':'ps3port','install_path':str(port_folder),'executable':'x'}
+        answers=iter([str(iso),str(out)])
+        def captions(root):return [c.get_label() for c in self.w.control_targets(root) if isinstance(c,Gtk.Button)]
+        with patch.object(self.w,'pick_file',side_effect=lambda *a,**k:next(answers)),patch.object(ports,'records',return_value={'owner/ps3port':record}),patch.object(ports,'folder_for',return_value=port_folder),patch.object(self.w,'confirm',return_value=True) as ask:
+            page=self.w.extract_iso_for_port(item);self.settle()
+            button=lambda caption:next(c for c in self.w.control_targets(page) if isinstance(c,Gtk.Button) and c.get_label()==caption)
+            button('Elegir').clicked();button('Cambiar').clicked();self.settle()
+            button('Extraer').clicked()
+            loop=GLib.MainLoop();GLib.timeout_add(3000,lambda:(loop.quit(),False)[1]);GLib.timeout_add(100,lambda:(loop.quit(),False)[1] if (port_folder/'PS3_GAME/PARAM.SFO').exists() else True);loop.run();self.settle()
+            ask.assert_called();self.assertIn('Mover',' '.join(str(a) for a in ask.call_args[0]))
+        for _ in range(30):
+            if (port_folder/'PS3_GAME/PARAM.SFO').exists() and not (out/'game').exists():break
+            self.settle()
+        self.assertEqual((port_folder/'PS3_GAME/PARAM.SFO').read_bytes(),b'sfo');self.assertEqual((port_folder/'PS3_DISC.SFB').read_bytes(),b'sfb')
+        self.assertTrue(iso.exists(),'The ISO must never be touched.')
+
     def test_catalog_filters_work_from_the_controller(self):
         from deck_library import ports
         self.w.catalog_page();self.w.catalog_apps=[ports.clean({'repository':'owner/a','name':'A','list':'PS3'},source='Quiver'),ports.clean({'repository':'owner/b','name':'B','list':'Switch'},source='Quiver')]
