@@ -44,7 +44,7 @@ def detect_runtime(folder):
     """Inspect executable headers instead of guessing Windows/Linux from a ZIP filename."""
     root=pathlib.Path(folder);native=False;windows=False
     for path in root.rglob('*'):
-        if not path.is_file() or len(path.relative_to(root).parts)>3:continue
+        if not path.is_file() or len(path.relative_to(root).parts)>5:continue
         if re.search(r'(^|/)(deps|tools|compiler|redist|third.party)(/|$)',path.relative_to(root).as_posix(),re.I):continue
         with path.open('rb') as source:magic=source.read(4)
         native|=magic==b'\x7fELF'
@@ -75,6 +75,48 @@ def windows_executable(folder,repository=''):
     key=re.sub('[^a-z0-9]','',repository.rsplit('/',1)[-1].lower())
     named=[p for p in files if key and key==re.sub('[^a-z0-9]','',p.stem.lower())]
     return named[0] if len(named)==1 else ''
+
+HELPER_WORDS=re.compile(r'crash|redist|vcredist|vc_redist|dxsetup|dxwebsetup|dotnet|setup|install|uninst|updater|update|config|editor|tool|compiler|shader|benchmark|report|diagnos|ffmpeg|7z|unins',re.I)
+SUPPORT_DIRS=re.compile(r'^(data|bin|bin32|bin64|tools?|plugins?|engine|redist|support|resources|lib|libs|runtime|third.?party|deps|cache|mods?)$',re.I)
+
+def squash(text):return re.sub(r'[^a-z0-9]','',str(text).lower())
+
+def executable_score(path,root,names):
+    """How likely a file is to be the one that starts the game: close to the root, named like the project or game, a launcher, not a helper."""
+    relative=path.relative_to(root);score=100-12*(len(relative.parts)-1);stem=squash(path.stem)
+    for target in {squash(n) for n in names if n}:
+        if not stem or not target:continue
+        if stem==target:score+=75;break
+        if len(stem)>=4 and (stem in target or target in stem):score+=45+int(15*min(len(stem),len(target))/max(len(stem),len(target)))
+    if re.search(r'launcher|(^|[^a-z])play|(^|[^a-z])start',path.stem,re.I):score+=10
+    if any(SUPPORT_DIRS.match(part) for part in relative.parts[:-1]):score-=15
+    if HELPER_WORDS.search(path.stem):score-=40
+    return score
+
+def rank_executables(folder,names=(),kind='windows',limit=6):
+    """Every plausible starting file of an extracted port, best first, as paths inside `folder`.
+
+    `kind` is 'windows' (PE files) or 'linux' (ELF files, scripts and AppImages). A folder with at least one such file always yields a
+    list, so an install can use the best guess and let the user change it afterwards."""
+    from .ports import is_elf
+    root=pathlib.Path(folder);found=[]
+    for path in root.rglob('*'):
+        try:
+            if path.is_symlink() or not path.is_file():continue
+            relative=path.relative_to(root)
+            if len(relative.parts)>5:continue
+            suffix=path.suffix.lower()
+            if kind=='windows':
+                if suffix!='.exe':continue
+                with path.open('rb') as stream:
+                    if stream.read(2)!=b'MZ':continue
+            else:
+                if not (suffix in ('.appimage','.sh') or is_elf(path)) or re.search(r'\.so(\.|$)',path.name,re.I):continue
+                if relative.parts[0] in ('lib','lib64','libs','share','usr'):continue
+        except OSError:continue
+        found.append(path)
+    ranked=sorted(found,key=lambda path:(-executable_score(path,root,names),len(path.relative_to(root).parts),path.as_posix()))
+    return ranked[:limit]
 
 def preserve_saves(old,new,cancel=None,extra=(),exclude=()):
     from .ports import check_cancel

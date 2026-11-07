@@ -706,7 +706,8 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
                 if path.is_symlink() and not path.resolve().is_relative_to(staging.resolve()):raise ValueError('Un enlace del paquete sale de la carpeta del port.')
         from . import buildenv
         if runtime=='detect':
-            runtime=port_packages.detect_runtime(staging)
+            try:runtime=port_packages.detect_runtime(staging)
+            except ValueError:runtime='linux'  # nothing recognisable: it still installs, and the program is chosen afterwards
             if runtime=='proton':
                 from .project2099 import proton_path
                 proton_path()
@@ -730,9 +731,12 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
         elif item.get('multi_appimage') and len([p for p in staging.iterdir() if p.suffix.lower()=='.appimage'])>1:
             executable=sorted(p for p in staging.iterdir() if p.suffix.lower()=='.appimage')[0]
         else:executable=find_executable(staging,item['repository'])
-        if runtime=='proton' and not executable:raise ValueError('El paquete Windows no contiene un juego portable identificable. Se conserva la instalación anterior; este port requiere una integración específica.')
+        # Any package installs: when the strict rules cannot tell which file starts the game, the best-scored one is used and the others are kept as choices.
+        guesses=[] if kit else port_packages.rank_executables(staging,(item['repository'].rsplit('/',1)[-1],item['name'],item.get('game_title'),item.get('cover_title')),'windows' if runtime=='proton' else 'linux')
+        guessed=bool(guesses) and not executable and not kit
+        if guessed:executable=guesses[0]
         if executable and executable.exists():executable.chmod(executable.stat().st_mode|0o111)
-        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'runtime':runtime,'game_title':item.get('game_title') or item['cover_title'],'original_platform':platform_for(item['list']),'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'preparation':item.get('preparation',''),'source_note':item.get('source_note',''),'original_data':item.get('original_data'),'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
+        record={'repository':item['repository'],'name':item['name'],'folder':item['folder'],'tag':tag,'asset':asset['name'],'runtime':runtime,'game_title':item.get('game_title') or item['cover_title'],'original_platform':platform_for(item['list']),'verified':digest.startswith('sha256:'),'executable':str(executable.relative_to(staging)) if executable else '','executable_guess':guessed,'executable_candidates':[p.relative_to(staging).as_posix() for p in guesses] if len(guesses)>1 else [],'sandbox':kit,'setup':item['setup'],'web':item['web']['kind'] if item['web'] else '','cover_title':item['cover_title'],'disc':item['disc'],'bios':item['bios'],'rom':item['rom'],'wiiu':item['wiiu'],'preparation':item.get('preparation',''),'source_note':item.get('source_note',''),'original_data':item.get('original_data'),'env':{},'args':[],'configured':False,'date':time.strftime('%Y-%m-%dT%H:%M:%S')}
         if item['repository'].lower()=='revivedx/savagewindrecomp' and runtime=='linux':record['args']=['--appimage-extract-and-run']
         if previous.get('inputs'):record['inputs']=dict(previous['inputs'])
         record['install_path']=str(destination.resolve())
@@ -753,6 +757,20 @@ def install(item,store=None,root=None,progress=print,get=fetch_json,replace=Fals
             if old:old.rename(destination)
             raise
     saved=records(store);saved[item['repository']]=record;atomic_json(store.root/'ports.json',saved)
+    return record
+
+def set_executable(repository,relative,store=None):
+    """Choose which file inside an installed port starts the game. Returns the updated record."""
+    store=store or Store();saved=records(store);record=saved.get(repository)
+    if not record:raise ValueError('Este port no fue instalado por Deck Library.')
+    folder=folder_for(record).resolve();path=(folder/str(relative)).resolve()
+    if not path.is_relative_to(folder) or not path.is_file():raise ValueError('El ejecutable tiene que estar dentro de la carpeta del port.')
+    runtime='proton' if path.suffix.lower()=='.exe' else 'linux'
+    if runtime=='linux':path.chmod(path.stat().st_mode|0o111)
+    record={**record,'executable':path.relative_to(folder).as_posix(),'runtime':runtime,'executable_guess':False};saved[repository]=record
+    atomic_json(store.root/'ports.json',saved)
+    try:atomic_json(folder/'.deck-library-port.json',record)
+    except OSError:pass
     return record
 
 REMOVED='.deck-library-removed'

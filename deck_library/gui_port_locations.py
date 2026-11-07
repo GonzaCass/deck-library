@@ -60,6 +60,12 @@ class PortLocationsMixin:
         # Explicit executable selection resolves multi-program packages without guessing.
         advanced=self.card(body,'Ejecutable del port')
         advanced.pack_start(text('Si la carpeta tiene varios programas, elegir cuál inicia el juego.','muted',85),False,False,0)
+        def use_candidate(relative):
+            try:ports.set_executable(repository,relative,self.store)
+            except (OSError,ValueError) as error:status.set_text(str(error));return
+            changed[0]=True;self.discover();status.set_text('Ejecutable guardado: '+relative);refresh()
+        for relative in (record.get('executable_candidates') or []) if repository else []:
+            advanced.pack_start(ActionButton(('✓ ' if relative==record.get('executable') else '')+relative,'play',lambda _,r=relative:use_candidate(r),'steam-outline'),False,False,0)
         advanced.pack_start(ActionButton('Elegir ejecutable si hay varios','file',choose_executable,'steam-outline'),False,False,0)
         found=port_locations.candidates(repository,self.store) if repository else port_locations.manual_candidates(entry,self.store) if entry else []
         if found:

@@ -31,7 +31,7 @@ class InlineDialog(Gtk.Box):
         self.back_button.set_tooltip_text('Volver');self.back_button.get_accessible().set_name('Volver');self.back_button.connect('clicked',lambda _:self.cancel());head.pack_start(self.back_button,False,False,0)
         heading=Gtk.Label(label=title,xalign=0);heading.set_line_wrap(True);heading.get_style_context().add_class('inline-page-heading');head.pack_start(heading,True,True,0);self.pack_start(head,False,False,0)
         self.heading=heading;self.header=head
-        self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12)
+        self.content=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);self.content.set_margin_start(4);self.content.set_margin_end(14)  # room for the overlay scrollbar, so cards do not run into the window edge
         self.scroll=self.owner.new_scroll();self.scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC);self.scroll.set_overlay_scrolling(True);self.scroll.set_vexpand(True);self.scroll.add(self.content);self.pack_start(self.scroll,True,True,0)
         self.actions=InlineActions(self);self.actions_scroll=self.owner.new_scroll();self.actions_scroll.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.NEVER);self.actions_scroll.set_no_show_all(True);self.actions_scroll.add(self.actions);self.pack_start(self.actions_scroll,False,False,0);self.reorder_child(self.actions_scroll,1)
         self.connect('destroy',self._destroyed)

@@ -104,6 +104,11 @@ button.game-menu { padding:7px 10px; min-height:32px; }
 entry,combobox button,spinbutton { background:@surface; color:@text; border:1px solid @line; border-radius:8px; padding:7px 10px; min-height:32px; }
 entry:focus { border-color:@accent; }
 combobox button label { font-size:16px; }
+button.dropdown { background:@surface; color:@text; border:1px solid @line; border-radius:8px; padding:7px 10px; min-height:32px; }
+button.dropdown label { font-size:16px; }
+button.dropdown-option { background:transparent; border:0; border-radius:8px; padding:8px 14px; min-height:32px; }
+button.dropdown-option label { font-size:16px; }
+button.dropdown-option.selected { background:@raised; font-weight:700; }
 list,viewport,scrolledwindow { background:transparent; }
 list row { padding:6px; border-radius:8px; border:1px solid transparent; }
 list row:hover { background:@surface; }
@@ -310,6 +315,8 @@ label.hero,label.welcome-title,.inline-page-heading { font-family:"Noto Sans",Sa
 entry,combobox button,spinbutton { border-radius:8px; border-color:alpha(@line,.8); background:@surface; padding:8px 14px; }
 entry { padding:5px 12px; }
 .appearance-field combobox button { padding:5px 12px; }
+button.dropdown { border-radius:8px; border-color:alpha(@line,.8); padding:8px 14px; }
+.appearance-field button.dropdown { padding:5px 12px; }
 spinbutton { padding:0; min-height:0; }
 spinbutton entry { border:0; background:transparent; padding:5px 10px; min-height:32px; }
 spinbutton button { border:0; border-radius:0; padding:5px 10px; min-width:24px; min-height:32px; }

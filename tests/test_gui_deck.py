@@ -2622,6 +2622,48 @@ class DeckUITests(unittest.TestCase):
         self.assertEqual(self.w.catalog_source.get_active_id(),'PortIntegration');self.assertEqual(len(self.w.catalog_rows.get_children()),1)
         self.assertEqual(self.w.catalog_rows.get_children()[0].catalog_open.get_accessible().get_name(),'Ver detalles de New game')
 
+    def test_catalog_filters_stay_open_until_an_option_is_chosen_and_list_each_console_once(self):
+        from deck_library import ports
+        rows=[ports.clean({'repository':f'owner/game{i}','name':name,'list':lst},source='Quiver') for i,(name,lst) in enumerate([('A','PS3'),('B','Playstation 3'),('C','PlayStation 3'),('D','Nintendo Switch'),('E','Switch'),('F','Xbox 360'),('G','X360')])]
+        self.w.catalog_page();self.w.catalog_apps=rows
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):
+            self.w.fill_catalog();self.w.reveal_catalog_search();self.settle()
+            consoles=[i for i in self.w.catalog_category.ids() if i]
+            for name in ('PS3','Switch','Xbox 360'):self.assertEqual(consoles.count(name),1,name)
+            for spelling in ('PlayStation 3','Playstation 3','Nintendo Switch','X360'):self.assertNotIn(spelling,consoles)
+            picker=self.w.catalog_category;picker.clicked();self.settle()
+            self.assertTrue(picker.get_popover().get_mapped(),'The list must stay open after a single click.')
+            self.settle();self.assertTrue(picker.get_popover().get_mapped())
+            picker.choose('PS3');self.settle()
+            self.assertFalse(picker.get_popover().get_mapped());self.assertEqual(picker.get_active_id(),'PS3');self.assertEqual(len(self.w.catalog_rows.get_children()),3)
+            picker.set_active_id('Switch');self.settle();self.assertEqual(len(self.w.catalog_rows.get_children()),2)
+
+    def test_catalog_filters_work_from_the_controller(self):
+        from deck_library import ports
+        self.w.catalog_page();self.w.catalog_apps=[ports.clean({'repository':'owner/a','name':'A','list':'PS3'},source='Quiver'),ports.clean({'repository':'owner/b','name':'B','list':'Switch'},source='Quiver')]
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'):
+            self.w.fill_catalog();self.w.reveal_catalog_search();self.settle()
+            picker=self.w.catalog_category;self.assertIn(picker,self.w.control_targets(self.w));picker.grab_focus();self.w.last_controller_action=('',0);self.w.controller_action('activate');self.settle()
+            self.assertTrue(picker.get_popover().get_mapped())
+            self.w.controller_action('back');self.settle();self.assertFalse(picker.get_popover().get_mapped())
+
+    def test_cover_chips_of_one_card_never_share_a_row(self):
+        from deck_library import ports
+        item=ports.clean({'repository':'owner/chips','name':'Chips','list':'PlayStation 3'},source='Quiver')
+        self.w.catalog_page();self.w.catalog_apps=[item]
+        with patch.object(self.w,'load_icons'),patch.object(self.w,'check_kits'),patch.object(ports,'records',return_value={'owner/chips':{'repository':'owner/chips','tag':'v1','alternative':True,'folder':'x','executable':'a'}}):
+            self.w.fill_catalog();self.settle()
+        from gi.repository import Gtk
+        def tags(widget):
+            result=[widget] if isinstance(widget,Gtk.Label) and widget.get_text() in ('PS3','Otra variante instalada') else []
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():result.extend(tags(child))
+            return result
+        found=[t for t in tags(self.w.catalog_rows) if t.get_text()=='Otra variante instalada'];self.assertEqual(len(found),1,'The full text must be shown, not cut.')
+        installed=found[0];platform=next(t for t in tags(self.w.catalog_rows) if t.get_text()=='PS3')
+        a=installed.get_allocation();b=platform.get_allocation();pa=installed.translate_coordinates(self.w,0,0);pb=platform.translate_coordinates(self.w,0,0)
+        self.assertGreaterEqual(pa[1],pb[1]+b.height,'The installed-state chip must sit below the console chip.')
+
     def test_profile_composer_captures_edits_and_saves_without_login(self):
         from gi.repository import Gtk,GLib
         from deck_library.profile_composer import ProfileComposer
@@ -2696,7 +2738,7 @@ class DeckUITests(unittest.TestCase):
         self.assertNotIn('Deck Library en Steam',labels(self.w.tools_box))
         with patch.object(motion,'gaming_mode',return_value=False):self.w.tools_page()
         self.assertIn('Deck Library en Steam',labels(self.w.tools_box))
-        for expected in ('Convertir un juego de Switch','Extraer una ISO de Xbox o Xbox 360'):self.assertIn(expected,labels(self.w.tools_box))
+        for expected in ('Convertir un juego de Switch','Extraer una ISO de Xbox, Xbox 360 o PS3'):self.assertIn(expected,labels(self.w.tools_box))
         self.w.settings_page();self.assertNotIn('Deck Library en Steam',labels(self.w.settings_box));self.assertIn('Mantenimiento',labels(self.w.settings_box))
 
     def test_settings_rows_keep_actions_with_descriptions_and_support_the_controller(self):

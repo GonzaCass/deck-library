@@ -2,7 +2,7 @@
 import math
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, Pango, Atk
+from gi.repository import Gtk, Gdk, GdkPixbuf, GLib, GObject, Pango, Atk
 from . import motion
 
 class PortImage(Gtk.Image):
@@ -28,6 +28,90 @@ class PortImage(Gtk.Image):
                 fg=min((width-14)/pw,(height-14)/ph);cr.save();cr.translate((width-pw*fg)/2,(height-ph*fg)/2);cr.scale(fg,fg);Gdk.cairo_set_source_pixbuf(cr,pix,0,0);cr.paint();cr.restore()
         else:Gtk.Image.do_draw(self,cr)
         cr.restore();return False
+
+
+class Dropdown(Gtk.MenuButton):
+    """A list of options that opens on a tap or click and stays open until one is chosen.
+
+    GtkComboBox menus close again when the button is released (touch, trackpad), which forces the user to hold the press;
+    a popover stays open. Same small API as ComboBoxText: append, remove_all, set_active_id, get_active_id and a `changed` signal."""
+    __gsignals__ = {'changed': (GObject.SignalFlags.RUN_FIRST, None, ())}
+
+    def __init__(self, name='', width_chars=18):
+        super().__init__()
+        self.options = []
+        self.active = None
+        self.get_style_context().add_class('dropdown')
+        if name:
+            self.get_accessible().set_name(name)
+        row = Gtk.Box(spacing=8)
+        self.caption = Gtk.Label(xalign=0)
+        self.caption.set_ellipsize(Pango.EllipsizeMode.END)
+        self.caption.set_max_width_chars(width_chars)
+        row.pack_start(self.caption, True, True, 0)
+        row.pack_end(Icon('down', 14), False, False, 0)
+        self.add(row)
+        self.popover = Gtk.Popover.new(self)
+        self.popover.get_style_context().add_class('dropdown-popover')
+        scroll = Gtk.ScrolledWindow()
+        scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        scroll.set_propagate_natural_height(True)
+        scroll.set_max_content_height(360)
+        scroll.set_min_content_width(220)
+        self.list = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=2)
+        self.list.set_border_width(2)
+        scroll.add(self.list)
+        scroll.show_all()
+        self.popover.add(scroll)
+        self.set_popover(self.popover)
+        self.buttons = {}
+
+    def append(self, identifier, caption):
+        if identifier in self.buttons:
+            return
+        self.options.append((identifier, caption))
+        choice = Gtk.Button(label=caption)
+        choice.set_relief(Gtk.ReliefStyle.NONE)
+        choice.get_style_context().add_class('dropdown-option')
+        choice.get_child().set_xalign(0)
+        choice.connect('clicked', lambda _, value=identifier: self.choose(value))
+        choice.show()
+        self.list.pack_start(choice, False, False, 0)
+        self.buttons[identifier] = choice
+
+    def remove_all(self):
+        for child in self.list.get_children():
+            self.list.remove(child)
+        self.options = []
+        self.buttons = {}
+        self.active = None
+        self.caption.set_text('')
+
+    def ids(self):
+        return [identifier for identifier, _ in self.options]
+
+    def get_active_id(self):
+        return self.active
+
+    def get_active_text(self):
+        return next((caption for identifier, caption in self.options if identifier == self.active), None)
+
+    def set_active_id(self, identifier):
+        """Select without opening anything. Returns False for an unknown id (the selection is then cleared, as ComboBoxText does)."""
+        known = identifier in self.buttons
+        previous = self.active
+        self.active = identifier if known else None
+        for key, control in self.buttons.items():
+            style = control.get_style_context()
+            style.add_class('selected') if key == self.active else style.remove_class('selected')
+        self.caption.set_text(self.buttons[identifier].get_label() if known else '')
+        if self.active != previous:
+            self.emit('changed')
+        return known
+
+    def choose(self, identifier):
+        self.popover.popdown()
+        self.set_active_id(identifier)
 
 
 def styled(widget, *classes):

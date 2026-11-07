@@ -247,8 +247,8 @@ PATTERNS = {
     },
     'PlayStation 3': {
         'kind': 'folder',
-        'short': 'Carpeta desencriptada de PS3',
-        'summary': 'Requiere la carpeta extraída/desencriptada del juego de PS3 (PS3_GAME / EBOOT.BIN).',
+        'short': 'ISO descifrada o carpeta de PS3',
+        'summary': 'Requiere la carpeta del juego de PS3 (PS3_GAME / EBOOT.BIN) o una ISO descifrada, que se extrae con «Extraer una ISO».',
         'button': 'Elegir carpeta del juego',
         'extensions': (),
         'roms_folder': 'ps3',

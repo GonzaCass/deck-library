@@ -98,9 +98,15 @@ def remove_source(folder,record,progress=lambda event:None,cancel=None):
     return info['size']
 
 
+def open_image(source,cancel=None):
+    """The reader for an ISO: ISO 9660 (PlayStation 3 and other data discs) or XDVDFS (Xbox and Xbox 360)."""
+    from . import iso9660
+    return iso9660.Image(source,cancel) if iso9660.sniff(source) else Image(source,cancel)
+
+
 def extract_folder(source,root,progress=lambda event:None,cancel=None):
-    """Extract an Xbox/Xbox 360 XISO into root/<ISO name>. The ISO is only read; the folder appears once every file is verified.
-    Returns {'path','files','size'}."""
+    """Extract an Xbox, Xbox 360 or PlayStation 3 ISO into root/<ISO name>. The ISO is only read; the folder appears once every file is verified.
+    Returns {'path','files','size','kind'}."""
     import re
     from .ports import check_cancel
     source=pathlib.Path(source).resolve();root=pathlib.Path(root).expanduser();root.mkdir(parents=True,exist_ok=True)
@@ -110,10 +116,12 @@ def extract_folder(source,root,progress=lambda event:None,cancel=None):
     if destination.exists() and any(destination.iterdir()):raise ValueError(f'La carpeta {name} ya existe y no está vacía. Elegir otro destino o moverla.')
     with tempfile.TemporaryDirectory(prefix='.deck-library-iso-',dir=root) as temporary:
         staged=pathlib.Path(temporary)/'game'
-        with Image(source,cancel) as image:
+        with open_image(source,cancel) as image:
+            kind=getattr(image,'kind','xbox')
+            if kind=='ps3':image.verify_ps3()
             if shutil.disk_usage(root).free<image.total*1.05+64*1024**2:raise ValueError('No hay espacio suficiente en la carpeta de destino.')
             manifest=image.extract(staged,progress);image.unchanged()
         check_cancel(cancel)
         if destination.exists():destination.rmdir()
         staged.rename(destination)
-    return {'path':str(destination),'files':len(manifest),'size':sum(row['size'] for row in manifest)}
+    return {'path':str(destination),'files':len(manifest),'size':sum(row['size'] for row in manifest),'kind':kind}

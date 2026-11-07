@@ -257,10 +257,11 @@ class PortCatalogTests(unittest.TestCase):
         self.install({'Uno':b'\x7fELF1'})
         with self.assertRaises(ValueError):self.install({'Uno':b'\x7fELF2'})
         self.install({'Uno':b'\x7fELF2'},replace=True);self.assertEqual((self.install_root/'Uno/Uno').read_bytes(),b'\x7fELF2');self.assertEqual(len(list((self.install_root/'.deck-library-replaced').iterdir())),1)
-    def test_windows_archive_without_a_game_gives_a_clear_error(self):
-        with patch('deck_library.project2099.proton_path',return_value=pathlib.Path('/fake/proton')),self.assertRaisesRegex(ValueError,'portable identificable'):self.install({'a':b'x'},assets=[{'name':'Uno-win64.zip','browser_download_url':'https://github.com/x'}])
-    def test_ambiguous_executable_is_left_unset(self):
-        record=self.install({'one':b'\x7fELFa','two':b'\x7fELFb'});self.assertEqual(record['executable'],'');self.assertIsNone(self.ports.entry_for(self.install_root/'Uno'))
+    def test_windows_archive_without_a_game_still_installs_so_a_program_can_be_chosen(self):
+        with patch('deck_library.project2099.proton_path',return_value=pathlib.Path('/fake/proton')):record=self.install({'a':b'x'},assets=[{'name':'Uno-win64.zip','browser_download_url':'https://github.com/x'}])
+        self.assertEqual((record['runtime'],record['executable']),('proton',''));self.assertTrue((self.install_root/'Uno/a').is_file())
+    def test_ambiguous_executable_takes_the_best_guess_and_keeps_the_others_as_choices(self):
+        record=self.install({'one':b'\x7fELFa','two':b'\x7fELFb'});self.assertEqual(record['executable'],'one');self.assertTrue(record['executable_guess']);self.assertEqual(record['executable_candidates'],['one','two']);self.assertIsNotNone(self.ports.entry_for(self.install_root/'Uno'))
     def test_updates_compare_recorded_tag(self):
         self.install({'Uno':b'\x7fELF'})
         newer=lambda url:{'tag_name':'v1.1','html_url':'https://github.com/a','assets':[{'name':'Uno-linux-x86_64.zip'}]}

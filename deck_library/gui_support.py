@@ -201,8 +201,10 @@ class SupportMixin:
             for row in rows:
                 card=self.card(listing,row['title']);caption,tone=STATES.get(row['state'],STATES['new']);card.pack_start(badge(caption,tone,20),False,False,0)
                 card.pack_start(text(CATEGORIES.get(row.get('category'),'Juego emulado')+' · '+row['platform'],'meta',85),False,False,0)
-                if row.get('repository'):card.pack_start(Gtk.LinkButton.new_with_label(row['repository'],'Repositorio del port'),False,False,0)
+                if row.get('repository'):
+                    link=Gtk.LinkButton.new_with_label(row['repository'],'Repositorio del port');link.set_halign(Gtk.Align.START);card.pack_start(link,False,False,0)
                 card.pack_start(text('Número '+row['id']+(' · de '+row['login'] if row['login'] else ' · sin cuenta'),'meta',85),False,False,0)
+                if row['details']:card.pack_start(text(row['details'],'muted',85),False,False,0)
                 if row.get('note'):card.pack_start(text('Última respuesta: '+row['note'],'muted',85),False,False,0)
                 response=Gtk.TextView();response.set_wrap_mode(Gtk.WrapMode.WORD_CHAR);response.get_accessible().set_name('Respuesta a '+row['title']);scroll=self.new_scroll();scroll.set_size_request(-1,85);scroll.add(response)
                 state['drafts'].append(response)
@@ -210,9 +212,8 @@ class SupportMixin:
                 actions.pack_start(ActionButton('Enviar respuesta','upload',lambda _,r=row,v=response:change(r,r['state'],contents(v)),'violet'),False,False,0)
                 if row.get('report_id'):actions.pack_start(ActionButton('Ver diagnóstico','file',lambda _,r=row:self.request_diagnostic_page(r),'steam'),False,False,0)
                 for key,(caption,_) in STATES.items():
-                    if key!=row['state']:actions.pack_start(ActionButton(caption,'check',lambda _,r=row,k=key,v=response:change(r,k,contents(v)),{'new':'cyan','investigating':'steam','fixed':'play','declined':'amber'}[key]),False,False,0)
+                    if key!=row['state']:actions.pack_start(ActionButton(caption,'check',lambda _,r=row,k=key,v=response:change(r,k,contents(v)),{'new':'cyan','investigating':'steam','fixed':'violet-outline','declined':'amber'}[key]),False,False,0)
                 card.reorder_child(actions,2)
-                if row['details']:card.pack_start(text(row['details'],'muted',85),False,False,0)
             listing.show_all();self.refresh_layout();return False
         def load():
             if not state['alive'] or state['loading'] or draft_exists():return

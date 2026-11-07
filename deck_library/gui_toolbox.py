@@ -14,7 +14,7 @@ class ToolboxMixin:
         if not self.discard_game_edits():return
         self.reset_page(self.tools_box);heading=label('Herramientas','hero');heading.set_no_show_all(True);heading.hide();self.tools_box.pack_start(heading,False,False,0)
         tools=[('Convertir un juego de Switch','Convierte un XCI o NSP propio (y su actualización) en la carpeta exefs y romfs que piden algunos ports.','Convertir','folder',lambda _:self.switch_convert_page()),
-               ('Extraer una ISO de Xbox o Xbox 360','Extrae el contenido de una ISO de Xbox o Xbox 360 a una carpeta, verificándolo.','Extraer','folder',lambda _:self.iso_extract_page()),
+               ('Extraer una ISO de Xbox, Xbox 360 o PS3','Extrae el contenido de una ISO a una carpeta, verificándolo. Sirve para los ports que piden la carpeta del juego.','Extraer','folder',lambda _:self.iso_extract_page()),
                ('ROMs y ports instalados','Gestionar la copia de consola de un juego que ya tiene un port.','Gestionar ROMs','folder',lambda _:self.originals_dialog()),
                ('Duplicados y conflictos','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),
                ('Juegos ocultos','Restaurar juegos quitados de la biblioteca sin borrar sus archivos.','Juegos ocultos','library',self.hidden_games_dialog)]
@@ -25,13 +25,37 @@ class ToolboxMixin:
         self.pin_page_header(self.tools_box,self.tools_box.get_children()[0])
         self.tools_box.show_all();self.pages.set_visible_child_name('tools')
 
-    def iso_extract_page(self,*_):
-        """Extract an Xbox/Xbox 360 XISO into <destination>/<ISO name>. The ISO is only read; the folder appears after the extraction is verified."""
+    def extract_iso_for_port(self,item):
+        """The ISO tool, opened from a port: when the extraction ends the game folder can go straight into the port's folder."""
+        return self.iso_extract_page(on_done=lambda folder:self.place_extracted_folder(item,folder))
+
+    def place_extracted_folder(self,item,folder):
+        """Move the contents of an extracted game folder into the installed port's folder (a move, so the game does not take space twice)."""
+        from . import ports
+        record=ports.records(self.store).get(item['repository'])
+        if not record:return
+        target=ports.folder_for(record);source=pathlib.Path(folder)
+        if not target.is_dir() or not source.is_dir():return
+        if not self.confirm('Archivos del juego',f'La carpeta extraída está en {source}. ¿Mover su contenido a la carpeta del port ({target})? Así el juego no ocupa espacio dos veces.','Mover'):return
+        clashes=[child.name for child in source.iterdir() if (target/child.name).exists()]
+        if clashes:self.message('No se movió nada','La carpeta del port ya tiene: '+', '.join(clashes[:4])+'. Moverlos o cambiarles el nombre y repetir.');return
+        self.toast('Moviendo los archivos del juego…')
+        def work():
+            try:
+                for child in sorted(source.iterdir()):shutil.move(str(child),str(target/child.name))
+                source.rmdir();error=None
+            except OSError as failure:error=failure
+            GLib.idle_add(lambda:(self.message('No se pudo mover',str(error)) if error else self.toast('Archivos del juego en la carpeta del port'),False)[1])
+        threading.Thread(target=work,daemon=True).start()
+
+    def iso_extract_page(self,*_,on_done=None):
+        """Extract an Xbox, Xbox 360 or PS3 ISO into <destination>/<ISO name>. The ISO is only read; the folder appears after the extraction is verified.
+        `on_done(folder)` is called with the extracted folder so a port's setup can use it right away."""
         from .iso_import import extract_folder
         from .ports import Cancelled
-        page=InlineDialog(title='Extraer una ISO de Xbox',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
+        page=InlineDialog(title='Extraer una ISO',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
         body=page.get_content_area();body.set_spacing(10)
-        body.pack_start(text('Extrae el contenido de una ISO de Xbox o Xbox 360 a una carpeta, comprobando cada archivo. La ISO no se modifica. Solo sirve para ese formato (XISO); no para PlayStation, GameCube ni otras.','muted',95),False,False,0)
+        body.pack_start(text('Extrae el contenido de una ISO de Xbox, Xbox 360 o PlayStation 3 a una carpeta, comprobando cada archivo. La ISO no se modifica. Las ISO de PS3 tienen que estar descifradas; GameCube, Wii y las demás consolas no se admiten.','muted',95),False,False,0)
         state={'iso':'','root':self.preferences.get('iso_root') or str(layout.folder('iso')),'busy':False,'alive':True,'cancel':None}
         values={}
         def row(key,title,caption,choose):
@@ -44,13 +68,13 @@ class ToolboxMixin:
         def pick(key,title,folder=False):
             def choose(_):
                 if state['busy']:return
-                path=self.pick_file(title,folder=folder,patterns=() if folder else ('*.iso','*.xiso'),filter_name='' if folder else 'Imágenes de Xbox')
+                path=self.pick_file(title,folder=folder,patterns=() if folder else ('*.iso','*.xiso'),filter_name='' if folder else 'Imágenes de disco')
                 if not path:return
                 state[key]=path
                 if key=='root':self.preferences['iso_root']=path;save_settings(self.preferences,self.store)
                 status.set_text('');refresh()
             return choose
-        row('iso','Imagen ISO','Elegir',pick('iso','Elegir la ISO de Xbox o Xbox 360'));row('root','Carpeta de destino','Cambiar',pick('root','Elegir la carpeta de destino',True))
+        row('iso','Imagen ISO','Elegir',pick('iso','Elegir la ISO de Xbox, Xbox 360 o PS3'));row('root','Carpeta de destino','Cambiar',pick('root','Elegir la carpeta de destino',True))
         progress=Gtk.ProgressBar();progress.set_no_show_all(True);body.pack_start(progress,False,False,0)
         status=text('','status',95);status.set_selectable(True);body.pack_start(status,False,False,0)
         def paint(event):
@@ -62,7 +86,7 @@ class ToolboxMixin:
             if not state['alive']:return False
             if isinstance(error,Cancelled):status.set_text('Cancelado. No se modificó nada.')
             elif error:status.set_text(str(error))
-            else:status.set_text(f"{result['path']}\n{result['files']} archivos · {result['size']/1024**3:.1f} GB\nListo.");self.toast('ISO extraída')
+            else:status.set_text(f"{result['path']}\n{result['files']} archivos · {result['size']/1024**3:.1f} GB\nListo.");self.toast('ISO extraída');on_done and on_done(result['path'])
             refresh();return False
         def run_extract(_):
             if state['busy']:return

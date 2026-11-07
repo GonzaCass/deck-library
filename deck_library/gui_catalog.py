@@ -7,7 +7,7 @@ from .inline_pages import InlineDialog,InlineFileChooser
 from . import ports
 from .installations import save_settings
 from .service import queue_removals
-from .ui_components import ActionButton,badge,badge_row,metadata_line,platform_badge
+from .ui_components import ActionButton,Dropdown,badge,badge_row,metadata_line,platform_badge
 from .port_patterns import classify_port,fetch_readme,platform_info,resolve_game_identity,CODENAME_REPOS
 
 ART_WIDTH=88
@@ -26,6 +26,11 @@ def compatibility_badge(fit,long=False):
     widget.set_tooltip_text(fit_badge(fit,True));return widget
 
 OS_LABELS={'macos':'macOS','ios':'iOS','pc':'PC'}
+
+def console_of(item):
+    """The console a port comes from, with one name per console (catalogs write PS3, PlayStation 3 and Playstation3 for the same one)."""
+    mapped=resolve_game_identity(item)[1]
+    return platform_info(mapped or item.get('list',''))['short'] if (mapped or item.get('list')) else ''
 
 def system_tags(item):
     return [('Linux / Steam Deck' if name.lower()=='linux' else OS_LABELS.get(name.lower(),name.capitalize()),{'linux':'green','windows':'blue','macos':'violet','mac':'violet','android':'yellow'}.get(name.lower(),'neutral')) for name in item.get('supported_os',[])] or [('Sistemas sin confirmar','neutral')]
@@ -53,16 +58,14 @@ class CatalogMixin:
         actions.pack_start(button('Agregar repositorio',lambda _:self.add_repository_dialog()),False,False,0)
         head.pack_end(actions,False,False,0);head.set_no_show_all(True);head.hide();box.pack_start(head,False,False,0)
         tools=Gtk.Box(spacing=10);tools.get_style_context().add_class('page-toolbar');self.catalog_search=Gtk.SearchEntry();self.catalog_search.set_placeholder_text('Buscar ports · X: teclado');self.bind_search_keyboard(self.catalog_search);self.catalog_search.connect('search-changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_search,True,True,0)
-        self.catalog_category=Gtk.ComboBoxText();self.catalog_category.get_accessible().set_name('Categoría de ports');self.catalog_category.append('','Todas las categorías');self.catalog_category.set_active_id('');self.catalog_category.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_category,False,False,0)
-        self.catalog_source=Gtk.ComboBoxText();self.catalog_source.get_accessible().set_name('Fuente de ports');self.catalog_source.append('','Todas las fuentes')
+        self.catalog_category=Dropdown('Categoría de ports',20);self.catalog_category.append('','Todas las plataformas');self.catalog_category.set_active_id('');self.catalog_category.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_category,False,False,0)
+        self.catalog_source=Dropdown('Fuente de ports',18);self.catalog_source.append('','Todas las fuentes')
         for name in ('Recomendado','Agregado','Quiver','GithubLauncher','Lista independiente','PortIntegration'):self.catalog_source.append(name,name)
         self.catalog_source.set_active_id('');self.catalog_source.connect('changed',lambda _:self.fill_catalog());self.catalog_source.set_no_show_all(True);self.catalog_source.hide();tools.pack_start(self.catalog_source,False,False,0)
-        self.catalog_sort=Gtk.ComboBoxText();self.catalog_sort.get_accessible().set_name('Orden de ports')
+        self.catalog_sort=Dropdown('Orden de ports',18)
         for key,name in [('recent','Nuevos primero'),('new','Nuevos (30 días)'),('release','Últimas versiones'),('name','Nombre'),('installed','Instalados')]:self.catalog_sort.append(key,name)
         self.catalog_sort.set_active_id(self.preferences.get('catalog_sort','recent'));self.catalog_sort.connect('changed',lambda _:self.fill_catalog());tools.pack_start(self.catalog_sort,False,False,0)
         self.catalog_search.set_width_chars(12)
-        for picker in (self.catalog_category,self.catalog_source,self.catalog_sort):
-            for cell in picker.get_cells():cell.set_property('ellipsize',Pango.EllipsizeMode.END);cell.set_property('max-width-chars',28)
         self.catalog_tools_revealer=Gtk.Revealer();self.catalog_tools_revealer.set_transition_type(Gtk.RevealerTransitionType.NONE);self.catalog_tools_revealer.add(tools);self.catalog_tools_revealer.set_reveal_child(False);self.catalog_tools_revealer.set_no_show_all(True);self.catalog_tools_revealer.hide();box.pack_start(self.catalog_tools_revealer,False,False,0)
         status_row=Gtk.Box(spacing=12);self.catalog_status=label('Cargando catálogo…','status');self.catalog_status.set_line_wrap(False);self.catalog_status.set_ellipsize(Pango.EllipsizeMode.END);self.catalog_status.set_width_chars(1);status_row.pack_start(self.catalog_status,True,True,0)
         self.catalog_guide_button=button('Guía de compatibilidad',self.compatibility_guide);self.catalog_guide_button.set_no_show_all(True);self.catalog_guide_button.hide();status_row.pack_end(self.catalog_guide_button,False,False,0);status_row.pack_end(button('Verificados',lambda _:self.validated_page()),False,False,0);status_row.set_no_show_all(True);status_row.hide();box.pack_start(status_row,False,False,0)
@@ -134,13 +137,13 @@ class CatalogMixin:
         from .gui import label,button
         from .port_requirements import original_requirement
         if not hasattr(self,'catalog_apps'):return
-        everything=self.catalog_entries();variant_index=self.port_variant_index(everything);categories=sorted({a['list'] for a in everything if a['list']},key=str.casefold);current=self.catalog_category.get_active_id() or ''
-        known={row[0] for row in self.catalog_category.get_model()}
+        everything=self.catalog_entries();variant_index=self.port_variant_index(everything);categories=sorted({console_of(a) for a in everything if console_of(a)},key=str.casefold);current=self.catalog_category.get_active_id() or ''
+        known=set(self.catalog_category.ids())
         for name in categories:
             if name not in known:self.catalog_category.append(name,name)
         self.reset_page(self.catalog_rows);self.reset_page(self.catalog_more_box);text=self.catalog_search.get_text().casefold().strip();category=self.catalog_category.get_active_id() or '';source=self.catalog_source.get_active_id() or ''
         installed=ports.records(self.store);updates={u['repository'] for u in (getattr(self,'update_state',None) or {}).get('catalog') or []}
-        matches=[a for a in everything if text in (' '.join((a['name'],a.get('game_title',''),resolve_game_identity(a)[0],a['repository'],original_requirement(a)['label']))).casefold() and (not category or a['list']==category) and (not source or source in a['source'])]
+        matches=[a for a in everything if text in (' '.join((a['name'],a.get('game_title',''),resolve_game_identity(a)[0],a['repository'],original_requirement(a)['label']))).casefold() and (not category or console_of(a)==category) and (not source or source in a['source'])]
         order=self.catalog_sort.get_active_id() or 'recent'
         if self.preferences.get('catalog_sort')!=order:self.preferences['catalog_sort']=order;save_settings(self.preferences,self.store)
         if order=='installed':matches=[a for a in matches if self.catalog_installation(a,installed)]
@@ -191,7 +194,7 @@ class CatalogMixin:
             alternatives=variant_index.alternatives(item)
             if record:
                 other=record.get('alternative',False);tone='yellow' if other else variant_index.assess(item,record.get('tag',''))['tone']
-                chips['tr'].append(badge('Variante sin identificar' if record.get('unidentified') else 'Otra variante instalada' if other else 'Instalado',tone,14))
+                chips['tl'].append(badge('Variante sin identificar' if record.get('unidentified') else 'Otra variante instalada' if other else 'Instalado',tone,24))
                 if alternatives:chips['bl'].append(badge(str(len(alternatives)+1)+' variantes','blue',12))
             elif alternatives:
                 chips['bl'].append(badge(str(len(alternatives)+1)+' variantes','blue',12))
@@ -200,8 +203,10 @@ class CatalogMixin:
                 if when and time.time()-when<30*86400:chips['tr'].append(badge('Nuevo','blue',8))
             for key,(horizontal,vertical) in {'tl':(Gtk.Align.START,Gtk.Align.START),'tr':(Gtk.Align.END,Gtk.Align.START),'bl':(Gtk.Align.START,Gtk.Align.END)}.items():
                 if chips[key]:
-                    holder=Gtk.Box(spacing=4);holder.set_halign(horizontal);holder.set_valign(vertical);holder.set_margin_start(6);holder.set_margin_end(6);holder.set_margin_top(6);holder.set_margin_bottom(6)
-                    for chip in chips[key]:holder.pack_start(chip,False,False,0)
+                    holder=Gtk.Box(orientation=Gtk.Orientation.VERTICAL if key=='tl' else Gtk.Orientation.HORIZONTAL,spacing=4);holder.set_halign(horizontal);holder.set_valign(vertical);holder.set_margin_start(6);holder.set_margin_end(6);holder.set_margin_top(6);holder.set_margin_bottom(6)
+                    for chip in chips[key]:
+                        if key=='tl':chip.set_halign(horizontal)
+                        holder.pack_start(chip,False,False,0)
                     cover.add_overlay(holder);cover.set_overlay_pass_through(holder,True)
             state=readiness(item,record,original)
             if state and proof['state']=='unvalidated' and len(tags)<2:tags.append(state)
@@ -510,11 +515,11 @@ class CatalogMixin:
                 page.response(Gtk.ResponseType.CLOSE)
                 GLib.idle_add(lambda:(self.switch_convert_page(minimum=minimum_for(item['repository'])),False)[1])
             row.pack_start(ActionButton('Convertir XCI/NSP (+ prod.keys)','folder',convert,'primary' if installed else 'steam-outline'),False,False,0);has_buttons=True
-        elif kind in ('xbox360','xbox'):
+        elif kind in ('xbox360','xbox') or pattern.get('platform')=='PlayStation 3':
             def extract(_):
                 page.response(Gtk.ResponseType.CLOSE)
-                GLib.idle_add(lambda:(self.iso_extract_page(),False)[1])
-            row.pack_start(ActionButton('Extraer ISO de Xbox','disc',extract,'steam-outline'),False,False,0);has_buttons=True
+                GLib.idle_add(lambda:(self.extract_iso_for_port(item) if installed else self.iso_extract_page(),False)[1])
+            row.pack_start(ActionButton('Extraer ISO de PS3' if pattern.get('platform')=='PlayStation 3' else 'Extraer ISO de Xbox','disc',extract,'steam-outline'),False,False,0);has_buttons=True
         if installed:
             if installed.get('setup'):
                 row.pack_start(ActionButton('Configurar archivos del port','sliders',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.configure_port(item),False)[1])),'primary'),False,False,0);has_buttons=True
@@ -537,7 +542,7 @@ class CatalogMixin:
             from .gui_switch import minimum_for
             self.switch_convert_page(minimum=minimum_for(item['repository']));return
         if not record:
-            if kind in ('xbox360','xbox'):self.iso_extract_page()
+            if kind in ('xbox360','xbox') or pattern.get('platform')=='PlayStation 3':self.iso_extract_page()
             return
         target_dir=ports.folder_for(record)
         want_folder=kind in ('folder','pc') or not pattern.get('extensions')
@@ -714,8 +719,8 @@ class CatalogMixin:
         if record.get('setup'):
             self.set_status(item['name']+' instalado. Preparando la configuración…');self.configure_port(item,automatic=True)
         elif record.get('sandbox'):self.message(item['name']+' instalado','Abrirlo desde la biblioteca inicia el asistente: pide el disco y la BIOS propios y compila el juego dentro del SDK de KDE (la primera vez tarda varios minutos). Después se agrega a Steam como cualquier otro juego.')
-        elif record['executable']:self.set_status(f'{item["name"]} {record["tag"]} instalado.'+(' Abrir el port para elegir los archivos originales.' if item.get('preparation')=='launcher' else ' Revisar la preparación manual en su ficha.' if item.get('preparation')=='manual' else ''))
-        else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en {ports.display_root()}/{record["folder"]}, pero hay varios ejecutables posibles. Elegir el correcto con «Agregar juegos → Elegir un juego o una app».')
+        elif record['executable']:self.set_status(f'{item["name"]} {record["tag"]} instalado.'+(' Abrir el port para elegir los archivos originales.' if item.get('preparation')=='launcher' else ' Revisar la preparación manual en su ficha.' if item.get('preparation')=='manual' else '')+(f' Se eligió {record["executable"]} para iniciarlo; si no abre, cambiarlo en Carpetas del juego.' if record.get('executable_guess') else ''))
+        else:self.message('Ejecutable no identificado',f'{item["name"]} se instaló en {ports.display_root()}/{record["folder"]}, pero no se encontró un programa para iniciarlo. Elegirlo en Carpetas del juego o con «Agregar juegos → Elegir un juego o una app».')
         if getattr(self,'update_state',None):self.update_state=updates.reconcile_ports(self.update_state,self.store);self.refresh_update_badges()
         self.discover()
         if not record.get('setup'):
@@ -740,6 +745,8 @@ class CatalogMixin:
         def choose_media(_):
             page.destroy();self.prepare_port_media(item,pattern)
         actions.pack_start(ActionButton(pattern['button'],'folder',choose_media,'primary'),False,False,0)
+        if pattern['kind'] in ('xbox360','xbox') or pattern.get('platform')=='PlayStation 3':
+            actions.pack_start(ActionButton('Extraer una ISO','disc',lambda _:(page.destroy(),self.extract_iso_for_port(item)),'steam-outline'),False,False,0)
         actions.pack_start(ActionButton('Abrir el port directamente','play',lambda _:(page.destroy(),self.open_installed_port(record)),'console-secondary'),False,False,0)
         actions.pack_start(ActionButton('Más tarde','check',lambda _:page.destroy(),'quiet'),False,False,0)
         card.pack_start(actions,False,False,0)
