@@ -60,7 +60,7 @@ SETTING_LABELS['narutorise']={'renderer': ('Motor gráfico', 'Nativo, sin emulac
 
 class ToolsMixin:
     def gtaiv_dialog(self,e):
-        from .gui import label,button,wrap_row
+        from .gui_widgets import label,button,wrap_row
         from . import gtaiv
         dialog=InlineDialog(title='Arreglo de GTA IV',transient_for=self,modal=True)
         dialog.set_default_size(760,520);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
@@ -128,7 +128,7 @@ class ToolsMixin:
                 e.cover=path;e.metadata.pop('artwork',None);self.store.save(self.entries);self.render();self.set_status('Carátula guardada para '+e.name+'.')
             except GLib.Error:self.message('Carátula','Elegir un archivo de imagen compatible.')
     def installation_dialog(self):
-        from .gui import label,button,wrap_row
+        from .gui_widgets import label,button,wrap_row
         dialog=InlineDialog(title='Instalaciones y rutas',transient_for=self,modal=True);dialog.set_default_size(850,650);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL);dialog.add_button('Guardar y buscar',Gtk.ResponseType.OK)
         scroll=self.new_scroll();box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);box.set_border_width(20);scroll.add(box);dialog.get_content_area().pack_start(scroll,True,True,0)
         found=report(preferences=self.preferences);deck=found['emudeck']
@@ -161,7 +161,7 @@ class ToolsMixin:
             self.preferences['emulators']=emulator_commands;self.preferences['eden_config']=config.get_text().strip();save_settings(self.preferences,self.store);self.toast('Carpetas y rutas guardadas');self.discover()
         dialog.destroy()
     def content_dialog(self,e):
-        from .gui import label,button,wrap_row
+        from .gui_widgets import label,button,wrap_row
         dialog=InlineDialog(title='Contenido de Switch · '+e.name,transient_for=self,modal=True);dialog.set_default_size(870,620);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(12);status=label('Leyendo contenido…','muted');box.pack_start(status,False,False,0);scroll=self.new_scroll();rows=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);scroll.add(rows);box.pack_start(scroll,True,True,0)
         def fill():
@@ -223,7 +223,7 @@ class ToolsMixin:
             except Exception as error:GLib.idle_add(self.message,'Contenido de Eden',str(error));GLib.idle_add(status.set_text,'La instalación no se completó.')
         threading.Thread(target=work,daemon=True).start()
     def layout_dialog(self,e):
-        from .gui import label,button,wrap_row
+        from .gui_widgets import label,button,wrap_row
         dialog=InlineDialog(title='Controles recomendados · Minecraft',transient_for=self,modal=True);dialog.set_default_size(700,570);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(12)
         from .steam_input import local_profiles
         profiles=local_profiles(e)
@@ -245,7 +245,7 @@ class ToolsMixin:
             except (OSError,ValueError,StopIteration):self.message('Instancia sin acceso directo','Guardar primero su acceso directo en Steam para abrir la configuración de controles.')
         dialog.get_action_area().pack_start(button('Abrir controles en Steam',open_,True),False,False,0);self.fit_dialog(dialog);dialog.show_all();dialog.run();dialog.destroy()
     def setup_wii_dialog(self):
-        from .gui import label,button,wrap_row
+        from .gui_widgets import label,button,wrap_row
         from .setup_wii import install,check_image
         dialog=InlineDialog(title='Preparar Mario Kart WiiCompiled',transient_for=self,modal=True);dialog.set_default_size(780,590);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(15)
         box.pack_start(label('Imagen → recompilación → optimización → Steam','title'),False,False,0)
@@ -274,7 +274,7 @@ class ToolsMixin:
         self.preferences=settings(self.store);self.entries=self.store.load();self.refresh_platforms();self.render();status.set_text('Listo. Mario Kart Wii ya está en la biblioteca y puede agregarse a Steam.');self.toast('Mario Kart Wii preparado');return False
 
     def project2099_dialog(self):
-        from .gui import label,button,wrap_row
+        from .gui_widgets import label,button,wrap_row
         from . import project2099
         dialog=InlineDialog(title='Preparar Project-2099',transient_for=self,modal=True)
         dialog.set_default_size(660,360);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)

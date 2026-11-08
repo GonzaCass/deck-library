@@ -9,7 +9,7 @@ from .port_patterns import console_sort_key
 from .runtime import diagnostics,clean_environment
 from .service import queue_entries,queue_removals,queue_controllers
 from .installations import settings,save_settings,report
-from .gui import label,button,Banner
+from .gui_widgets import label,button,Banner
 
 class ActionsMixin:
     def reset_page(self,box):

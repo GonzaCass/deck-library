@@ -13,7 +13,7 @@ from . import motion,__version__,presets
 
 class ShellMixin:
     def init_shell(self):
-        from .gui import label,button,PageStack
+        from .gui_widgets import label,button,PageStack
         self.set_wmclass('deck-library','deck-library');self.set_icon_from_file(str(self.asset('icon.png')));self.set_default_size(1240,760);self.set_size_request(840,520)
         if self.compact_screen() and not os.environ.get('DECK_LIBRARY_UI_TESTS'):self.maximize()
         from . import layout
@@ -116,7 +116,7 @@ class ShellMixin:
         GLib.idle_add(flush)
     def asset(self,name):return pathlib.Path(__file__).resolve().parent.parent/'assets'/name
     def build_navigation(self,root):
-        from .gui import label,button
+        from .gui_widgets import label,button
         from .ui_components import Icon
         bar=Gtk.Box(spacing=6);bar.get_style_context().add_class('app-header');bar.set_border_width(0);root.pack_start(bar,False,False,0)
         from . import ui_theme;self.brand_icon=Gtk.Image.new_from_pixbuf(ui_theme.brand_pixbuf(self.asset('brand.png'),28,self.preferences.get('theme','dark')));bar.pack_start(self.brand_icon,False,False,4);brand=label('Deck Library','brand');brand.set_margin_end(12);self.brand_label=brand;bar.pack_start(brand,False,False,0)
@@ -191,7 +191,7 @@ class ShellMixin:
             box.page_header.pack_start(widget,False,False,0)
         box.page_header_scroll.set_no_show_all(False);box.page_header_scroll.show_all();box.page_header_scroll.set_no_show_all(True)
     def card(self,parent,title=None):
-        from .gui import label
+        from .gui_widgets import label
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);box.get_style_context().add_class('card')
         if title:box.pack_start(label(title,'title'),False,False,0)
         parent.pack_start(box,False,False,0);return box
@@ -217,7 +217,7 @@ class ShellMixin:
         for name,control in self.nav_buttons.items():
             style=control.get_style_context();style.add_class('active') if name==active else style.remove_class('active')
     def build_library_page(self):
-        from .gui import label,button
+        from .gui_widgets import label,button
         page=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=8);page.set_border_width(14);self.pages.add_named(page,'library')
         head=Gtk.Box(spacing=12);head.pack_start(label('Biblioteca','hero'),False,False,0);head.set_no_show_all(True);head.hide();page.pack_start(head,False,False,0)
         toolbar=Gtk.Box(spacing=10);toolbar.get_style_context().add_class('page-toolbar');self.search=Gtk.SearchEntry();self.search.set_placeholder_text('Buscar juegos · X: teclado');self.bind_search_keyboard(self.search);self.search.set_width_chars(16);self.search.set_hexpand(True);self.search.connect('search-changed',lambda _:self.render());toolbar.pack_start(self.search,True,True,0);self.library_count=label('','meta');self.library_count.get_style_context().add_class('library-count');toolbar.pack_start(self.library_count,False,False,4);self.filter_toggle=button('Vista y filtros',self.toggle_library_filters);toolbar.pack_end(self.filter_toggle,False,False,0);page.pack_start(toolbar,False,False,0)
@@ -278,7 +278,7 @@ class ShellMixin:
         if originals:
             self.originals_label.set_text(str(len(originals))+' originales con un port instalado.');self.originals_button.set_tooltip_text(self.originals_label.get_text());self.originals_bar.set_no_show_all(False);self.originals_bar.show_all();self.originals_bar.set_no_show_all(True)
         else:self.originals_bar.hide()
-        from .gui import label,Poster
+        from .gui_widgets import label,Poster
         from .port_patterns import entry_display_title
         self.steam_pending_ids=self.pending_game_ids();self.reset_page(self.list);self.reset_page(self.covers);self.reset_page(self.platform_groups);self.new_tiles=[];entries=self.visible();total=len(self.shown_entries()[0]);self.library_count.set_text(str(total)+' juegos'+(' · '+str(len(entries))+' visibles' if len(entries)!=total else ''))
         groups={}
@@ -317,7 +317,7 @@ class ShellMixin:
         self.refresh_layout()
 
     def add_cover_card(self,e,target=None):
-        from .gui import label,Poster
+        from .gui_widgets import label,Poster
         from .port_patterns import entry_display_title
         shown=entry_display_title(e)
         tile=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=0);tile.get_style_context().add_class('library-game');tile.set_size_request(148,-1);tile.set_halign(Gtk.Align.CENTER);action=Gtk.Button();action.get_style_context().add_class('poster');action.add(Poster(e,find_cover(e),148,222,overlay=True,steam=self.in_steam(e),favorite=self.is_favorite(e)));action.connect('clicked',lambda _:self.select_game(e));action.set_tooltip_text(shown);self.bind_library_focus(action,e,tile)
@@ -383,7 +383,7 @@ class ShellMixin:
         return False
 
     def settings_page(self):
-        from .gui import label,button
+        from .gui_widgets import label,button
         self.reset_page(self.settings_box)
         self.settings_box.set_spacing(6)
         heading=label('Ajustes','hero');heading.set_no_show_all(True);heading.hide()
@@ -400,7 +400,7 @@ class ShellMixin:
         self.settings_box.pack_start(self.version_label,False,False,0)
         self.settings_box.show_all();self.pages.set_visible_child_name('settings')
     def appearance_dialog(self):
-        from .gui import label,button
+        from .gui_widgets import label,button
         dialog=InlineDialog(title='Carátulas y apariencia',transient_for=self,modal=True);dialog.set_default_size(760,600);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Guardar',Gtk.ResponseType.OK)
         body=dialog.get_content_area();body.set_border_width(4);body.set_spacing(8)
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2);box.get_style_context().add_class('appearance-group');body.pack_start(box,False,False,0)
@@ -459,7 +459,7 @@ class ShellMixin:
         self.toast('Cambios aplicados' if done else 'Steam se reabrió; los cambios siguen pendientes')
         return False
     def pending_details(self):
-        from .gui import label,button
+        from .gui_widgets import label,button
         from .service import pending_changes,cancel_pending
         self.reset_page(self.pending_box);self.pending_box.pack_start(button('← Biblioteca',lambda _:self.open_library()),False,False,0);self.pending_box.pack_start(label('Cambios de Steam','hero'),False,False,0);rows=pending_changes(self.store)
         for row in rows:

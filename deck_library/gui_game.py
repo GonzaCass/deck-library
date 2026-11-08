@@ -177,7 +177,7 @@ class GameMixin:
         return menu
 
     def game_hero(self, entry):
-        from .gui import Poster
+        from .gui_widgets import Poster
         cover = find_cover(entry)
         backdrop = GameBackdrop(cover)
         backdrop.backdrop.platform = entry.platform or ''

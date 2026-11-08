@@ -5,6 +5,7 @@
 | Topic / Tema | Guide / Guía |
 | --- | --- |
 | Library, controls and Gaming Mode / Biblioteca, controles y modo Juego | [Deck interface](DECK-INTERFACE.md) |
+| Colours, type, components and contrast rules / Colores, tipografía, componentes y contraste | [Design system](../DESIGN.md) |
 | Windows components, Proton and fix links / Componentes Windows, Proton y enlaces a fixes | [Compatibility](COMPATIBILITY.md) |
 | Supported ports, originals and setup / Ports, originales y preparación | [Ports](PORTS.md) |
 | Switch 2 games and emulator forks / Juegos de Switch 2 y forks de emuladores | [Switch 2](SWITCH2.md) |

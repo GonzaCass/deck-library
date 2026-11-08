@@ -25,7 +25,7 @@ class LibraryToolsMixin:
         for child in children:content.remove(child);body.pack_start(child,True,True,0)
         scroll.add(body);content.pack_start(scroll,True,True,0)
     def build_pending_banner(self,parent):
-        from .gui import label,button
+        from .gui_widgets import label,button
         self.pending_bar=Gtk.Box(spacing=10);self.pending_bar.get_style_context().add_class('banner');self.pending_bar.set_no_show_all(True)
         self.pending_label=label('Reinicio de Steam pendiente para aplicar los cambios.');self.pending_label.set_hexpand(True);self.pending_bar.pack_start(self.pending_label,True,True,0)
         self.pending_bar.pack_end(button('Ver cambios',lambda _:self.pending_details()),False,False,0);parent.pack_start(self.pending_bar,False,False,0)
@@ -38,7 +38,7 @@ class LibraryToolsMixin:
         if event.keyval==Gdk.KEY_Escape:return self.controller_action('back')
         return False
     def conflicts_page(self):
-        from .gui import label,button
+        from .gui_widgets import label,button
         from .conflicts import analyze
         dialog=InlineDialog(title='Duplicados y conflictos',transient_for=self,modal=True);dialog.set_default_size(760,580);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(16)
         status=label('Revisando rutas e instalaciones…','muted');box.pack_start(status,False,False,8);results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=10);box.pack_start(results,True,True,0);alive=[True]
@@ -73,7 +73,7 @@ class LibraryToolsMixin:
             return result
         self.run_queue(job,'Preparando Deck Library para Steam…')
     def emulator_dialog(self,e):
-        from .gui import label,button
+        from .gui_widgets import label,button
         from .emulator_settings import inspect_emulator,set_language
         from .discovery import available_emulators
         dialog=InlineDialog(title='Emulador · '+e.platform,transient_for=self,modal=True);dialog.set_default_size(700,500);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE);box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(12)

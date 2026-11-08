@@ -143,7 +143,7 @@ class UpdatesMixin:
         self.update_installing=False;self.set_status('No se pudo instalar la actualización.');self.message('Actualización',text);return False
 
     def updates_page(self):
-        from .gui import label,button,wrap_row,Poster
+        from .gui_widgets import label,button,wrap_row,Poster
         from .artwork import find_cover,normalized
         from .ui_components import Reveal
         if not os.environ.get('DECK_LIBRARY_UI_TESTS'):self.dismiss_banner()

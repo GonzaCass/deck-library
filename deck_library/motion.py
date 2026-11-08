@@ -49,16 +49,19 @@ def smooth_scroll(adjustment,target,duration=95):
         return True
     adjustment._deck_scroll_source=GLib.timeout_add(16,step)
 
-def enter_page(widget, duration=150):
-    """Fade an allocated page smoothly without flashing or taking a Gtk.Stack snapshot."""
+PAGE_MS=210       # tabs, sections, inline pages and dialogs
+PAGE_START=0.0    # pages fade in from the background colour, so the change never jumps
+
+def enter_page(widget, duration=PAGE_MS):
+    """Fade an allocated page in without taking a Gtk.Stack snapshot (which Gamescope can show half laid out)."""
     if not enabled() or os.environ.get('DECK_LIBRARY_UI_PREVIEW')=='1':
         widget.set_opacity(1);return
-    widget.set_opacity(0.35)
+    widget.set_opacity(PAGE_START)
     def enter():
         if not widget.get_mapped():widget.set_opacity(1);return False
         root=widget.get_toplevel()
         root.queue_resize();root.check_resize()
-        fade_in(widget,duration=duration,start_opacity=0.35)
+        fade_in(widget,duration=duration,start_opacity=PAGE_START)
         return False
     GLib.idle_add(enter)
 

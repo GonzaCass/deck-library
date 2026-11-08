@@ -437,6 +437,7 @@ class Reveal(Gtk.Box):
             opening = not self.revealer.get_reveal_child()
             self.revealer.set_transition_duration(220 if motion.enabled() else 0)
             self.revealer.set_reveal_child(opening)
+            if opening:motion.fade_in(self.revealer.get_child(),duration=240,start_opacity=0.0)
             self.control.set_icon('down' if opening else 'chevron')
             self.control.get_accessible().set_description('Expandido' if opening else 'Contraído')
         self.control.connect('clicked',toggle)

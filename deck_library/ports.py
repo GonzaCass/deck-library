@@ -527,6 +527,8 @@ def sha256_file(path):
         for block in iter(lambda:source.read(1<<20),b''):digest.update(block)
     return digest.hexdigest()
 
+from .diskspace import ensure_space
+
 def extract(archive,destination):
     destination=pathlib.Path(destination).resolve();name=str(archive).lower()
     if name.endswith(('.7z','.rar')):
@@ -554,6 +556,7 @@ def extract(archive,destination):
                 if stat.S_ISLNK(info.external_attr>>16):raise ValueError('El paquete contiene enlaces simbólicos.')
                 if relative in seen:raise ValueError('El paquete contiene rutas duplicadas.')
                 seen.add(relative);files.append((info,target,filename.endswith('/')))
+            ensure_space(sum(info.file_size for info in z.infolist()),destination)
             for info,target,directory in files:
                 if directory:target.mkdir(parents=True,exist_ok=True);continue
                 target.parent.mkdir(parents=True,exist_ok=True)
@@ -568,6 +571,7 @@ def extract(archive,destination):
                 if member.issym() or member.islnk():
                     base=(destination/member.name).parent if member.issym() else destination
                     if pathlib.Path(member.linkname).is_absolute() or not (base/member.linkname).resolve().is_relative_to(destination):raise ValueError('El paquete contiene enlaces fuera de su carpeta.')
+            ensure_space(sum(member.size for member in tar.getmembers() if member.isfile()),destination)
             tar.extractall(destination,filter='data')
     else:raise ValueError('Formato de paquete no admitido: '+pathlib.Path(archive).name)
 

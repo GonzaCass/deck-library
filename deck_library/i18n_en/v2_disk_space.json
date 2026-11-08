@@ -1,0 +1,6 @@
+{
+  "El paquete ocupa {} GB al extraerlo y hay {} GB libres. Liberar espacio y volver a intentar.": "The package needs {} GB once extracted and {} GB are free. Free up space and try again.",
+  "El paquete ocupa ": "The package needs ",
+  " GB al extraerlo y hay ": " GB once extracted and ",
+  " GB libres. Liberar espacio y volver a intentar.": " GB are free. Free up space and try again."
+}

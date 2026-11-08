@@ -10,7 +10,7 @@ class ToolboxMixin:
     def tools_page(self,*_):
         """One row per tool. Rows that need the Desktop (adding to Steam) or the owner's account are left out when they do not apply."""
         from . import motion
-        from .gui import label
+        from .gui_widgets import label
         if not self.discard_game_edits():return
         self.reset_page(self.tools_box);heading=label('Herramientas','hero');heading.set_no_show_all(True);heading.hide();self.tools_box.pack_start(heading,False,False,0)
         tools=[('Convertir un juego de Switch','Convierte un XCI o NSP propio (y su actualización) en la carpeta exefs y romfs que piden algunos ports.','Convertir','folder',lambda _:self.switch_convert_page()),

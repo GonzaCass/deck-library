@@ -5,7 +5,7 @@ from .transfer import Progress,caption
 
 class ProgressMixin:
     def transfer_row(self,parent,key):
-        from .gui import label
+        from .gui_widgets import label
         if not hasattr(self,'transfer_views'):self.transfer_views={};self.transfers={}
         box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=6);bar=Gtk.ProgressBar();bar.set_show_text(True);status=label('','status');box.pack_start(bar,False,False,0);box.pack_start(status,False,False,0);parent.pack_start(box,False,False,0)
         control=Gtk.Button(label='Cancelar');control.connect('clicked',lambda _:self.cancel_transfer(key));box.pack_start(control,False,False,0);box.transfer_control=control

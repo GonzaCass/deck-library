@@ -10,7 +10,7 @@ from . import cover_provider
 
 class ExperienceMixin:
     def provider_fields(self,box,compact=False):
-        from .gui import label
+        from .gui_widgets import label
         box.pack_start(label('Proveedor de carátulas','title'),False,False,0)
         box.pack_start(label('Automático usa SteamGridDB si hay una clave configurada; si no, busca en Libretro y Wikipedia. La imagen se puede cambiar por juego.','muted'),False,False,0)
         combo=Dropdown()
@@ -37,14 +37,14 @@ class ExperienceMixin:
                 except Exception as error:result='No se pudo probar: '+str(error)
                 GLib.idle_add(verdict.set_text,result)
             threading.Thread(target=work,daemon=True).start()
-        from .gui import button
+        from .gui_widgets import button
         row.pack_start(button('Probar clave',test),False,False,0);row.pack_start(verdict,True,True,0);box.pack_start(row,False,False,0)
         link=Gtk.LinkButton.new_with_label('https://www.steamgriddb.com/profile/preferences/api','Abrir la página de claves de SteamGridDB');box.pack_start(link,False,False,0)
         box.pack_start(label('La clave se guarda solo en esta Deck. Al buscar se envía el nombre del juego al proveedor y las imágenes se guardan localmente.','muted'),False,False,0)
         return combo,key
 
     def settings_page(self):
-        from .gui import label,button,wrap_row
+        from .gui_widgets import label,button,wrap_row
         self.reset_page(self.settings_box)
         self.settings_box.pack_start(label('Ajustes','hero'),False,False,0)
         self.settings_box.pack_start(label('Carátulas, rutas y apariencia.','subtitle'),False,False,0)
@@ -72,7 +72,7 @@ class ExperienceMixin:
     def start_wizard(self):
         self.wizard_step=0;self.wizard_found=None;self.wizard_checks={};self.checked.clear();self.selection_mode=False;self.draw_wizard();self.wizard_box.show();self.pages.set_visible_child_name('welcome');return False
     def draw_wizard(self):
-        from .gui import label,button,wrap_row
+        from .gui_widgets import label,button,wrap_row
         stack=self.wizard_box;box=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=18);box.set_border_width(16);stack.add(box)
         steps=['Inicio','Detección','Carátulas','Final'];progress=Gtk.Box(spacing=12)
         for index,title in enumerate(steps):
@@ -139,7 +139,7 @@ class ExperienceMixin:
         for entry in sorted(self.entries,key=lambda e:(e.platform,e.name.casefold())):
             row=Gtk.CheckButton(label=entry.name+'  ·  '+entry.platform);row.set_active(entry.id in self.checked);self.wizard_checks[entry.id]=row;self.wizard_results.pack_start(row,False,False,0)
         if not self.entries:
-            from .gui import label
+            from .gui_widgets import label
             self.wizard_results.pack_start(label('No se encontraron juegos. Agregar una carpeta o configurar el emulador.','muted'),False,False,0)
         self.wizard_results.show_all()
     def wizard_folder(self):
@@ -187,7 +187,7 @@ class ExperienceMixin:
         else:self.set_status(f'{count} carátulas encontradas.'+(' Las faltantes se pueden buscar desde la ficha de cada juego.' if count<total else ''))
         return False
     def artwork_dialog(self,e):
-        from .gui import label,button,wrap_row
+        from .gui_widgets import label,button,wrap_row
         dialog=InlineDialog(title='Carátula · '+e.name,transient_for=self,modal=True);dialog.set_default_size(820,600);dialog.add_button('Cerrar',Gtk.ResponseType.CLOSE)
         box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(12)
         query=Gtk.Entry();query.set_text(cover_provider.title_for(e));row=Gtk.Box(spacing=10);row.pack_start(query,True,True,0);box.pack_start(row,False,False,0)
@@ -231,7 +231,7 @@ class ExperienceMixin:
         self.fit_dialog(dialog);dialog.show_all();lookup(None);dialog.run();alive['value']=False;dialog.destroy()
     def steam_art_dialog(self,e):
         """Choose the five Steam artwork slots of a shortcut from SteamGridDB; chosen images are written when Steam is closed."""
-        from .gui import label,button,wrap_row
+        from .gui_widgets import label,button,wrap_row
         from . import steamart
         from .service import queue_art
         key=self.preferences.get('steamgriddb_key','')
@@ -334,7 +334,7 @@ class ExperienceMixin:
             GLib.idle_add(self.queue_done,{'state':result['state'],'count':len(items)})
         threading.Thread(target=work,daemon=True).start()
     def steam_edit_dialog(self,e):
-        from .gui import label
+        from .gui_widgets import label
         from .steam_inventory import shortcuts,launch_command
         from .models import atomic_json
         account=e.metadata.get('steam_account')

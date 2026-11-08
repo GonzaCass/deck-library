@@ -45,7 +45,7 @@ def readiness(item,record,original):
 
 class CatalogMixin:
     def catalog_page(self):
-        from .gui import label,button
+        from .gui_widgets import label,button
         if getattr(self,'catalog_ready',False):self.pages.set_visible_child_name('catalog');return
         self.catalog_ready=True
         box=self.catalog_box;self.reset_page(box)
@@ -85,7 +85,7 @@ class CatalogMixin:
         if hasattr(self,'catalog_search'):self.catalog_search.grab_focus()
 
     def compatibility_guide(self,*_):
-        from .gui import label
+        from .gui_widgets import label
         page=InlineDialog(title='Guía de compatibilidad',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE);box=page.get_content_area()
         box.pack_start(label('Es un índice orientativo de 0 a 100 basado en los datos del catálogo. Se muestra como porcentaje para comparar proyectos; no es una probabilidad medida ni una tasa de éxito.','subtitle'),False,False,0)
         box.pack_start(label('No mide FPS, calidad gráfica ni resultados de pruebas de juego. «Integración revisada» indica que se revisó su instalación; no confirma que el juego funcione.','muted'),False,False,0)
@@ -134,7 +134,7 @@ class CatalogMixin:
     def catalog_entries(self):return ports.merged(getattr(self,'catalog_apps',[]),self.preferences)
 
     def fill_catalog(self):
-        from .gui import label,button
+        from .gui_widgets import label,button
         from .port_requirements import original_requirement
         if not hasattr(self,'catalog_apps'):return
         everything=self.catalog_entries();variant_index=self.port_variant_index(everything);categories=sorted({console_of(a) for a in everything if console_of(a)},key=console_sort_key);current=self.catalog_category.get_active_id() or ''
@@ -249,10 +249,12 @@ class CatalogMixin:
         if len(matches)>limit:
             more=button(f'Mostrar {min(CATALOG_PAGE,len(matches)-limit)} más',lambda _:self.catalog_more());self.catalog_more_box.pack_start(more,False,False,6)
         self.catalog_rows.show_all();self.catalog_more_box.show_all();self.load_icons(images,generation);self.check_kits(kits,generation)
+        from . import motion
+        motion.stagger(self.catalog_rows.get_children()[-CATALOG_PAGE:],step=22,limit=12,duration=200)  # only the cards just shown
         self.queue_resize();GLib.idle_add(self.check_resize)
 
     def port_details(self,item):
-        from .gui import label,button as make_button
+        from .gui_widgets import label,button as make_button
         import subprocess
         def button(*args,**kwargs):
             control=make_button(*args,**kwargs);control.set_halign(Gtk.Align.START);control.set_valign(Gtk.Align.CENTER);return control
@@ -517,7 +519,7 @@ class CatalogMixin:
         return False
 
     def build_pattern_actions(self,panel,item,pattern,page):
-        from .gui import label
+        from .gui_widgets import label
         from .gui_switch import SWITCH_PORTS,minimum_for
         kind=pattern['kind'];row=Gtk.Box(spacing=8);has_buttons=False
         installed=ports.records(self.store).get(item['repository'])
@@ -593,7 +595,7 @@ class CatalogMixin:
             chooser.destroy()
 
     def add_repository_dialog(self):
-        from .gui import label
+        from .gui_widgets import label
         dialog=InlineDialog(title='Agregar repositorio',transient_for=self,modal=True);dialog.set_default_size(640,360);dialog.add_button('Cancelar',Gtk.ResponseType.CANCEL);save=dialog.add_button('Agregar',Gtk.ResponseType.OK);save.get_style_context().add_class('primary')
         box=dialog.get_content_area();box.set_border_width(20);box.set_spacing(10)
         box.pack_start(label('Proyectos de GitHub con paquetes para Linux o Windows portable: dirección completa o «usuario/repositorio».','muted'),False,False,0)
@@ -744,7 +746,7 @@ class CatalogMixin:
         return False
 
     def offer_installed_port_media(self,item,record):
-        from .gui import label
+        from .gui_widgets import label
         pattern=classify_port(item)
         if pattern['kind']=='generic':return
         game_title,_=resolve_game_identity(item)
@@ -766,7 +768,7 @@ class CatalogMixin:
         page.connect('response',lambda *_:page.destroy());page._mount()
 
     def port_inputs(self,item):
-        from .gui import label,button
+        from .gui_widgets import label,button
         record=ports.records(self.store).get(item['repository'],{})
         if (record.get('original_data') or {}).get('kind')=='switch-dump':
             chosen=[False]
@@ -882,12 +884,12 @@ class CatalogMixin:
 
     def iso_cleanup_button(self,body,item,record):
         from .iso_import import details
-        from .gui import button
+        from .gui_widgets import button
         if record.get('configured') and details(ports.folder_for(record)):body.pack_start(button('Liberar espacio de la ISO',lambda _:self.iso_cleanup_page(item)),False,False,0)
 
     def iso_cleanup_page(self,item):
         from .iso_import import details,remove_source
-        from .gui import label,button
+        from .gui_widgets import label,button
         record=ports.records(self.store).get(item['repository']);folder=ports.folder_for(record) if record else None
         info=details(folder) if folder else None
         if not info:self.port_setup_finished(item);return

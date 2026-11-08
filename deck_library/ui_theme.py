@@ -116,7 +116,10 @@ list row:selected,list row:focus,list row.game-focused { background:#29323d; bor
 .card,.surface-panel,.preset-detail,.selection-bar { background:@surface; border:1px solid @line; border-radius:10px; padding:14px; }
 .settings-row { padding:14px 4px; border-bottom:1px solid @line; }
 .banner { background:@surface; border:1px solid @line; border-left:3px solid @accent; border-radius:8px; padding:8px 12px; }
-.library-game { padding:0; border:2px solid transparent; border-radius:10px; transition:background 180ms ease-out,border-color 180ms ease-out; }
+.library-game { padding:0; border:2px solid transparent; border-radius:10px; transition:background 180ms ease-out,border-color 180ms ease-out,color 180ms ease-out,opacity 180ms ease-out; }
+button.section-tab,button.nav,button.dropdown-option,button.summary-game,button.profile-card { transition:background 180ms ease-out,border-color 180ms ease-out,color 180ms ease-out; }
+row,flowboxchild { transition:background 160ms ease-out; }
+label { transition:color 180ms ease-out; }
 .library-game.game-focused { background:#20262d; border-color:@accent; }
 .library-game.game-focused .cover-title { color:@text; }
 button.poster { padding:0; border:0; border-radius:8px; background:@surface; }
@@ -437,7 +440,7 @@ LIGHT={
     '#1c7845':'#1c7845','#228751':'#228751','#2e62b2':'#2e62b2','#3972c4':'#3972c4','#6152b6':'#6152b6','#7161c7':'#7161c7',
     '#942e2e':'#942e2e','#aa3535':'#aa3535','#b74444':'#b74444',
     '#08090b':'#f3f5f9','#121417':'#ffffff','#1c2025':'#e8ecf4','#f1f3f5':'#161a20','#b6bec9':'#4b5563','#343b45':'#c6cedb',
-    '#29323d':'#dfe5f0','#66717e':'#8e9aab','#79828d':'#7b8696','#616b78':'#9aa5b5','#46515e':'#b5bfce','#c8d0da':'#3a4452','#20262e':'#e6ebf3',
+    '#29323d':'#dfe5f0','#66717e':'#7b8696','#79828d':'#7b8696','#616b78':'#9aa5b5','#46515e':'#b5bfce','#c8d0da':'#3a4452','#20262e':'#e6ebf3',
     '#040506':'#eef1f7','#292e36':'#c6cedb','#c4ccd6':'#3f4958','#ffffff':'#0f1318','#20262d':'#e3e9f3',
     '#9bdfb8':'#1f7a46','#a4e9be':'#15663a','#182e24':'#dff4e7','#365e48':'#9bd1b0','#1d3529':'#dff4e7','#3a674d':'#9bd1b0',
     '#b6d7ff':'#1d4f91','#1d2c41':'#dde9fb','#3b5475':'#9db9e0','#c4ddff':'#1d4f91','#243449':'#dce8fa','#405979':'#9ab7e0',

@@ -67,7 +67,7 @@ class HelpMixin:
         body.pack_start(ActionButton('Reportar un problema o hacer una solicitud','plus',lambda _:self.support_page(),'violet'),False,False,0)
         search=Gtk.SearchEntry();search.set_placeholder_text('Buscar juegos validados · X: teclado');self.bind_search_keyboard(search);self.validated_search=search;body.pack_start(search,False,False,0)
         results=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=12);body.pack_start(results,False,False,0);self.validated_targets={};panels=[]
-        from .gui import Poster
+        from .gui_widgets import Poster
         from .models import Entry
         shown_as={'eden':'Switch','wiicompiled':'Wii','narutorise':'Windows'};covers=[]
         for game in validated_games.catalog():
@@ -161,7 +161,7 @@ class HelpMixin:
                 try:result=self.community_client().request('/v1/bug-reports',value);GLib.idle_add(done,result,None)
                 except Exception as error:GLib.idle_add(done,None,str(error))
             threading.Thread(target=work,daemon=True).start()
-        from .gui import wrap_row
+        from .gui_widgets import wrap_row
         actions=page.get_action_area()
         for caption,icon,callback in [('Preparar reporte','search',review),('Guardar ZIP','download',export),('Reportar en GitHub','file',github)]:actions.pack_start(ActionButton(caption,icon,callback,'steam-outline'),False,False,0)
         send_button=ActionButton('Enviar diagnóstico','upload',send,'violet');send_button.set_sensitive(False);actions.pack_start(send_button,False,False,0)

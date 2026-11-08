@@ -1,5 +1,5 @@
 """WSGI JSON service. SQLite, validated presets and device authentication."""
-import contextlib,hashlib,ipaddress,json,os,pathlib,re,secrets,sqlite3,time,urllib.parse,urllib.request
+import contextlib,hashlib,ipaddress,json,os,pathlib,re,secrets,sqlite3,sys,time,urllib.parse,urllib.request
 from deck_library.presets import validate
 from .oidc import DeviceAuth
 LIMIT=128*1024
@@ -255,11 +255,34 @@ def application(environ,start_response):
     return _api(environ,start_response)
 _api=None
 
+def accounts(db,now=None):
+    """Accounts with a live session: login, provider and the stable COMMUNITY_ADMINS entry for Keycloak ones."""
+    rows=db.execute('SELECT uid,login,MAX(expires) AS expires FROM tokens WHERE expires>? GROUP BY uid ORDER BY login',(now or time.time(),)).fetchall()
+    return [{'login':r['login'],'provider':'keycloak' if r['uid'].startswith('oidc:') else 'github','entry':'sub:'+r['uid'].rsplit(':',1)[-1] if r['uid'].startswith('oidc:') else ''} for r in rows]
+
+def pinned_admins(value,db,now=None):
+    """COMMUNITY_ADMINS with each username replaced by the subject id of the one Keycloak account that uses it.
+    A name with no signed-in Keycloak account, or with more than one, is kept and reported."""
+    known=accounts(db,now);result=[];unresolved=[]
+    for item in (v.strip() for v in value.split(',')):
+        if not item:continue
+        if item.lower().startswith('sub:'):result.append(item);continue
+        matches={a['entry'] for a in known if a['provider']=='keycloak' and a['login'].lower()==item.lower()}
+        if len(matches)==1:result.append(matches.pop())
+        else:result.append(item);unresolved.append(item)
+    return ','.join(dict.fromkeys(result)),unresolved
+
 if __name__=='__main__':
     import argparse
-    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['pending','approve','reject','backup','requests','request']);parser.add_argument('id',nargs='?');parser.add_argument('--state',default='');parser.add_argument('--note',default='');args=parser.parse_args();api=API()
+    parser=argparse.ArgumentParser();parser.add_argument('action',choices=['pending','approve','reject','backup','requests','request','accounts','admin-ids']);parser.add_argument('id',nargs='?');parser.add_argument('--state',default='');parser.add_argument('--note',default='');args=parser.parse_args();api=API()
     with api.db() as db:
-        if args.action=='pending':print(json.dumps([dict(r) for r in db.execute("SELECT id,login,body FROM presets WHERE status='pending'")],ensure_ascii=False,indent=2))
+        if args.action=='accounts':
+            for a in accounts(db):print(f"{a['login']:<24} {a['provider']:<9} {a['entry'] or '(no puede ser administradora)'}")
+        elif args.action=='admin-ids':
+            value,unresolved=pinned_admins(os.environ.get('COMMUNITY_ADMINS',''),db)
+            for name in unresolved:print(f'Sin resolver: {name} (iniciar sesión en la app con esa cuenta de Keycloak y repetir).',file=sys.stderr)
+            print('COMMUNITY_ADMINS='+value)
+        elif args.action=='pending':print(json.dumps([dict(r) for r in db.execute("SELECT id,login,body FROM presets WHERE status='pending'")],ensure_ascii=False,indent=2))
         elif args.action=='requests':
             for r in db.execute("SELECT id,state,title,platform,login,created FROM game_requests WHERE (?='' OR state=?) ORDER BY created DESC",(args.state,args.state)):print(f"{r['id']}  {r['state']:<13} {time.strftime('%Y-%m-%d',time.localtime(r['created']))}  {r['title']} ({r['platform']})"+(f"  por {r['login']}" if r['login'] else ''))
         elif args.action=='request':

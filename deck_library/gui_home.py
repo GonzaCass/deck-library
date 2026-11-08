@@ -11,7 +11,7 @@ HOME_LIMIT=16
 class HomeMixin:
     def home_page(self):
         if not self.discard_game_edits():return
-        from .gui import Poster
+        from .gui_widgets import Poster
         from . import history
         box=self.home_box;scroll=box.get_ancestor(Gtk.ScrolledWindow)
         refreshing=self.pages.get_visible_child_name()=='home'

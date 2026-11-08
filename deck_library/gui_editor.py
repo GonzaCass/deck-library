@@ -7,7 +7,7 @@ from .gui_tools import SETTING_LABELS,SECTION_LABELS
 
 class EditorMixin:
     def build_options(self,e,box):
-        from .gui import label,button
+        from .gui_widgets import label,button
         adapter=presets.adapter_for(e)
         try:current=presets.current_values(e,self.preferences.get('eden_config') or None)
         except Exception as error:box.pack_start(label(str(error),'muted'),False,False,0);return
@@ -61,7 +61,7 @@ class EditorMixin:
             presets.import_preset(path,self.store);self.game_tab='profiles';self.show_detail(e);self.toast('Perfil importado')
         except Exception as error:self.message('No se pudo importar',str(error))
     def export_game_profile(self,e):
-        from .gui import label
+        from .gui_widgets import label
         from .models import atomic_json
         dialog=InlineDialog(title='Exportar ajustes',transient_for=self,modal=True);dialog.add_buttons('Cancelar',Gtk.ResponseType.CANCEL,'Exportar',Gtk.ResponseType.OK);box=dialog.get_content_area();box.set_border_width(16);box.set_spacing(10);name=Gtk.Entry();name.set_text(e.name+' — mis ajustes');author=Gtk.Entry();author.set_placeholder_text('Alias público');box.pack_start(label('Nombre del perfil'),False,False,0);box.pack_start(name,False,False,0);box.pack_start(label('Autor'),False,False,0);box.pack_start(author,False,False,0);self.fit_dialog(dialog);dialog.show_all();response=dialog.run();title=name.get_text().strip();alias=author.get_text().strip();dialog.destroy()
         if response!=Gtk.ResponseType.OK:return
