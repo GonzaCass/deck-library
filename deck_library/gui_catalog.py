@@ -533,6 +533,11 @@ class CatalogMixin:
                 page.response(Gtk.ResponseType.CLOSE)
                 GLib.idle_add(lambda:(self.extract_iso_for_port(item) if installed else self.iso_extract_page(),False)[1])
             row.pack_start(ActionButton('Extraer ISO de PS3' if pattern.get('platform')=='PlayStation 3' else 'Extraer ISO de Xbox','disc',extract,'steam-outline'),False,False,0);has_buttons=True
+        elif kind=='switch2':
+            def extract_nup(_):
+                page.response(Gtk.ResponseType.CLOSE)
+                GLib.idle_add(lambda:(self.extract_nup_for_port(item) if installed else self.nup_extract_page(),False)[1])
+            row.pack_start(ActionButton('Extraer un NUP','disc',extract_nup,'steam-outline'),False,False,0);has_buttons=True
         if installed:
             if installed.get('setup'):
                 row.pack_start(ActionButton('Configurar archivos del port','sliders',lambda _:(page.response(Gtk.ResponseType.CLOSE),GLib.idle_add(lambda:(self.configure_port(item),False)[1])),'primary'),False,False,0);has_buttons=True
@@ -762,6 +767,8 @@ class CatalogMixin:
         actions.pack_start(ActionButton(pattern['button'],'folder',choose_media,'primary'),False,False,0)
         if pattern['kind'] in ('xbox360','xbox') or pattern.get('platform')=='PlayStation 3':
             actions.pack_start(ActionButton('Extraer una ISO','disc',lambda _:(page.destroy(),self.extract_iso_for_port(item)),'steam-outline'),False,False,0)
+        if pattern['kind']=='switch2':
+            actions.pack_start(ActionButton('Extraer un NUP','disc',lambda _:(page.destroy(),self.extract_nup_for_port(item)),'steam-outline'),False,False,0)
         actions.pack_start(ActionButton('Abrir el port directamente','play',lambda _:(page.destroy(),self.open_installed_port(record)),'console-secondary'),False,False,0)
         actions.pack_start(ActionButton('Más tarde','check',lambda _:page.destroy(),'quiet'),False,False,0)
         card.pack_start(actions,False,False,0)

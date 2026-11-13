@@ -2669,6 +2669,35 @@ class DeckUITests(unittest.TestCase):
         self.assertEqual((port_folder/'PS3_GAME/PARAM.SFO').read_bytes(),b'sfo');self.assertEqual((port_folder/'PS3_DISC.SFB').read_bytes(),b'sfb')
         self.assertTrue(iso.exists(),'The ISO must never be touched.')
 
+    def test_a_nup_is_extracted_from_a_switch_2_port_and_moved_into_its_folder(self):
+        from gi.repository import Gtk,GLib
+        import sys;sys.path.insert(0,str(pathlib.Path(__file__).parent))
+        from test_nup import build,GAME
+        from deck_library import ports
+        package=pathlib.Path(self.temp.name)/'juego.nup';package.write_bytes(build(GAME,codec=0));out=pathlib.Path(self.temp.name)/'extracted'
+        port_folder=pathlib.Path(self.temp.name)/'port2';port_folder.mkdir()
+        item=ports.clean({'repository':'owner/s2port','name':'S2 Port','list':'Switch 2'},source='Quiver')
+        record={'repository':'owner/s2port','folder':'s2port','install_path':str(port_folder),'executable':'x'}
+        answers=iter([str(package),str(out)])
+        self.w.tools_page();self.settle()
+        shown=[]
+        def walk(widget):
+            if isinstance(widget,Gtk.Label):shown.append(widget.get_text())
+            if isinstance(widget,Gtk.Container):
+                for child in widget.get_children():walk(child)
+        walk(self.w.tools_box);self.assertIn('Extraer un NUP de Switch 2',shown)
+        with patch.object(self.w,'pick_file',side_effect=lambda *a,**k:next(answers)),patch.object(ports,'records',return_value={'owner/s2port':record}),patch.object(ports,'folder_for',return_value=port_folder),patch.object(self.w,'confirm',return_value=True):
+            page=self.w.extract_nup_for_port(item);self.settle()
+            button=lambda caption:next(c for c in self.w.control_targets(page) if isinstance(c,Gtk.Button) and c.get_label()==caption)
+            button('Elegir').clicked();button('Cambiar').clicked();self.settle()
+            button('Extraer').clicked()
+            loop=GLib.MainLoop();GLib.timeout_add(3000,lambda:(loop.quit(),False)[1]);GLib.timeout_add(100,lambda:(loop.quit(),False)[1] if (port_folder/'romfs/data/b.bin').exists() else True);loop.run()
+        for _ in range(30):
+            if (port_folder/'romfs/data/b.bin').exists() and not (out/'juego').exists():break
+            self.settle()
+        self.assertEqual((port_folder/'romfs/data/b.bin').read_bytes(),b'patched','The newest update is laid over the base for a port.')
+        self.assertTrue((port_folder/'exefs/main.npdm').is_file());self.assertTrue(package.exists(),'The NUP must never be touched.')
+
     def test_after_an_install_without_a_program_the_user_is_asked_which_one_starts_the_game(self):
         from gi.repository import Gtk
         from deck_library import ports
@@ -2707,7 +2736,7 @@ class DeckUITests(unittest.TestCase):
         self.assertTrue(any('Switch 2' in (caption or '') for caption in labels) or any('Switch 2' in value for value in texts(self.w.tools_box)))
         with patch('pathlib.Path.home',return_value=home),patch.object(self.w,'pick_file',return_value=str(chosen)),patch('deck_library.discovery.shutil.which',return_value=None):
             page=self.w.switch2_page();self.settle();shown=' '.join(texts(page))
-            for expected in ('Eden oficial','prod.keys','Eglantine','No se detectó ningún emulador'):self.assertIn(expected,shown)
+            for expected in ('Eden oficial','prod.keys','Eglantine','No se detectó ningún emulador','Juegos en .nup'):self.assertIn(expected,shown)
             next(c for c in self.w.control_targets(page) if isinstance(c,Gtk.Button) and c.get_label()=='Elegir programa').clicked();self.settle()
             self.assertEqual(self.w.preferences['emulators']['switch2'],[str(chosen)]);self.assertIn(str(chosen),' '.join(texts(page)))
             self.assertTrue((layout.folder('roms',home)/'switch2').is_dir())

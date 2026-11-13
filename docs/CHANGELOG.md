@@ -4,6 +4,7 @@ Every release has its notes on [GitHub](https://github.com/GonzaCass/deck-librar
 
 | Version | Date | Title |
 | --- | --- | --- |
+| [1.6.3](https://github.com/GonzaCass/deck-library/releases/tag/v1.6.3) | 2026-11-12 | Extract Switch and Switch 2 .nup packages from Tools, the Switch 2 page and Switch 2 port pages |
 | [1.6.2](https://github.com/GonzaCass/deck-library/releases/tag/v1.6.2) | 2026-11-08 | Smoother page transitions, 7z and RAR packages with folders work with current 7-Zip, a free-space check before extracting, and readable colours in both themes |
 | [1.6.1](https://github.com/GonzaCass/deck-library/releases/tag/v1.6.1) | 2026-11-07 | Always-visible Ports search and filters, with PlayStation, Switch and Xbox listed first |
 | [1.6.0](https://github.com/GonzaCass/deck-library/releases/tag/v1.6.0) | 2026-11-07 | Every port package installs, PlayStation 3 ISO extraction, tap-friendly lists, experimental Switch 2 support and a faster library |

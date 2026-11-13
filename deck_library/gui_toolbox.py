@@ -1,4 +1,4 @@
-"""Tools page: conversions and maintenance actions that are not game settings, and the standalone Xbox ISO extraction."""
+"""Tools page: conversions and maintenance actions that are not game settings, and the standalone ISO and NUP extraction."""
 import pathlib,re,shutil,tempfile,threading
 from gi.repository import Gtk,GLib,Pango
 from .inline_pages import InlineDialog
@@ -15,6 +15,7 @@ class ToolboxMixin:
         self.reset_page(self.tools_box);heading=label('Herramientas','hero');heading.set_no_show_all(True);heading.hide();self.tools_box.pack_start(heading,False,False,0)
         tools=[('Convertir un juego de Switch','Convierte un XCI o NSP propio (y su actualización) en la carpeta exefs y romfs que piden algunos ports.','Convertir','folder',lambda _:self.switch_convert_page()),
                ('Extraer una ISO de Xbox, Xbox 360 o PS3','Extrae el contenido de una ISO a una carpeta, verificándolo. Sirve para los ports que piden la carpeta del juego.','Extraer','folder',lambda _:self.iso_extract_page()),
+               ('Extraer un NUP de Switch 2','Extrae un archivo .nup (juego, actualización y DLC sin cifrar) a una carpeta exefs y romfs, comprobando cada archivo.','Extraer','folder',lambda _:self.nup_extract_page()),
                ('Switch 2 (experimental)','Emulador y carpeta para juegos de Switch 2. Se usan forks de Eden que todavía no son del todo compatibles.','Ver','controller',lambda _:self.switch2_page()),
                ('ROMs y ports instalados','Gestionar la copia de consola de un juego que ya tiene un port.','Gestionar ROMs','folder',lambda _:self.originals_dialog()),
                ('Duplicados y conflictos','Posibles copias de juegos e instalaciones alternativas.','Revisar','search',lambda _:self.conflicts_page()),
@@ -46,6 +47,9 @@ class ToolboxMixin:
             if not path:return
             emulators=dict(self.preferences.get('emulators',{}));emulators['switch2']=[path];self.preferences['emulators']=emulators;save_settings(self.preferences,self.store);refresh()
         card.pack_start(ActionButton('Elegir programa','folder',choose,'steam-outline'),False,False,0)
+        nup_card=self.card(body,'Juegos en .nup')
+        nup_card.pack_start(text('Un .nup guarda un juego sin cifrar con su actualización y DLC. Se extrae a una carpeta exefs y romfs que pueden abrir los forks de Eden y los ports.','muted',90),False,False,0)
+        nup_card.pack_start(ActionButton('Extraer un NUP','folder',lambda _:self.nup_extract_page(),'steam-outline'),False,False,0)
         folder=self.card(body,'Carpeta de los juegos')
         folder.pack_start(text('Los NSP y XCI de Switch 2 van en '+str(games).replace(str(pathlib.Path.home()),'~')+' (o en una carpeta llamada switch2 o nx2 dentro de cualquier carpeta de ROMs). Después, «Actualizar biblioteca» los agrega como juegos de Switch 2.','muted',90),False,False,0)
         try:data=json.loads((pathlib.Path(__file__).resolve().parent.parent/'catalog/switch2-emulators.json').read_text(encoding='utf-8'))
@@ -56,6 +60,23 @@ class ToolboxMixin:
             note=emulator.get('note_en') if i18n.language()=='en' else emulator.get('note');known.pack_start(text(emulator['name'],'title',90),False,False,0);known.pack_start(text(', '.join(emulator.get('systems',[]))+' · '+(note or ''),'muted',90),False,False,0)
             known.pack_start(ActionButton('Abrir página','file',lambda _,u=emulator['url']:subprocess.Popen(['xdg-open',u],start_new_session=True),'quiet'),False,False,0)
         refresh();page.connect('response',lambda *_:page.destroy());page._mount();return page
+
+    def extract_nup_for_port(self,item):
+        """The NUP tool, opened from a Switch 2 port: base and newest update in one tree, then moved into the port's folder."""
+        return self.nup_extract_page(on_done=lambda folder:self.place_extracted_folder(item,folder),for_port=True)
+
+    def nup_extract_page(self,*_,on_done=None,for_port=False):
+        """Extract a .nup container into <destination>/<NUP name>. The NUP is only read; the folder appears after every file is verified."""
+        from .nup import extract_folder
+        merge=Gtk.CheckButton(label='Aplicar la actualización sobre el juego (una sola carpeta exefs y romfs)');merge.set_active(True)
+        if for_port:merge.set_sensitive(False)
+        return self.extract_archive_page(
+            title='Extraer un NUP',
+            intro='Extrae un archivo .nup de Switch o Switch 2 a una carpeta, comprobando cada archivo. El .nup no se modifica. Ya viene sin cifrar: no hacen falta prod.keys.',
+            empty='Ningún NUP elegido',pick_title='Elegir el archivo .nup',patterns=('*.nup',),filter_name='Paquetes NUP',source_title='Archivo NUP',
+            preference='nup_root',default_root=layout.folder('roms')/'switch2',done_toast='NUP extraído',
+            extractor=lambda source,root,progress,cancel:extract_folder(source,root,progress,cancel,merge=merge.get_active()),
+            summary=lambda result:result.get('title') or '',extra=merge,on_done=on_done)
 
     def extract_iso_for_port(self,item):
         """The ISO tool, opened from a port: when the extraction ends the game folder can go straight into the port's folder."""
@@ -84,29 +105,38 @@ class ToolboxMixin:
         """Extract an Xbox, Xbox 360 or PS3 ISO into <destination>/<ISO name>. The ISO is only read; the folder appears after the extraction is verified.
         `on_done(folder)` is called with the extracted folder so a port's setup can use it right away."""
         from .iso_import import extract_folder
+        return self.extract_archive_page(
+            title='Extraer una ISO',
+            intro='Extrae el contenido de una ISO de Xbox, Xbox 360 o PlayStation 3 a una carpeta, comprobando cada archivo. La ISO no se modifica. Las ISO de PS3 tienen que estar descifradas; GameCube, Wii y las demás consolas no se admiten.',
+            empty='Ninguna ISO elegida',pick_title='Elegir la ISO de Xbox, Xbox 360 o PS3',patterns=('*.iso','*.xiso'),filter_name='Imágenes de disco',source_title='Imagen ISO',
+            preference='iso_root',default_root=layout.folder('iso'),done_toast='ISO extraída',extractor=extract_folder,on_done=on_done)
+
+    def extract_archive_page(self,*,title,intro,empty,pick_title,patterns,filter_name,source_title,preference,default_root,done_toast,extractor,on_done=None,summary=None,extra=None):
+        """Shared page for extracting a disc image or package into <destination>/<file name>, with progress and cancel."""
         from .ports import Cancelled
-        page=InlineDialog(title='Extraer una ISO',transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
+        page=InlineDialog(title=title,transient_for=self);page.add_button('Volver',Gtk.ResponseType.CLOSE)
         body=page.get_content_area();body.set_spacing(10)
-        body.pack_start(text('Extrae el contenido de una ISO de Xbox, Xbox 360 o PlayStation 3 a una carpeta, comprobando cada archivo. La ISO no se modifica. Las ISO de PS3 tienen que estar descifradas; GameCube, Wii y las demás consolas no se admiten.','muted',95),False,False,0)
-        state={'iso':'','root':self.preferences.get('iso_root') or str(layout.folder('iso')),'busy':False,'alive':True,'cancel':None}
+        body.pack_start(text(intro,'muted',95),False,False,0)
+        state={'iso':'','root':self.preferences.get(preference) or str(default_root),'busy':False,'alive':True,'cancel':None}
         values={}
         def row(key,title,caption,choose):
             line=Gtk.Box(spacing=12);words=Gtk.Box(orientation=Gtk.Orientation.VERTICAL,spacing=2);words.pack_start(text(title,'title'),False,False,0)
             value=text('','muted',60);value.set_ellipsize(Pango.EllipsizeMode.END);value.set_line_wrap(False);words.pack_start(value,False,False,0);line.pack_start(words,True,True,0)
             line.pack_end(ActionButton(caption,'folder',choose,'neutral'),False,False,0);body.pack_start(line,False,False,0);values[key]=value
         def refresh():
-            values['iso'].set_text(pathlib.Path(state['iso']).name if state['iso'] else 'Ninguna ISO elegida');values['root'].set_text(state['root']+'/<nombre de la ISO>')
+            values['iso'].set_text(pathlib.Path(state['iso']).name if state['iso'] else empty);values['root'].set_text(state['root']+'/'+(pathlib.Path(state['iso']).stem if state['iso'] else '<nombre del archivo>'))
             extract.set_sensitive(bool(state['iso']) and not state['busy']);cancel_button.set_visible(state['busy'])
         def pick(key,title,folder=False):
             def choose(_):
                 if state['busy']:return
-                path=self.pick_file(title,folder=folder,patterns=() if folder else ('*.iso','*.xiso'),filter_name='' if folder else 'Imágenes de disco')
+                path=self.pick_file(title,folder=folder,patterns=() if folder else patterns,filter_name='' if folder else filter_name)
                 if not path:return
                 state[key]=path
-                if key=='root':self.preferences['iso_root']=path;save_settings(self.preferences,self.store)
+                if key=='root':self.preferences[preference]=path;save_settings(self.preferences,self.store)
                 status.set_text('');refresh()
             return choose
-        row('iso','Imagen ISO','Elegir',pick('iso','Elegir la ISO de Xbox, Xbox 360 o PS3'));row('root','Carpeta de destino','Cambiar',pick('root','Elegir la carpeta de destino',True))
+        row('iso',source_title,'Elegir',pick('iso',pick_title));row('root','Carpeta de destino','Cambiar',pick('root','Elegir la carpeta de destino',True))
+        if extra is not None:body.pack_start(extra,False,False,0)
         progress=Gtk.ProgressBar();progress.set_no_show_all(True);body.pack_start(progress,False,False,0)
         status=text('','status',95);status.set_selectable(True);body.pack_start(status,False,False,0)
         def paint(event):
@@ -118,13 +148,15 @@ class ToolboxMixin:
             if not state['alive']:return False
             if isinstance(error,Cancelled):status.set_text('Cancelado. No se modificó nada.')
             elif error:status.set_text(str(error))
-            else:status.set_text(f"{result['path']}\n{result['files']} archivos · {result['size']/1024**3:.1f} GB\nListo.");self.toast('ISO extraída');on_done and on_done(result['path'])
+            else:
+                heading=summary(result) if summary else ''
+                status.set_text((heading+'\n' if heading else '')+f"{result['path']}\n{result['files']} archivos · {result['size']/1024**3:.1f} GB\nListo.");self.toast(done_toast);on_done and on_done(result['path'])
             refresh();return False
         def run_extract(_):
             if state['busy']:return
             source,root=pathlib.Path(state['iso']),pathlib.Path(state['root']).expanduser();cancel=threading.Event();state.update(busy=True,cancel=cancel);progress.set_no_show_all(False);progress.show();progress.set_fraction(0);status.set_text('Preparando…');refresh()
             def work():
-                try:GLib.idle_add(finish,extract_folder(source,root,lambda event:GLib.idle_add(paint,event),cancel),None)
+                try:GLib.idle_add(finish,extractor(source,root,lambda event:GLib.idle_add(paint,event),cancel),None)
                 except Exception as error:GLib.idle_add(finish,None,error)
             threading.Thread(target=work,daemon=True).start()
         actions=page.get_action_area()
